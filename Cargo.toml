@@ -23,9 +23,9 @@ path = "bzip2recover.rs"
 
 [workspace.dependencies]
 libc = "0.2"
-libbzip2-rs-sys = { path = "libbzip2-rs-sys/" }
+libbzip2-rs-sys = { path = "libbzip2-rs-sys/", default-features = false }
 
 
 [dependencies]
 libc = "0.2"
-libbzip2-rs-sys = { path = "libbzip2-rs-sys/" }
+libbzip2-rs-sys = { path = "libbzip2-rs-sys/", default-features = false }

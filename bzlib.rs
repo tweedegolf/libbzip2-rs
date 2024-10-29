@@ -13,15 +13,51 @@ extern "C" {
     static stdout: *mut FILE;
 }
 
-macro_rules! version {
-    () => {
-        "1.1.0"
+#[cfg(feature = "custom-prefix")]
+macro_rules! prefix {
+    ($name:expr) => {
+        concat!(env!("LIBBZIP2_RS_SYS_PREFIX"), stringify!($name))
     };
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn BZ2_bzlibVersion() -> *const libc::c_char {
-    concat!(version!(), "\0").as_ptr().cast()
+#[cfg(all(
+    not(feature = "custom-prefix"),
+    not(any(test, feature = "testing-prefix"))
+))]
+macro_rules! prefix {
+    ($name:expr) => {
+        stringify!($name)
+    };
+}
+
+#[cfg(all(not(feature = "custom-prefix"), any(test, feature = "testing-prefix")))]
+macro_rules! prefix {
+    ($name:expr) => {
+        concat!("LIBBZIP2_RS_SYS_TEST_", stringify!($name))
+    };
+}
+
+macro_rules! libbzip2_rs_sys_version {
+    () => {
+        concat!("1.1.0-libbzip2-rs-sys-", env!("CARGO_PKG_VERSION"))
+    };
+}
+
+const LIBBZIP2_RS_SYS_VERSION: &str = concat!(libbzip2_rs_sys_version!(), "\0");
+
+/// The version of the zlib library.
+///
+/// Its value is a pointer to a NULL-terminated sequence of bytes.
+///
+/// The version string for this release is `
+#[doc = libbzip2_rs_sys_version!()]
+/// `:
+///
+/// - The first component is the version of stock zlib that this release is compatible with
+/// - The final component is the zlib-rs version used to build this release.
+#[export_name = prefix!(BZ2_bzlibVersion)]
+pub unsafe extern "C" fn BZ2_bzlibVersion() -> *const core::ffi::c_char {
+    LIBBZIP2_RS_SYS_VERSION.as_ptr().cast::<core::ffi::c_char>()
 }
 
 #[allow(non_camel_case_types)]
@@ -169,14 +205,50 @@ pub struct bzFile {
 }
 pub fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
     eprint!(
-        "\n\nbzip2/libbzip2: internal error number {}.\nThis is a bug in bzip2/libbzip2, {}.\nPlease report it at: https://gitlab.com/bzip2/bzip2/-/issues\nIf this happened when you were using some program which uses\nlibbzip2 as a component, you should also report this bug to\nthe author(s) of that program.\nPlease make an effort to report this bug;\ntimely and accurate bug reports eventually lead to higher\nquality software.  Thanks.\n\n",
+        concat!(
+            "\n",
+            "\n",
+            "bzip2/libbzip2: internal error number {}.\n",
+            "This is a bug in bzip2/libbzip2, {}.\n",
+            "Please report it at: https://gitlab.com/bzip2/bzip2/-/issues\n",
+            "If this happened when you were using some program which uses\n",
+            "libbzip2 as a component, you should also report this bug to\n",
+            "the author(s) of that program.\n",
+            "Please make an effort to report this bug;\n",
+            "timely and accurate bug reports eventually lead to higher\n",
+            "quality software.  Thanks.\n",
+            "\n"
+        ),
         errcode,
-        version!()
+        libbzip2_rs_sys_version!(),
     );
     if errcode == 1007 as libc::c_int {
-        eprint!(
-            "\n*** A special note about internal error number 1007 ***\n\nExperience suggests that a common cause of i.e. 1007\nis unreliable memory or other hardware.  The 1007 assertion\njust happens to cross-check the results of huge numbers of\nmemory reads/writes, and so acts (unintendedly) as a stress\ntest of your memory system.\n\nI suggest the following: try compressing the file again,\npossibly monitoring progress in detail with the -vv flag.\n\n* If the error cannot be reproduced, and/or happens at different\n  points in compression, you may have a flaky memory system.\n  Try a memory-test program.  I have used Memtest86\n  (www.memtest86.com).  At the time of writing it is free (GPLd).\n  Memtest86 tests memory much more thorougly than your BIOSs\n  power-on test, and may find failures that the BIOS doesn't.\n\n* If the error can be repeatably reproduced, this is a bug in\n  bzip2, and I would very much like to hear about it.  Please\n  let me know, and, ideally, save a copy of the file causing the\n  problem -- without which I will be unable to investigate it.\n\n"
-        );
+        eprint!(concat!(
+            "\n",
+            "*** A special note about internal error number 1007 ***\n",
+            "\n",
+            "Experience suggests that a common cause of i.e. 1007\n",
+            "is unreliable memory or other hardware.  The 1007 assertion\n",
+            "just happens to cross-check the results of huge numbers of\n",
+            "memory reads/writes, and so acts (unintendedly) as a stress\n",
+            "test of your memory system.\n",
+            "\n",
+            "I suggest the following: try compressing the file again,\n",
+            "possibly monitoring progress in detail with the -vv flag.\n",
+            "\n",
+            "* If the error cannot be reproduced, and/or happens at different\n",
+            "  points in compression, you may have a flaky memory system.\n",
+            "  Try a memory-test program.  I have used Memtest86\n",
+            "  (www.memtest86.com).  At the time of writing it is free (GPLd).\n",
+            "  Memtest86 tests memory much more thorougly than your BIOSs\n",
+            "  power-on test, and may find failures that the BIOS doesn't.\n",
+            "\n",
+            "* If the error can be repeatably reproduced, this is a bug in\n",
+            "  bzip2, and I would very much like to hear about it.  Please\n",
+            "  let me know, and, ideally, save a copy of the file causing the\n",
+            "  problem -- without which I will be unable to investigate it.\n",
+            "\n"
+        ));
     }
     unsafe {
         exit(3 as libc::c_int);

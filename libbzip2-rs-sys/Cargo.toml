@@ -9,5 +9,12 @@ path = "../c2rust-lib.rs"
 crate-type = ["staticlib", "rlib"]
 
 
+[features]
+default = ["std"]
+std = []
+custom-prefix = [] # use the LIBBZIP2_RS_SYS_PREFIX to prefix all exported symbols
+testing-prefix = [] # prefix all symbols with LIBBZIP2_RS_SYS_TEST_ for testing
+
+
 [dependencies]
 libc = "0.2"
