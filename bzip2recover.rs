@@ -10,28 +10,16 @@ use bzip2 as _;
 
 use ::libc;
 use libc::{fprintf, FILE};
+
+use libc::{
+    __errno_location, close, exit, fclose, fdopen, fflush, fopen, free, malloc, open, perror,
+    sprintf, strcat, strcpy, strlen, strncpy, strrchr,
+};
+
 extern "C" {
-    fn open(__file: *const libc::c_char, __oflag: libc::c_int, _: ...) -> libc::c_int;
-    fn close(__fd: libc::c_int) -> libc::c_int;
     static mut stderr: *mut FILE;
-    fn fclose(__stream: *mut FILE) -> libc::c_int;
-    fn fflush(__stream: *mut FILE) -> libc::c_int;
-    fn fopen(_: *const libc::c_char, _: *const libc::c_char) -> *mut FILE;
-    fn fdopen(__fd: libc::c_int, __modes: *const libc::c_char) -> *mut FILE;
-    fn sprintf(_: *mut libc::c_char, _: *const libc::c_char, _: ...) -> libc::c_int;
     fn getc(__stream: *mut FILE) -> libc::c_int;
     fn putc(__c: libc::c_int, __stream: *mut FILE) -> libc::c_int;
-    fn perror(__s: *const libc::c_char);
-    fn __errno_location() -> *mut libc::c_int;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn exit(_: libc::c_int) -> !;
-    fn strcpy(_: *mut libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
-    fn strncpy(_: *mut libc::c_char, _: *const libc::c_char, _: libc::c_ulong)
-        -> *mut libc::c_char;
-    fn strcat(_: *mut libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
-    fn strrchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
 }
 pub type __off_t = libc::c_long;
 pub type __off64_t = libc::c_long;
@@ -129,8 +117,7 @@ unsafe extern "C" fn tooManyBlocks(mut max_handled_blocks: Int32) {
     exit(1 as libc::c_int);
 }
 unsafe extern "C" fn bsOpenReadStream(mut stream: *mut FILE) -> *mut BitStream {
-    let mut bs: *mut BitStream =
-        malloc(::core::mem::size_of::<BitStream>() as libc::c_ulong) as *mut BitStream;
+    let mut bs: *mut BitStream = malloc(::core::mem::size_of::<BitStream>()) as *mut BitStream;
     if bs.is_null() {
         mallocFail(::core::mem::size_of::<BitStream>() as libc::c_ulong as Int32);
     }
@@ -141,8 +128,7 @@ unsafe extern "C" fn bsOpenReadStream(mut stream: *mut FILE) -> *mut BitStream {
     return bs;
 }
 unsafe extern "C" fn bsOpenWriteStream(mut stream: *mut FILE) -> *mut BitStream {
-    let mut bs: *mut BitStream =
-        malloc(::core::mem::size_of::<BitStream>() as libc::c_ulong) as *mut BitStream;
+    let mut bs: *mut BitStream = malloc(::core::mem::size_of::<BitStream>()) as *mut BitStream;
     if bs.is_null() {
         mallocFail(::core::mem::size_of::<BitStream>() as libc::c_ulong as Int32);
     }
@@ -288,7 +274,7 @@ unsafe fn main_0(mut argc: Int32, mut argv: *mut *mut Char) -> Int32 {
     strncpy(
         progName.as_mut_ptr(),
         *argv.offset(0 as libc::c_int as isize),
-        (2000 as libc::c_int - 1 as libc::c_int) as libc::c_ulong,
+        (2000 as libc::c_int - 1 as libc::c_int) as usize,
     );
     progName[(2000 as libc::c_int - 1 as libc::c_int) as usize] = '\0' as i32 as Char;
     outFileName[0 as libc::c_int as usize] = 0 as libc::c_int as Char;
@@ -336,7 +322,7 @@ unsafe fn main_0(mut argc: Int32, mut argv: *mut *mut Char) -> Int32 {
         exit(1 as libc::c_int);
     }
     if strlen(*argv.offset(1 as libc::c_int as isize))
-        >= (2000 as libc::c_int - 20 as libc::c_int) as libc::c_ulong
+        >= (2000 as libc::c_int - 20 as libc::c_int) as usize
     {
         fprintf(
             stderr,

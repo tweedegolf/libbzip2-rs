@@ -1,7 +1,5 @@
+use crate::bzlib::BZ2_bz__AssertH__fail;
 use ::libc;
-extern "C" {
-    fn BZ2_bz__AssertH__fail(errcode: libc::c_int);
-}
 pub type Bool = libc::c_uchar;
 pub type UChar = libc::c_uchar;
 pub type Int32 = libc::c_int;

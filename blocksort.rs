@@ -1,79 +1,7 @@
 use ::libc;
-use libc::{fprintf, FILE};
-extern "C" {
-    static stderr: *mut FILE;
-    fn BZ2_bz__AssertH__fail(errcode: libc::c_int);
-}
-pub type size_t = libc::c_ulong;
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
-pub type _IO_lock_t = ();
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct bz_stream {
-    pub next_in: *mut libc::c_char,
-    pub avail_in: libc::c_uint,
-    pub total_in_lo32: libc::c_uint,
-    pub total_in_hi32: libc::c_uint,
-    pub next_out: *mut libc::c_char,
-    pub avail_out: libc::c_uint,
-    pub total_out_lo32: libc::c_uint,
-    pub total_out_hi32: libc::c_uint,
-    pub state: *mut libc::c_void,
-    pub bzalloc: Option<
-        unsafe extern "C" fn(*mut libc::c_void, libc::c_int, libc::c_int) -> *mut libc::c_void,
-    >,
-    pub bzfree: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>,
-    pub opaque: *mut libc::c_void,
-}
-pub type Bool = libc::c_uchar;
-pub type UChar = libc::c_uchar;
-pub type Int32 = libc::c_int;
-pub type UInt32 = libc::c_uint;
-pub type UInt16 = libc::c_ushort;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct EState {
-    pub strm: *mut bz_stream,
-    pub mode: Int32,
-    pub state: Int32,
-    pub avail_in_expect: UInt32,
-    pub arr1: *mut UInt32,
-    pub arr2: *mut UInt32,
-    pub ftab: *mut UInt32,
-    pub origPtr: Int32,
-    pub ptr: *mut UInt32,
-    pub block: *mut UChar,
-    pub mtfv: *mut UInt16,
-    pub zbits: *mut UChar,
-    pub workFactor: Int32,
-    pub state_in_ch: UInt32,
-    pub state_in_len: Int32,
-    pub rNToGo: Int32,
-    pub rTPos: Int32,
-    pub nblock: Int32,
-    pub nblockMAX: Int32,
-    pub numZ: Int32,
-    pub state_out_pos: Int32,
-    pub nInUse: Int32,
-    pub inUse: [Bool; 256],
-    pub unseqToSeq: [UChar; 256],
-    pub bsBuff: UInt32,
-    pub bsLive: Int32,
-    pub blockCRC: UInt32,
-    pub combinedCRC: UInt32,
-    pub verbosity: Int32,
-    pub blockNo: Int32,
-    pub blockSize100k: Int32,
-    pub nMTF: Int32,
-    pub mtfFreq: [Int32; 258],
-    pub selector: [UChar; 18002],
-    pub selectorMtf: [UChar; 18002],
-    pub len: [[UChar; 258]; 6],
-    pub code: [[Int32; 258]; 6],
-    pub rfreq: [[Int32; 258]; 6],
-    pub len_pack: [[UInt32; 4]; 258],
-}
+
+use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState, Int32, UChar, UInt16, UInt32};
+
 #[inline]
 unsafe extern "C" fn fallbackSimpleSort(
     mut fmap: *mut UInt32,
@@ -285,10 +213,7 @@ unsafe extern "C" fn fallbackSort(
     let mut nBhtab: Int32 = 0;
     let mut eclass8: *mut UChar = eclass as *mut UChar;
     if verb >= 4 as libc::c_int {
-        fprintf(
-            stderr,
-            b"        bucket sorting ...\n\0" as *const u8 as *const libc::c_char,
-        );
+        eprintln!("        bucket sorting ...");
     }
     i = 0 as libc::c_int;
     while i < 257 as libc::c_int {
@@ -347,11 +272,7 @@ unsafe extern "C" fn fallbackSort(
     H = 1 as libc::c_int;
     loop {
         if verb >= 4 as libc::c_int {
-            fprintf(
-                stderr,
-                b"        depth %6d has \0" as *const u8 as *const libc::c_char,
-                H,
-            );
+            eprint!("        depth {:>6} has ", H);
         }
         j = 0 as libc::c_int;
         i = 0 as libc::c_int;
@@ -443,11 +364,7 @@ unsafe extern "C" fn fallbackSort(
             }
         }
         if verb >= 4 as libc::c_int {
-            fprintf(
-                stderr,
-                b"%6d unresolved strings\n\0" as *const u8 as *const libc::c_char,
-                nNotDone,
-            );
+            eprintln!("{:>6} unresolved strings", nNotDone);
         }
         H *= 2 as libc::c_int;
         if H > nblock || nNotDone == 0 as libc::c_int {
@@ -455,10 +372,7 @@ unsafe extern "C" fn fallbackSort(
         }
     }
     if verb >= 4 as libc::c_int {
-        fprintf(
-            stderr,
-            b"        reconstructing block ...\n\0" as *const u8 as *const libc::c_char,
-        );
+        eprintln!("        reconstructing block ...");
     }
     j = 0 as libc::c_int;
     i = 0 as libc::c_int;
@@ -1060,10 +974,7 @@ unsafe extern "C" fn mainSort(
     let mut numQSorted: Int32 = 0;
     let mut s: UInt16 = 0;
     if verb >= 4 as libc::c_int {
-        fprintf(
-            stderr,
-            b"        main sort initialise ...\n\0" as *const u8 as *const libc::c_char,
-        );
+        eprintln!("        main sort initialise ...");
     }
     i = 65536 as libc::c_int;
     while i >= 0 as libc::c_int {
@@ -1113,10 +1024,7 @@ unsafe extern "C" fn mainSort(
         i += 1;
     }
     if verb >= 4 as libc::c_int {
-        fprintf(
-            stderr,
-            b"        bucket sorting ...\n\0" as *const u8 as *const libc::c_char,
-        );
+        eprintln!("        bucket sorting ...");
     }
     i = 1 as libc::c_int;
     while i <= 65536 as libc::c_int {
@@ -1224,10 +1132,8 @@ unsafe extern "C" fn mainSort(
                         as Int32;
                     if hi > lo {
                         if verb >= 4 as libc::c_int {
-                            fprintf(
-                                stderr,
-                                b"        qsort [0x%x, 0x%x]   done %d   this %d\n\0" as *const u8
-                                    as *const libc::c_char,
+                            eprintln!(
+                                "        qsort [{:#x}, {:#x}]   done {}   this {}",
                                 ss,
                                 j,
                                 numQSorted,
@@ -1344,9 +1250,8 @@ unsafe extern "C" fn mainSort(
         i += 1;
     }
     if verb >= 4 as libc::c_int {
-        fprintf(
-            stderr,
-            b"        %d pointers, %d sorted, %d scanned\n\0" as *const u8 as *const libc::c_char,
+        eprintln!(
+            "        {} pointers, {} sorted, {} scanned",
             nblock,
             numQSorted,
             nblock - numQSorted,
@@ -1383,9 +1288,8 @@ pub unsafe extern "C" fn BZ2_blockSort(mut s: *mut EState) {
         budget = budgetInit;
         mainSort(ptr, block, quadrant, ftab, nblock, verb, &mut budget);
         if verb >= 3 as libc::c_int {
-            fprintf(
-                stderr,
-                b"      %d work, %d block, ratio %5.2f\n\0" as *const u8 as *const libc::c_char,
+            eprintln!(
+                "      {} work, {} block, ratio {:5.2}",
                 budgetInit - budget,
                 nblock,
                 ((budgetInit - budget) as libc::c_float
@@ -1398,11 +1302,7 @@ pub unsafe extern "C" fn BZ2_blockSort(mut s: *mut EState) {
         }
         if budget < 0 as libc::c_int {
             if verb >= 2 as libc::c_int {
-                fprintf(
-                    stderr,
-                    b"    too repetitive; using fallback sorting algorithm\n\0" as *const u8
-                        as *const libc::c_char,
-                );
+                eprintln!("    too repetitive; using fallback sorting algorithm");
             }
             fallbackSort((*s).arr1, (*s).arr2, ftab, nblock, verb);
         }

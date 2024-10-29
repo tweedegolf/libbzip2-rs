@@ -6,7 +6,10 @@
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
 
-use bzip2 as _;
+use bzip2::bzlib::{
+    BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
+    BZ2_bzWriteClose64, BZ2_bzWriteOpen, BZ2_bzlibVersion,
+};
 
 use ::libc;
 use libc::{
@@ -21,50 +24,6 @@ extern "C" {
     static mut stdout: *mut FILE;
     static mut stderr: *mut FILE;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
-    fn BZ2_bzReadOpen(
-        bzerror: *mut libc::c_int,
-        f: *mut FILE,
-        verbosity_0: libc::c_int,
-        small: libc::c_int,
-        unused: *mut libc::c_void,
-        nUnused: libc::c_int,
-    ) -> *mut libc::c_void;
-    fn BZ2_bzReadClose(bzerror: *mut libc::c_int, b: *mut libc::c_void);
-    fn BZ2_bzReadGetUnused(
-        bzerror: *mut libc::c_int,
-        b: *mut libc::c_void,
-        unused: *mut *mut libc::c_void,
-        nUnused: *mut libc::c_int,
-    );
-    fn BZ2_bzRead(
-        bzerror: *mut libc::c_int,
-        b: *mut libc::c_void,
-        buf: *mut libc::c_void,
-        len: libc::c_int,
-    ) -> libc::c_int;
-    fn BZ2_bzWriteOpen(
-        bzerror: *mut libc::c_int,
-        f: *mut FILE,
-        blockSize100k_0: libc::c_int,
-        verbosity_0: libc::c_int,
-        workFactor_0: libc::c_int,
-    ) -> *mut libc::c_void;
-    fn BZ2_bzWrite(
-        bzerror: *mut libc::c_int,
-        b: *mut libc::c_void,
-        buf: *mut libc::c_void,
-        len: libc::c_int,
-    );
-    fn BZ2_bzWriteClose64(
-        bzerror: *mut libc::c_int,
-        b: *mut libc::c_void,
-        abandon: libc::c_int,
-        nbytes_in_lo32: *mut libc::c_uint,
-        nbytes_in_hi32: *mut libc::c_uint,
-        nbytes_out_lo32: *mut libc::c_uint,
-        nbytes_out_hi32: *mut libc::c_uint,
-    );
-    fn BZ2_bzlibVersion() -> *const libc::c_char;
     fn stat(__file: *const libc::c_char, __buf: *mut stat) -> libc::c_int;
     fn lstat(__file: *const libc::c_char, __buf: *mut stat) -> libc::c_int;
 }
