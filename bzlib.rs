@@ -82,6 +82,26 @@ pub struct bz_stream {
     pub bzfree: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>,
     pub opaque: *mut libc::c_void,
 }
+
+impl bz_stream {
+    pub const fn zeroed() -> Self {
+        Self {
+            next_in: std::ptr::null_mut::<libc::c_char>(),
+            avail_in: 0,
+            total_in_lo32: 0,
+            total_in_hi32: 0,
+            next_out: std::ptr::null_mut::<libc::c_char>(),
+            avail_out: 0,
+            total_out_lo32: 0,
+            total_out_hi32: 0,
+            state: std::ptr::null_mut::<libc::c_void>(),
+            bzalloc: None,
+            bzfree: None,
+            opaque: std::ptr::null_mut::<libc::c_void>(),
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct EState {
@@ -2259,20 +2279,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     verbosity: libc::c_int,
     mut workFactor: libc::c_int,
 ) -> libc::c_int {
-    let mut strm: bz_stream = bz_stream {
-        next_in: std::ptr::null_mut::<libc::c_char>(),
-        avail_in: 0,
-        total_in_lo32: 0,
-        total_in_hi32: 0,
-        next_out: std::ptr::null_mut::<libc::c_char>(),
-        avail_out: 0,
-        total_out_lo32: 0,
-        total_out_hi32: 0,
-        state: std::ptr::null_mut::<libc::c_void>(),
-        bzalloc: None,
-        bzfree: None,
-        opaque: std::ptr::null_mut::<libc::c_void>(),
-    };
+    let mut strm: bz_stream = bz_stream::zeroed();
     let mut ret: libc::c_int;
     if dest.is_null()
         || destLen.is_null()
@@ -2322,20 +2329,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     small: libc::c_int,
     verbosity: libc::c_int,
 ) -> libc::c_int {
-    let mut strm: bz_stream = bz_stream {
-        next_in: std::ptr::null_mut::<libc::c_char>(),
-        avail_in: 0,
-        total_in_lo32: 0,
-        total_in_hi32: 0,
-        next_out: std::ptr::null_mut::<libc::c_char>(),
-        avail_out: 0,
-        total_out_lo32: 0,
-        total_out_hi32: 0,
-        state: std::ptr::null_mut::<libc::c_void>(),
-        bzalloc: None,
-        bzfree: None,
-        opaque: std::ptr::null_mut::<libc::c_void>(),
-    };
+    let mut strm: bz_stream = bz_stream::zeroed();
     let mut ret: libc::c_int;
     if dest.is_null()
         || destLen.is_null()
