@@ -6,8 +6,6 @@
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
 
-use bzip2 as _;
-
 use ::libc;
 use libc::{fprintf, FILE};
 
@@ -113,7 +111,7 @@ unsafe extern "C" fn tooManyBlocks(mut max_handled_blocks: i32) {
     exit(1 as libc::c_int);
 }
 unsafe extern "C" fn bsOpenReadStream(mut stream: *mut FILE) -> *mut BitStream {
-    let mut bs: *mut BitStream = malloc(::core::mem::size_of::<BitStream>()) as *mut BitStream;
+    let mut bs: *mut BitStream = malloc(core::mem::size_of::<BitStream>()) as *mut BitStream;
     if bs.is_null() {
         mallocFail(::core::mem::size_of::<BitStream>() as libc::c_ulong as i32);
     }
@@ -124,7 +122,7 @@ unsafe extern "C" fn bsOpenReadStream(mut stream: *mut FILE) -> *mut BitStream {
     return bs;
 }
 unsafe extern "C" fn bsOpenWriteStream(mut stream: *mut FILE) -> *mut BitStream {
-    let mut bs: *mut BitStream = malloc(::core::mem::size_of::<BitStream>()) as *mut BitStream;
+    let mut bs: *mut BitStream = malloc(core::mem::size_of::<BitStream>()) as *mut BitStream;
     if bs.is_null() {
         mallocFail(::core::mem::size_of::<BitStream>() as libc::c_ulong as i32);
     }
@@ -287,7 +285,7 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
             progName.as_mut_ptr(),
             progName.as_mut_ptr(),
         );
-        match ::core::mem::size_of::<MaybeUInt64>() as libc::c_ulong {
+        match core::mem::size_of::<MaybeUInt64>() as libc::c_ulong {
             8 => {
                 fprintf(
                     stderr,
@@ -578,7 +576,7 @@ pub fn main() {
                 .into_raw(),
         );
     }
-    args.push(::core::ptr::null_mut());
+    args.push(core::ptr::null_mut());
     unsafe {
         ::std::process::exit(
             main_0((args.len() - 1) as i32, args.as_mut_ptr() as *mut *mut i8) as i32,

@@ -1,0 +1,16 @@
+[package]
+name = "test-libbzip2-rs-sys"
+readme = "README.md"
+# description.workspace = true
+# version.workspace = true
+edition.workspace = true
+# license.workspace = true
+# repository.workspace = true
+# homepage.workspace = true
+# publish.workspace = true
+# rust-version.workspace = true
+
+[dependencies]
+bzip2-sys = { version = "0.1.11", features = ["static"] }
+libbzip2-rs-sys = { workspace = true }
+libc.workspace = true

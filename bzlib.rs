@@ -205,15 +205,13 @@ pub unsafe extern "C" fn BZ2_bz__AssertH__fail(mut errcode: libc::c_int) {
     exit(3 as libc::c_int);
 }
 unsafe extern "C" fn bz_config_ok() -> libc::c_int {
-    if ::core::mem::size_of::<libc::c_int>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong {
+    if core::mem::size_of::<libc::c_int>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong {
         return 0 as libc::c_int;
     }
-    if ::core::mem::size_of::<libc::c_short>() as libc::c_ulong != 2 as libc::c_int as libc::c_ulong
-    {
+    if core::mem::size_of::<libc::c_short>() as libc::c_ulong != 2 as libc::c_int as libc::c_ulong {
         return 0 as libc::c_int;
     }
-    if ::core::mem::size_of::<libc::c_char>() as libc::c_ulong != 1 as libc::c_int as libc::c_ulong
-    {
+    if core::mem::size_of::<libc::c_char>() as libc::c_ulong != 1 as libc::c_int as libc::c_ulong {
         return 0 as libc::c_int;
     }
     1 as libc::c_int
@@ -293,7 +291,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     }
     s = ((*strm).bzalloc).expect("non-null function pointer")(
         (*strm).opaque,
-        ::core::mem::size_of::<EState>() as libc::c_ulong as libc::c_int,
+        core::mem::size_of::<EState>() as libc::c_ulong as libc::c_int,
         1 as libc::c_int,
     ) as *mut EState;
     if s.is_null() {
@@ -742,7 +740,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     }
     s = ((*strm).bzalloc).expect("non-null function pointer")(
         (*strm).opaque,
-        ::core::mem::size_of::<DState>() as libc::c_ulong as libc::c_int,
+        core::mem::size_of::<DState>() as libc::c_ulong as libc::c_int,
         1 as libc::c_int,
     ) as *mut DState;
     if s.is_null() {
@@ -1646,7 +1644,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
-    bzf = malloc(::core::mem::size_of::<bzFile>() as libc::size_t) as *mut bzFile;
+    bzf = malloc(core::mem::size_of::<bzFile>() as libc::size_t) as *mut bzFile;
     if bzf.is_null() {
         if !bzerror.is_null() {
             *bzerror = -3 as libc::c_int;
@@ -1966,7 +1964,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
-    bzf = malloc(::core::mem::size_of::<bzFile>() as libc::size_t) as *mut bzFile;
+    bzf = malloc(core::mem::size_of::<bzFile>() as libc::size_t) as *mut bzFile;
     if bzf.is_null() {
         if !bzerror.is_null() {
             *bzerror = -3 as libc::c_int;
@@ -2345,7 +2343,7 @@ unsafe extern "C" fn bzopen_or_bzdopen(
     let mut blockSize100k: libc::c_int = 9 as libc::c_int;
     let mut writing: libc::c_int = 0 as libc::c_int;
     let mut mode2: [libc::c_char; 10] =
-        *::core::mem::transmute::<&[u8; 10], &mut [libc::c_char; 10]>(b"\0\0\0\0\0\0\0\0\0\0");
+        *core::mem::transmute::<&[u8; 10], &mut [libc::c_char; 10]>(b"\0\0\0\0\0\0\0\0\0\0");
     let mut fp: *mut FILE = std::ptr::null_mut::<FILE>();
     let mut bzfp: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
     let mut verbosity: libc::c_int = 0 as libc::c_int;
