@@ -303,8 +303,7 @@ unsafe extern "C" fn prepare_new_block(mut s: *mut EState) {
     while i < 256 as libc::c_int {
         (*s).inUse[i as usize] = 0 as libc::c_int as Bool;
         i += 1;
-        i;
-    }
+        }
     (*s).blockNo += 1;
     (*s).blockNo;
 }
@@ -469,8 +468,7 @@ unsafe extern "C" fn add_pair_to_block(mut s: *mut EState) {
             ^ BZ2_crc32Table[((*s).blockCRC >> 24 as libc::c_int ^ ch as libc::c_uint)
                 as usize];
         i += 1;
-        i;
-    }
+        }
     (*s).inUse[(*s).state_in_ch as usize] = 1 as libc::c_int as Bool;
     match (*s).state_in_len {
         1 => {
@@ -1110,12 +1108,9 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(mut s: *mut DState) -> Bool {
                         ^ BZ2_crc32Table[(c_calculatedBlockCRC >> 24 as libc::c_int
                             ^ c_state_out_ch as libc::c_uint) as usize];
                     c_state_out_len -= 1;
-                    c_state_out_len;
                     cs_next_out = cs_next_out.offset(1);
-                    cs_next_out;
                     cs_avail_out = cs_avail_out.wrapping_sub(1);
-                    cs_avail_out;
-                }
+                    }
                 current_block = 1417769144978639029;
             } else {
                 current_block = 14483658890531361756;
@@ -1133,9 +1128,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(mut s: *mut DState) -> Bool {
                                 ^ BZ2_crc32Table[(c_calculatedBlockCRC >> 24 as libc::c_int
                                     ^ c_state_out_ch as libc::c_uint) as usize];
                             cs_next_out = cs_next_out.offset(1);
-                            cs_next_out;
                             cs_avail_out = cs_avail_out.wrapping_sub(1);
-                            cs_avail_out;
                             current_block = 14483658890531361756;
                         }
                     }
@@ -1158,7 +1151,6 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(mut s: *mut DState) -> Bool {
                             k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as UChar;
                             c_tPos >>= 8 as libc::c_int;
                             c_nblock_used += 1;
-                            c_nblock_used;
                             if k1 as libc::c_int != c_k0 {
                                 c_k0 = k1 as Int32;
                                 current_block = 1417769144978639029;
@@ -1179,7 +1171,6 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(mut s: *mut DState) -> Bool {
                                     as UChar;
                                 c_tPos >>= 8 as libc::c_int;
                                 c_nblock_used += 1;
-                                c_nblock_used;
                                 if c_nblock_used == s_save_nblockPP {
                                     continue 's_453;
                                 }
@@ -1211,7 +1202,6 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(mut s: *mut DState) -> Bool {
                     k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as UChar;
                     c_tPos >>= 8 as libc::c_int;
                     c_nblock_used += 1;
-                    c_nblock_used;
                     if c_nblock_used == s_save_nblockPP {
                         continue;
                     }
@@ -1228,7 +1218,6 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(mut s: *mut DState) -> Bool {
                         k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as UChar;
                         c_tPos >>= 8 as libc::c_int;
                         c_nblock_used += 1;
-                        c_nblock_used;
                         c_state_out_len = k1 as Int32 + 4 as libc::c_int;
                         if c_tPos
                             >= (100000 as libc::c_int as UInt32)
@@ -1241,8 +1230,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(mut s: *mut DState) -> Bool {
                             as Int32;
                         c_tPos >>= 8 as libc::c_int;
                         c_nblock_used += 1;
-                        c_nblock_used;
-                    }
+                        }
                 }
             }
         }
@@ -2189,8 +2177,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         unused = (unused as *mut UChar).offset(1 as libc::c_int as isize)
             as *mut libc::c_void;
         nUnused -= 1;
-        nUnused;
-    }
+        }
     ret = BZ2_bzDecompressInit(&mut (*bzf).strm, verbosity, small);
     if ret != 0 as libc::c_int {
         if !bzerror.is_null() {
@@ -2573,8 +2560,7 @@ unsafe extern "C" fn bzopen_or_bzdopen(
             }
         }
         mode = mode.offset(1);
-        mode;
-    }
+        }
     strcat(
         mode2.as_mut_ptr(),
         if writing != 0 {

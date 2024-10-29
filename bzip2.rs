@@ -325,8 +325,7 @@ unsafe extern "C" fn uInt64_to_double(mut n: *mut UInt64) -> libc::c_double {
         sum += base * (*n).b[i as usize] as libc::c_double;
         base *= 256.0f64;
         i += 1;
-        i;
-    }
+        }
     return sum;
 }
 unsafe extern "C" fn uInt64_isZero(mut n: *mut UInt64) -> Bool {
@@ -337,8 +336,7 @@ unsafe extern "C" fn uInt64_isZero(mut n: *mut UInt64) -> Bool {
             return 0 as libc::c_int as Bool;
         }
         i += 1;
-        i;
-    }
+        }
     return 1 as libc::c_int as Bool;
 }
 unsafe extern "C" fn uInt64_qrm10(mut n: *mut UInt64) -> Int32 {
@@ -356,8 +354,7 @@ unsafe extern "C" fn uInt64_qrm10(mut n: *mut UInt64) -> Int32 {
             as usize] = tmp.wrapping_div(10 as libc::c_int as libc::c_uint) as UChar;
         rem = tmp.wrapping_rem(10 as libc::c_int as libc::c_uint);
         i -= 1;
-        i;
-    }
+        }
     return rem as Int32;
 }
 unsafe extern "C" fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut UInt64) {
@@ -370,7 +367,6 @@ unsafe extern "C" fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut U
         q = uInt64_qrm10(&mut n_copy);
         buf[nBuf as usize] = (q + '0' as i32) as UChar;
         nBuf += 1;
-        nBuf;
         if !(uInt64_isZero(&mut n_copy) == 0) {
             break;
         }
@@ -383,8 +379,7 @@ unsafe extern "C" fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut U
                 i as isize,
             ) = buf[(nBuf - i - 1 as libc::c_int) as usize] as libc::c_char;
         i += 1;
-        i;
-    }
+        }
 }
 unsafe extern "C" fn myfeof(mut f: *mut FILE) -> Bool {
     let mut c: Int32 = fgetc(f);
@@ -666,7 +661,6 @@ unsafe extern "C" fn uncompressStream(
                     break;
                 }
                 streamNo += 1;
-                streamNo;
                 while bzerr == 0 as libc::c_int {
                     nread = BZ2_bzRead(
                         &mut bzerr,
@@ -709,8 +703,7 @@ unsafe extern "C" fn uncompressStream(
                 while i < nUnused {
                     unused[i as usize] = *unusedTmp.offset(i as isize);
                     i += 1;
-                    i;
-                }
+                    }
                 BZ2_bzReadClose(&mut bzerr, bzf);
                 if bzerr != 0 as libc::c_int {
                     panic(
@@ -1143,7 +1136,6 @@ unsafe extern "C" fn testStream(mut zStream: *mut FILE) -> Bool {
                 break;
             }
             streamNo += 1;
-            streamNo;
             while bzerr == 0 as libc::c_int {
                 BZ2_bzRead(
                     &mut bzerr,
@@ -1169,8 +1161,7 @@ unsafe extern "C" fn testStream(mut zStream: *mut FILE) -> Bool {
             while i < nUnused {
                 unused[i as usize] = *unusedTmp.offset(i as isize);
                 i += 1;
-                i;
-            }
+                }
             BZ2_bzReadClose(&mut bzerr, bzf);
             if bzerr != 0 as libc::c_int {
                 panic(b"test:bzReadGetUnused\0" as *const u8 as *const libc::c_char);
@@ -1787,8 +1778,7 @@ unsafe extern "C" fn pad(mut s: *mut Char) {
     while i <= longestFileName - strlen(s) as Int32 {
         fprintf(stderr, b" \0" as *const u8 as *const libc::c_char);
         i += 1;
-        i;
-    }
+        }
 }
 unsafe extern "C" fn copyFileName(mut to: *mut Char, mut from: *mut Char) {
     if strlen(from) > (1034 as libc::c_int - 10 as libc::c_int) as libc::c_ulong {
@@ -2068,8 +2058,7 @@ unsafe extern "C" fn compress(mut name: *mut Char) {
             return;
         }
         i += 1;
-        i;
-    }
+        }
     if srcMode == 3 as libc::c_int || srcMode == 2 as libc::c_int {
         stat(inName.as_mut_ptr(), &mut statBuf);
         if statBuf.st_mode & 0o170000 as libc::c_int as libc::c_uint
@@ -2333,8 +2322,7 @@ unsafe extern "C" fn uncompress(mut name: *mut Char) {
                     break;
                 }
                 i += 1;
-                i;
-            }
+                }
             match current_block {
                 4003995367480147712 => {}
                 _ => {
@@ -2840,16 +2828,14 @@ unsafe extern "C" fn addFlagsFromEnvVar(
                 != 0
             {
                 p = p.offset(1);
-                p;
-            }
+                }
             while *p.offset(i as isize) as libc::c_int != 0 as libc::c_int
                 && *(*__ctype_b_loc()).offset(*p.offset(i as isize) as Int32 as isize)
                     as libc::c_int
                     & _ISspace as libc::c_int as libc::c_ushort as libc::c_int == 0
             {
                 i += 1;
-                i;
-            }
+                }
             if i > 0 as libc::c_int {
                 k = i;
                 if k > 1034 as libc::c_int - 10 as libc::c_int {
@@ -2859,8 +2845,7 @@ unsafe extern "C" fn addFlagsFromEnvVar(
                 while j < k {
                     tmpName[j as usize] = *p.offset(j as isize);
                     j += 1;
-                    j;
-                }
+                    }
                 tmpName[k as usize] = 0 as libc::c_int as Char;
                 *argList = snocString(*argList, tmpName.as_mut_ptr());
             }
@@ -2931,8 +2916,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
             progName = tmp.offset(1 as libc::c_int as isize);
         }
         tmp = tmp.offset(1);
-        tmp;
-    }
+        }
     argList = 0 as *mut Cell;
     addFlagsFromEnvVar(
         &mut argList,
@@ -2946,8 +2930,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
     while i <= argc - 1 as libc::c_int {
         argList = snocString(argList, *argv.offset(i as isize));
         i += 1;
-        i;
-    }
+        }
     longestFileName = 7 as libc::c_int;
     numFileNames = 0 as libc::c_int;
     decode = 1 as libc::c_int as Bool;
@@ -2961,7 +2944,6 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
             == '-' as i32 && decode as libc::c_int != 0)
         {
             numFileNames += 1;
-            numFileNames;
             if longestFileName < strlen((*aa).name) as Int32 {
                 longestFileName = strlen((*aa).name) as Int32;
             }
@@ -3062,8 +3044,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
                     }
                     118 => {
                         verbosity += 1;
-                        verbosity;
-                    }
+                        }
                     104 => {
                         usage(progName);
                         exit(0 as libc::c_int);
@@ -3080,8 +3061,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
                     }
                 }
                 j += 1;
-                j;
-            }
+                }
         }
         aa = (*aa).link;
     }
@@ -3166,8 +3146,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
             == 0 as libc::c_int
         {
             verbosity += 1;
-            verbosity;
-        } else if strcmp((*aa).name, b"--help\0" as *const u8 as *const libc::c_char)
+            } else if strcmp((*aa).name, b"--help\0" as *const u8 as *const libc::c_char)
             == 0 as libc::c_int
         {
             usage(progName);
@@ -3241,7 +3220,6 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
                     as libc::c_int == '-' as i32 && decode as libc::c_int != 0)
                 {
                     numFilesProcessed += 1;
-                    numFilesProcessed;
                     compress((*aa).name);
                 }
                 aa = (*aa).link;
@@ -3263,7 +3241,6 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
                     as libc::c_int == '-' as i32 && decode as libc::c_int != 0)
                 {
                     numFilesProcessed += 1;
-                    numFilesProcessed;
                     uncompress((*aa).name);
                 }
                 aa = (*aa).link;
@@ -3289,7 +3266,6 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
                     as libc::c_int == '-' as i32 && decode as libc::c_int != 0)
                 {
                     numFilesProcessed += 1;
-                    numFilesProcessed;
                     testf((*aa).name);
                 }
                 aa = (*aa).link;

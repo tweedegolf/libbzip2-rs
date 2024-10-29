@@ -180,8 +180,7 @@ unsafe extern "C" fn makeMaps_e(mut s: *mut EState) {
             (*s).nInUse;
         }
         i += 1;
-        i;
-    }
+        }
 }
 unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
     let mut yy: [UChar; 256] = [0; 256];
@@ -199,16 +198,14 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
     while i <= EOB {
         (*s).mtfFreq[i as usize] = 0 as libc::c_int;
         i += 1;
-        i;
-    }
+        }
     wr = 0 as libc::c_int;
     zPend = 0 as libc::c_int;
     i = 0 as libc::c_int;
     while i < (*s).nInUse {
         yy[i as usize] = i as UChar;
         i += 1;
-        i;
-    }
+        }
     i = 0 as libc::c_int;
     while i < (*s).nblock {
         let mut ll_i: UChar = 0;
@@ -220,22 +217,18 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
         ll_i = (*s).unseqToSeq[*block.offset(j as isize) as usize];
         if yy[0 as libc::c_int as usize] as libc::c_int == ll_i as libc::c_int {
             zPend += 1;
-            zPend;
-        } else {
+            } else {
             if zPend > 0 as libc::c_int {
                 zPend -= 1;
-                zPend;
                 while 1 as libc::c_int as Bool != 0 {
                     if zPend & 1 as libc::c_int != 0 {
                         *mtfv.offset(wr as isize) = 1 as libc::c_int as UInt16;
                         wr += 1;
-                        wr;
                         (*s).mtfFreq[1 as libc::c_int as usize] += 1;
                         (*s).mtfFreq[1 as libc::c_int as usize];
                     } else {
                         *mtfv.offset(wr as isize) = 0 as libc::c_int as UInt16;
                         wr += 1;
-                        wr;
                         (*s).mtfFreq[0 as libc::c_int as usize] += 1;
                         (*s).mtfFreq[0 as libc::c_int as usize];
                     }
@@ -257,7 +250,6 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
             while rll_i as libc::c_int != rtmp as libc::c_int {
                 let mut rtmp2: UChar = 0;
                 ryy_j = ryy_j.offset(1);
-                ryy_j;
                 rtmp2 = rtmp;
                 rtmp = *ryy_j;
                 *ryy_j = rtmp2;
@@ -269,27 +261,22 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
                 ) as libc::c_long as Int32;
             *mtfv.offset(wr as isize) = (j + 1 as libc::c_int) as UInt16;
             wr += 1;
-            wr;
             (*s).mtfFreq[(j + 1 as libc::c_int) as usize] += 1;
             (*s).mtfFreq[(j + 1 as libc::c_int) as usize];
         }
         i += 1;
-        i;
-    }
+        }
     if zPend > 0 as libc::c_int {
         zPend -= 1;
-        zPend;
         while 1 as libc::c_int as Bool != 0 {
             if zPend & 1 as libc::c_int != 0 {
                 *mtfv.offset(wr as isize) = 1 as libc::c_int as UInt16;
                 wr += 1;
-                wr;
                 (*s).mtfFreq[1 as libc::c_int as usize] += 1;
                 (*s).mtfFreq[1 as libc::c_int as usize];
             } else {
                 *mtfv.offset(wr as isize) = 0 as libc::c_int as UInt16;
                 wr += 1;
-                wr;
                 (*s).mtfFreq[0 as libc::c_int as usize] += 1;
                 (*s).mtfFreq[0 as libc::c_int as usize];
             }
@@ -302,7 +289,6 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
     }
     *mtfv.offset(wr as isize) = EOB as UInt16;
     wr += 1;
-    wr;
     (*s).mtfFreq[EOB as usize] += 1;
     (*s).mtfFreq[EOB as usize];
     (*s).nMTF = wr;
@@ -345,11 +331,9 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         while v < alphaSize {
             (*s).len[t as usize][v as usize] = 15 as libc::c_int as UChar;
             v += 1;
-            v;
-        }
+            }
         t += 1;
-        t;
-    }
+        }
     if (*s).nMTF <= 0 as libc::c_int {
         BZ2_bz__AssertH__fail(3001 as libc::c_int);
     }
@@ -377,7 +361,6 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         aFreq = 0 as libc::c_int;
         while aFreq < tFreq && ge < alphaSize - 1 as libc::c_int {
             ge += 1;
-            ge;
             aFreq += (*s).mtfFreq[ge as usize];
         }
         if ge > gs && nPart != nGroups && nPart != 1 as libc::c_int
@@ -385,8 +368,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         {
             aFreq -= (*s).mtfFreq[ge as usize];
             ge -= 1;
-            ge;
-        }
+            }
         if (*s).verbosity >= 3 as libc::c_int {
             fprintf(
                 stderr,
@@ -412,10 +394,8 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                     as usize][v as usize] = 15 as libc::c_int as UChar;
             }
             v += 1;
-            v;
-        }
+            }
         nPart -= 1;
-        nPart;
         gs = ge + 1 as libc::c_int;
         remF -= aFreq;
     }
@@ -425,19 +405,16 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         while t < nGroups {
             fave[t as usize] = 0 as libc::c_int;
             t += 1;
-            t;
-        }
+            }
         t = 0 as libc::c_int;
         while t < nGroups {
             v = 0 as libc::c_int;
             while v < alphaSize {
                 (*s).rfreq[t as usize][v as usize] = 0 as libc::c_int;
                 v += 1;
-                v;
-            }
+                }
             t += 1;
-            t;
-        }
+            }
         if nGroups == 6 as libc::c_int {
             v = 0 as libc::c_int;
             while v < alphaSize {
@@ -463,8 +440,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                     | (*s).len[4 as libc::c_int as usize][v as usize] as libc::c_int)
                     as UInt32;
                 v += 1;
-                v;
-            }
+                }
         }
         nSelectors = 0 as libc::c_int;
         totc = 0 as libc::c_int;
@@ -481,8 +457,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             while t < nGroups {
                 cost[t as usize] = 0 as libc::c_int as UInt16;
                 t += 1;
-                t;
-            }
+                }
             if nGroups == 6 as libc::c_int
                 && 50 as libc::c_int == ge - gs + 1 as libc::c_int
             {
@@ -1019,11 +994,9 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                             + (*s).len[t as usize][icv_0 as usize] as libc::c_int)
                             as UInt16;
                         t += 1;
-                        t;
-                    }
+                        }
                     i += 1;
-                    i;
-                }
+                    }
             }
             bc = 999999999 as libc::c_int;
             bt = -(1 as libc::c_int);
@@ -1034,14 +1007,12 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                     bt = t;
                 }
                 t += 1;
-                t;
-            }
+                }
             totc += bc;
             fave[bt as usize] += 1;
             fave[bt as usize];
             (*s).selector[nSelectors as usize] = bt as UChar;
             nSelectors += 1;
-            nSelectors;
             if nGroups == 6 as libc::c_int
                 && 50 as libc::c_int == ge - gs + 1 as libc::c_int
             {
@@ -1401,8 +1372,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                     (*s).rfreq[bt as usize][*mtfv.offset(i as isize) as usize] += 1;
                     (*s).rfreq[bt as usize][*mtfv.offset(i as isize) as usize];
                     i += 1;
-                    i;
-                }
+                    }
             }
             gs = ge + 1 as libc::c_int;
         }
@@ -1422,8 +1392,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                     fave[t as usize],
                 );
                 t += 1;
-                t;
-            }
+                }
             fprintf(stderr, b"\n\0" as *const u8 as *const libc::c_char);
         }
         t = 0 as libc::c_int;
@@ -1439,11 +1408,9 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                 17 as libc::c_int,
             );
             t += 1;
-            t;
-        }
+            }
         iter += 1;
-        iter;
-    }
+        }
     if nGroups >= 8 as libc::c_int {
         BZ2_bz__AssertH__fail(3002 as libc::c_int);
     }
@@ -1460,8 +1427,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
     while i < nGroups {
         pos[i as usize] = i as UChar;
         i += 1;
-        i;
-    }
+        }
     i = 0 as libc::c_int;
     while i < nSelectors {
         ll_i = (*s).selector[i as usize];
@@ -1469,7 +1435,6 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         tmp = pos[j as usize];
         while ll_i as libc::c_int != tmp as libc::c_int {
             j += 1;
-            j;
             tmp2 = tmp;
             tmp = pos[j as usize];
             pos[j as usize] = tmp2;
@@ -1477,8 +1442,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         pos[0 as libc::c_int as usize] = tmp;
         (*s).selectorMtf[i as usize] = j as UChar;
         i += 1;
-        i;
-    }
+        }
     t = 0 as libc::c_int;
     while t < nGroups {
         minLen = 32 as libc::c_int;
@@ -1492,8 +1456,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                 minLen = (*s).len[t as usize][i as usize] as Int32;
             }
             i += 1;
-            i;
-        }
+            }
         if maxLen > 17 as libc::c_int {
             BZ2_bz__AssertH__fail(3004 as libc::c_int);
         }
@@ -1512,8 +1475,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             alphaSize,
         );
         t += 1;
-        t;
-    }
+        }
     let mut inUse16: [Bool; 16] = [0; 16];
     i = 0 as libc::c_int;
     while i < 16 as libc::c_int {
@@ -1524,11 +1486,9 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                 inUse16[i as usize] = 1 as libc::c_int as Bool;
             }
             j += 1;
-            j;
-        }
+            }
         i += 1;
-        i;
-    }
+        }
     nBytes = (*s).numZ;
     i = 0 as libc::c_int;
     while i < 16 as libc::c_int {
@@ -1538,8 +1498,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             bsW(s, 1 as libc::c_int, 0 as libc::c_int as UInt32);
         }
         i += 1;
-        i;
-    }
+        }
     i = 0 as libc::c_int;
     while i < 16 as libc::c_int {
         if inUse16[i as usize] != 0 {
@@ -1551,12 +1510,10 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                     bsW(s, 1 as libc::c_int, 0 as libc::c_int as UInt32);
                 }
                 j += 1;
-                j;
-            }
+                }
         }
         i += 1;
-        i;
-    }
+        }
     if (*s).verbosity >= 3 as libc::c_int {
         fprintf(
             stderr,
@@ -1573,12 +1530,10 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         while j < (*s).selectorMtf[i as usize] as libc::c_int {
             bsW(s, 1 as libc::c_int, 1 as libc::c_int as UInt32);
             j += 1;
-            j;
-        }
+            }
         bsW(s, 1 as libc::c_int, 0 as libc::c_int as UInt32);
         i += 1;
-        i;
-    }
+        }
     if (*s).verbosity >= 3 as libc::c_int {
         fprintf(
             stderr,
@@ -1596,20 +1551,16 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             while curr < (*s).len[t as usize][i as usize] as libc::c_int {
                 bsW(s, 2 as libc::c_int, 2 as libc::c_int as UInt32);
                 curr += 1;
-                curr;
-            }
+                }
             while curr > (*s).len[t as usize][i as usize] as libc::c_int {
                 bsW(s, 2 as libc::c_int, 3 as libc::c_int as UInt32);
                 curr -= 1;
-                curr;
-            }
+                }
             bsW(s, 1 as libc::c_int, 0 as libc::c_int as UInt32);
             i += 1;
-            i;
-        }
+            }
         t += 1;
-        t;
-    }
+        }
     if (*s).verbosity >= 3 as libc::c_int {
         fprintf(
             stderr,
@@ -1957,13 +1908,11 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                         as usize][*mtfv.offset(i as isize) as usize] as UInt32,
                 );
                 i += 1;
-                i;
-            }
+                }
         }
         gs = ge + 1 as libc::c_int;
         selCtr += 1;
-        selCtr;
-    }
+        }
     if selCtr != nSelectors {
         BZ2_bz__AssertH__fail(3007 as libc::c_int);
     }

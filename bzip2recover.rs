@@ -209,7 +209,6 @@ unsafe extern "C" fn bsPutBit(mut bs: *mut BitStream, mut bit: Int32) {
             writeError();
         }
         bytesOut = bytesOut.wrapping_add(1);
-        bytesOut;
         (*bs).buffLive = 1 as libc::c_int;
         (*bs).buffer = bit & 0x1 as libc::c_int;
     } else {
@@ -249,7 +248,6 @@ unsafe extern "C" fn bsClose(mut bs: *mut BitStream) {
             writeError();
         }
         bytesOut = bytesOut.wrapping_add(1);
-        bytesOut;
         retVal = fflush((*bs).handle);
         if retVal == -(1 as libc::c_int) {
             writeError();
@@ -271,8 +269,7 @@ unsafe extern "C" fn bsPutUChar(mut bs: *mut BitStream, mut c: UChar) {
     while i >= 0 as libc::c_int {
         bsPutBit(bs, (c as UInt32 >> i & 0x1 as libc::c_int as libc::c_uint) as Int32);
         i -= 1;
-        i;
-    }
+        }
 }
 unsafe extern "C" fn bsPutUInt32(mut bs: *mut BitStream, mut c: UInt32) {
     let mut i: Int32 = 0;
@@ -280,8 +277,7 @@ unsafe extern "C" fn bsPutUInt32(mut bs: *mut BitStream, mut c: UInt32) {
     while i >= 0 as libc::c_int {
         bsPutBit(bs, (c >> i & 0x1 as libc::c_int as libc::c_uint) as Int32);
         i -= 1;
-        i;
-    }
+        }
 }
 unsafe extern "C" fn endsInBz2(mut name: *mut Char) -> Bool {
     let mut n: Int32 = strlen(name) as Int32;
@@ -426,7 +422,6 @@ unsafe fn main_0(mut argc: Int32, mut argv: *mut *mut Char) -> Int32 {
     while 1 as libc::c_int as Bool != 0 {
         b = bsGetBit(bsIn);
         bitsRead = bitsRead.wrapping_add(1);
-        bitsRead;
         if b == 2 as libc::c_int {
             if bitsRead >= bStart[currBlock as usize]
                 && bitsRead.wrapping_sub(bStart[currBlock as usize])
@@ -447,8 +442,7 @@ unsafe fn main_0(mut argc: Int32, mut argv: *mut *mut Char) -> Int32 {
                 }
             } else {
                 currBlock -= 1;
-                currBlock;
-            }
+                }
             break;
         } else {
             buffHi = buffHi << 1 as libc::c_int | buffLo >> 31 as libc::c_int;
@@ -483,13 +477,11 @@ unsafe fn main_0(mut argc: Int32, mut argv: *mut *mut Char) -> Int32 {
                     rbStart[rbCtr as usize] = bStart[currBlock as usize];
                     rbEnd[rbCtr as usize] = bEnd[currBlock as usize];
                     rbCtr += 1;
-                    rbCtr;
-                }
+                    }
                 if currBlock >= 50000 as libc::c_int {
                     tooManyBlocks(50000 as libc::c_int);
                 }
                 currBlock += 1;
-                currBlock;
                 bStart[currBlock as usize] = bitsRead;
             }
         }
@@ -544,7 +536,6 @@ unsafe fn main_0(mut argc: Int32, mut argv: *mut *mut Char) -> Int32 {
             bsPutBit(bsWr, b);
         }
         bitsRead = bitsRead.wrapping_add(1);
-        bitsRead;
         if bitsRead
             == (rbEnd[wrBlock as usize])
                 .wrapping_add(1 as libc::c_int as libc::c_ulonglong)
@@ -564,8 +555,7 @@ unsafe fn main_0(mut argc: Int32, mut argv: *mut *mut Char) -> Int32 {
                 break;
             }
             wrBlock += 1;
-            wrBlock;
-        } else if bitsRead == rbStart[wrBlock as usize] {
+            } else if bitsRead == rbStart[wrBlock as usize] {
             let mut split: *mut Char = 0 as *mut Char;
             let mut ofs: Int32 = 0;
             let mut k: Int32 = 0;
@@ -573,16 +563,14 @@ unsafe fn main_0(mut argc: Int32, mut argv: *mut *mut Char) -> Int32 {
             while k < 2000 as libc::c_int {
                 outFileName[k as usize] = 0 as libc::c_int as Char;
                 k += 1;
-                k;
-            }
+                }
             strcpy(outFileName.as_mut_ptr(), inFileName.as_mut_ptr());
             split = strrchr(outFileName.as_mut_ptr(), '/' as i32);
             if split.is_null() {
                 split = outFileName.as_mut_ptr();
             } else {
                 split = split.offset(1);
-                split;
-            }
+                }
             ofs = split.offset_from(outFileName.as_mut_ptr()) as libc::c_long as Int32;
             sprintf(
                 split,
@@ -595,8 +583,7 @@ unsafe fn main_0(mut argc: Int32, mut argv: *mut *mut Char) -> Int32 {
                     *p = '0' as i32 as Char;
                 }
                 p = p.offset(1);
-                p;
-            }
+                }
             strcat(
                 outFileName.as_mut_ptr(),
                 inFileName.as_mut_ptr().offset(ofs as isize),

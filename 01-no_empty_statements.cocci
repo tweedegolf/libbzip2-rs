@@ -1,0 +1,5 @@
+@@
+identifier a;
+@@
+
+- a;

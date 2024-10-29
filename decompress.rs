@@ -164,8 +164,7 @@ unsafe extern "C" fn makeMaps_d(mut s: *mut DState) {
             (*s).nInUse;
         }
         i += 1;
-        i;
-    }
+        }
 }
 #[no_mangle]
 pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
@@ -2105,11 +2104,9 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                 }
                 if uc as libc::c_int == 0 as libc::c_int {
                     curr += 1;
-                    curr;
-                } else {
+                    } else {
                     curr -= 1;
-                    curr;
-                }
+                    }
                 current_block = 5533056661327372531;
             }
             17216244326479313607 => {
@@ -2236,7 +2233,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                     current_block = 10081471997089450706;
                 } else {
                     j += 1;
-                    j;
                     if j >= nGroups {
                         retVal = -(4 as libc::c_int);
                         current_block = 3350591128142761507;
@@ -2380,7 +2376,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                         as usize] = 1 as libc::c_int as Bool;
                 }
                 j += 1;
-                j;
                 current_block = 16953886395775657100;
             }
             454873545234741267 => {
@@ -2392,8 +2387,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                 while i < 256 as libc::c_int {
                     (*s).inUse[i as usize] = 0 as libc::c_int as Bool;
                     i += 1;
-                    i;
-                }
+                    }
                 i = 0 as libc::c_int;
                 current_block = 15415362524153386998;
             }
@@ -2440,7 +2434,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                     (*s).inUse16[i as usize] = 0 as libc::c_int as Bool;
                 }
                 i += 1;
-                i;
                 current_block = 454873545234741267;
                 continue;
             }
@@ -2504,7 +2497,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                     }
                 } else {
                     zn += 1;
-                    zn;
                     current_block = 10797958389266113496;
                     continue;
                 }
@@ -2529,7 +2521,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                             current_block = 5649595406143318745;
                         } else {
                             es += 1;
-                            es;
                             uc = (*s)
                                 .seqToUnseq[(*s)
                                 .mtfa[(*s).mtfbase[0 as libc::c_int as usize] as usize]
@@ -2544,10 +2535,8 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                     } else {
                                         *((*s).ll16).offset(nblock as isize) = uc as UInt16;
                                         nblock += 1;
-                                        nblock;
                                         es -= 1;
-                                        es;
-                                    }
+                                        }
                                 }
                             } else {
                                 while es > 0 as libc::c_int {
@@ -2558,10 +2547,8 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                     } else {
                                         *((*s).tt).offset(nblock as isize) = uc as UInt32;
                                         nblock += 1;
-                                        nblock;
                                         es -= 1;
-                                        es;
-                                    }
+                                        }
                                 }
                             }
                             current_block = 3575340618357869479;
@@ -2569,7 +2556,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                     }
                 } else {
                     zn += 1;
-                    zn;
                     current_block = 12127014564286193091;
                     continue;
                 }
@@ -2592,7 +2578,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                     }
                 } else {
                     zn += 1;
-                    zn;
                     current_block = 1010107409739284736;
                     continue;
                 }
@@ -2652,8 +2637,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                     .wrapping_add(nn)
                                     .wrapping_sub(1 as libc::c_int as libc::c_uint) as usize];
                                 nn = nn.wrapping_sub(1);
-                                nn;
-                            }
+                                }
                             (*s).mtfa[pp as usize] = uc;
                         } else {
                             lno = nn.wrapping_div(16 as libc::c_int as libc::c_uint)
@@ -2667,8 +2651,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                     .mtfa[pp
                                     as usize] = (*s).mtfa[(pp - 1 as libc::c_int) as usize];
                                 pp -= 1;
-                                pp;
-                            }
+                                }
                             (*s).mtfbase[lno as usize] += 1;
                             (*s).mtfbase[lno as usize];
                             while lno > 0 as libc::c_int {
@@ -2680,8 +2663,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                     .mtfa[((*s).mtfbase[(lno - 1 as libc::c_int) as usize]
                                     + 16 as libc::c_int - 1 as libc::c_int) as usize];
                                 lno -= 1;
-                                lno;
-                            }
+                                }
                             (*s).mtfbase[0 as libc::c_int as usize] -= 1;
                             (*s).mtfbase[0 as libc::c_int as usize];
                             (*s)
@@ -2701,14 +2683,11 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                             as usize] = (*s)
                                             .mtfa[((*s).mtfbase[ii_0 as usize] + jj_0) as usize];
                                         kk_0 -= 1;
-                                        kk_0;
                                         jj_0 -= 1;
-                                        jj_0;
-                                    }
+                                        }
                                     (*s).mtfbase[ii_0 as usize] = kk_0 + 1 as libc::c_int;
                                     ii_0 -= 1;
-                                    ii_0;
-                                }
+                                    }
                             }
                         }
                         (*s).unzftab[(*s).seqToUnseq[uc as usize] as usize] += 1;
@@ -2725,10 +2704,8 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                 ) = (*s).seqToUnseq[uc as usize] as UInt32;
                         }
                         nblock += 1;
-                        nblock;
                         if groupPos == 0 as libc::c_int {
                             groupNo += 1;
-                            groupNo;
                             if groupNo >= nSelectors {
                                 retVal = -(4 as libc::c_int);
                                 current_block = 3350591128142761507;
@@ -2755,7 +2732,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                             }
                         }
                         groupPos -= 1;
-                        groupPos;
                         zn = gMinlen;
                         current_block = 9050093969003559074;
                         continue;
@@ -2783,8 +2759,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                 continue 'c_10064;
                             } else {
                                 i += 1;
-                                i;
-                            }
+                                }
                         }
                         (*s).cftab[0 as libc::c_int as usize] = 0 as libc::c_int;
                         i = 1 as libc::c_int;
@@ -2793,15 +2768,13 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                 .cftab[i
                                 as usize] = (*s).unzftab[(i - 1 as libc::c_int) as usize];
                             i += 1;
-                            i;
-                        }
+                            }
                         i = 1 as libc::c_int;
                         while i <= 256 as libc::c_int {
                             (*s).cftab[i as usize]
                                 += (*s).cftab[(i - 1 as libc::c_int) as usize];
                             i += 1;
-                            i;
-                        }
+                            }
                         i = 0 as libc::c_int;
                         while i <= 256 as libc::c_int {
                             if (*s).cftab[i as usize] < 0 as libc::c_int
@@ -2812,8 +2785,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                 continue 'c_10064;
                             } else {
                                 i += 1;
-                                i;
-                            }
+                                }
                         }
                         i = 1 as libc::c_int;
                         while i <= 256 as libc::c_int {
@@ -2825,8 +2797,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                 continue 'c_10064;
                             } else {
                                 i += 1;
-                                i;
-                            }
+                                }
                         }
                         (*s).state_out_len = 0 as libc::c_int;
                         (*s).state_out_ch = 0 as libc::c_int as UChar;
@@ -2844,8 +2815,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                             while i <= 256 as libc::c_int {
                                 (*s).cftabCopy[i as usize] = (*s).cftab[i as usize];
                                 i += 1;
-                                i;
-                            }
+                                }
                             i = 0 as libc::c_int;
                             while i < nblock {
                                 uc = *((*s).ll16).offset(i as isize) as UChar;
@@ -2874,8 +2844,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                 (*s).cftabCopy[uc as usize] += 1;
                                 (*s).cftabCopy[uc as usize];
                                 i += 1;
-                                i;
-                            }
+                                }
                             i = (*s).origPtr;
                             j = (*((*s).ll16).offset(i as isize) as UInt32
                                 | (*((*s).ll4).offset((i >> 1 as libc::c_int) as isize)
@@ -2986,8 +2955,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                 (*s).cftab[uc as usize] += 1;
                                 (*s).cftab[uc as usize];
                                 i += 1;
-                                i;
-                            }
+                                }
                             (*s)
                                 .tPos = *((*s).tt).offset((*s).origPtr as isize)
                                 >> 8 as libc::c_int;
@@ -3061,7 +3029,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                 N *= 2 as libc::c_int;
                 if groupPos == 0 as libc::c_int {
                     groupNo += 1;
-                    groupNo;
                     if groupNo >= nSelectors {
                         retVal = -(4 as libc::c_int);
                         current_block = 3350591128142761507;
@@ -3088,7 +3055,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                     }
                 }
                 groupPos -= 1;
-                groupPos;
                 zn = gMinlen;
                 current_block = 9335356017384149594;
                 continue;
@@ -3122,8 +3088,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                         while (v_22 as libc::c_int) < nGroups {
                             pos[v_22 as usize] = v_22;
                             v_22 = v_22.wrapping_add(1);
-                            v_22;
-                        }
+                            }
                         i = 0 as libc::c_int;
                         while i < nSelectors {
                             v_22 = (*s).selectorMtf[i as usize];
@@ -3133,13 +3098,11 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                                     as usize] = pos[(v_22 as libc::c_int - 1 as libc::c_int)
                                     as usize];
                                 v_22 = v_22.wrapping_sub(1);
-                                v_22;
-                            }
+                                }
                             pos[0 as libc::c_int as usize] = tmp;
                             (*s).selector[i as usize] = tmp;
                             i += 1;
-                            i;
-                        }
+                            }
                         t = 0 as libc::c_int;
                         current_block = 2488856075421756534;
                         break;
@@ -3166,7 +3129,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                 7746242308555130918 => {
                     (*s).len[t as usize][i as usize] = curr as UChar;
                     i += 1;
-                    i;
                     current_block = 16642413284942005565;
                     continue;
                 }
@@ -3176,7 +3138,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                         continue;
                     }
                     t += 1;
-                    t;
                     current_block = 2488856075421756534;
                     break;
                 }
@@ -3185,7 +3146,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                         (*s).selectorMtf[i as usize] = j as UChar;
                     }
                     i += 1;
-                    i;
                     current_block = 3503188808869013853;
                     continue;
                 }
@@ -3213,7 +3173,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                 }
             }
             i += 1;
-            i;
             current_block = 15415362524153386998;
         }
         match current_block {
@@ -3243,8 +3202,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                             minLen = (*s).len[t as usize][i as usize] as Int32;
                         }
                         i += 1;
-                        i;
-                    }
+                        }
                     BZ2_hbCreateDecodeTables(
                         &mut *(*((*s).limit).as_mut_ptr().offset(t as isize))
                             .as_mut_ptr()
@@ -3264,8 +3222,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                     );
                     (*s).minLens[t as usize] = minLen;
                     t += 1;
-                    t;
-                }
+                    }
                 EOB = (*s).nInUse + 1 as libc::c_int;
                 nblockMAX = 100000 as libc::c_int * (*s).blockSize100k;
                 groupNo = -(1 as libc::c_int);
@@ -3274,8 +3231,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                 while i <= 255 as libc::c_int {
                     (*s).unzftab[i as usize] = 0 as libc::c_int;
                     i += 1;
-                    i;
-                }
+                    }
                 let mut ii: Int32 = 0;
                 let mut jj: Int32 = 0;
                 let mut kk: Int32 = 0;
@@ -3286,18 +3242,14 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                     while jj >= 0 as libc::c_int {
                         (*s).mtfa[kk as usize] = (ii * 16 as libc::c_int + jj) as UChar;
                         kk -= 1;
-                        kk;
                         jj -= 1;
-                        jj;
-                    }
+                        }
                     (*s).mtfbase[ii as usize] = kk + 1 as libc::c_int;
                     ii -= 1;
-                    ii;
-                }
+                    }
                 nblock = 0 as libc::c_int;
                 if groupPos == 0 as libc::c_int {
                     groupNo += 1;
-                    groupNo;
                     if groupNo >= nSelectors {
                         retVal = -(4 as libc::c_int);
                         current_block = 3350591128142761507;
@@ -3318,7 +3270,6 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                     }
                 }
                 groupPos -= 1;
-                groupPos;
                 zn = gMinlen;
                 current_block = 13155828021133314705;
             }
