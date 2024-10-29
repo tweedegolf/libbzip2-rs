@@ -9,49 +9,17 @@
 use bzip2 as _;
 
 use ::libc;
-use libc::{fprintf, FILE};
+use libc::{
+    __errno_location, _exit, close, exit, fchmod, fchown, fclose, fdopen, ferror, fflush, fgetc,
+    fileno, fopen, fprintf, fread, free, fwrite, getenv, isatty, malloc, open, perror, remove,
+    rewind, signal, size_t, strcat, strcmp, strcpy, strerror, strlen, strncmp, strncpy, strstr,
+    ungetc, utimbuf, utime, write, FILE,
+};
 extern "C" {
+
     static mut stdin: *mut FILE;
     static mut stdout: *mut FILE;
     static mut stderr: *mut FILE;
-    fn remove(__filename: *const libc::c_char) -> libc::c_int;
-    fn fclose(__stream: *mut FILE) -> libc::c_int;
-    fn fflush(__stream: *mut FILE) -> libc::c_int;
-    fn fopen(_: *const libc::c_char, _: *const libc::c_char) -> *mut FILE;
-    fn fdopen(__fd: libc::c_int, __modes: *const libc::c_char) -> *mut FILE;
-    fn fgetc(__stream: *mut FILE) -> libc::c_int;
-    fn ungetc(__c: libc::c_int, __stream: *mut FILE) -> libc::c_int;
-    fn fread(
-        _: *mut libc::c_void,
-        _: libc::c_ulong,
-        _: libc::c_ulong,
-        _: *mut FILE,
-    ) -> libc::c_ulong;
-    fn fwrite(
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-        _: libc::c_ulong,
-        _: *mut FILE,
-    ) -> libc::c_ulong;
-    fn rewind(__stream: *mut FILE);
-    fn ferror(__stream: *mut FILE) -> libc::c_int;
-    fn perror(__s: *const libc::c_char);
-    fn fileno(__stream: *mut FILE) -> libc::c_int;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn exit(_: libc::c_int) -> !;
-    fn getenv(__name: *const libc::c_char) -> *mut libc::c_char;
-    fn strcpy(_: *mut libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
-    fn strncpy(_: *mut libc::c_char, _: *const libc::c_char, _: libc::c_ulong)
-        -> *mut libc::c_char;
-    fn strcat(_: *mut libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    fn strncmp(_: *const libc::c_char, _: *const libc::c_char, _: libc::c_ulong) -> libc::c_int;
-    fn strstr(_: *const libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    fn strerror(_: libc::c_int) -> *mut libc::c_char;
-    fn signal(__sig: libc::c_int, __handler: __sighandler_t) -> __sighandler_t;
-    fn __errno_location() -> *mut libc::c_int;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
     fn BZ2_bzReadOpen(
         bzerror: *mut libc::c_int,
@@ -97,18 +65,9 @@ extern "C" {
         nbytes_out_hi32: *mut libc::c_uint,
     );
     fn BZ2_bzlibVersion() -> *const libc::c_char;
-    fn open(__file: *const libc::c_char, __oflag: libc::c_int, _: ...) -> libc::c_int;
-    fn utime(__file: *const libc::c_char, __file_times: *const utimbuf) -> libc::c_int;
-    fn close(__fd: libc::c_int) -> libc::c_int;
-    fn write(__fd: libc::c_int, __buf: *const libc::c_void, __n: size_t) -> ssize_t;
-    fn fchown(__fd: libc::c_int, __owner: __uid_t, __group: __gid_t) -> libc::c_int;
-    fn _exit(_: libc::c_int) -> !;
-    fn isatty(__fd: libc::c_int) -> libc::c_int;
     fn stat(__file: *const libc::c_char, __buf: *mut stat) -> libc::c_int;
     fn lstat(__file: *const libc::c_char, __buf: *mut stat) -> libc::c_int;
-    fn fchmod(__fd: libc::c_int, __mode: __mode_t) -> libc::c_int;
 }
-pub type size_t = libc::c_ulong;
 pub type __dev_t = libc::c_ulong;
 pub type __uid_t = libc::c_uint;
 pub type __gid_t = libc::c_uint;
@@ -163,12 +122,6 @@ pub struct stat {
     pub st_mtim: timespec,
     pub st_ctim: timespec,
     pub __glibc_reserved: [__syscall_slong_t; 3],
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct utimbuf {
-    pub actime: __time_t,
-    pub modtime: __time_t,
 }
 pub type Char = libc::c_char;
 pub type Bool = libc::c_uchar;
@@ -350,8 +303,8 @@ unsafe extern "C" fn compressStream(mut stream: *mut FILE, mut zStream: *mut FIL
                     }
                     nIbuf = fread(
                         ibuf.as_mut_ptr() as *mut libc::c_void,
-                        ::core::mem::size_of::<UChar>() as libc::c_ulong,
-                        5000 as libc::c_int as libc::c_ulong,
+                        ::core::mem::size_of::<UChar>() as libc::size_t,
+                        5000 as libc::c_int as libc::size_t,
                         stream,
                     ) as Int32;
                     if ferror(stream) != 0 {
@@ -609,8 +562,8 @@ unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut F
                     {
                         fwrite(
                             obuf.as_mut_ptr() as *const libc::c_void,
-                            ::core::mem::size_of::<UChar>() as libc::c_ulong,
-                            nread as libc::c_ulong,
+                            ::core::mem::size_of::<UChar>() as libc::size_t,
+                            nread as libc::size_t,
                             stream,
                         );
                     }
@@ -660,8 +613,8 @@ unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut F
                                     }
                                     nread = fread(
                                         obuf.as_mut_ptr() as *mut libc::c_void,
-                                        ::core::mem::size_of::<UChar>() as libc::c_ulong,
-                                        5000 as libc::c_int as libc::c_ulong,
+                                        ::core::mem::size_of::<UChar>() as libc::size_t,
+                                        5000 as libc::c_int as libc::size_t,
                                         zStream,
                                     ) as Int32;
                                     if ferror(zStream) != 0 {
@@ -671,8 +624,8 @@ unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut F
                                     if nread > 0 as libc::c_int {
                                         fwrite(
                                             obuf.as_mut_ptr() as *const libc::c_void,
-                                            ::core::mem::size_of::<UChar>() as libc::c_ulong,
-                                            nread as libc::c_ulong,
+                                            ::core::mem::size_of::<UChar>() as libc::size_t,
+                                            nread as libc::size_t,
                                             stream,
                                         );
                                     }
@@ -1715,7 +1668,7 @@ unsafe extern "C" fn pad(mut s: *mut Char) {
     }
 }
 unsafe extern "C" fn copyFileName(mut to: *mut Char, mut from: *mut Char) {
-    if strlen(from) > (1034 as libc::c_int - 10 as libc::c_int) as libc::c_ulong {
+    if strlen(from) > (1034 as libc::c_int - 10 as libc::c_int) as libc::size_t {
         fprintf(
             stderr,
             b"bzip2: file name\n`%s'\nis suspiciously (more than %d chars) long.\nTry using a reasonable file name instead.  Sorry! :-)\n\0"
@@ -1729,7 +1682,7 @@ unsafe extern "C" fn copyFileName(mut to: *mut Char, mut from: *mut Char) {
     strncpy(
         to,
         from,
-        (1034 as libc::c_int - 10 as libc::c_int) as libc::c_ulong,
+        (1034 as libc::c_int - 10 as libc::c_int) as libc::size_t,
     );
     *to.offset((1034 as libc::c_int - 10 as libc::c_int) as isize) = '\0' as i32 as Char;
 }
@@ -2751,7 +2704,7 @@ unsafe extern "C" fn snocString(mut root: *mut Cell, mut name: *mut Char) -> *mu
     if root.is_null() {
         let mut tmp: *mut Cell = mkCell();
         (*tmp).name =
-            myMalloc((5 as libc::c_int as libc::c_ulong).wrapping_add(strlen(name)) as Int32)
+            myMalloc((5 as libc::c_int as libc::size_t).wrapping_add(strlen(name)) as Int32)
                 as *mut Char;
         strcpy((*tmp).name, name);
         return tmp;
@@ -2845,11 +2798,11 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
     i = j;
     signal(
         11 as libc::c_int,
-        Some(mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(IntNative) -> ()),
+        mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(IntNative) as usize,
     );
     signal(
         7 as libc::c_int,
-        Some(mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(IntNative) -> ()),
+        mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(IntNative) as usize,
     );
     copyFileName(
         inName.as_mut_ptr(),
@@ -3115,7 +3068,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
         } else if strncmp(
             (*aa).name,
             b"--\0" as *const u8 as *const libc::c_char,
-            2 as libc::c_int as libc::c_ulong,
+            2 as libc::c_int as libc::size_t,
         ) == 0 as libc::c_int
         {
             fprintf(
@@ -3155,15 +3108,15 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut Char) -> IntNative {
     if srcMode == 3 as libc::c_int {
         signal(
             2 as libc::c_int,
-            Some(mySignalCatcher as unsafe extern "C" fn(IntNative) -> ()),
+            mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
         signal(
             15 as libc::c_int,
-            Some(mySignalCatcher as unsafe extern "C" fn(IntNative) -> ()),
+            mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
         signal(
             1 as libc::c_int,
-            Some(mySignalCatcher as unsafe extern "C" fn(IntNative) -> ()),
+            mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
     }
     if opMode == 1 as libc::c_int {
