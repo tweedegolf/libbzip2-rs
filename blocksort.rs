@@ -1,79 +1,12 @@
 use ::libc;
 use libc::{fprintf, FILE};
+
+use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState, Int32, UChar, UInt16, UInt32};
+
 extern "C" {
     static stderr: *mut FILE;
-    fn BZ2_bz__AssertH__fail(errcode: libc::c_int);
 }
-pub type size_t = libc::c_ulong;
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
-pub type _IO_lock_t = ();
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct bz_stream {
-    pub next_in: *mut libc::c_char,
-    pub avail_in: libc::c_uint,
-    pub total_in_lo32: libc::c_uint,
-    pub total_in_hi32: libc::c_uint,
-    pub next_out: *mut libc::c_char,
-    pub avail_out: libc::c_uint,
-    pub total_out_lo32: libc::c_uint,
-    pub total_out_hi32: libc::c_uint,
-    pub state: *mut libc::c_void,
-    pub bzalloc: Option<
-        unsafe extern "C" fn(*mut libc::c_void, libc::c_int, libc::c_int) -> *mut libc::c_void,
-    >,
-    pub bzfree: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>,
-    pub opaque: *mut libc::c_void,
-}
-pub type Bool = libc::c_uchar;
-pub type UChar = libc::c_uchar;
-pub type Int32 = libc::c_int;
-pub type UInt32 = libc::c_uint;
-pub type UInt16 = libc::c_ushort;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct EState {
-    pub strm: *mut bz_stream,
-    pub mode: Int32,
-    pub state: Int32,
-    pub avail_in_expect: UInt32,
-    pub arr1: *mut UInt32,
-    pub arr2: *mut UInt32,
-    pub ftab: *mut UInt32,
-    pub origPtr: Int32,
-    pub ptr: *mut UInt32,
-    pub block: *mut UChar,
-    pub mtfv: *mut UInt16,
-    pub zbits: *mut UChar,
-    pub workFactor: Int32,
-    pub state_in_ch: UInt32,
-    pub state_in_len: Int32,
-    pub rNToGo: Int32,
-    pub rTPos: Int32,
-    pub nblock: Int32,
-    pub nblockMAX: Int32,
-    pub numZ: Int32,
-    pub state_out_pos: Int32,
-    pub nInUse: Int32,
-    pub inUse: [Bool; 256],
-    pub unseqToSeq: [UChar; 256],
-    pub bsBuff: UInt32,
-    pub bsLive: Int32,
-    pub blockCRC: UInt32,
-    pub combinedCRC: UInt32,
-    pub verbosity: Int32,
-    pub blockNo: Int32,
-    pub blockSize100k: Int32,
-    pub nMTF: Int32,
-    pub mtfFreq: [Int32; 258],
-    pub selector: [UChar; 18002],
-    pub selectorMtf: [UChar; 18002],
-    pub len: [[UChar; 258]; 6],
-    pub code: [[Int32; 258]; 6],
-    pub rfreq: [[Int32; 258]; 6],
-    pub len_pack: [[UInt32; 4]; 258],
-}
+
 #[inline]
 unsafe extern "C" fn fallbackSimpleSort(
     mut fmap: *mut UInt32,
