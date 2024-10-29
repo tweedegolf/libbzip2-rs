@@ -1,3 +1,8 @@
+#![cfg(test)]
+
+const SAMPLE1_REF: &[u8] = include_bytes!("../../tests/input/quick/sample1.ref");
+const SAMPLE1_BZ2: &[u8] = include_bytes!("../../tests/input/quick/sample1.bz2");
+
 #[cfg(test)]
 #[macro_export]
 macro_rules! assert_eq_rs_c {
@@ -83,6 +88,49 @@ fn version() {
     let string = cstr.to_str().unwrap();
 
     assert!(string.starts_with("1.1.0"));
+}
+
+#[test]
+fn buff_to_buff_compress() {
+    let verbosity = 0;
+    let blockSize100k = 9;
+    let workFactor = 30;
+
+    let mut dest = vec![0; 2 * SAMPLE1_REF.len()];
+    let mut dest_len = dest.len() as core::ffi::c_uint;
+
+    let err = unsafe {
+        libbzip2_rs_sys::bzlib::BZ2_bzBuffToBuffCompress(
+            dest.as_mut_ptr().cast::<core::ffi::c_char>(),
+            &mut dest_len,
+            SAMPLE1_REF.as_ptr() as *mut _,
+            SAMPLE1_REF.len() as _,
+            blockSize100k,
+            verbosity,
+            workFactor,
+        )
+    };
+
+    assert_eq!(err, 0);
+}
+
+#[test]
+fn buff_to_buff_decompress() {
+    let mut dest = vec![0; SAMPLE1_REF.len()];
+    let mut dest_len = dest.len() as core::ffi::c_uint;
+
+    let err = unsafe {
+        libbzip2_rs_sys::bzlib::BZ2_bzBuffToBuffDecompress(
+            dest.as_mut_ptr().cast::<core::ffi::c_char>(),
+            &mut dest_len,
+            SAMPLE1_BZ2.as_ptr() as *mut _,
+            SAMPLE1_BZ2.len() as _,
+            0,
+            0,
+        )
+    };
+
+    assert_eq!(err, 0);
 }
 
 #[test]
