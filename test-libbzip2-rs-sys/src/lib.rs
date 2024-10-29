@@ -503,3 +503,49 @@ pub fn compress_rs<'a>(
         )
     }
 }
+
+#[rustfmt::skip]
+mod bzip2_testfiles {
+    #![allow(non_snake_case, unused_imports)]
+
+    use super::*;
+
+    #[test] fn pyflate_765B() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/pyflate/765B.bz2"); }
+    #[test] fn pyflate_45MB_00() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/pyflate/45MB-00.bz2"); }
+    #[test] fn pyflate_hello_world() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/pyflate/hello-world.bz2"); }
+    #[test] fn pyflate_510B() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/pyflate/510B.bz2"); }
+    #[test] fn pyflate_aaa() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/pyflate/aaa.bz2"); }
+    #[test] fn pyflate_empty() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/pyflate/empty.bz2"); }
+    #[test] fn pyflate_45MB_fb() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/pyflate/45MB-fb.bz2"); }
+    #[test] fn commons_compress_bla_xml() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/commons-compress/bla.xml.bz2"); }
+    #[test] fn commons_compress_bla_tar() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/commons-compress/bla.tar.bz2"); }
+    #[test] fn commons_compress_bla_txt() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/commons-compress/bla.txt.bz2"); }
+    #[test] fn commons_compress_COMPRESS_131() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/commons-compress/COMPRESS-131.bz2"); }
+    #[test] fn commons_compress_multiple() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/commons-compress/multiple.bz2"); }
+    #[test] fn commons_compress_zip64support() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/commons-compress/zip64support.tar.bz2"); }
+    #[test] fn go_compress_e() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/go/compress/e.txt.bz2"); }
+    #[test] fn go_compress_Isaac() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/go/compress/Isaac.Newton-Opticks.txt.bz2"); }
+    #[test] fn go_compress_pass_sawtooth() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/go/compress/pass-sawtooth.bz2"); }
+    #[test] fn go_compress_pass_random1() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/go/compress/pass-random1.bz2"); }
+    #[test] fn go_compress_pass_random2() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/go/compress/pass-random2.bz2"); }
+    #[test] fn go_compress_random() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/go/compress/random.data.bz2"); }
+    #[test] fn go_regexp_re2_exhaustive() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/go/regexp/re2-exhaustive.txt.bz2"); }
+    #[test] fn go_crypto_pss_vect() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/go/crypto/pss-vect.txt.bz2"); }
+    #[test] fn go_crypto_SigVer() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/go/crypto/SigVer.rsp.bz2"); }
+    #[test] fn lbzip2_incomp_1() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/incomp-1.bz2"); }
+    #[test] fn lbzip2_trash() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/trash.bz2"); }
+    #[test] fn lbzip2_incomp_2() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/incomp-2.bz2"); }
+    #[test] fn lbzip2_fib() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/fib.bz2"); }
+    #[test] fn lbzip2_ch255() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/ch255.bz2"); }
+    #[test] fn lbzip2_32767() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/32767.bz2"); }
+    #[test] fn lbzip2_empty() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/empty.bz2"); }
+    #[test] fn lbzip2_concat() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/concat.bz2"); }
+    #[test] fn lbzip2_idx899999() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/idx899999.bz2"); }
+    #[test] fn lbzip2_repet() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/repet.bz2"); }
+    #[test] fn lbzip2_codelen20() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/codelen20.bz2"); }
+    #[test] fn lbzip2_gap() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/gap.bz2"); }
+    #[test] fn lbzip2_rand() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/lbzip2/rand.bz2"); }
+    #[test] fn dotnetzip_sample1() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/dotnetzip/sample1.bz2"); }
+    #[test] fn dotnetzip_sample2() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/dotnetzip/sample2.bz2"); }
+    #[test] fn dotnetzip_dancing_color() { assert_eq_decompress!("../../tests/input/bzip2-testfiles/dotnetzip/dancing-color.ps.bz2"); }
+}
