@@ -354,7 +354,7 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
     currBlock = 0 as libc::c_int;
     bStart[currBlock as usize] = 0 as libc::c_int as MaybeUInt64;
     rbCtr = 0 as libc::c_int;
-    while 1 as libc::c_int as Bool != 0 {
+    loop {
         b = bsGetBit(bsIn);
         bitsRead = bitsRead.wrapping_add(1);
         if b == 2 as libc::c_int {
@@ -451,7 +451,7 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
     bitsRead = 0 as libc::c_int as MaybeUInt64;
     outFile = 0 as *mut FILE;
     wrBlock = 0 as libc::c_int;
-    while 1 as libc::c_int as Bool != 0 {
+    loop {
         b = bsGetBit(bsIn);
         if b == 2 as libc::c_int {
             break;

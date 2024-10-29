@@ -1563,7 +1563,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             9050093969003559074 => {
                 (*s).state = 40 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= zn {
                         let v_30: u32;
                         v_30 = (*s).bsBuff >> ((*s).bsLive - zn)
@@ -1596,7 +1596,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             12127014564286193091 => {
                 (*s).state = 39 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 1 as libc::c_int {
                         let v_29: u32;
                         v_29 = (*s).bsBuff >> ((*s).bsLive - 1 as libc::c_int)
@@ -1631,7 +1631,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             9335356017384149594 => {
                 (*s).state = 38 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= zn {
                         let v_28: u32;
                         v_28 = (*s).bsBuff >> ((*s).bsLive - zn)
@@ -1664,7 +1664,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             1010107409739284736 => {
                 (*s).state = 37 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 1 as libc::c_int {
                         let v_27: u32;
                         v_27 = (*s).bsBuff >> ((*s).bsLive - 1 as libc::c_int)
@@ -1699,7 +1699,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             13155828021133314705 => {
                 (*s).state = 36 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= zn {
                         let v_26: u32;
                         v_26 = (*s).bsBuff >> ((*s).bsLive - zn)
@@ -1732,7 +1732,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             7191958063352112897 => {
                 (*s).state = 35 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 1 as libc::c_int {
                         let v_25: u32;
                         v_25 = (*s).bsBuff >> ((*s).bsLive - 1 as libc::c_int)
@@ -1771,7 +1771,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             17216244326479313607 => {
                 (*s).state = 34 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 1 as libc::c_int {
                         let v_24: u32;
                         v_24 = (*s).bsBuff >> ((*s).bsLive - 1 as libc::c_int)
@@ -1809,7 +1809,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             11569294379105328467 => {
                 (*s).state = 33 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 5 as libc::c_int {
                         let v_23: u32;
                         v_23 = (*s).bsBuff >> ((*s).bsLive - 5 as libc::c_int)
@@ -1844,7 +1844,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             15957329598978927534 => {
                 (*s).state = 32 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 1 as libc::c_int {
                         let v_21: u32;
                         v_21 = (*s).bsBuff >> ((*s).bsLive - 1 as libc::c_int)
@@ -1889,7 +1889,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             14590825336193814119 => {
                 (*s).state = 31 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 15 as libc::c_int {
                         let v_20: u32;
                         v_20 = (*s).bsBuff >> ((*s).bsLive - 15 as libc::c_int)
@@ -1930,7 +1930,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             9434444550647791986 => {
                 (*s).state = 30 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 3 as libc::c_int {
                         let v_19: u32;
                         v_19 = (*s).bsBuff >> ((*s).bsLive - 3 as libc::c_int)
@@ -1970,7 +1970,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             15451013008180677144 => {
                 (*s).state = 29 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 1 as libc::c_int {
                         let v_18: u32;
                         v_18 = (*s).bsBuff >> ((*s).bsLive - 1 as libc::c_int)
@@ -2021,7 +2021,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             1154520408629132897 => {
                 (*s).state = 28 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 1 as libc::c_int {
                         let v_17: u32;
                         v_17 = (*s).bsBuff >> ((*s).bsLive - 1 as libc::c_int)
@@ -2062,7 +2062,7 @@ pub unsafe fn BZ2_decompress(s: *mut DState) -> i32 {
             }
             _ => {
                 (*s).state = 41 as libc::c_int;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if (*s).bsLive >= 1 as libc::c_int {
                         let v_31: u32;
                         v_31 = (*s).bsBuff >> ((*s).bsLive - 1 as libc::c_int)

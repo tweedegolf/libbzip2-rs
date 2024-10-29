@@ -21,7 +21,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
         }) << 8 as libc::c_int;
         i += 1;
     }
-    while 1 as libc::c_int as Bool != 0 {
+    loop {
         nNodes = alphaSize;
         nHeap = 0 as libc::c_int;
         heap[0 as libc::c_int as usize] = 0 as libc::c_int;
@@ -55,7 +55,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
             let tmp_0: i32;
             zz_0 = 1 as libc::c_int;
             tmp_0 = heap[zz_0 as usize];
-            while 1 as libc::c_int as Bool != 0 {
+            loop {
                 yy = zz_0 << 1 as libc::c_int;
                 if yy > nHeap {
                     break;
@@ -81,7 +81,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
             let tmp_1: i32;
             zz_1 = 1 as libc::c_int;
             tmp_1 = heap[zz_1 as usize];
-            while 1 as libc::c_int as Bool != 0 {
+            loop {
                 yy_0 = zz_1 << 1 as libc::c_int;
                 if yy_0 > nHeap {
                     break;

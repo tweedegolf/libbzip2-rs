@@ -2676,7 +2676,7 @@ unsafe extern "C" fn addFlagsFromEnvVar(mut argList: *mut *mut Cell, mut varName
     if !envbase.is_null() {
         p = envbase;
         i = 0 as libc::c_int;
-        while 1 as libc::c_int as Bool != 0 {
+        loop {
             if *p.offset(i as isize) as libc::c_int == 0 as libc::c_int {
                 break;
             }

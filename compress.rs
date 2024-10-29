@@ -101,7 +101,7 @@ unsafe extern "C" fn generateMTFValues(s: *mut EState) {
         } else {
             if zPend > 0 as libc::c_int {
                 zPend -= 1;
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if zPend & 1 as libc::c_int != 0 {
                         *mtfv.offset(wr as isize) = 1 as libc::c_int as u16;
                         wr += 1;
@@ -147,7 +147,7 @@ unsafe extern "C" fn generateMTFValues(s: *mut EState) {
     }
     if zPend > 0 as libc::c_int {
         zPend -= 1;
-        while 1 as libc::c_int as Bool != 0 {
+        loop {
             if zPend & 1 as libc::c_int != 0 {
                 *mtfv.offset(wr as isize) = 1 as libc::c_int as u16;
                 wr += 1;
@@ -311,7 +311,7 @@ unsafe extern "C" fn sendMTFValues(s: *mut EState) {
         nSelectors = 0 as libc::c_int;
         totc = 0 as libc::c_int;
         gs = 0 as libc::c_int;
-        while 1 as libc::c_int as Bool != 0 {
+        loop {
             if gs >= (*s).nMTF {
                 break;
             }
@@ -1208,7 +1208,7 @@ unsafe extern "C" fn sendMTFValues(s: *mut EState) {
     nBytes = (*s).numZ;
     selCtr = 0 as libc::c_int;
     gs = 0 as libc::c_int;
-    while 1 as libc::c_int as Bool != 0 {
+    loop {
         if gs >= (*s).nMTF {
             break;
         }

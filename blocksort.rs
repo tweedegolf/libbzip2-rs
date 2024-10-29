@@ -629,7 +629,7 @@ unsafe extern "C" fn mainSimpleSort(
     while hp >= 0 as libc::c_int {
         h = INCS[hp as usize];
         i = lo + h;
-        while 1 as libc::c_int as Bool != 0 {
+        loop {
             if i > hi {
                 break;
             }
@@ -777,8 +777,8 @@ unsafe extern "C" fn mainQSort3(
             unLo = ltLo;
             gtHi = hi;
             unHi = gtHi;
-            while 1 as libc::c_int as Bool != 0 {
-                while 1 as libc::c_int as Bool != 0 {
+            loop {
+                loop {
                     if unLo > unHi {
                         break;
                     }
@@ -800,7 +800,7 @@ unsafe extern "C" fn mainQSort3(
                         unLo += 1;
                     }
                 }
-                while 1 as libc::c_int as Bool != 0 {
+                loop {
                     if unLo > unHi {
                         break;
                     }
