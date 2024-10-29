@@ -2505,24 +2505,28 @@ pub unsafe extern "C" fn BZ2_bzread(
         -1 as libc::c_int
     }
 }
+
 #[export_name = prefix!(BZ2_bzwrite)]
 pub unsafe extern "C" fn BZ2_bzwrite(
     b: *mut libc::c_void,
     buf: *mut libc::c_void,
     len: libc::c_int,
 ) -> libc::c_int {
-    let mut bzerr: libc::c_int = 0;
+    let mut bzerr = 0;
     BZ2_bzWrite(&mut bzerr, b, buf, len);
-    if bzerr == 0 as libc::c_int {
+    if bzerr == 0 {
         len
     } else {
-        -1 as libc::c_int
+        -1
     }
 }
+
 #[export_name = prefix!(BZ2_bzflush)]
-pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut libc::c_void) -> libc::c_int {
-    0 as libc::c_int
+pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut c_void) -> c_int {
+    /* do nothing now... */
+    0
 }
+
 #[export_name = prefix!(BZ2_bzclose)]
 pub unsafe extern "C" fn BZ2_bzclose(b: *mut libc::c_void) {
     let mut bzerr: libc::c_int = 0;
