@@ -2,12 +2,8 @@ use crate::bzlib::{
     bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, Bool, DState, Int32, UChar, UInt16, UInt32,
 };
 use crate::huffman::BZ2_hbCreateDecodeTables;
-use ::libc;
-use libc::{fprintf, FILE};
-extern "C" {
-    static mut stderr: *mut FILE;
-}
 use crate::randtable::BZ2_rNums;
+use ::libc;
 unsafe extern "C" fn makeMaps_d(mut s: *mut DState) {
     let mut i: Int32 = 0;
     (*s).nInUse = 0 as libc::c_int;
@@ -1004,11 +1000,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                         (*s).currBlockNo += 1;
                         (*s).currBlockNo;
                         if (*s).verbosity >= 2 as libc::c_int {
-                            fprintf(
-                                stderr,
-                                b"\n    [%d: huff+mtf \0" as *const u8 as *const libc::c_char,
-                                (*s).currBlockNo,
-                            );
+                            eprint!("\n    [{}: huff+mtf ", (*s).currBlockNo,);
                         }
                         (*s).storedBlockCRC = 0 as libc::c_int as UInt32;
                         current_block = 5821827988509819404;
@@ -2405,7 +2397,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                         (*s).calculatedBlockCRC = 0xffffffff as libc::c_long as UInt32;
                         (*s).state = 2 as libc::c_int;
                         if (*s).verbosity >= 2 as libc::c_int {
-                            fprintf(stderr, b"rt+rld\0" as *const u8 as *const libc::c_char);
+                            eprint!("rt+rld");
                         }
                         if (*s).smallDecompress != 0 {
                             i = 0 as libc::c_int;
