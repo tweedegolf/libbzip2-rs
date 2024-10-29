@@ -8,14 +8,14 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
     alphaSize: i32,
     maxLen: i32,
 ) {
-    let mut nNodes: i32 = 0;
-    let mut nHeap: i32 = 0;
-    let mut n1: i32 = 0;
-    let mut n2: i32 = 0;
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut k: i32 = 0;
-    let mut tooLong: Bool = 0;
+    let mut nNodes: i32;
+    let mut nHeap: i32;
+    let mut n1: i32;
+    let mut n2: i32;
+    let mut i: i32;
+    let mut j: i32;
+    let mut k: i32;
+    let mut tooLong: Bool;
     let mut heap: [i32; 260] = [0; 260];
     let mut weight: [i32; 516] = [0; 516];
     let mut parent: [i32; 516] = [0; 516];
@@ -39,8 +39,8 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             parent[i as usize] = -1 as libc::c_int;
             nHeap += 1;
             heap[nHeap as usize] = i;
-            let mut zz: i32 = 0;
-            let mut tmp: i32 = 0;
+            let mut zz: i32;
+            let tmp: i32;
             zz = nHeap;
             tmp = heap[zz as usize];
             while weight[tmp as usize] < weight[heap[(zz >> 1 as libc::c_int) as usize] as usize] {
@@ -57,9 +57,9 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             n1 = heap[1 as libc::c_int as usize];
             heap[1 as libc::c_int as usize] = heap[nHeap as usize];
             nHeap -= 1;
-            let mut zz_0: i32 = 0;
-            let mut yy: i32 = 0;
-            let mut tmp_0: i32 = 0;
+            let mut zz_0: i32;
+            let mut yy: i32;
+            let tmp_0: i32;
             zz_0 = 1 as libc::c_int;
             tmp_0 = heap[zz_0 as usize];
             while 1 as libc::c_int as Bool != 0 {
@@ -83,9 +83,9 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             n2 = heap[1 as libc::c_int as usize];
             heap[1 as libc::c_int as usize] = heap[nHeap as usize];
             nHeap -= 1;
-            let mut zz_1: i32 = 0;
-            let mut yy_0: i32 = 0;
-            let mut tmp_1: i32 = 0;
+            let mut zz_1: i32;
+            let mut yy_0: i32;
+            let tmp_1: i32;
             zz_1 = 1 as libc::c_int;
             tmp_1 = heap[zz_1 as usize];
             while 1 as libc::c_int as Bool != 0 {
@@ -123,8 +123,8 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             parent[nNodes as usize] = -1 as libc::c_int;
             nHeap += 1;
             heap[nHeap as usize] = nNodes;
-            let mut zz_2: i32 = 0;
-            let mut tmp_2: i32 = 0;
+            let mut zz_2: i32;
+            let tmp_2: i32;
             zz_2 = nHeap;
             tmp_2 = heap[zz_2 as usize];
             while weight[tmp_2 as usize]
@@ -173,9 +173,9 @@ pub unsafe extern "C" fn BZ2_hbAssignCodes(
     maxLen: i32,
     alphaSize: i32,
 ) {
-    let mut n: i32 = 0;
-    let mut vec: i32 = 0;
-    let mut i: i32 = 0;
+    let mut n: i32;
+    let mut vec: i32;
+    let mut i: i32;
     vec = 0 as libc::c_int;
     n = minLen;
     while n <= maxLen {
@@ -201,10 +201,10 @@ pub unsafe extern "C" fn BZ2_hbCreateDecodeTables(
     maxLen: i32,
     alphaSize: i32,
 ) {
-    let mut pp: i32 = 0;
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut vec: i32 = 0;
+    let mut pp: i32;
+    let mut i: i32;
+    let mut j: i32;
+    let mut vec: i32;
     pp = 0 as libc::c_int;
     i = minLen;
     while i <= maxLen {

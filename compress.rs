@@ -54,7 +54,7 @@ unsafe extern "C" fn bsPutUChar(s: *mut EState, c: u8) {
     bsW(s, 8 as libc::c_int, c as u32);
 }
 unsafe extern "C" fn makeMaps_e(s: *mut EState) {
-    let mut i: i32 = 0;
+    let mut i: i32;
     (*s).nInUse = 0 as libc::c_int;
     i = 0 as libc::c_int;
     while i < 256 as libc::c_int {
@@ -68,11 +68,11 @@ unsafe extern "C" fn makeMaps_e(s: *mut EState) {
 }
 unsafe extern "C" fn generateMTFValues(s: *mut EState) {
     let mut yy: [u8; 256] = [0; 256];
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut zPend: i32 = 0;
-    let mut wr: i32 = 0;
-    let mut EOB: i32 = 0;
+    let mut i: i32;
+    let mut j: i32;
+    let mut zPend: i32;
+    let mut wr: i32;
+    let EOB: i32;
     let ptr: *mut u32 = (*s).ptr;
     let block: *mut u8 = (*s).block;
     let mtfv: *mut u16 = (*s).mtfv;
@@ -92,7 +92,7 @@ unsafe extern "C" fn generateMTFValues(s: *mut EState) {
     }
     i = 0 as libc::c_int;
     while i < (*s).nblock {
-        let mut ll_i: u8 = 0;
+        let ll_i: u8;
         j = (*ptr.offset(i as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
         if j < 0 as libc::c_int {
             j += (*s).nblock;
@@ -122,15 +122,15 @@ unsafe extern "C" fn generateMTFValues(s: *mut EState) {
                 }
                 zPend = 0 as libc::c_int;
             }
-            let mut rtmp: u8 = 0;
-            let mut ryy_j: *mut u8 = std::ptr::null_mut::<u8>();
-            let mut rll_i: u8 = 0;
+            let mut rtmp: u8;
+            let mut ryy_j: *mut u8;
+            let rll_i: u8;
             rtmp = yy[1 as libc::c_int as usize];
             yy[1 as libc::c_int as usize] = yy[0 as libc::c_int as usize];
             ryy_j = &mut *yy.as_mut_ptr().offset(1 as libc::c_int as isize) as *mut u8;
             rll_i = ll_i;
             while rll_i as libc::c_int != rtmp as libc::c_int {
-                let mut rtmp2: u8 = 0;
+                let rtmp2: u8;
                 ryy_j = ryy_j.offset(1);
                 rtmp2 = rtmp;
                 rtmp = *ryy_j;
@@ -166,7 +166,6 @@ unsafe extern "C" fn generateMTFValues(s: *mut EState) {
             }
             zPend = (zPend - 2 as libc::c_int) / 2 as libc::c_int;
         }
-        zPend = 0 as libc::c_int;
     }
     *mtfv.offset(wr as isize) = EOB as u16;
     wr += 1;
@@ -175,23 +174,23 @@ unsafe extern "C" fn generateMTFValues(s: *mut EState) {
     (*s).nMTF = wr;
 }
 unsafe extern "C" fn sendMTFValues(s: *mut EState) {
-    let mut v: i32 = 0;
-    let mut t: i32 = 0;
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut gs: i32 = 0;
-    let mut ge: i32 = 0;
-    let mut totc: i32 = 0;
-    let mut bt: i32 = 0;
-    let mut bc: i32 = 0;
-    let mut iter: i32 = 0;
+    let mut v: i32;
+    let mut t: i32;
+    let mut i: i32;
+    let mut j: i32;
+    let mut gs: i32;
+    let mut ge: i32;
+    let mut totc: i32;
+    let mut bt: i32;
+    let mut bc: i32;
+    let mut iter: i32;
     let mut nSelectors: i32 = 0;
-    let mut alphaSize: i32 = 0;
-    let mut minLen: i32 = 0;
-    let mut maxLen: i32 = 0;
-    let mut selCtr: i32 = 0;
-    let mut nGroups: i32 = 0;
-    let mut nBytes: i32 = 0;
+    let alphaSize: i32;
+    let mut minLen: i32;
+    let mut maxLen: i32;
+    let mut selCtr: i32;
+    let nGroups: i32;
+    let mut nBytes: i32;
     let mut cost: [u16; 6] = [0; 6];
     let mut fave: [i32; 6] = [0; 6];
     let mtfv: *mut u16 = (*s).mtfv;
@@ -227,10 +226,10 @@ unsafe extern "C" fn sendMTFValues(s: *mut EState) {
     } else {
         nGroups = 6 as libc::c_int;
     }
-    let mut nPart: i32 = 0;
-    let mut remF: i32 = 0;
-    let mut tFreq: i32 = 0;
-    let mut aFreq: i32 = 0;
+    let mut nPart: i32;
+    let mut remF: i32;
+    let mut tFreq: i32;
+    let mut aFreq: i32;
     nPart = nGroups;
     remF = (*s).nMTF;
     gs = 0 as libc::c_int;
@@ -328,10 +327,10 @@ unsafe extern "C" fn sendMTFValues(s: *mut EState) {
                 t += 1;
             }
             if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
-                let mut cost01: u32 = 0;
-                let mut cost23: u32 = 0;
-                let mut cost45: u32 = 0;
-                let mut icv: u16 = 0;
+                let mut cost01: u32;
+                let mut cost23: u32;
+                let mut cost45: u32;
+                let mut icv: u16;
                 cost45 = 0 as libc::c_int as u32;
                 cost23 = cost45;
                 cost01 = cost23;
@@ -1072,9 +1071,9 @@ unsafe extern "C" fn sendMTFValues(s: *mut EState) {
         BZ2_bz__AssertH__fail(3003 as libc::c_int);
     }
     let mut pos: [u8; 6] = [0; 6];
-    let mut ll_i: u8 = 0;
-    let mut tmp2: u8 = 0;
-    let mut tmp: u8 = 0;
+    let mut ll_i: u8;
+    let mut tmp2: u8;
+    let mut tmp: u8;
     i = 0 as libc::c_int;
     while i < nGroups {
         pos[i as usize] = i as u8;
@@ -1223,7 +1222,7 @@ unsafe extern "C" fn sendMTFValues(s: *mut EState) {
             BZ2_bz__AssertH__fail(3006 as libc::c_int);
         }
         if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
-            let mut mtfv_i: u16 = 0;
+            let mut mtfv_i: u16;
             let s_len_sel_selCtr: *mut u8 = &mut *(*((*s).len)
                 .as_mut_ptr()
                 .offset(*((*s).selector).as_mut_ptr().offset(selCtr as isize) as isize))

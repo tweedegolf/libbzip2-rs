@@ -4,10 +4,10 @@ use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState};
 
 #[inline]
 unsafe extern "C" fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32) {
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut tmp: i32 = 0;
-    let mut ec_tmp: u32 = 0;
+    let mut i: i32;
+    let mut j: i32;
+    let mut tmp: i32;
+    let mut ec_tmp: u32;
     if lo == hi {
         return;
     }
@@ -39,18 +39,18 @@ unsafe extern "C" fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i3
     }
 }
 unsafe extern "C" fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32) {
-    let mut unLo: i32 = 0;
-    let mut unHi: i32 = 0;
-    let mut ltLo: i32 = 0;
-    let mut gtHi: i32 = 0;
-    let mut n: i32 = 0;
-    let mut m: i32 = 0;
-    let mut sp: i32 = 0;
-    let mut lo: i32 = 0;
-    let mut hi: i32 = 0;
-    let mut med: u32 = 0;
-    let mut r: u32 = 0;
-    let mut r3: u32 = 0;
+    let mut unLo: i32;
+    let mut unHi: i32;
+    let mut ltLo: i32;
+    let mut gtHi: i32;
+    let mut n: i32;
+    let mut m: i32;
+    let mut sp: i32;
+    let mut lo: i32;
+    let mut hi: i32;
+    let mut med: u32;
+    let mut r: u32;
+    let mut r3: u32;
     let mut stackLo: [i32; 100] = [0; 100];
     let mut stackHi: [i32; 100] = [0; 100];
     r = 0 as libc::c_int as u32;
@@ -189,16 +189,16 @@ unsafe extern "C" fn fallbackSort(
 ) {
     let mut ftab: [i32; 257] = [0; 257];
     let mut ftabCopy: [i32; 256] = [0; 256];
-    let mut H: i32 = 0;
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut k: i32 = 0;
-    let mut l: i32 = 0;
-    let mut r: i32 = 0;
-    let mut cc: i32 = 0;
-    let mut cc1: i32 = 0;
-    let mut nNotDone: i32 = 0;
-    let mut nBhtab: i32 = 0;
+    let mut H: i32;
+    let mut i: i32;
+    let mut j: i32;
+    let mut k: i32;
+    let mut l: i32;
+    let mut r: i32;
+    let mut cc: i32;
+    let mut cc1: i32;
+    let mut nNotDone: i32;
+    let nBhtab: i32;
     let eclass8: *mut u8 = eclass as *mut u8;
     if verb >= 4 as libc::c_int {
         eprintln!("        bucket sorting ...");
@@ -386,11 +386,11 @@ unsafe extern "C" fn mainGtU(
     nblock: u32,
     budget: *mut i32,
 ) -> Bool {
-    let mut k: i32 = 0;
-    let mut c1: u8 = 0;
-    let mut c2: u8 = 0;
-    let mut s1: u16 = 0;
-    let mut s2: u16 = 0;
+    let mut k: i32;
+    let mut c1: u8;
+    let mut c2: u8;
+    let mut s1: u16;
+    let mut s2: u16;
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 as libc::c_int != c2 as libc::c_int {
@@ -613,12 +613,12 @@ unsafe extern "C" fn mainSimpleSort(
     d: i32,
     budget: *mut i32,
 ) {
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut h: i32 = 0;
-    let mut bigN: i32 = 0;
-    let mut hp: i32 = 0;
-    let mut v: u32 = 0;
+    let mut i: i32;
+    let mut j: i32;
+    let mut h: i32;
+    let bigN: i32;
+    let mut hp: i32;
+    let mut v: u32;
     bigN = hi - lo + 1 as libc::c_int;
     if bigN < 2 as libc::c_int {
         return;
@@ -707,7 +707,7 @@ unsafe extern "C" fn mainSimpleSort(
 }
 #[inline]
 unsafe extern "C" fn mmed3(mut a: u8, mut b: u8, c: u8) -> u8 {
-    let mut t: u8 = 0;
+    let t: u8;
     if a as libc::c_int > b as libc::c_int {
         t = a;
         a = b;
@@ -731,17 +731,17 @@ unsafe extern "C" fn mainQSort3(
     dSt: i32,
     budget: *mut i32,
 ) {
-    let mut unLo: i32 = 0;
-    let mut unHi: i32 = 0;
-    let mut ltLo: i32 = 0;
-    let mut gtHi: i32 = 0;
-    let mut n: i32 = 0;
-    let mut m: i32 = 0;
-    let mut med: i32 = 0;
-    let mut sp: i32 = 0;
-    let mut lo: i32 = 0;
-    let mut hi: i32 = 0;
-    let mut d: i32 = 0;
+    let mut unLo: i32;
+    let mut unHi: i32;
+    let mut ltLo: i32;
+    let mut gtHi: i32;
+    let mut n: i32;
+    let mut m: i32;
+    let mut med: i32;
+    let mut sp: i32;
+    let mut lo: i32;
+    let mut hi: i32;
+    let mut d: i32;
     let mut stackLo: [i32; 100] = [0; 100];
     let mut stackHi: [i32; 100] = [0; 100];
     let mut stackD: [i32; 100] = [0; 100];
@@ -885,7 +885,7 @@ unsafe extern "C" fn mainQSort3(
                 if nextHi[0 as libc::c_int as usize] - nextLo[0 as libc::c_int as usize]
                     < nextHi[1 as libc::c_int as usize] - nextLo[1 as libc::c_int as usize]
                 {
-                    let mut tz: i32 = 0;
+                    let mut tz: i32;
                     tz = nextLo[0 as libc::c_int as usize];
                     nextLo[0 as libc::c_int as usize] = nextLo[1 as libc::c_int as usize];
                     nextLo[1 as libc::c_int as usize] = tz;
@@ -899,7 +899,7 @@ unsafe extern "C" fn mainQSort3(
                 if nextHi[1 as libc::c_int as usize] - nextLo[1 as libc::c_int as usize]
                     < nextHi[2 as libc::c_int as usize] - nextLo[2 as libc::c_int as usize]
                 {
-                    let mut tz_0: i32 = 0;
+                    let mut tz_0: i32;
                     tz_0 = nextLo[1 as libc::c_int as usize];
                     nextLo[1 as libc::c_int as usize] = nextLo[2 as libc::c_int as usize];
                     nextLo[2 as libc::c_int as usize] = tz_0;
@@ -913,7 +913,7 @@ unsafe extern "C" fn mainQSort3(
                 if nextHi[0 as libc::c_int as usize] - nextLo[0 as libc::c_int as usize]
                     < nextHi[1 as libc::c_int as usize] - nextLo[1 as libc::c_int as usize]
                 {
-                    let mut tz_1: i32 = 0;
+                    let mut tz_1: i32;
                     tz_1 = nextLo[0 as libc::c_int as usize];
                     nextLo[0 as libc::c_int as usize] = nextLo[1 as libc::c_int as usize];
                     nextLo[1 as libc::c_int as usize] = tz_1;
@@ -949,18 +949,18 @@ unsafe extern "C" fn mainSort(
     verb: i32,
     budget: *mut i32,
 ) {
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut k: i32 = 0;
-    let mut ss: i32 = 0;
-    let mut sb: i32 = 0;
+    let mut i: i32;
+    let mut j: i32;
+    let mut k: i32;
+    let mut ss: i32;
+    let mut sb: i32;
     let mut runningOrder: [i32; 256] = [0; 256];
     let mut bigDone: [Bool; 256] = [0; 256];
     let mut copyStart: [i32; 256] = [0; 256];
     let mut copyEnd: [i32; 256] = [0; 256];
-    let mut c1: u8 = 0;
-    let mut numQSorted: i32 = 0;
-    let mut s: u16 = 0;
+    let mut c1: u8;
+    let mut numQSorted: i32;
+    let mut s: u16;
     if verb >= 4 as libc::c_int {
         eprintln!("        main sort initialise ...");
     }
@@ -1064,7 +1064,7 @@ unsafe extern "C" fn mainSort(
         runningOrder[i as usize] = i;
         i += 1;
     }
-    let mut vv: i32 = 0;
+    let mut vv: i32;
     let mut h: i32 = 1 as libc::c_int;
     loop {
         h = 3 as libc::c_int * h + 1 as libc::c_int;
@@ -1253,10 +1253,10 @@ pub unsafe extern "C" fn BZ2_blockSort(s: *mut EState) {
     let nblock: i32 = (*s).nblock;
     let verb: i32 = (*s).verbosity;
     let mut wfact: i32 = (*s).workFactor;
-    let mut quadrant: *mut u16 = std::ptr::null_mut::<u16>();
-    let mut budget: i32 = 0;
-    let mut budgetInit: i32 = 0;
-    let mut i: i32 = 0;
+    let quadrant: *mut u16;
+    let mut budget: i32;
+    let budgetInit: i32;
+    let mut i: i32;
     if nblock < 10000 as libc::c_int {
         fallbackSort((*s).arr1, (*s).arr2, ftab, nblock, verb);
     } else {
