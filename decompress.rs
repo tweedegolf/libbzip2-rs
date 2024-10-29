@@ -1,115 +1,13 @@
+use crate::bzlib::{
+    bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, Bool, DState, Int32, UChar, UInt16, UInt32,
+};
+use crate::huffman::BZ2_hbCreateDecodeTables;
 use ::libc;
 use libc::{fprintf, FILE};
 extern "C" {
     static mut stderr: *mut FILE;
-    fn BZ2_bz__AssertH__fail(errcode: libc::c_int);
-    static mut BZ2_rNums: [Int32; 512];
-    fn BZ2_indexIntoF(_: Int32, _: *mut Int32) -> Int32;
-    fn BZ2_hbCreateDecodeTables(
-        _: *mut Int32,
-        _: *mut Int32,
-        _: *mut Int32,
-        _: *mut UChar,
-        _: Int32,
-        _: Int32,
-        _: Int32,
-    );
 }
-pub type size_t = libc::c_ulong;
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
-pub type _IO_lock_t = ();
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct bz_stream {
-    pub next_in: *mut libc::c_char,
-    pub avail_in: libc::c_uint,
-    pub total_in_lo32: libc::c_uint,
-    pub total_in_hi32: libc::c_uint,
-    pub next_out: *mut libc::c_char,
-    pub avail_out: libc::c_uint,
-    pub total_out_lo32: libc::c_uint,
-    pub total_out_hi32: libc::c_uint,
-    pub state: *mut libc::c_void,
-    pub bzalloc: Option<
-        unsafe extern "C" fn(*mut libc::c_void, libc::c_int, libc::c_int) -> *mut libc::c_void,
-    >,
-    pub bzfree: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>,
-    pub opaque: *mut libc::c_void,
-}
-pub type Bool = libc::c_uchar;
-pub type UChar = libc::c_uchar;
-pub type Int32 = libc::c_int;
-pub type UInt32 = libc::c_uint;
-pub type UInt16 = libc::c_ushort;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct DState {
-    pub strm: *mut bz_stream,
-    pub state: Int32,
-    pub state_out_ch: UChar,
-    pub state_out_len: Int32,
-    pub blockRandomised: Bool,
-    pub rNToGo: Int32,
-    pub rTPos: Int32,
-    pub bsBuff: UInt32,
-    pub bsLive: Int32,
-    pub blockSize100k: Int32,
-    pub smallDecompress: Bool,
-    pub currBlockNo: Int32,
-    pub verbosity: Int32,
-    pub origPtr: Int32,
-    pub tPos: UInt32,
-    pub k0: Int32,
-    pub unzftab: [Int32; 256],
-    pub nblock_used: Int32,
-    pub cftab: [Int32; 257],
-    pub cftabCopy: [Int32; 257],
-    pub tt: *mut UInt32,
-    pub ll16: *mut UInt16,
-    pub ll4: *mut UChar,
-    pub storedBlockCRC: UInt32,
-    pub storedCombinedCRC: UInt32,
-    pub calculatedBlockCRC: UInt32,
-    pub calculatedCombinedCRC: UInt32,
-    pub nInUse: Int32,
-    pub inUse: [Bool; 256],
-    pub inUse16: [Bool; 16],
-    pub seqToUnseq: [UChar; 256],
-    pub mtfa: [UChar; 4096],
-    pub mtfbase: [Int32; 16],
-    pub selector: [UChar; 18002],
-    pub selectorMtf: [UChar; 18002],
-    pub len: [[UChar; 258]; 6],
-    pub limit: [[Int32; 258]; 6],
-    pub base: [[Int32; 258]; 6],
-    pub perm: [[Int32; 258]; 6],
-    pub minLens: [Int32; 6],
-    pub save_i: Int32,
-    pub save_j: Int32,
-    pub save_t: Int32,
-    pub save_alphaSize: Int32,
-    pub save_nGroups: Int32,
-    pub save_nSelectors: Int32,
-    pub save_EOB: Int32,
-    pub save_groupNo: Int32,
-    pub save_groupPos: Int32,
-    pub save_nextSym: Int32,
-    pub save_nblockMAX: Int32,
-    pub save_nblock: Int32,
-    pub save_es: Int32,
-    pub save_N: Int32,
-    pub save_curr: Int32,
-    pub save_zt: Int32,
-    pub save_zn: Int32,
-    pub save_zvec: Int32,
-    pub save_zj: Int32,
-    pub save_gSel: Int32,
-    pub save_gMinlen: Int32,
-    pub save_gLimit: *mut Int32,
-    pub save_gBase: *mut Int32,
-    pub save_gPerm: *mut Int32,
-}
+use crate::randtable::BZ2_rNums;
 unsafe extern "C" fn makeMaps_d(mut s: *mut DState) {
     let mut i: Int32 = 0;
     (*s).nInUse = 0 as libc::c_int;

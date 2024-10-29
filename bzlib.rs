@@ -1,39 +1,20 @@
+use crate::compress::BZ2_compressBlock;
+use crate::decompress::BZ2_decompress;
 use ::libc;
+use libc::{
+    exit, fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, strcat,
+    strcmp, ungetc,
+};
 use libc::{fprintf, FILE};
+
 extern "C" {
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn exit(_: libc::c_int) -> !;
     static stdin: *mut FILE;
     static stdout: *mut FILE;
     static stderr: *mut FILE;
-    fn fclose(__stream: *mut FILE) -> libc::c_int;
-    fn fflush(__stream: *mut FILE) -> libc::c_int;
-    fn fopen(_: *const libc::c_char, _: *const libc::c_char) -> *mut FILE;
-    fn fdopen(__fd: libc::c_int, __modes: *const libc::c_char) -> *mut FILE;
-    fn fgetc(__stream: *mut FILE) -> libc::c_int;
-    fn ungetc(__c: libc::c_int, __stream: *mut FILE) -> libc::c_int;
-    fn fread(
-        _: *mut libc::c_void,
-        _: libc::c_ulong,
-        _: libc::c_ulong,
-        _: *mut FILE,
-    ) -> libc::c_ulong;
-    fn fwrite(
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-        _: libc::c_ulong,
-        _: *mut FILE,
-    ) -> libc::c_ulong;
-    fn ferror(__stream: *mut FILE) -> libc::c_int;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
-    fn strcat(_: *mut libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    static mut BZ2_rNums: [Int32; 512];
-    static mut BZ2_crc32Table: [UInt32; 256];
-    fn BZ2_compressBlock(_: *mut EState, _: Bool);
-    fn BZ2_decompress(_: *mut DState) -> Int32;
 }
+use crate::crctable::BZ2_crc32Table;
+use crate::randtable::BZ2_rNums;
 pub type size_t = libc::c_ulong;
 pub type __off_t = libc::c_long;
 pub type __off64_t = libc::c_long;
@@ -235,7 +216,7 @@ unsafe extern "C" fn default_bzalloc(
     mut items: Int32,
     mut size: Int32,
 ) -> *mut libc::c_void {
-    let mut v: *mut libc::c_void = malloc((items * size) as libc::c_ulong);
+    let mut v: *mut libc::c_void = malloc((items * size) as libc::size_t);
     v
 }
 unsafe extern "C" fn default_bzfree(mut opaque: *mut libc::c_void, mut addr: *mut libc::c_void) {
@@ -1678,7 +1659,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
-    bzf = malloc(::core::mem::size_of::<bzFile>() as libc::c_ulong) as *mut bzFile;
+    bzf = malloc(::core::mem::size_of::<bzFile>() as libc::size_t) as *mut bzFile;
     if bzf.is_null() {
         if !bzerror.is_null() {
             *bzerror = -(3 as libc::c_int);
@@ -1791,8 +1772,8 @@ pub unsafe extern "C" fn BZ2_bzWrite(
             n = (5000 as libc::c_int as libc::c_uint).wrapping_sub((*bzf).strm.avail_out) as Int32;
             n2 = fwrite(
                 ((*bzf).buf).as_mut_ptr() as *mut libc::c_void,
-                ::core::mem::size_of::<UChar>() as libc::c_ulong,
-                n as libc::c_ulong,
+                ::core::mem::size_of::<UChar>() as libc::size_t,
+                n as usize,
                 (*bzf).handle,
             ) as Int32;
             if n != n2 || ferror((*bzf).handle) != 0 {
@@ -1906,8 +1887,8 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
                     as Int32;
                 n2 = fwrite(
                     ((*bzf).buf).as_mut_ptr() as *mut libc::c_void,
-                    ::core::mem::size_of::<UChar>() as libc::c_ulong,
-                    n as libc::c_ulong,
+                    ::core::mem::size_of::<UChar>() as libc::size_t,
+                    n as usize,
                     (*bzf).handle,
                 ) as Int32;
                 if n != n2 || ferror((*bzf).handle) != 0 {
@@ -1998,7 +1979,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
-    bzf = malloc(::core::mem::size_of::<bzFile>() as libc::c_ulong) as *mut bzFile;
+    bzf = malloc(::core::mem::size_of::<bzFile>() as libc::size_t) as *mut bzFile;
     if bzf.is_null() {
         if !bzerror.is_null() {
             *bzerror = -(3 as libc::c_int);
@@ -2134,8 +2115,8 @@ pub unsafe extern "C" fn BZ2_bzRead(
         if (*bzf).strm.avail_in == 0 as libc::c_int as libc::c_uint && myfeof((*bzf).handle) == 0 {
             n = fread(
                 ((*bzf).buf).as_mut_ptr() as *mut libc::c_void,
-                ::core::mem::size_of::<UChar>() as libc::c_ulong,
-                5000 as libc::c_int as libc::c_ulong,
+                ::core::mem::size_of::<UChar>() as libc::size_t,
+                5000,
                 (*bzf).handle,
             ) as Int32;
             if ferror((*bzf).handle) != 0 {
