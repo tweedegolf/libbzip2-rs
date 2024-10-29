@@ -1532,7 +1532,7 @@ unsafe extern "C" fn ioError() -> ! {
     showFileNames();
     cleanUpAndFail(1 as libc::c_int);
 }
-unsafe extern "C" fn mySignalCatcher(mut n: IntNative) {
+unsafe extern "C" fn mySignalCatcher(_: IntNative) {
     fprintf(
         stderr,
         b"\n%s: Control-C or similar caught, quitting.\n\0" as *const u8 as *const libc::c_char,
@@ -1540,7 +1540,7 @@ unsafe extern "C" fn mySignalCatcher(mut n: IntNative) {
     );
     cleanUpAndFail(1 as libc::c_int);
 }
-unsafe extern "C" fn mySIGSEGVorSIGBUScatcher(mut n: IntNative) {
+unsafe extern "C" fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
     let mut msg: *const libc::c_char = 0 as *const libc::c_char;
     if opMode == 1 as libc::c_int {
         msg = b": Caught a SIGSEGV or SIGBUS whilst compressing.\n\n   Possible causes are (most likely first):\n   (1) This computer has unreliable memory or cache hardware\n       (a surprisingly common problem; try a different machine.)\n   (2) A bug in the compiler used to create this executable\n       (unlikely, if you didn't compile bzip2 yourself.)\n   (3) A real bug in bzip2 -- I hope this should never be the case.\n   The user's manual, Section 4.3, has more info on (1) and (2).\n   \n   If you suspect this is a bug in bzip2, or are unsure about (1)\n   or (2), report it at: https://gitlab.com/bzip2/bzip2/-/issues\n   Section 4.3 of the user's manual describes the info a useful\n   bug report should have.  If the manual is available on your\n   system, please try and read it before mailing me.  If you don't\n   have the manual or can't be bothered to read it, mail me anyway.\n\n\0"
@@ -1768,7 +1768,7 @@ static mut fileMetaInfo: stat = stat {
 };
 unsafe extern "C" fn saveInputFileMetaInfo(mut srcName: *mut i8) {
     let mut retVal: IntNative = 0;
-    retVal = stat(srcName, &mut fileMetaInfo);
+    retVal = stat(srcName, core::ptr::addr_of_mut!(fileMetaInfo));
     if retVal != 0 as libc::c_int {
         ioError();
     }
@@ -1794,8 +1794,8 @@ unsafe extern "C" fn applySavedFileAttrToOutputFile(mut fd: IntNative) {
     }
     fchown(fd, fileMetaInfo.st_uid, fileMetaInfo.st_gid);
 }
-unsafe extern "C" fn containsDubiousChars(mut name: *mut i8) -> Bool {
-    return 0 as libc::c_int as Bool;
+unsafe extern "C" fn containsDubiousChars(_: *mut i8) -> Bool {
+    0
 }
 #[no_mangle]
 pub static mut zSuffix: [*const i8; 4] = [
