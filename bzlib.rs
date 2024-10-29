@@ -25,6 +25,7 @@ pub unsafe extern "C" fn BZ2_bzlibVersion() -> *const libc::c_char {
     concat!(version!(), "\0").as_ptr().cast()
 }
 
+#[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct bz_stream {
@@ -155,6 +156,7 @@ pub struct DState {
     pub save_gBase: *mut i32,
     pub save_gPerm: *mut i32,
 }
+#[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct bzFile {
@@ -2484,7 +2486,7 @@ pub unsafe extern "C" fn BZ2_bzclose(b: *mut libc::c_void) {
         fclose(fp);
     }
 }
-static mut bzerrorstrings: [*const libc::c_char; 16] = [
+static mut BZERRORSTRINGS: [*const libc::c_char; 16] = [
     b"OK\0" as *const u8 as *const libc::c_char,
     b"SEQUENCE_ERROR\0" as *const u8 as *const libc::c_char,
     b"PARAM_ERROR\0" as *const u8 as *const libc::c_char,
@@ -2512,5 +2514,5 @@ pub unsafe extern "C" fn BZ2_bzerror(
         err = 0 as libc::c_int;
     }
     *errnum = err;
-    bzerrorstrings[(err * -1 as libc::c_int) as usize]
+    BZERRORSTRINGS[(err * -1 as libc::c_int) as usize]
 }

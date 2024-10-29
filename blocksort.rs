@@ -587,7 +587,7 @@ unsafe extern "C" fn mainGtU(
     }
     0 as libc::c_int as Bool
 }
-static mut incs: [i32; 14] = [
+static INCS: [i32; 14] = [
     1 as libc::c_int,
     4 as libc::c_int,
     13 as libc::c_int,
@@ -624,12 +624,12 @@ unsafe extern "C" fn mainSimpleSort(
         return;
     }
     hp = 0 as libc::c_int;
-    while incs[hp as usize] < bigN {
+    while INCS[hp as usize] < bigN {
         hp += 1;
     }
     hp -= 1;
     while hp >= 0 as libc::c_int {
-        h = incs[hp as usize];
+        h = INCS[hp as usize];
         i = lo + h;
         while 1 as libc::c_int as Bool != 0 {
             if i > hi {
