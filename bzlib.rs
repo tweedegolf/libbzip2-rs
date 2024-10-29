@@ -2318,8 +2318,7 @@ unsafe extern "C" fn bzopen_or_bzdopen(
     let mut unused: [libc::c_char; 5000] = [0; 5000];
     let mut blockSize100k: libc::c_int = 9 as libc::c_int;
     let mut writing: libc::c_int = 0 as libc::c_int;
-    let mut mode2: [libc::c_char; 10] =
-        *core::mem::transmute::<&[u8; 10], &mut [libc::c_char; 10]>(b"\0\0\0\0\0\0\0\0\0\0");
+    let mut mode2: [libc::c_char; 10] = [0; 10];
     let mut fp: *mut FILE = std::ptr::null_mut::<FILE>();
     let mut bzfp: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
     let mut verbosity: libc::c_int = 0 as libc::c_int;
