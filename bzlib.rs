@@ -319,9 +319,10 @@ unsafe fn prepare_new_block(s: *mut EState) {
     (*s).blockNo += 1;
     (*s).blockNo;
 }
-unsafe fn init_RL(s: *mut EState) {
-    (*s).state_in_ch = 256 as libc::c_int as u32;
-    (*s).state_in_len = 0 as libc::c_int;
+
+fn init_RL(s: &mut EState) {
+    s.state_in_ch = 256 as libc::c_int as u32;
+    s.state_in_len = 0 as libc::c_int;
 }
 
 fn isempty_RL(s: &mut EState) -> bool {
@@ -438,7 +439,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     (*strm).total_in_hi32 = 0 as libc::c_int as libc::c_uint;
     (*strm).total_out_lo32 = 0 as libc::c_int as libc::c_uint;
     (*strm).total_out_hi32 = 0 as libc::c_int as libc::c_uint;
-    init_RL(s);
+    init_RL(&mut *s);
     prepare_new_block(s);
     0 as libc::c_int
 }
@@ -502,7 +503,7 @@ unsafe fn flush_RL(s: *mut EState) {
     if (*s).state_in_ch < 256 as libc::c_int as libc::c_uint {
         add_pair_to_block(s);
     }
-    init_RL(s);
+    init_RL(&mut *s);
 }
 unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
     let mut progress_in: Bool = 0 as libc::c_int as Bool;
