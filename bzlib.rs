@@ -305,7 +305,7 @@ unsafe fn isempty_RL(s: *mut EState) -> Bool {
         1 as libc::c_int as Bool
     }
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzCompressInit)]
 pub unsafe extern "C" fn BZ2_bzCompressInit(
     strm: *mut bz_stream,
     blockSize100k: libc::c_int,
@@ -644,7 +644,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
     }
     (progress_in as libc::c_int != 0 || progress_out as libc::c_int != 0) as libc::c_int as Bool
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzCompress)]
 pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_int) -> libc::c_int {
     let progress: Bool;
     let s: *mut EState;
@@ -720,7 +720,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
         }
     }
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzCompressEnd)]
 pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> libc::c_int {
     let s: *mut EState;
     if strm.is_null() {
@@ -755,7 +755,8 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> libc::c_int 
     (*strm).state = std::ptr::null_mut::<libc::c_void>();
     0 as libc::c_int
 }
-#[no_mangle]
+
+#[export_name = prefix!(BZ2_bzDecompressInit)]
 pub unsafe extern "C" fn BZ2_bzDecompressInit(
     strm: *mut bz_stream,
     verbosity: libc::c_int,
@@ -1531,7 +1532,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
         }
     }
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzDecompress)]
 pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
     let mut corrupt: Bool;
     let s: *mut DState;
@@ -1604,7 +1605,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
         }
     }
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzDecompressEnd)]
 pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_int {
     let s: *mut DState;
     if strm.is_null() {
@@ -1647,7 +1648,7 @@ unsafe fn myfeof(f: *mut FILE) -> Bool {
     ungetc(c, f);
     0 as libc::c_int as Bool
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzWriteOpen)]
 pub unsafe extern "C" fn BZ2_bzWriteOpen(
     bzerror: *mut libc::c_int,
     f: *mut FILE,
@@ -1726,7 +1727,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     (*bzf).initialisedOk = 1 as libc::c_int as Bool;
     bzf as *mut libc::c_void
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzWrite)]
 pub unsafe extern "C" fn BZ2_bzWrite(
     bzerror: *mut libc::c_int,
     b: *mut libc::c_void,
@@ -1823,7 +1824,7 @@ pub unsafe extern "C" fn BZ2_bzWrite(
         }
     }
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzWriteClose)]
 pub unsafe extern "C" fn BZ2_bzWriteClose(
     bzerror: *mut libc::c_int,
     b: *mut libc::c_void,
@@ -1841,7 +1842,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose(
         std::ptr::null_mut::<libc::c_uint>(),
     );
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzWriteClose64)]
 pub unsafe extern "C" fn BZ2_bzWriteClose64(
     bzerror: *mut libc::c_int,
     b: *mut libc::c_void,
@@ -1965,7 +1966,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
     BZ2_bzCompressEnd(&mut (*bzf).strm);
     free(bzf as *mut libc::c_void);
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzReadOpen)]
 pub unsafe extern "C" fn BZ2_bzReadOpen(
     bzerror: *mut libc::c_int,
     f: *mut FILE,
@@ -2051,7 +2052,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     (*bzf).initialisedOk = 1 as libc::c_int as Bool;
     bzf as *mut libc::c_void
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzReadClose)]
 pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut libc::c_int, b: *mut libc::c_void) {
     let bzf: *mut bzFile = b as *mut bzFile;
     if !bzerror.is_null() {
@@ -2083,7 +2084,7 @@ pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut libc::c_int, b: *mut libc
     }
     free(bzf as *mut libc::c_void);
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzRead)]
 pub unsafe extern "C" fn BZ2_bzRead(
     bzerror: *mut libc::c_int,
     b: *mut libc::c_void,
@@ -2201,7 +2202,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
         }
     }
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzReadGetUnused)]
 pub unsafe extern "C" fn BZ2_bzReadGetUnused(
     bzerror: *mut libc::c_int,
     b: *mut libc::c_void,
@@ -2245,7 +2246,7 @@ pub unsafe extern "C" fn BZ2_bzReadGetUnused(
     *nUnused = (*bzf).strm.avail_in as libc::c_int;
     *unused = (*bzf).strm.next_in as *mut libc::c_void;
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzBuffToBuffCompress)]
 pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     dest: *mut libc::c_char,
     destLen: *mut libc::c_uint,
@@ -2309,7 +2310,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
         return 0 as libc::c_int;
     }
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzBuffToBuffDecompress)]
 pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     dest: *mut libc::c_char,
     destLen: *mut libc::c_uint,
@@ -2469,21 +2470,21 @@ unsafe fn bzopen_or_bzdopen(
     }
     bzfp
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzopen)]
 pub unsafe extern "C" fn BZ2_bzopen(
     path: *const libc::c_char,
     mode: *const libc::c_char,
 ) -> *mut libc::c_void {
     bzopen_or_bzdopen(path, -1 as libc::c_int, mode, 0 as libc::c_int)
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzdopen)]
 pub unsafe extern "C" fn BZ2_bzdopen(
     fd: libc::c_int,
     mode: *const libc::c_char,
 ) -> *mut libc::c_void {
     bzopen_or_bzdopen(std::ptr::null::<libc::c_char>(), fd, mode, 1 as libc::c_int)
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzread)]
 pub unsafe extern "C" fn BZ2_bzread(
     b: *mut libc::c_void,
     buf: *mut libc::c_void,
@@ -2501,7 +2502,7 @@ pub unsafe extern "C" fn BZ2_bzread(
         -1 as libc::c_int
     }
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzwrite)]
 pub unsafe extern "C" fn BZ2_bzwrite(
     b: *mut libc::c_void,
     buf: *mut libc::c_void,
@@ -2515,11 +2516,11 @@ pub unsafe extern "C" fn BZ2_bzwrite(
         -1 as libc::c_int
     }
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzflush)]
 pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut libc::c_void) -> libc::c_int {
     0 as libc::c_int
 }
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzclose)]
 pub unsafe extern "C" fn BZ2_bzclose(b: *mut libc::c_void) {
     let mut bzerr: libc::c_int = 0;
     let fp: *mut FILE;
@@ -2569,7 +2570,7 @@ static mut BZERRORSTRINGS: [*const libc::c_char; 16] = [
     b"???\0" as *const u8 as *const libc::c_char,
     b"???\0" as *const u8 as *const libc::c_char,
 ];
-#[no_mangle]
+#[export_name = prefix!(BZ2_bzerror)]
 pub unsafe extern "C" fn BZ2_bzerror(
     b: *mut libc::c_void,
     errnum: *mut libc::c_int,
