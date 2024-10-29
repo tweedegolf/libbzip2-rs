@@ -291,7 +291,7 @@ unsafe extern "C" fn fallbackSort(
             i += 1;
         }
         nNotDone = 0 as libc::c_int;
-        r = -(1 as libc::c_int);
+        r = -1 as libc::c_int;
         loop {
             k = r + 1 as libc::c_int;
             while *bhtab.offset((k >> 5 as libc::c_int) as isize)
@@ -350,7 +350,7 @@ unsafe extern "C" fn fallbackSort(
             if r > l {
                 nNotDone += r - l + 1 as libc::c_int;
                 fallbackQSort3(fmap, eclass, l, r);
-                cc = -(1 as libc::c_int);
+                cc = -1 as libc::c_int;
                 i = l;
                 while i <= r {
                     cc1 = *eclass.offset(*fmap.offset(i as isize) as isize) as Int32;
@@ -1307,7 +1307,7 @@ pub unsafe extern "C" fn BZ2_blockSort(mut s: *mut EState) {
             fallbackSort((*s).arr1, (*s).arr2, ftab, nblock, verb);
         }
     }
-    (*s).origPtr = -(1 as libc::c_int);
+    (*s).origPtr = -1 as libc::c_int;
     i = 0 as libc::c_int;
     while i < (*s).nblock {
         if *ptr.offset(i as isize) == 0 as libc::c_int as libc::c_uint {
@@ -1317,7 +1317,7 @@ pub unsafe extern "C" fn BZ2_blockSort(mut s: *mut EState) {
             i += 1;
         }
     }
-    if (*s).origPtr == -(1 as libc::c_int) {
+    if (*s).origPtr == -1 as libc::c_int {
         BZ2_bz__AssertH__fail(1003 as libc::c_int);
     }
 }

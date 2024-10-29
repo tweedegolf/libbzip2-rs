@@ -141,7 +141,7 @@ unsafe extern "C" fn bsOpenWriteStream(mut stream: *mut FILE) -> *mut BitStream 
 unsafe extern "C" fn bsPutBit(mut bs: *mut BitStream, mut bit: Int32) {
     if (*bs).buffLive == 8 as libc::c_int {
         let mut retVal: Int32 = putc((*bs).buffer as UChar as libc::c_int, (*bs).handle);
-        if retVal == -(1 as libc::c_int) {
+        if retVal == -1 as libc::c_int {
             writeError();
         }
         bytesOut = bytesOut.wrapping_add(1);
@@ -160,7 +160,7 @@ unsafe extern "C" fn bsGetBit(mut bs: *mut BitStream) -> Int32 {
         return (*bs).buffer >> (*bs).buffLive & 0x1 as libc::c_int;
     } else {
         let mut retVal: Int32 = getc((*bs).handle);
-        if retVal == -(1 as libc::c_int) {
+        if retVal == -1 as libc::c_int {
             if *__errno_location() != 0 as libc::c_int {
                 readError();
             }
@@ -180,17 +180,17 @@ unsafe extern "C" fn bsClose(mut bs: *mut BitStream) {
             (*bs).buffer <<= 1 as libc::c_int;
         }
         retVal = putc((*bs).buffer as UChar as libc::c_int, (*bs).handle);
-        if retVal == -(1 as libc::c_int) {
+        if retVal == -1 as libc::c_int {
             writeError();
         }
         bytesOut = bytesOut.wrapping_add(1);
         retVal = fflush((*bs).handle);
-        if retVal == -(1 as libc::c_int) {
+        if retVal == -1 as libc::c_int {
             writeError();
         }
     }
     retVal = fclose((*bs).handle);
-    if retVal == -(1 as libc::c_int) {
+    if retVal == -1 as libc::c_int {
         if (*bs).mode as libc::c_int == 'w' as i32 {
             writeError();
         } else {
@@ -240,7 +240,7 @@ unsafe extern "C" fn fopen_output_safely(
         0o1 as libc::c_int | 0o100 as libc::c_int | 0o200 as libc::c_int,
         0o200 as libc::c_int | 0o400 as libc::c_int,
     );
-    if fh == -(1 as libc::c_int) {
+    if fh == -1 as libc::c_int {
         return 0 as *mut FILE;
     }
     fp = fdopen(fh, mode);

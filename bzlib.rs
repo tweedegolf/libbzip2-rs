@@ -268,7 +268,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     let mut n: Int32 = 0;
     let mut s: *mut EState = std::ptr::null_mut::<EState>();
     if bz_config_ok() == 0 {
-        return -(9 as libc::c_int);
+        return -9 as libc::c_int;
     }
     if strm.is_null()
         || blockSize100k < 1 as libc::c_int
@@ -276,7 +276,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         || workFactor < 0 as libc::c_int
         || workFactor > 250 as libc::c_int
     {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if workFactor == 0 as libc::c_int {
         workFactor = 30 as libc::c_int;
@@ -298,7 +298,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         1 as libc::c_int,
     ) as *mut EState;
     if s.is_null() {
-        return -(3 as libc::c_int);
+        return -3 as libc::c_int;
     }
     (*s).strm = strm;
     (*s).arr1 = std::ptr::null_mut::<UInt32>();
@@ -349,7 +349,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
                 s as *mut libc::c_void,
             );
         }
-        return -(3 as libc::c_int);
+        return -3 as libc::c_int;
     }
     (*s).blockNo = 0 as libc::c_int;
     (*s).state = 2 as libc::c_int;
@@ -605,25 +605,25 @@ pub unsafe extern "C" fn BZ2_bzCompress(
     let mut progress: Bool = 0;
     let mut s: *mut EState = std::ptr::null_mut::<EState>();
     if strm.is_null() {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     s = (*strm).state as *mut EState;
     if s.is_null() {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if (*s).strm != strm {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     loop {
         match (*s).mode {
-            1 => return -(1 as libc::c_int),
+            1 => return -1 as libc::c_int,
             2 => {
                 if action == 0 as libc::c_int {
                     progress = handle_compress(strm);
                     return if progress as libc::c_int != 0 {
                         1 as libc::c_int
                     } else {
-                        -(2 as libc::c_int)
+                        -2 as libc::c_int
                     };
                 } else if action == 1 as libc::c_int {
                     (*s).avail_in_expect = (*strm).avail_in;
@@ -632,15 +632,15 @@ pub unsafe extern "C" fn BZ2_bzCompress(
                     (*s).avail_in_expect = (*strm).avail_in;
                     (*s).mode = 4 as libc::c_int;
                 } else {
-                    return -(2 as libc::c_int);
+                    return -2 as libc::c_int;
                 }
             }
             3 => {
                 if action != 1 as libc::c_int {
-                    return -(1 as libc::c_int);
+                    return -1 as libc::c_int;
                 }
                 if (*s).avail_in_expect != (*(*s).strm).avail_in {
-                    return -(1 as libc::c_int);
+                    return -1 as libc::c_int;
                 }
                 progress = handle_compress(strm);
                 if (*s).avail_in_expect > 0 as libc::c_int as libc::c_uint
@@ -654,14 +654,14 @@ pub unsafe extern "C" fn BZ2_bzCompress(
             }
             4 => {
                 if action != 2 as libc::c_int {
-                    return -(1 as libc::c_int);
+                    return -1 as libc::c_int;
                 }
                 if (*s).avail_in_expect != (*(*s).strm).avail_in {
-                    return -(1 as libc::c_int);
+                    return -1 as libc::c_int;
                 }
                 progress = handle_compress(strm);
                 if progress == 0 {
-                    return -(1 as libc::c_int);
+                    return -1 as libc::c_int;
                 }
                 if (*s).avail_in_expect > 0 as libc::c_int as libc::c_uint
                     || isempty_RL(s) == 0
@@ -680,14 +680,14 @@ pub unsafe extern "C" fn BZ2_bzCompress(
 pub unsafe extern "C" fn BZ2_bzCompressEnd(mut strm: *mut bz_stream) -> libc::c_int {
     let mut s: *mut EState = std::ptr::null_mut::<EState>();
     if strm.is_null() {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     s = (*strm).state as *mut EState;
     if s.is_null() {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if (*s).strm != strm {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if !((*s).arr1).is_null() {
         ((*strm).bzfree).expect("non-null function pointer")(
@@ -719,16 +719,16 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
 ) -> libc::c_int {
     let mut s: *mut DState = std::ptr::null_mut::<DState>();
     if bz_config_ok() == 0 {
-        return -(9 as libc::c_int);
+        return -9 as libc::c_int;
     }
     if strm.is_null() {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if small != 0 as libc::c_int && small != 1 as libc::c_int {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if verbosity < 0 as libc::c_int || verbosity > 4 as libc::c_int {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if ((*strm).bzalloc).is_none() {
         (*strm).bzalloc = Some(
@@ -747,7 +747,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
         1 as libc::c_int,
     ) as *mut DState;
     if s.is_null() {
-        return -(3 as libc::c_int);
+        return -3 as libc::c_int;
     }
     (*s).strm = strm;
     (*strm).state = s as *mut libc::c_void;
@@ -1511,18 +1511,18 @@ pub unsafe extern "C" fn BZ2_bzDecompress(mut strm: *mut bz_stream) -> libc::c_i
     let mut corrupt: Bool = 0;
     let mut s: *mut DState = std::ptr::null_mut::<DState>();
     if strm.is_null() {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     s = (*strm).state as *mut DState;
     if s.is_null() {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if (*s).strm != strm {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     while 1 as libc::c_int as Bool != 0 {
         if (*s).state == 1 as libc::c_int {
-            return -(1 as libc::c_int);
+            return -1 as libc::c_int;
         }
         if (*s).state == 2 as libc::c_int {
             if (*s).smallDecompress != 0 {
@@ -1531,7 +1531,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(mut strm: *mut bz_stream) -> libc::c_i
                 corrupt = unRLE_obuf_to_output_FAST(s);
             }
             if corrupt != 0 {
-                return -(4 as libc::c_int);
+                return -4 as libc::c_int;
             }
             if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int
                 && (*s).state_out_len == 0 as libc::c_int
@@ -1548,7 +1548,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(mut strm: *mut bz_stream) -> libc::c_i
                     eprint!("]");
                 }
                 if (*s).calculatedBlockCRC != (*s).storedBlockCRC {
-                    return -(4 as libc::c_int);
+                    return -4 as libc::c_int;
                 }
                 (*s).calculatedCombinedCRC = (*s).calculatedCombinedCRC << 1 as libc::c_int
                     | (*s).calculatedCombinedCRC >> 31 as libc::c_int;
@@ -1569,7 +1569,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(mut strm: *mut bz_stream) -> libc::c_i
                     );
                 }
                 if (*s).calculatedCombinedCRC != (*s).storedCombinedCRC {
-                    return -(4 as libc::c_int);
+                    return -4 as libc::c_int;
                 }
                 return r;
             }
@@ -1587,14 +1587,14 @@ pub unsafe extern "C" fn BZ2_bzDecompress(mut strm: *mut bz_stream) -> libc::c_i
 pub unsafe extern "C" fn BZ2_bzDecompressEnd(mut strm: *mut bz_stream) -> libc::c_int {
     let mut s: *mut DState = std::ptr::null_mut::<DState>();
     if strm.is_null() {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     s = (*strm).state as *mut DState;
     if s.is_null() {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if (*s).strm != strm {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if !((*s).tt).is_null() {
         ((*strm).bzfree).expect("non-null function pointer")(
@@ -1620,7 +1620,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(mut strm: *mut bz_stream) -> libc::
 }
 unsafe extern "C" fn myfeof(mut f: *mut FILE) -> Bool {
     let mut c: Int32 = fgetc(f);
-    if c == -(1 as libc::c_int) {
+    if c == -1 as libc::c_int {
         return 1 as libc::c_int as Bool;
     }
     ungetc(c, f);
@@ -1648,29 +1648,29 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
         || (verbosity < 0 as libc::c_int || verbosity > 4 as libc::c_int)
     {
         if !bzerror.is_null() {
-            *bzerror = -(2 as libc::c_int);
+            *bzerror = -2 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(2 as libc::c_int);
+            (*bzf).lastErr = -2 as libc::c_int;
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
     if ferror(f) != 0 {
         if !bzerror.is_null() {
-            *bzerror = -(6 as libc::c_int);
+            *bzerror = -6 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(6 as libc::c_int);
+            (*bzf).lastErr = -6 as libc::c_int;
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
     bzf = malloc(::core::mem::size_of::<bzFile>() as libc::size_t) as *mut bzFile;
     if bzf.is_null() {
         if !bzerror.is_null() {
-            *bzerror = -(3 as libc::c_int);
+            *bzerror = -3 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(3 as libc::c_int);
+            (*bzf).lastErr = -3 as libc::c_int;
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
@@ -1724,28 +1724,28 @@ pub unsafe extern "C" fn BZ2_bzWrite(
     }
     if bzf.is_null() || buf.is_null() || len < 0 as libc::c_int {
         if !bzerror.is_null() {
-            *bzerror = -(2 as libc::c_int);
+            *bzerror = -2 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(2 as libc::c_int);
+            (*bzf).lastErr = -2 as libc::c_int;
         }
         return;
     }
     if (*bzf).writing == 0 {
         if !bzerror.is_null() {
-            *bzerror = -(1 as libc::c_int);
+            *bzerror = -1 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(1 as libc::c_int);
+            (*bzf).lastErr = -1 as libc::c_int;
         }
         return;
     }
     if ferror((*bzf).handle) != 0 {
         if !bzerror.is_null() {
-            *bzerror = -(6 as libc::c_int);
+            *bzerror = -6 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(6 as libc::c_int);
+            (*bzf).lastErr = -6 as libc::c_int;
         }
         return;
     }
@@ -1783,10 +1783,10 @@ pub unsafe extern "C" fn BZ2_bzWrite(
             ) as Int32;
             if n != n2 || ferror((*bzf).handle) != 0 {
                 if !bzerror.is_null() {
-                    *bzerror = -(6 as libc::c_int);
+                    *bzerror = -6 as libc::c_int;
                 }
                 if !bzf.is_null() {
-                    (*bzf).lastErr = -(6 as libc::c_int);
+                    (*bzf).lastErr = -6 as libc::c_int;
                 }
                 return;
             }
@@ -1845,19 +1845,19 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
     }
     if (*bzf).writing == 0 {
         if !bzerror.is_null() {
-            *bzerror = -(1 as libc::c_int);
+            *bzerror = -1 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(1 as libc::c_int);
+            (*bzf).lastErr = -1 as libc::c_int;
         }
         return;
     }
     if ferror((*bzf).handle) != 0 {
         if !bzerror.is_null() {
-            *bzerror = -(6 as libc::c_int);
+            *bzerror = -6 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(6 as libc::c_int);
+            (*bzf).lastErr = -6 as libc::c_int;
         }
         return;
     }
@@ -1898,10 +1898,10 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
                 ) as Int32;
                 if n != n2 || ferror((*bzf).handle) != 0 {
                     if !bzerror.is_null() {
-                        *bzerror = -(6 as libc::c_int);
+                        *bzerror = -6 as libc::c_int;
                     }
                     if !bzf.is_null() {
-                        (*bzf).lastErr = -(6 as libc::c_int);
+                        (*bzf).lastErr = -6 as libc::c_int;
                     }
                     return;
                 }
@@ -1915,10 +1915,10 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
         fflush((*bzf).handle);
         if ferror((*bzf).handle) != 0 {
             if !bzerror.is_null() {
-                *bzerror = -(6 as libc::c_int);
+                *bzerror = -6 as libc::c_int;
             }
             if !bzf.is_null() {
-                (*bzf).lastErr = -(6 as libc::c_int);
+                (*bzf).lastErr = -6 as libc::c_int;
             }
             return;
         }
@@ -1968,29 +1968,29 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         || !unused.is_null() && (nUnused < 0 as libc::c_int || nUnused > 5000 as libc::c_int)
     {
         if !bzerror.is_null() {
-            *bzerror = -(2 as libc::c_int);
+            *bzerror = -2 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(2 as libc::c_int);
+            (*bzf).lastErr = -2 as libc::c_int;
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
     if ferror(f) != 0 {
         if !bzerror.is_null() {
-            *bzerror = -(6 as libc::c_int);
+            *bzerror = -6 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(6 as libc::c_int);
+            (*bzf).lastErr = -6 as libc::c_int;
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
     bzf = malloc(::core::mem::size_of::<bzFile>() as libc::size_t) as *mut bzFile;
     if bzf.is_null() {
         if !bzerror.is_null() {
-            *bzerror = -(3 as libc::c_int);
+            *bzerror = -3 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(3 as libc::c_int);
+            (*bzf).lastErr = -3 as libc::c_int;
         }
         return std::ptr::null_mut::<libc::c_void>();
     }
@@ -2050,10 +2050,10 @@ pub unsafe extern "C" fn BZ2_bzReadClose(mut bzerror: *mut libc::c_int, mut b: *
     }
     if (*bzf).writing != 0 {
         if !bzerror.is_null() {
-            *bzerror = -(1 as libc::c_int);
+            *bzerror = -1 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(1 as libc::c_int);
+            (*bzf).lastErr = -1 as libc::c_int;
         }
         return;
     }
@@ -2080,19 +2080,19 @@ pub unsafe extern "C" fn BZ2_bzRead(
     }
     if bzf.is_null() || buf.is_null() || len < 0 as libc::c_int {
         if !bzerror.is_null() {
-            *bzerror = -(2 as libc::c_int);
+            *bzerror = -2 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(2 as libc::c_int);
+            (*bzf).lastErr = -2 as libc::c_int;
         }
         return 0 as libc::c_int;
     }
     if (*bzf).writing != 0 {
         if !bzerror.is_null() {
-            *bzerror = -(1 as libc::c_int);
+            *bzerror = -1 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(1 as libc::c_int);
+            (*bzf).lastErr = -1 as libc::c_int;
         }
         return 0 as libc::c_int;
     }
@@ -2110,10 +2110,10 @@ pub unsafe extern "C" fn BZ2_bzRead(
     while 1 as libc::c_int as Bool != 0 {
         if ferror((*bzf).handle) != 0 {
             if !bzerror.is_null() {
-                *bzerror = -(6 as libc::c_int);
+                *bzerror = -6 as libc::c_int;
             }
             if !bzf.is_null() {
-                (*bzf).lastErr = -(6 as libc::c_int);
+                (*bzf).lastErr = -6 as libc::c_int;
             }
             return 0 as libc::c_int;
         }
@@ -2126,10 +2126,10 @@ pub unsafe extern "C" fn BZ2_bzRead(
             ) as Int32;
             if ferror((*bzf).handle) != 0 {
                 if !bzerror.is_null() {
-                    *bzerror = -(6 as libc::c_int);
+                    *bzerror = -6 as libc::c_int;
                 }
                 if !bzf.is_null() {
-                    (*bzf).lastErr = -(6 as libc::c_int);
+                    (*bzf).lastErr = -6 as libc::c_int;
                 }
                 return 0 as libc::c_int;
             }
@@ -2153,10 +2153,10 @@ pub unsafe extern "C" fn BZ2_bzRead(
             && (*bzf).strm.avail_out > 0 as libc::c_int as libc::c_uint
         {
             if !bzerror.is_null() {
-                *bzerror = -(7 as libc::c_int);
+                *bzerror = -7 as libc::c_int;
             }
             if !bzf.is_null() {
-                (*bzf).lastErr = -(7 as libc::c_int);
+                (*bzf).lastErr = -7 as libc::c_int;
             }
             return 0 as libc::c_int;
         }
@@ -2191,28 +2191,28 @@ pub unsafe extern "C" fn BZ2_bzReadGetUnused(
     let mut bzf: *mut bzFile = b as *mut bzFile;
     if bzf.is_null() {
         if !bzerror.is_null() {
-            *bzerror = -(2 as libc::c_int);
+            *bzerror = -2 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(2 as libc::c_int);
+            (*bzf).lastErr = -2 as libc::c_int;
         }
         return;
     }
     if (*bzf).lastErr != 4 as libc::c_int {
         if !bzerror.is_null() {
-            *bzerror = -(1 as libc::c_int);
+            *bzerror = -1 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(1 as libc::c_int);
+            (*bzf).lastErr = -1 as libc::c_int;
         }
         return;
     }
     if unused.is_null() || nUnused.is_null() {
         if !bzerror.is_null() {
-            *bzerror = -(2 as libc::c_int);
+            *bzerror = -2 as libc::c_int;
         }
         if !bzf.is_null() {
-            (*bzf).lastErr = -(2 as libc::c_int);
+            (*bzf).lastErr = -2 as libc::c_int;
         }
         return;
     }
@@ -2260,7 +2260,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
         || workFactor < 0 as libc::c_int
         || workFactor > 250 as libc::c_int
     {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     if workFactor == 0 as libc::c_int {
         workFactor = 30 as libc::c_int;
@@ -2279,7 +2279,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     ret = BZ2_bzCompress(&mut strm, 2 as libc::c_int);
     if ret == 3 as libc::c_int {
         BZ2_bzCompressEnd(&mut strm);
-        -(8 as libc::c_int)
+        -8 as libc::c_int
     } else if ret != 4 as libc::c_int {
         BZ2_bzCompressEnd(&mut strm);
         return ret;
@@ -2320,7 +2320,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
         || verbosity < 0 as libc::c_int
         || verbosity > 4 as libc::c_int
     {
-        return -(2 as libc::c_int);
+        return -2 as libc::c_int;
     }
     strm.bzalloc = None;
     strm.bzfree = None;
@@ -2337,10 +2337,10 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     if ret == 0 as libc::c_int {
         if strm.avail_out > 0 as libc::c_int as libc::c_uint {
             BZ2_bzDecompressEnd(&mut strm);
-            -(7 as libc::c_int)
+            -7 as libc::c_int
         } else {
             BZ2_bzDecompressEnd(&mut strm);
-            -(8 as libc::c_int)
+            -8 as libc::c_int
         }
     } else if ret != 4 as libc::c_int {
         BZ2_bzDecompressEnd(&mut strm);
@@ -2458,7 +2458,7 @@ pub unsafe extern "C" fn BZ2_bzopen(
     mut path: *const libc::c_char,
     mut mode: *const libc::c_char,
 ) -> *mut libc::c_void {
-    bzopen_or_bzdopen(path, -(1 as libc::c_int), mode, 0 as libc::c_int)
+    bzopen_or_bzdopen(path, -1 as libc::c_int, mode, 0 as libc::c_int)
 }
 #[no_mangle]
 pub unsafe extern "C" fn BZ2_bzdopen(
@@ -2482,7 +2482,7 @@ pub unsafe extern "C" fn BZ2_bzread(
     if bzerr == 0 as libc::c_int || bzerr == 4 as libc::c_int {
         nread
     } else {
-        -(1 as libc::c_int)
+        -1 as libc::c_int
     }
 }
 #[no_mangle]
@@ -2496,7 +2496,7 @@ pub unsafe extern "C" fn BZ2_bzwrite(
     if bzerr == 0 as libc::c_int {
         len
     } else {
-        -(1 as libc::c_int)
+        -1 as libc::c_int
     }
 }
 #[no_mangle]
@@ -2563,5 +2563,5 @@ pub unsafe extern "C" fn BZ2_bzerror(
         err = 0 as libc::c_int;
     }
     *errnum = err;
-    bzerrorstrings[(err * -(1 as libc::c_int)) as usize]
+    bzerrorstrings[(err * -1 as libc::c_int) as usize]
 }

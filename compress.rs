@@ -861,7 +861,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                 }
             }
             bc = 999999999 as libc::c_int;
-            bt = -(1 as libc::c_int);
+            bt = -1 as libc::c_int;
             t = 0 as libc::c_int;
             while t < nGroups {
                 if (cost[t as usize] as libc::c_int) < bc {

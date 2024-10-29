@@ -224,7 +224,7 @@ unsafe extern "C" fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut U
 }
 unsafe extern "C" fn myfeof(mut f: *mut FILE) -> Bool {
     let mut c: Int32 = fgetc(f);
-    if c == -(1 as libc::c_int) {
+    if c == -1 as libc::c_int {
         return 1 as libc::c_int as Bool;
     }
     ungetc(c, f);
@@ -302,7 +302,7 @@ unsafe extern "C" fn compressStream(mut stream: *mut FILE, mut zStream: *mut FIL
                             current_block = 4037297614742950260;
                         } else {
                             ret = fflush(zStream);
-                            if ret == -(1 as libc::c_int) {
+                            if ret == -1 as libc::c_int {
                                 current_block = 4037297614742950260;
                             } else {
                                 if zStream != stdout {
@@ -313,7 +313,7 @@ unsafe extern "C" fn compressStream(mut stream: *mut FILE, mut zStream: *mut FIL
                                         applySavedFileAttrToOutputFile(fd);
                                         ret = fclose(zStream);
                                         outputHandleJustInCase = 0 as *mut FILE;
-                                        if ret == -(1 as libc::c_int) {
+                                        if ret == -1 as libc::c_int {
                                             current_block = 4037297614742950260;
                                         } else {
                                             current_block = 9828876828309294594;
@@ -330,7 +330,7 @@ unsafe extern "C" fn compressStream(mut stream: *mut FILE, mut zStream: *mut FIL
                                             current_block = 4037297614742950260;
                                         } else {
                                             ret = fclose(stream);
-                                            if ret == -(1 as libc::c_int) {
+                                            if ret == -1 as libc::c_int {
                                                 current_block = 4037297614742950260;
                                             } else {
                                                 if verbosity >= 1 as libc::c_int {
@@ -512,7 +512,7 @@ unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut F
                         obuf.as_mut_ptr() as *mut libc::c_void,
                         5000 as libc::c_int,
                     );
-                    if bzerr == -(5 as libc::c_int) {
+                    if bzerr == -5 as libc::c_int {
                         current_block = 16997752893149199978;
                         break 's_37;
                     }
@@ -895,14 +895,14 @@ unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut F
                                         6432526541220421294 => {}
                                         _ => {
                                             ret = fclose(zStream);
-                                            if !(ret == -(1 as libc::c_int)) {
+                                            if !(ret == -1 as libc::c_int) {
                                                 if !(ferror(stream) != 0) {
                                                     ret = fflush(stream);
                                                     if !(ret != 0 as libc::c_int) {
                                                         if stream != stdout {
                                                             ret = fclose(stream);
                                                             outputHandleJustInCase = 0 as *mut FILE;
-                                                            if ret == -(1 as libc::c_int) {
+                                                            if ret == -1 as libc::c_int {
                                                                 current_block = 6432526541220421294;
                                                             } else {
                                                                 current_block = 3123434771885419771;
@@ -981,7 +981,7 @@ unsafe extern "C" fn testStream(mut zStream: *mut FILE) -> Bool {
                     obuf.as_mut_ptr() as *mut libc::c_void,
                     5000 as libc::c_int,
                 );
-                if bzerr == -(5 as libc::c_int) {
+                if bzerr == -5 as libc::c_int {
                     current_block = 5115833311404821621;
                     break 's_29;
                 }
@@ -1013,7 +1013,7 @@ unsafe extern "C" fn testStream(mut zStream: *mut FILE) -> Bool {
             5783071609795492627 => {
                 if !(ferror(zStream) != 0) {
                     ret = fclose(zStream);
-                    if !(ret == -(1 as libc::c_int)) {
+                    if !(ret == -1 as libc::c_int) {
                         if verbosity >= 2 as libc::c_int {
                             fprintf(stderr, b"\n    \0" as *const u8 as *const libc::c_char);
                         }
@@ -1664,7 +1664,7 @@ unsafe extern "C" fn fopen_output_safely(
         0o1 as libc::c_int | 0o100 as libc::c_int | 0o200 as libc::c_int,
         0o200 as libc::c_int | 0o400 as libc::c_int,
     );
-    if fh == -(1 as libc::c_int) {
+    if fh == -1 as libc::c_int {
         return 0 as *mut FILE;
     }
     fp = fdopen(fh, mode);
@@ -1823,7 +1823,7 @@ unsafe extern "C" fn hasSuffix(mut s: *mut Char, mut suffix: *const Char) -> Boo
     if ns < nx {
         return 0 as libc::c_int as Bool;
     }
-    if strcmp(s.offset(ns as isize).offset(-(nx as isize)), suffix) == 0 as libc::c_int {
+    if strcmp(s.offset(ns as isize).offset(-nx as isize), suffix) == 0 as libc::c_int {
         return 1 as libc::c_int as Bool;
     }
     return 0 as libc::c_int as Bool;
