@@ -60,16 +60,10 @@ pub struct bz_stream {
     pub total_out_lo32: libc::c_uint,
     pub total_out_hi32: libc::c_uint,
     pub state: *mut libc::c_void,
-    pub bzalloc: Option::<
-        unsafe extern "C" fn(
-            *mut libc::c_void,
-            libc::c_int,
-            libc::c_int,
-        ) -> *mut libc::c_void,
+    pub bzalloc: Option<
+        unsafe extern "C" fn(*mut libc::c_void, libc::c_int, libc::c_int) -> *mut libc::c_void,
     >,
-    pub bzfree: Option::<
-        unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> (),
-    >,
+    pub bzfree: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>,
     pub opaque: *mut libc::c_void,
 }
 pub type Bool = libc::c_uchar;
@@ -127,8 +121,7 @@ pub unsafe extern "C" fn BZ2_bsInitWrite(mut s: *mut EState) {
 }
 unsafe extern "C" fn bsFinishWrite(mut s: *mut EState) {
     while (*s).bsLive > 0 as libc::c_int {
-        *((*s).zbits)
-            .offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as UChar;
+        *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as UChar;
         (*s).numZ += 1;
         (*s).numZ;
         (*s).bsBuff <<= 8 as libc::c_int;
@@ -138,8 +131,7 @@ unsafe extern "C" fn bsFinishWrite(mut s: *mut EState) {
 #[inline]
 unsafe extern "C" fn bsW(mut s: *mut EState, mut n: Int32, mut v: UInt32) {
     while (*s).bsLive >= 8 as libc::c_int {
-        *((*s).zbits)
-            .offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as UChar;
+        *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as UChar;
         (*s).numZ += 1;
         (*s).numZ;
         (*s).bsBuff <<= 8 as libc::c_int;
@@ -164,7 +156,11 @@ unsafe extern "C" fn bsPutUInt32(mut s: *mut EState, mut u: UInt32) {
         8 as libc::c_int,
         ((u >> 8 as libc::c_int) as libc::c_long & 0xff as libc::c_long) as UInt32,
     );
-    bsW(s, 8 as libc::c_int, (u as libc::c_long & 0xff as libc::c_long) as UInt32);
+    bsW(
+        s,
+        8 as libc::c_int,
+        (u as libc::c_long & 0xff as libc::c_long) as UInt32,
+    );
 }
 unsafe extern "C" fn bsPutUChar(mut s: *mut EState, mut c: UChar) {
     bsW(s, 8 as libc::c_int, c as UInt32);
@@ -180,7 +176,7 @@ unsafe extern "C" fn makeMaps_e(mut s: *mut EState) {
             (*s).nInUse;
         }
         i += 1;
-        }
+    }
 }
 unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
     let mut yy: [UChar; 256] = [0; 256];
@@ -198,26 +194,25 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
     while i <= EOB {
         (*s).mtfFreq[i as usize] = 0 as libc::c_int;
         i += 1;
-        }
+    }
     wr = 0 as libc::c_int;
     zPend = 0 as libc::c_int;
     i = 0 as libc::c_int;
     while i < (*s).nInUse {
         yy[i as usize] = i as UChar;
         i += 1;
-        }
+    }
     i = 0 as libc::c_int;
     while i < (*s).nblock {
         let mut ll_i: UChar = 0;
-        j = (*ptr.offset(i as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint)
-            as Int32;
+        j = (*ptr.offset(i as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as Int32;
         if j < 0 as libc::c_int {
             j += (*s).nblock;
         }
         ll_i = (*s).unseqToSeq[*block.offset(j as isize) as usize];
         if yy[0 as libc::c_int as usize] as libc::c_int == ll_i as libc::c_int {
             zPend += 1;
-            } else {
+        } else {
             if zPend > 0 as libc::c_int {
                 zPend -= 1;
                 while 1 as libc::c_int as Bool != 0 {
@@ -244,8 +239,7 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
             let mut rll_i: UChar = 0;
             rtmp = yy[1 as libc::c_int as usize];
             yy[1 as libc::c_int as usize] = yy[0 as libc::c_int as usize];
-            ryy_j = &mut *yy.as_mut_ptr().offset(1 as libc::c_int as isize)
-                as *mut UChar;
+            ryy_j = &mut *yy.as_mut_ptr().offset(1 as libc::c_int as isize) as *mut UChar;
             rll_i = ll_i;
             while rll_i as libc::c_int != rtmp as libc::c_int {
                 let mut rtmp2: UChar = 0;
@@ -256,16 +250,15 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
             }
             yy[0 as libc::c_int as usize] = rtmp;
             j = ryy_j
-                .offset_from(
-                    &mut *yy.as_mut_ptr().offset(0 as libc::c_int as isize) as *mut UChar,
-                ) as libc::c_long as Int32;
+                .offset_from(&mut *yy.as_mut_ptr().offset(0 as libc::c_int as isize) as *mut UChar)
+                as libc::c_long as Int32;
             *mtfv.offset(wr as isize) = (j + 1 as libc::c_int) as UInt16;
             wr += 1;
             (*s).mtfFreq[(j + 1 as libc::c_int) as usize] += 1;
             (*s).mtfFreq[(j + 1 as libc::c_int) as usize];
         }
         i += 1;
-        }
+    }
     if zPend > 0 as libc::c_int {
         zPend -= 1;
         while 1 as libc::c_int as Bool != 0 {
@@ -317,8 +310,8 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
     if (*s).verbosity >= 3 as libc::c_int {
         fprintf(
             stderr,
-            b"      %d in block, %d after MTF & 1-2 coding, %d+2 syms in use\n\0"
-                as *const u8 as *const libc::c_char,
+            b"      %d in block, %d after MTF & 1-2 coding, %d+2 syms in use\n\0" as *const u8
+                as *const libc::c_char,
             (*s).nblock,
             (*s).nMTF,
             (*s).nInUse,
@@ -331,9 +324,9 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         while v < alphaSize {
             (*s).len[t as usize][v as usize] = 15 as libc::c_int as UChar;
             v += 1;
-            }
-        t += 1;
         }
+        t += 1;
+    }
     if (*s).nMTF <= 0 as libc::c_int {
         BZ2_bz__AssertH__fail(3001 as libc::c_int);
     }
@@ -363,17 +356,19 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             ge += 1;
             aFreq += (*s).mtfFreq[ge as usize];
         }
-        if ge > gs && nPart != nGroups && nPart != 1 as libc::c_int
+        if ge > gs
+            && nPart != nGroups
+            && nPart != 1 as libc::c_int
             && (nGroups - nPart) % 2 as libc::c_int == 1 as libc::c_int
         {
             aFreq -= (*s).mtfFreq[ge as usize];
             ge -= 1;
-            }
+        }
         if (*s).verbosity >= 3 as libc::c_int {
             fprintf(
                 stderr,
-                b"      initial group %d, [%d .. %d], has %d syms (%4.1f%%)\n\0"
-                    as *const u8 as *const libc::c_char,
+                b"      initial group %d, [%d .. %d], has %d syms (%4.1f%%)\n\0" as *const u8
+                    as *const libc::c_char,
                 nPart,
                 gs,
                 ge,
@@ -385,16 +380,14 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         v = 0 as libc::c_int;
         while v < alphaSize {
             if v >= gs && v <= ge {
-                (*s)
-                    .len[(nPart - 1 as libc::c_int)
-                    as usize][v as usize] = 0 as libc::c_int as UChar;
+                (*s).len[(nPart - 1 as libc::c_int) as usize][v as usize] =
+                    0 as libc::c_int as UChar;
             } else {
-                (*s)
-                    .len[(nPart - 1 as libc::c_int)
-                    as usize][v as usize] = 15 as libc::c_int as UChar;
+                (*s).len[(nPart - 1 as libc::c_int) as usize][v as usize] =
+                    15 as libc::c_int as UChar;
             }
             v += 1;
-            }
+        }
         nPart -= 1;
         gs = ge + 1 as libc::c_int;
         remF -= aFreq;
@@ -405,42 +398,36 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         while t < nGroups {
             fave[t as usize] = 0 as libc::c_int;
             t += 1;
-            }
+        }
         t = 0 as libc::c_int;
         while t < nGroups {
             v = 0 as libc::c_int;
             while v < alphaSize {
                 (*s).rfreq[t as usize][v as usize] = 0 as libc::c_int;
                 v += 1;
-                }
-            t += 1;
             }
+            t += 1;
+        }
         if nGroups == 6 as libc::c_int {
             v = 0 as libc::c_int;
             while v < alphaSize {
-                (*s)
-                    .len_pack[v
-                    as usize][0 as libc::c_int
-                    as usize] = (((*s).len[1 as libc::c_int as usize][v as usize]
-                    as libc::c_int) << 16 as libc::c_int
-                    | (*s).len[0 as libc::c_int as usize][v as usize] as libc::c_int)
-                    as UInt32;
-                (*s)
-                    .len_pack[v
-                    as usize][1 as libc::c_int
-                    as usize] = (((*s).len[3 as libc::c_int as usize][v as usize]
-                    as libc::c_int) << 16 as libc::c_int
-                    | (*s).len[2 as libc::c_int as usize][v as usize] as libc::c_int)
-                    as UInt32;
-                (*s)
-                    .len_pack[v
-                    as usize][2 as libc::c_int
-                    as usize] = (((*s).len[5 as libc::c_int as usize][v as usize]
-                    as libc::c_int) << 16 as libc::c_int
-                    | (*s).len[4 as libc::c_int as usize][v as usize] as libc::c_int)
-                    as UInt32;
+                (*s).len_pack[v as usize][0 as libc::c_int as usize] =
+                    (((*s).len[1 as libc::c_int as usize][v as usize] as libc::c_int)
+                        << 16 as libc::c_int
+                        | (*s).len[0 as libc::c_int as usize][v as usize] as libc::c_int)
+                        as UInt32;
+                (*s).len_pack[v as usize][1 as libc::c_int as usize] =
+                    (((*s).len[3 as libc::c_int as usize][v as usize] as libc::c_int)
+                        << 16 as libc::c_int
+                        | (*s).len[2 as libc::c_int as usize][v as usize] as libc::c_int)
+                        as UInt32;
+                (*s).len_pack[v as usize][2 as libc::c_int as usize] =
+                    (((*s).len[5 as libc::c_int as usize][v as usize] as libc::c_int)
+                        << 16 as libc::c_int
+                        | (*s).len[4 as libc::c_int as usize][v as usize] as libc::c_int)
+                        as UInt32;
                 v += 1;
-                }
+            }
         }
         nSelectors = 0 as libc::c_int;
         totc = 0 as libc::c_int;
@@ -457,10 +444,8 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             while t < nGroups {
                 cost[t as usize] = 0 as libc::c_int as UInt16;
                 t += 1;
-                }
-            if nGroups == 6 as libc::c_int
-                && 50 as libc::c_int == ge - gs + 1 as libc::c_int
-            {
+            }
+            if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
                 let mut cost01: UInt32 = 0;
                 let mut cost23: UInt32 = 0;
                 let mut cost45: UInt32 = 0;
@@ -968,35 +953,28 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                 cost45 = (cost45 as libc::c_uint)
                     .wrapping_add((*s).len_pack[icv as usize][2 as libc::c_int as usize])
                     as UInt32 as UInt32;
-                cost[0 as libc::c_int
-                    as usize] = (cost01 & 0xffff as libc::c_int as libc::c_uint)
-                    as UInt16;
-                cost[1 as libc::c_int
-                    as usize] = (cost01 >> 16 as libc::c_int) as UInt16;
-                cost[2 as libc::c_int
-                    as usize] = (cost23 & 0xffff as libc::c_int as libc::c_uint)
-                    as UInt16;
-                cost[3 as libc::c_int
-                    as usize] = (cost23 >> 16 as libc::c_int) as UInt16;
-                cost[4 as libc::c_int
-                    as usize] = (cost45 & 0xffff as libc::c_int as libc::c_uint)
-                    as UInt16;
-                cost[5 as libc::c_int
-                    as usize] = (cost45 >> 16 as libc::c_int) as UInt16;
+                cost[0 as libc::c_int as usize] =
+                    (cost01 & 0xffff as libc::c_int as libc::c_uint) as UInt16;
+                cost[1 as libc::c_int as usize] = (cost01 >> 16 as libc::c_int) as UInt16;
+                cost[2 as libc::c_int as usize] =
+                    (cost23 & 0xffff as libc::c_int as libc::c_uint) as UInt16;
+                cost[3 as libc::c_int as usize] = (cost23 >> 16 as libc::c_int) as UInt16;
+                cost[4 as libc::c_int as usize] =
+                    (cost45 & 0xffff as libc::c_int as libc::c_uint) as UInt16;
+                cost[5 as libc::c_int as usize] = (cost45 >> 16 as libc::c_int) as UInt16;
             } else {
                 i = gs;
                 while i <= ge {
                     let mut icv_0: UInt16 = *mtfv.offset(i as isize);
                     t = 0 as libc::c_int;
                     while t < nGroups {
-                        cost[t
-                            as usize] = (cost[t as usize] as libc::c_int
+                        cost[t as usize] = (cost[t as usize] as libc::c_int
                             + (*s).len[t as usize][icv_0 as usize] as libc::c_int)
                             as UInt16;
                         t += 1;
-                        }
-                    i += 1;
                     }
+                    i += 1;
+                }
             }
             bc = 999999999 as libc::c_int;
             bt = -(1 as libc::c_int);
@@ -1007,380 +985,177 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                     bt = t;
                 }
                 t += 1;
-                }
+            }
             totc += bc;
             fave[bt as usize] += 1;
             fave[bt as usize];
             (*s).selector[nSelectors as usize] = bt as UChar;
             nSelectors += 1;
-            if nGroups == 6 as libc::c_int
-                && 50 as libc::c_int == ge - gs + 1 as libc::c_int
-            {
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 0 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 0 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 1 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 1 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 2 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 2 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 3 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 3 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 4 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 4 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 5 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 5 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 6 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 6 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 7 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 7 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 8 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 8 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 9 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 9 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 10 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 10 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 11 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 11 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 12 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 12 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 13 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 13 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 14 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 14 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 15 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 15 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 16 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 16 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 17 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 17 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 18 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 18 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 19 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 19 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 20 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 20 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 21 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 21 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 22 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 22 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 23 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 23 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 24 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 24 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 25 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 25 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 26 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 26 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 27 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 27 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 28 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 28 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 29 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 29 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 30 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 30 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 31 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 31 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 32 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 32 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 33 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 33 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 34 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 34 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 35 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 35 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 36 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 36 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 37 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 37 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 38 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 38 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 39 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 39 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 40 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 40 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 41 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 41 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 42 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 42 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 43 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 43 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 44 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 44 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 45 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 45 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 46 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 46 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 47 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 47 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 48 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 48 as libc::c_int) as isize) as usize];
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 49 as libc::c_int) as isize) as usize]
-                    += 1;
-                (*s)
-                    .rfreq[bt
-                    as usize][*mtfv.offset((gs + 49 as libc::c_int) as isize) as usize];
+            if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 0 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 0 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 1 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 1 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 2 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 2 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 3 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 3 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 4 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 4 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 5 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 5 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 6 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 6 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 7 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 7 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 8 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 8 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 9 as libc::c_int) as isize) as usize] +=
+                    1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 9 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 10 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 10 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 11 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 11 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 12 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 12 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 13 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 13 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 14 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 14 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 15 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 15 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 16 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 16 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 17 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 17 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 18 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 18 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 19 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 19 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 20 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 20 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 21 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 21 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 22 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 22 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 23 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 23 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 24 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 24 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 25 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 25 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 26 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 26 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 27 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 27 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 28 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 28 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 29 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 29 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 30 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 30 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 31 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 31 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 32 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 32 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 33 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 33 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 34 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 34 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 35 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 35 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 36 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 36 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 37 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 37 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 38 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 38 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 39 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 39 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 40 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 40 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 41 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 41 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 42 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 42 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 43 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 43 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 44 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 44 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 45 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 45 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 46 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 46 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 47 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 47 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 48 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 48 as libc::c_int) as isize) as usize];
+                (*s).rfreq[bt as usize]
+                    [*mtfv.offset((gs + 49 as libc::c_int) as isize) as usize] += 1;
+                (*s).rfreq[bt as usize][*mtfv.offset((gs + 49 as libc::c_int) as isize) as usize];
             } else {
                 i = gs;
                 while i <= ge {
                     (*s).rfreq[bt as usize][*mtfv.offset(i as isize) as usize] += 1;
                     (*s).rfreq[bt as usize][*mtfv.offset(i as isize) as usize];
                     i += 1;
-                    }
+                }
             }
             gs = ge + 1 as libc::c_int;
         }
         if (*s).verbosity >= 3 as libc::c_int {
             fprintf(
                 stderr,
-                b"      pass %d: size is %d, grp uses are \0" as *const u8
-                    as *const libc::c_char,
+                b"      pass %d: size is %d, grp uses are \0" as *const u8 as *const libc::c_char,
                 iter + 1 as libc::c_int,
                 totc / 8 as libc::c_int,
             );
@@ -1392,7 +1167,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                     fave[t as usize],
                 );
                 t += 1;
-                }
+            }
             fprintf(stderr, b"\n\0" as *const u8 as *const libc::c_char);
         }
         t = 0 as libc::c_int;
@@ -1408,9 +1183,9 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                 17 as libc::c_int,
             );
             t += 1;
-            }
-        iter += 1;
         }
+        iter += 1;
+    }
     if nGroups >= 8 as libc::c_int {
         BZ2_bz__AssertH__fail(3002 as libc::c_int);
     }
@@ -1427,7 +1202,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
     while i < nGroups {
         pos[i as usize] = i as UChar;
         i += 1;
-        }
+    }
     i = 0 as libc::c_int;
     while i < nSelectors {
         ll_i = (*s).selector[i as usize];
@@ -1442,7 +1217,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         pos[0 as libc::c_int as usize] = tmp;
         (*s).selectorMtf[i as usize] = j as UChar;
         i += 1;
-        }
+    }
     t = 0 as libc::c_int;
     while t < nGroups {
         minLen = 32 as libc::c_int;
@@ -1456,7 +1231,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                 minLen = (*s).len[t as usize][i as usize] as Int32;
             }
             i += 1;
-            }
+        }
         if maxLen > 17 as libc::c_int {
             BZ2_bz__AssertH__fail(3004 as libc::c_int);
         }
@@ -1475,7 +1250,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             alphaSize,
         );
         t += 1;
-        }
+    }
     let mut inUse16: [Bool; 16] = [0; 16];
     i = 0 as libc::c_int;
     while i < 16 as libc::c_int {
@@ -1486,9 +1261,9 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                 inUse16[i as usize] = 1 as libc::c_int as Bool;
             }
             j += 1;
-            }
-        i += 1;
         }
+        i += 1;
+    }
     nBytes = (*s).numZ;
     i = 0 as libc::c_int;
     while i < 16 as libc::c_int {
@@ -1498,7 +1273,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             bsW(s, 1 as libc::c_int, 0 as libc::c_int as UInt32);
         }
         i += 1;
-        }
+    }
     i = 0 as libc::c_int;
     while i < 16 as libc::c_int {
         if inUse16[i as usize] != 0 {
@@ -1510,10 +1285,10 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
                     bsW(s, 1 as libc::c_int, 0 as libc::c_int as UInt32);
                 }
                 j += 1;
-                }
+            }
         }
         i += 1;
-        }
+    }
     if (*s).verbosity >= 3 as libc::c_int {
         fprintf(
             stderr,
@@ -1530,10 +1305,10 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         while j < (*s).selectorMtf[i as usize] as libc::c_int {
             bsW(s, 1 as libc::c_int, 1 as libc::c_int as UInt32);
             j += 1;
-            }
+        }
         bsW(s, 1 as libc::c_int, 0 as libc::c_int as UInt32);
         i += 1;
-        }
+    }
     if (*s).verbosity >= 3 as libc::c_int {
         fprintf(
             stderr,
@@ -1551,16 +1326,16 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             while curr < (*s).len[t as usize][i as usize] as libc::c_int {
                 bsW(s, 2 as libc::c_int, 2 as libc::c_int as UInt32);
                 curr += 1;
-                }
+            }
             while curr > (*s).len[t as usize][i as usize] as libc::c_int {
                 bsW(s, 2 as libc::c_int, 3 as libc::c_int as UInt32);
                 curr -= 1;
-                }
+            }
             bsW(s, 1 as libc::c_int, 0 as libc::c_int as UInt32);
             i += 1;
-            }
-        t += 1;
         }
+        t += 1;
+    }
     if (*s).verbosity >= 3 as libc::c_int {
         fprintf(
             stderr,
@@ -1582,19 +1357,20 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         if ((*s).selector[selCtr as usize] as libc::c_int) >= nGroups {
             BZ2_bz__AssertH__fail(3006 as libc::c_int);
         }
-        if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int
-        {
+        if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
             let mut mtfv_i: UInt16 = 0;
             let mut s_len_sel_selCtr: *mut UChar = &mut *(*((*s).len)
                 .as_mut_ptr()
                 .offset(*((*s).selector).as_mut_ptr().offset(selCtr as isize) as isize))
-                .as_mut_ptr()
-                .offset(0 as libc::c_int as isize) as *mut UChar;
+            .as_mut_ptr()
+            .offset(0 as libc::c_int as isize)
+                as *mut UChar;
             let mut s_code_sel_selCtr: *mut Int32 = &mut *(*((*s).code)
                 .as_mut_ptr()
                 .offset(*((*s).selector).as_mut_ptr().offset(selCtr as isize) as isize))
-                .as_mut_ptr()
-                .offset(0 as libc::c_int as isize) as *mut Int32;
+            .as_mut_ptr()
+            .offset(0 as libc::c_int as isize)
+                as *mut Int32;
             mtfv_i = *mtfv.offset((gs + 0 as libc::c_int) as isize);
             bsW(
                 s,
@@ -1900,19 +1676,17 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             while i <= ge {
                 bsW(
                     s,
-                    (*s)
-                        .len[(*s).selector[selCtr as usize]
-                        as usize][*mtfv.offset(i as isize) as usize] as Int32,
-                    (*s)
-                        .code[(*s).selector[selCtr as usize]
-                        as usize][*mtfv.offset(i as isize) as usize] as UInt32,
+                    (*s).len[(*s).selector[selCtr as usize] as usize]
+                        [*mtfv.offset(i as isize) as usize] as Int32,
+                    (*s).code[(*s).selector[selCtr as usize] as usize]
+                        [*mtfv.offset(i as isize) as usize] as UInt32,
                 );
                 i += 1;
-                }
+            }
         }
         gs = ge + 1 as libc::c_int;
         selCtr += 1;
-        }
+    }
     if selCtr != nSelectors {
         BZ2_bz__AssertH__fail(3007 as libc::c_int);
     }
@@ -1928,9 +1702,8 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
 pub unsafe extern "C" fn BZ2_compressBlock(mut s: *mut EState, mut is_last_block: Bool) {
     if (*s).nblock > 0 as libc::c_int {
         (*s).blockCRC = !(*s).blockCRC;
-        (*s)
-            .combinedCRC = (*s).combinedCRC << 1 as libc::c_int
-            | (*s).combinedCRC >> 31 as libc::c_int;
+        (*s).combinedCRC =
+            (*s).combinedCRC << 1 as libc::c_int | (*s).combinedCRC >> 31 as libc::c_int;
         (*s).combinedCRC ^= (*s).blockCRC;
         if (*s).blockNo > 1 as libc::c_int {
             (*s).numZ = 0 as libc::c_int;
@@ -1938,8 +1711,8 @@ pub unsafe extern "C" fn BZ2_compressBlock(mut s: *mut EState, mut is_last_block
         if (*s).verbosity >= 2 as libc::c_int {
             fprintf(
                 stderr,
-                b"    block %d: crc = 0x%08x, combined CRC = 0x%08x, size = %d\n\0"
-                    as *const u8 as *const libc::c_char,
+                b"    block %d: crc = 0x%08x, combined CRC = 0x%08x, size = %d\n\0" as *const u8
+                    as *const libc::c_char,
                 (*s).blockNo,
                 (*s).blockCRC,
                 (*s).combinedCRC,
@@ -1948,9 +1721,7 @@ pub unsafe extern "C" fn BZ2_compressBlock(mut s: *mut EState, mut is_last_block
         }
         BZ2_blockSort(s);
     }
-    (*s)
-        .zbits = &mut *((*s).arr2 as *mut UChar).offset((*s).nblock as isize)
-        as *mut UChar;
+    (*s).zbits = &mut *((*s).arr2 as *mut UChar).offset((*s).nblock as isize) as *mut UChar;
     if (*s).blockNo == 1 as libc::c_int {
         BZ2_bsInitWrite(s);
         bsPutUChar(s, 0x42 as libc::c_int as UChar);
@@ -1982,8 +1753,7 @@ pub unsafe extern "C" fn BZ2_compressBlock(mut s: *mut EState, mut is_last_block
         if (*s).verbosity >= 2 as libc::c_int {
             fprintf(
                 stderr,
-                b"    final combined CRC = 0x%08x\n   \0" as *const u8
-                    as *const libc::c_char,
+                b"    final combined CRC = 0x%08x\n   \0" as *const u8 as *const libc::c_char,
                 (*s).combinedCRC,
             );
         }

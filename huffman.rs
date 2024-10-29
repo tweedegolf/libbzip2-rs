@@ -25,14 +25,13 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
     let mut parent: [Int32; 516] = [0; 516];
     i = 0 as libc::c_int;
     while i < alphaSize {
-        weight[(i + 1 as libc::c_int)
-            as usize] = (if *freq.offset(i as isize) == 0 as libc::c_int {
+        weight[(i + 1 as libc::c_int) as usize] = (if *freq.offset(i as isize) == 0 as libc::c_int {
             1 as libc::c_int
         } else {
             *freq.offset(i as isize)
         }) << 8 as libc::c_int;
         i += 1;
-        }
+    }
     while 1 as libc::c_int as Bool != 0 {
         nNodes = alphaSize;
         nHeap = 0 as libc::c_int;
@@ -48,15 +47,13 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             let mut tmp: Int32 = 0;
             zz = nHeap;
             tmp = heap[zz as usize];
-            while weight[tmp as usize]
-                < weight[heap[(zz >> 1 as libc::c_int) as usize] as usize]
-            {
+            while weight[tmp as usize] < weight[heap[(zz >> 1 as libc::c_int) as usize] as usize] {
                 heap[zz as usize] = heap[(zz >> 1 as libc::c_int) as usize];
                 zz >>= 1 as libc::c_int;
             }
             heap[zz as usize] = tmp;
             i += 1;
-            }
+        }
         if nHeap >= 258 as libc::c_int + 2 as libc::c_int {
             BZ2_bz__AssertH__fail(2001 as libc::c_int);
         }
@@ -79,7 +76,7 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
                         < weight[heap[yy as usize] as usize]
                 {
                     yy += 1;
-                    }
+                }
                 if weight[tmp_0 as usize] < weight[heap[yy as usize] as usize] {
                     break;
                 }
@@ -105,7 +102,7 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
                         < weight[heap[yy_0 as usize] as usize]
                 {
                     yy_0 += 1;
-                    }
+                }
                 if weight[tmp_1 as usize] < weight[heap[yy_0 as usize] as usize] {
                     break;
                 }
@@ -116,12 +113,9 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             nNodes += 1;
             parent[n2 as usize] = nNodes;
             parent[n1 as usize] = parent[n2 as usize];
-            weight[nNodes
-                as usize] = ((weight[n1 as usize] as libc::c_uint
+            weight[nNodes as usize] = ((weight[n1 as usize] as libc::c_uint
                 & 0xffffff00 as libc::c_uint)
-                .wrapping_add(
-                    weight[n2 as usize] as libc::c_uint & 0xffffff00 as libc::c_uint,
-                )
+                .wrapping_add(weight[n2 as usize] as libc::c_uint & 0xffffff00 as libc::c_uint)
                 | (1 as libc::c_int
                     + (if weight[n1 as usize] & 0xff as libc::c_int
                         > weight[n2 as usize] & 0xff as libc::c_int
@@ -156,13 +150,13 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             while parent[k as usize] >= 0 as libc::c_int {
                 k = parent[k as usize];
                 j += 1;
-                }
+            }
             *len.offset((i - 1 as libc::c_int) as isize) = j as UChar;
             if j > maxLen {
                 tooLong = 1 as libc::c_int as Bool;
             }
             i += 1;
-            }
+        }
         if tooLong == 0 {
             break;
         }
@@ -172,7 +166,7 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             j = 1 as libc::c_int + j / 2 as libc::c_int;
             weight[i as usize] = j << 8 as libc::c_int;
             i += 1;
-            }
+        }
     }
 }
 #[no_mangle]
@@ -194,12 +188,12 @@ pub unsafe extern "C" fn BZ2_hbAssignCodes(
             if *length.offset(i as isize) as libc::c_int == n {
                 *code.offset(i as isize) = vec;
                 vec += 1;
-                }
-            i += 1;
             }
+            i += 1;
+        }
         vec <<= 1 as libc::c_int;
         n += 1;
-        }
+    }
 }
 #[no_mangle]
 pub unsafe extern "C" fn BZ2_hbCreateDecodeTables(
@@ -223,37 +217,35 @@ pub unsafe extern "C" fn BZ2_hbCreateDecodeTables(
             if *length.offset(j as isize) as libc::c_int == i {
                 *perm.offset(pp as isize) = j;
                 pp += 1;
-                }
-            j += 1;
             }
-        i += 1;
+            j += 1;
         }
+        i += 1;
+    }
     i = 0 as libc::c_int;
     while i < 23 as libc::c_int {
         *base.offset(i as isize) = 0 as libc::c_int;
         i += 1;
-        }
+    }
     i = 0 as libc::c_int;
     while i < alphaSize {
         let fresh0 = &mut (*base
-            .offset(
-                (*length.offset(i as isize) as libc::c_int + 1 as libc::c_int) as isize,
-            ));
+            .offset((*length.offset(i as isize) as libc::c_int + 1 as libc::c_int) as isize));
         *fresh0 += 1;
         *fresh0;
         i += 1;
-        }
+    }
     i = 1 as libc::c_int;
     while i < 23 as libc::c_int {
         let fresh1 = &mut (*base.offset(i as isize));
         *fresh1 += *base.offset((i - 1 as libc::c_int) as isize);
         i += 1;
-        }
+    }
     i = 0 as libc::c_int;
     while i < 23 as libc::c_int {
         *limit.offset(i as isize) = 0 as libc::c_int;
         i += 1;
-        }
+    }
     vec = 0 as libc::c_int;
     i = minLen;
     while i <= maxLen {
@@ -261,14 +253,13 @@ pub unsafe extern "C" fn BZ2_hbCreateDecodeTables(
         *limit.offset(i as isize) = vec - 1 as libc::c_int;
         vec <<= 1 as libc::c_int;
         i += 1;
-        }
+    }
     i = minLen + 1 as libc::c_int;
     while i <= maxLen {
-        *base
-            .offset(
-                i as isize,
-            ) = ((*limit.offset((i - 1 as libc::c_int) as isize) + 1 as libc::c_int)
-            << 1 as libc::c_int) - *base.offset(i as isize);
+        *base.offset(i as isize) = ((*limit.offset((i - 1 as libc::c_int) as isize)
+            + 1 as libc::c_int)
+            << 1 as libc::c_int)
+            - *base.offset(i as isize);
         i += 1;
-        }
+    }
 }

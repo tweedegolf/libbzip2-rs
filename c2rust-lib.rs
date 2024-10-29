@@ -7,7 +7,6 @@
 #![allow(unused_mut)]
 #![feature(extern_types)]
 
-
 extern crate libc;
 pub mod blocksort;
 pub mod bzlib;
