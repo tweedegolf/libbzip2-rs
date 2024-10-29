@@ -1,12 +1,15 @@
-use crate::compress::BZ2_compressBlock;
-use crate::crctable::BZ2_CRC32TABLE;
-use crate::decompress::BZ2_decompress;
-use crate::randtable::BZ2_RNUMS;
+use core::ffi::{c_char, c_int, c_void};
+
 use libc::FILE;
 use libc::{
     exit, fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, strcat,
     strcmp, ungetc,
 };
+
+use crate::compress::BZ2_compressBlock;
+use crate::crctable::BZ2_CRC32TABLE;
+use crate::decompress::BZ2_decompress;
+use crate::randtable::BZ2_RNUMS;
 
 extern "C" {
     static stdin: *mut FILE;
@@ -2552,33 +2555,30 @@ pub unsafe extern "C" fn BZ2_bzclose(b: *mut libc::c_void) {
         fclose(fp);
     }
 }
-static mut BZERRORSTRINGS: [*const libc::c_char; 16] = [
-    b"OK\0" as *const u8 as *const libc::c_char,
-    b"SEQUENCE_ERROR\0" as *const u8 as *const libc::c_char,
-    b"PARAM_ERROR\0" as *const u8 as *const libc::c_char,
-    b"MEM_ERROR\0" as *const u8 as *const libc::c_char,
-    b"DATA_ERROR\0" as *const u8 as *const libc::c_char,
-    b"DATA_ERROR_MAGIC\0" as *const u8 as *const libc::c_char,
-    b"IO_ERROR\0" as *const u8 as *const libc::c_char,
-    b"UNEXPECTED_EOF\0" as *const u8 as *const libc::c_char,
-    b"OUTBUFF_FULL\0" as *const u8 as *const libc::c_char,
-    b"CONFIG_ERROR\0" as *const u8 as *const libc::c_char,
-    b"???\0" as *const u8 as *const libc::c_char,
-    b"???\0" as *const u8 as *const libc::c_char,
-    b"???\0" as *const u8 as *const libc::c_char,
-    b"???\0" as *const u8 as *const libc::c_char,
-    b"???\0" as *const u8 as *const libc::c_char,
-    b"???\0" as *const u8 as *const libc::c_char,
+
+const BZERRORSTRINGS: [&str; 16] = [
+    "OK\0",
+    "SEQUENCE_ERROR\0",
+    "PARAM_ERROR\0",
+    "MEM_ERROR\0",
+    "DATA_ERROR\0",
+    "DATA_ERROR_MAGIC\0",
+    "IO_ERROR\0",
+    "UNEXPECTED_EOF\0",
+    "OUTBUFF_FULL\0",
+    "CONFIG_ERROR\0",
+    "???\0",
+    "???\0",
+    "???\0",
+    "???\0",
+    "???\0",
+    "???\0",
 ];
+
 #[export_name = prefix!(BZ2_bzerror)]
-pub unsafe extern "C" fn BZ2_bzerror(
-    b: *mut libc::c_void,
-    errnum: *mut libc::c_int,
-) -> *const libc::c_char {
-    let mut err: libc::c_int = (*(b as *mut bzFile)).lastErr;
-    if err > 0 as libc::c_int {
-        err = 0 as libc::c_int;
-    }
+pub unsafe extern "C" fn BZ2_bzerror(b: *mut c_void, errnum: *mut c_int) -> *const c_char {
+    let err = Ord::max(0, (*(b as *mut bzFile)).lastErr);
     *errnum = err;
-    BZERRORSTRINGS[(err * -1 as libc::c_int) as usize]
+    let msg = BZERRORSTRINGS[(err * -1) as usize];
+    msg.as_ptr().cast::<c_char>()
 }
