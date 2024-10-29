@@ -2,7 +2,7 @@ use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, Bool, DStat
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_rNums;
 use ::libc;
-unsafe extern "C" fn makeMaps_d(mut s: *mut DState) {
+unsafe extern "C" fn makeMaps_d(s: *mut DState) {
     let mut i: i32 = 0;
     (*s).nInUse = 0 as libc::c_int;
     i = 0 as libc::c_int;
@@ -16,13 +16,13 @@ unsafe extern "C" fn makeMaps_d(mut s: *mut DState) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> i32 {
+pub unsafe extern "C" fn BZ2_decompress(s: *mut DState) -> i32 {
     let mut current_block: u64;
     let mut uc: u8 = 0;
     let mut retVal: i32 = 0;
     let mut minLen: i32 = 0;
     let mut maxLen: i32 = 0;
-    let mut strm: *mut bz_stream = (*s).strm;
+    let strm: *mut bz_stream = (*s).strm;
     let mut i: i32 = 0;
     let mut j: i32 = 0;
     let mut t: i32 = 0;
@@ -2226,7 +2226,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> i32 {
                             pp = (*s).mtfbase[0 as libc::c_int as usize];
                             uc = (*s).mtfa[(pp as libc::c_uint).wrapping_add(nn) as usize];
                             while nn > 3 as libc::c_int as libc::c_uint {
-                                let mut z: i32 = (pp as libc::c_uint).wrapping_add(nn) as i32;
+                                let z: i32 = (pp as libc::c_uint).wrapping_add(nn) as i32;
                                 (*s).mtfa[z as usize] = (*s).mtfa[(z - 1 as libc::c_int) as usize];
                                 (*s).mtfa[(z - 1 as libc::c_int) as usize] =
                                     (*s).mtfa[(z - 2 as libc::c_int) as usize];
@@ -2431,7 +2431,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> i32 {
                                     & 0xf as libc::c_int as libc::c_uint)
                                     << 16 as libc::c_int) as i32;
                             loop {
-                                let mut tmp_0: i32 = (*((*s).ll16).offset(j as isize) as u32
+                                let tmp_0: i32 = (*((*s).ll16).offset(j as isize) as u32
                                     | (*((*s).ll4).offset((j >> 1 as libc::c_int) as isize) as u32
                                         >> (j << 2 as libc::c_int & 0x4 as libc::c_int)
                                         & 0xf as libc::c_int as libc::c_uint)

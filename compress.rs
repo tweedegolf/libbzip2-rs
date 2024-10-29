@@ -3,11 +3,11 @@ use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 use ::libc;
 #[no_mangle]
-pub unsafe extern "C" fn BZ2_bsInitWrite(mut s: *mut EState) {
+pub unsafe extern "C" fn BZ2_bsInitWrite(s: *mut EState) {
     (*s).bsLive = 0 as libc::c_int;
     (*s).bsBuff = 0 as libc::c_int as u32;
 }
-unsafe extern "C" fn bsFinishWrite(mut s: *mut EState) {
+unsafe extern "C" fn bsFinishWrite(s: *mut EState) {
     while (*s).bsLive > 0 as libc::c_int {
         *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as u8;
         (*s).numZ += 1;
@@ -17,7 +17,7 @@ unsafe extern "C" fn bsFinishWrite(mut s: *mut EState) {
     }
 }
 #[inline]
-unsafe extern "C" fn bsW(mut s: *mut EState, mut n: i32, mut v: u32) {
+unsafe extern "C" fn bsW(s: *mut EState, n: i32, v: u32) {
     while (*s).bsLive >= 8 as libc::c_int {
         *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as u8;
         (*s).numZ += 1;
@@ -28,7 +28,7 @@ unsafe extern "C" fn bsW(mut s: *mut EState, mut n: i32, mut v: u32) {
     (*s).bsBuff |= v << (32 as libc::c_int - (*s).bsLive - n);
     (*s).bsLive += n;
 }
-unsafe extern "C" fn bsPutUInt32(mut s: *mut EState, mut u: u32) {
+unsafe extern "C" fn bsPutUInt32(s: *mut EState, u: u32) {
     bsW(
         s,
         8 as libc::c_int,
@@ -50,10 +50,10 @@ unsafe extern "C" fn bsPutUInt32(mut s: *mut EState, mut u: u32) {
         (u as libc::c_long & 0xff as libc::c_long) as u32,
     );
 }
-unsafe extern "C" fn bsPutUChar(mut s: *mut EState, mut c: u8) {
+unsafe extern "C" fn bsPutUChar(s: *mut EState, c: u8) {
     bsW(s, 8 as libc::c_int, c as u32);
 }
-unsafe extern "C" fn makeMaps_e(mut s: *mut EState) {
+unsafe extern "C" fn makeMaps_e(s: *mut EState) {
     let mut i: i32 = 0;
     (*s).nInUse = 0 as libc::c_int;
     i = 0 as libc::c_int;
@@ -66,16 +66,16 @@ unsafe extern "C" fn makeMaps_e(mut s: *mut EState) {
         i += 1;
     }
 }
-unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
+unsafe extern "C" fn generateMTFValues(s: *mut EState) {
     let mut yy: [u8; 256] = [0; 256];
     let mut i: i32 = 0;
     let mut j: i32 = 0;
     let mut zPend: i32 = 0;
     let mut wr: i32 = 0;
     let mut EOB: i32 = 0;
-    let mut ptr: *mut u32 = (*s).ptr;
-    let mut block: *mut u8 = (*s).block;
-    let mut mtfv: *mut u16 = (*s).mtfv;
+    let ptr: *mut u32 = (*s).ptr;
+    let block: *mut u8 = (*s).block;
+    let mtfv: *mut u16 = (*s).mtfv;
     makeMaps_e(s);
     EOB = (*s).nInUse + 1 as libc::c_int;
     i = 0 as libc::c_int;
@@ -174,7 +174,7 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
     (*s).mtfFreq[EOB as usize];
     (*s).nMTF = wr;
 }
-unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
+unsafe extern "C" fn sendMTFValues(s: *mut EState) {
     let mut v: i32 = 0;
     let mut t: i32 = 0;
     let mut i: i32 = 0;
@@ -194,7 +194,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
     let mut nBytes: i32 = 0;
     let mut cost: [u16; 6] = [0; 6];
     let mut fave: [i32; 6] = [0; 6];
-    let mut mtfv: *mut u16 = (*s).mtfv;
+    let mtfv: *mut u16 = (*s).mtfv;
     if (*s).verbosity >= 3 as libc::c_int {
         eprintln!(
             "      {} in block, {} after MTF & 1-2 coding, {}+2 syms in use",
@@ -847,7 +847,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             } else {
                 i = gs;
                 while i <= ge {
-                    let mut icv_0: u16 = *mtfv.offset(i as isize);
+                    let icv_0: u16 = *mtfv.offset(i as isize);
                     t = 0 as libc::c_int;
                     while t < nGroups {
                         cost[t as usize] = (cost[t as usize] as libc::c_int
@@ -1224,13 +1224,13 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         }
         if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
             let mut mtfv_i: u16 = 0;
-            let mut s_len_sel_selCtr: *mut u8 = &mut *(*((*s).len)
+            let s_len_sel_selCtr: *mut u8 = &mut *(*((*s).len)
                 .as_mut_ptr()
                 .offset(*((*s).selector).as_mut_ptr().offset(selCtr as isize) as isize))
             .as_mut_ptr()
             .offset(0 as libc::c_int as isize)
                 as *mut u8;
-            let mut s_code_sel_selCtr: *mut i32 = &mut *(*((*s).code)
+            let s_code_sel_selCtr: *mut i32 = &mut *(*((*s).code)
                 .as_mut_ptr()
                 .offset(*((*s).selector).as_mut_ptr().offset(selCtr as isize) as isize))
             .as_mut_ptr()
@@ -1560,7 +1560,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn BZ2_compressBlock(mut s: *mut EState, mut is_last_block: Bool) {
+pub unsafe extern "C" fn BZ2_compressBlock(s: *mut EState, is_last_block: Bool) {
     if (*s).nblock > 0 as libc::c_int {
         (*s).blockCRC = !(*s).blockCRC;
         (*s).combinedCRC =

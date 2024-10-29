@@ -3,12 +3,7 @@ use ::libc;
 use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState};
 
 #[inline]
-unsafe extern "C" fn fallbackSimpleSort(
-    mut fmap: *mut u32,
-    mut eclass: *mut u32,
-    mut lo: i32,
-    mut hi: i32,
-) {
+unsafe extern "C" fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32) {
     let mut i: i32 = 0;
     let mut j: i32 = 0;
     let mut tmp: i32 = 0;
@@ -43,12 +38,7 @@ unsafe extern "C" fn fallbackSimpleSort(
         i -= 1;
     }
 }
-unsafe extern "C" fn fallbackQSort3(
-    mut fmap: *mut u32,
-    mut eclass: *mut u32,
-    mut loSt: i32,
-    mut hiSt: i32,
-) {
+unsafe extern "C" fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32) {
     let mut unLo: i32 = 0;
     let mut unHi: i32 = 0;
     let mut ltLo: i32 = 0;
@@ -99,7 +89,7 @@ unsafe extern "C" fn fallbackQSort3(
                 while unLo <= unHi {
                     n = *eclass.offset(*fmap.offset(unLo as isize) as isize) as i32 - med as i32;
                     if n == 0 as libc::c_int {
-                        let mut zztmp: i32 = *fmap.offset(unLo as isize) as i32;
+                        let zztmp: i32 = *fmap.offset(unLo as isize) as i32;
                         *fmap.offset(unLo as isize) = *fmap.offset(ltLo as isize);
                         *fmap.offset(ltLo as isize) = zztmp as u32;
                         ltLo += 1;
@@ -114,7 +104,7 @@ unsafe extern "C" fn fallbackQSort3(
                 while unLo <= unHi {
                     n = *eclass.offset(*fmap.offset(unHi as isize) as isize) as i32 - med as i32;
                     if n == 0 as libc::c_int {
-                        let mut zztmp_0: i32 = *fmap.offset(unHi as isize) as i32;
+                        let zztmp_0: i32 = *fmap.offset(unHi as isize) as i32;
                         *fmap.offset(unHi as isize) = *fmap.offset(gtHi as isize);
                         *fmap.offset(gtHi as isize) = zztmp_0 as u32;
                         gtHi -= 1;
@@ -129,7 +119,7 @@ unsafe extern "C" fn fallbackQSort3(
                 if unLo > unHi {
                     break;
                 }
-                let mut zztmp_1: i32 = *fmap.offset(unLo as isize) as i32;
+                let zztmp_1: i32 = *fmap.offset(unLo as isize) as i32;
                 *fmap.offset(unLo as isize) = *fmap.offset(unHi as isize);
                 *fmap.offset(unHi as isize) = zztmp_1 as u32;
                 unLo += 1;
@@ -147,7 +137,7 @@ unsafe extern "C" fn fallbackQSort3(
             let mut yyp2: i32 = unLo - n;
             let mut yyn: i32 = n;
             while yyn > 0 as libc::c_int {
-                let mut zztmp_2: i32 = *fmap.offset(yyp1 as isize) as i32;
+                let zztmp_2: i32 = *fmap.offset(yyp1 as isize) as i32;
                 *fmap.offset(yyp1 as isize) = *fmap.offset(yyp2 as isize);
                 *fmap.offset(yyp2 as isize) = zztmp_2 as u32;
                 yyp1 += 1;
@@ -163,7 +153,7 @@ unsafe extern "C" fn fallbackQSort3(
             let mut yyp2_0: i32 = hi - m + 1 as libc::c_int;
             let mut yyn_0: i32 = m;
             while yyn_0 > 0 as libc::c_int {
-                let mut zztmp_3: i32 = *fmap.offset(yyp1_0 as isize) as i32;
+                let zztmp_3: i32 = *fmap.offset(yyp1_0 as isize) as i32;
                 *fmap.offset(yyp1_0 as isize) = *fmap.offset(yyp2_0 as isize);
                 *fmap.offset(yyp2_0 as isize) = zztmp_3 as u32;
                 yyp1_0 += 1;
@@ -191,11 +181,11 @@ unsafe extern "C" fn fallbackQSort3(
     }
 }
 unsafe extern "C" fn fallbackSort(
-    mut fmap: *mut u32,
-    mut eclass: *mut u32,
-    mut bhtab: *mut u32,
-    mut nblock: i32,
-    mut verb: i32,
+    fmap: *mut u32,
+    eclass: *mut u32,
+    bhtab: *mut u32,
+    nblock: i32,
+    verb: i32,
 ) {
     let mut ftab: [i32; 257] = [0; 257];
     let mut ftabCopy: [i32; 256] = [0; 256];
@@ -209,7 +199,7 @@ unsafe extern "C" fn fallbackSort(
     let mut cc1: i32 = 0;
     let mut nNotDone: i32 = 0;
     let mut nBhtab: i32 = 0;
-    let mut eclass8: *mut u8 = eclass as *mut u8;
+    let eclass8: *mut u8 = eclass as *mut u8;
     if verb >= 4 as libc::c_int {
         eprintln!("        bucket sorting ...");
     }
@@ -391,10 +381,10 @@ unsafe extern "C" fn fallbackSort(
 unsafe extern "C" fn mainGtU(
     mut i1: u32,
     mut i2: u32,
-    mut block: *mut u8,
-    mut quadrant: *mut u16,
-    mut nblock: u32,
-    mut budget: *mut i32,
+    block: *mut u8,
+    quadrant: *mut u16,
+    nblock: u32,
+    budget: *mut i32,
 ) -> Bool {
     let mut k: i32 = 0;
     let mut c1: u8 = 0;
@@ -614,14 +604,14 @@ static mut incs: [i32; 14] = [
     2391484 as libc::c_int,
 ];
 unsafe extern "C" fn mainSimpleSort(
-    mut ptr: *mut u32,
-    mut block: *mut u8,
-    mut quadrant: *mut u16,
-    mut nblock: i32,
-    mut lo: i32,
-    mut hi: i32,
-    mut d: i32,
-    mut budget: *mut i32,
+    ptr: *mut u32,
+    block: *mut u8,
+    quadrant: *mut u16,
+    nblock: i32,
+    lo: i32,
+    hi: i32,
+    d: i32,
+    budget: *mut i32,
 ) {
     let mut i: i32 = 0;
     let mut j: i32 = 0;
@@ -716,7 +706,7 @@ unsafe extern "C" fn mainSimpleSort(
     }
 }
 #[inline]
-unsafe extern "C" fn mmed3(mut a: u8, mut b: u8, mut c: u8) -> u8 {
+unsafe extern "C" fn mmed3(mut a: u8, mut b: u8, c: u8) -> u8 {
     let mut t: u8 = 0;
     if a as libc::c_int > b as libc::c_int {
         t = a;
@@ -732,14 +722,14 @@ unsafe extern "C" fn mmed3(mut a: u8, mut b: u8, mut c: u8) -> u8 {
     b
 }
 unsafe extern "C" fn mainQSort3(
-    mut ptr: *mut u32,
-    mut block: *mut u8,
-    mut quadrant: *mut u16,
-    mut nblock: i32,
-    mut loSt: i32,
-    mut hiSt: i32,
-    mut dSt: i32,
-    mut budget: *mut i32,
+    ptr: *mut u32,
+    block: *mut u8,
+    quadrant: *mut u16,
+    nblock: i32,
+    loSt: i32,
+    hiSt: i32,
+    dSt: i32,
+    budget: *mut i32,
 ) {
     let mut unLo: i32 = 0;
     let mut unHi: i32 = 0;
@@ -800,7 +790,7 @@ unsafe extern "C" fn mainQSort3(
                                 as isize) as i32
                             - med;
                     if n == 0 as libc::c_int {
-                        let mut zztmp: i32 = *ptr.offset(unLo as isize) as i32;
+                        let zztmp: i32 = *ptr.offset(unLo as isize) as i32;
                         *ptr.offset(unLo as isize) = *ptr.offset(ltLo as isize);
                         *ptr.offset(ltLo as isize) = zztmp as u32;
                         ltLo += 1;
@@ -822,7 +812,7 @@ unsafe extern "C" fn mainQSort3(
                                 as isize) as i32
                             - med;
                     if n == 0 as libc::c_int {
-                        let mut zztmp_0: i32 = *ptr.offset(unHi as isize) as i32;
+                        let zztmp_0: i32 = *ptr.offset(unHi as isize) as i32;
                         *ptr.offset(unHi as isize) = *ptr.offset(gtHi as isize);
                         *ptr.offset(gtHi as isize) = zztmp_0 as u32;
                         gtHi -= 1;
@@ -837,7 +827,7 @@ unsafe extern "C" fn mainQSort3(
                 if unLo > unHi {
                     break;
                 }
-                let mut zztmp_1: i32 = *ptr.offset(unLo as isize) as i32;
+                let zztmp_1: i32 = *ptr.offset(unLo as isize) as i32;
                 *ptr.offset(unLo as isize) = *ptr.offset(unHi as isize);
                 *ptr.offset(unHi as isize) = zztmp_1 as u32;
                 unLo += 1;
@@ -858,7 +848,7 @@ unsafe extern "C" fn mainQSort3(
                 let mut yyp2: i32 = unLo - n;
                 let mut yyn: i32 = n;
                 while yyn > 0 as libc::c_int {
-                    let mut zztmp_2: i32 = *ptr.offset(yyp1 as isize) as i32;
+                    let zztmp_2: i32 = *ptr.offset(yyp1 as isize) as i32;
                     *ptr.offset(yyp1 as isize) = *ptr.offset(yyp2 as isize);
                     *ptr.offset(yyp2 as isize) = zztmp_2 as u32;
                     yyp1 += 1;
@@ -874,7 +864,7 @@ unsafe extern "C" fn mainQSort3(
                 let mut yyp2_0: i32 = hi - m + 1 as libc::c_int;
                 let mut yyn_0: i32 = m;
                 while yyn_0 > 0 as libc::c_int {
-                    let mut zztmp_3: i32 = *ptr.offset(yyp1_0 as isize) as i32;
+                    let zztmp_3: i32 = *ptr.offset(yyp1_0 as isize) as i32;
                     *ptr.offset(yyp1_0 as isize) = *ptr.offset(yyp2_0 as isize);
                     *ptr.offset(yyp2_0 as isize) = zztmp_3 as u32;
                     yyp1_0 += 1;
@@ -951,13 +941,13 @@ unsafe extern "C" fn mainQSort3(
     }
 }
 unsafe extern "C" fn mainSort(
-    mut ptr: *mut u32,
-    mut block: *mut u8,
-    mut quadrant: *mut u16,
-    mut ftab: *mut u32,
-    mut nblock: i32,
-    mut verb: i32,
-    mut budget: *mut i32,
+    ptr: *mut u32,
+    block: *mut u8,
+    quadrant: *mut u16,
+    ftab: *mut u32,
+    nblock: i32,
+    verb: i32,
+    budget: *mut i32,
 ) {
     let mut i: i32 = 0;
     let mut j: i32 = 0;
@@ -1121,10 +1111,10 @@ unsafe extern "C" fn mainSort(
                     & ((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint
                     == 0
                 {
-                    let mut lo: i32 = (*ftab.offset(sb as isize)
+                    let lo: i32 = (*ftab.offset(sb as isize)
                         & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
                         as i32;
-                    let mut hi: i32 = (*ftab.offset((sb + 1 as libc::c_int) as isize)
+                    let hi: i32 = (*ftab.offset((sb + 1 as libc::c_int) as isize)
                         & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
                         .wrapping_sub(1 as libc::c_int as libc::c_uint)
                         as i32;
@@ -1218,11 +1208,10 @@ unsafe extern "C" fn mainSort(
         }
         bigDone[ss as usize] = 1 as libc::c_int as Bool;
         if i < 255 as libc::c_int {
-            let mut bbStart: i32 = (*ftab.offset((ss << 8 as libc::c_int) as isize)
+            let bbStart: i32 = (*ftab.offset((ss << 8 as libc::c_int) as isize)
                 & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
                 as i32;
-            let mut bbSize: i32 = (*ftab
-                .offset(((ss + 1 as libc::c_int) << 8 as libc::c_int) as isize)
+            let bbSize: i32 = (*ftab.offset(((ss + 1 as libc::c_int) << 8 as libc::c_int) as isize)
                 & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
                 .wrapping_sub(bbStart as libc::c_uint) as i32;
             let mut shifts: i32 = 0 as libc::c_int;
@@ -1231,8 +1220,8 @@ unsafe extern "C" fn mainSort(
             }
             j = bbSize - 1 as libc::c_int;
             while j >= 0 as libc::c_int {
-                let mut a2update: i32 = *ptr.offset((bbStart + j) as isize) as i32;
-                let mut qVal: u16 = (j >> shifts) as u16;
+                let a2update: i32 = *ptr.offset((bbStart + j) as isize) as i32;
+                let qVal: u16 = (j >> shifts) as u16;
                 *quadrant.offset(a2update as isize) = qVal;
                 if a2update
                     < 2 as libc::c_int + 12 as libc::c_int + 18 as libc::c_int + 2 as libc::c_int
@@ -1257,12 +1246,12 @@ unsafe extern "C" fn mainSort(
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn BZ2_blockSort(mut s: *mut EState) {
-    let mut ptr: *mut u32 = (*s).ptr;
-    let mut block: *mut u8 = (*s).block;
-    let mut ftab: *mut u32 = (*s).ftab;
-    let mut nblock: i32 = (*s).nblock;
-    let mut verb: i32 = (*s).verbosity;
+pub unsafe extern "C" fn BZ2_blockSort(s: *mut EState) {
+    let ptr: *mut u32 = (*s).ptr;
+    let block: *mut u8 = (*s).block;
+    let ftab: *mut u32 = (*s).ftab;
+    let nblock: i32 = (*s).nblock;
+    let verb: i32 = (*s).verbosity;
     let mut wfact: i32 = (*s).workFactor;
     let mut quadrant: *mut u16 = std::ptr::null_mut::<u16>();
     let mut budget: i32 = 0;

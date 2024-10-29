@@ -3,10 +3,10 @@ use ::libc;
 pub type Bool = libc::c_uchar;
 #[no_mangle]
 pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
-    mut len: *mut u8,
-    mut freq: *mut i32,
-    mut alphaSize: i32,
-    mut maxLen: i32,
+    len: *mut u8,
+    freq: *mut i32,
+    alphaSize: i32,
+    maxLen: i32,
 ) {
     let mut nNodes: i32 = 0;
     let mut nHeap: i32 = 0;
@@ -167,11 +167,11 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BZ2_hbAssignCodes(
-    mut code: *mut i32,
-    mut length: *mut u8,
-    mut minLen: i32,
-    mut maxLen: i32,
-    mut alphaSize: i32,
+    code: *mut i32,
+    length: *mut u8,
+    minLen: i32,
+    maxLen: i32,
+    alphaSize: i32,
 ) {
     let mut n: i32 = 0;
     let mut vec: i32 = 0;
@@ -193,13 +193,13 @@ pub unsafe extern "C" fn BZ2_hbAssignCodes(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BZ2_hbCreateDecodeTables(
-    mut limit: *mut i32,
-    mut base: *mut i32,
-    mut perm: *mut i32,
-    mut length: *mut u8,
-    mut minLen: i32,
-    mut maxLen: i32,
-    mut alphaSize: i32,
+    limit: *mut i32,
+    base: *mut i32,
+    perm: *mut i32,
+    length: *mut u8,
+    minLen: i32,
+    maxLen: i32,
+    alphaSize: i32,
 ) {
     let mut pp: i32 = 0;
     let mut i: i32 = 0;
