@@ -1,0 +1,13 @@
+[package]
+name = "libbzip2-rs-sys"
+readme = "README.md"
+edition.workspace = true
+
+[lib]
+name = "libbzip2_rs_sys"
+path = "../c2rust-lib.rs"
+crate-type = ["staticlib", "rlib"]
+
+
+[dependencies]
+libc = "0.2"

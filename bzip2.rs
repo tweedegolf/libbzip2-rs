@@ -6,7 +6,7 @@
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
 
-use bzip2::bzlib::{
+use libbzip2_rs_sys::bzlib::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
     BZ2_bzWriteClose64, BZ2_bzWriteOpen, BZ2_bzlibVersion,
 };
@@ -256,7 +256,7 @@ unsafe extern "C" fn compressStream(mut stream: *mut FILE, mut zStream: *mut FIL
                     }
                     nIbuf = fread(
                         ibuf.as_mut_ptr() as *mut libc::c_void,
-                        ::core::mem::size_of::<u8>() as libc::size_t,
+                        core::mem::size_of::<u8>() as libc::size_t,
                         5000 as libc::c_int as libc::size_t,
                         stream,
                     ) as i32;
@@ -515,7 +515,7 @@ unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut F
                     {
                         fwrite(
                             obuf.as_mut_ptr() as *const libc::c_void,
-                            ::core::mem::size_of::<u8>() as libc::size_t,
+                            core::mem::size_of::<u8>() as libc::size_t,
                             nread as libc::size_t,
                             stream,
                         );
@@ -566,7 +566,7 @@ unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut F
                                     }
                                     nread = fread(
                                         obuf.as_mut_ptr() as *mut libc::c_void,
-                                        ::core::mem::size_of::<u8>() as libc::size_t,
+                                        core::mem::size_of::<u8>() as libc::size_t,
                                         5000 as libc::c_int as libc::size_t,
                                         zStream,
                                     ) as i32;
@@ -577,7 +577,7 @@ unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut F
                                     if nread > 0 as libc::c_int {
                                         fwrite(
                                             obuf.as_mut_ptr() as *const libc::c_void,
-                                            ::core::mem::size_of::<u8>() as libc::size_t,
+                                            core::mem::size_of::<u8>() as libc::size_t,
                                             nread as libc::size_t,
                                             stream,
                                         );
@@ -2647,7 +2647,7 @@ unsafe extern "C" fn myMalloc(mut n: i32) -> *mut libc::c_void {
 }
 unsafe extern "C" fn mkCell() -> *mut Cell {
     let mut c: *mut Cell = 0 as *mut Cell;
-    c = myMalloc(::core::mem::size_of::<Cell>() as libc::c_ulong as i32) as *mut Cell;
+    c = myMalloc(core::mem::size_of::<Cell>() as libc::c_ulong as i32) as *mut Cell;
     (*c).name = 0 as *mut i8;
     (*c).link = 0 as *mut zzzz;
     return c;
@@ -3170,7 +3170,7 @@ pub fn main() {
                 .into_raw(),
         );
     }
-    args.push(::core::ptr::null_mut());
+    args.push(core::ptr::null_mut());
     unsafe {
         ::std::process::exit(main_0(
             (args.len() - 1) as IntNative,

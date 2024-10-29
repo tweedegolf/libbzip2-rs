@@ -1,17 +1,17 @@
 [workspace]
 members = [
+    "libbzip2-rs-sys",
+    "test-libbzip2-rs-sys",
 ]
+package.edition = "2021"
+
+
 [package]
 name = "c2rust_out"
 authors = ["C2Rust"]
 version = "0.0.0"
 publish = false
 edition = "2021"
-
-[lib]
-name = "bzip2"
-path = "c2rust-lib.rs"
-crate-type = ["staticlib", "rlib"]
 
 [[bin]]
 name = "bzip2"
@@ -21,5 +21,11 @@ path = "bzip2.rs"
 name = "bzip2recover"
 path = "bzip2recover.rs"
 
+[workspace.dependencies]
+libc = "0.2"
+libbzip2-rs-sys = { path = "libbzip2-rs-sys/" }
+
+
 [dependencies]
-libc= "0.2"
+libc = "0.2"
+libbzip2-rs-sys = { path = "libbzip2-rs-sys/" }
