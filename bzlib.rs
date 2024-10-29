@@ -12,8 +12,6 @@ use libc::{
 extern "C" {
     static stdin: *mut FILE;
     static stdout: *mut FILE;
-    static stderr: *mut FILE;
-    fn __ctype_b_loc() -> *mut *const libc::c_ushort;
 }
 
 macro_rules! version {
@@ -27,23 +25,6 @@ pub unsafe extern "C" fn BZ2_bzlibVersion() -> *const libc::c_char {
     concat!(version!(), "\0").as_ptr().cast()
 }
 
-pub type size_t = libc::c_ulong;
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
-pub type _IO_lock_t = ();
-pub type C2RustUnnamed = libc::c_uint;
-pub const _ISalnum: C2RustUnnamed = 8;
-pub const _ISpunct: C2RustUnnamed = 4;
-pub const _IScntrl: C2RustUnnamed = 2;
-pub const _ISblank: C2RustUnnamed = 1;
-pub const _ISgraph: C2RustUnnamed = 32768;
-pub const _ISprint: C2RustUnnamed = 16384;
-pub const _ISspace: C2RustUnnamed = 8192;
-pub const _ISxdigit: C2RustUnnamed = 4096;
-pub const _ISdigit: C2RustUnnamed = 2048;
-pub const _ISalpha: C2RustUnnamed = 1024;
-pub const _ISlower: C2RustUnnamed = 512;
-pub const _ISupper: C2RustUnnamed = 256;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct bz_stream {
@@ -105,11 +86,7 @@ pub struct EState {
     pub rfreq: [[i32; 258]; 6],
     pub len_pack: [[u32; 4]; 258],
 }
-pub type u32 = libc::c_uint;
-pub type i32 = libc::c_int;
-pub type u8 = libc::c_uchar;
 pub type Bool = libc::c_uchar;
-pub type u16 = libc::c_ushort;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DState {
@@ -178,7 +155,6 @@ pub struct DState {
     pub save_gBase: *mut i32,
     pub save_gPerm: *mut i32,
 }
-pub type BZFILE = ();
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct bzFile {
@@ -2365,11 +2341,8 @@ unsafe extern "C" fn bzopen_or_bzdopen(
                 smallMode = 1 as libc::c_int;
             }
             _ => {
-                if *(*__ctype_b_loc()).offset(*mode as libc::c_int as isize) as libc::c_int
-                    & _ISdigit as libc::c_int as libc::c_ushort as libc::c_int
-                    != 0
-                {
-                    blockSize100k = *mode as libc::c_int - 0x30 as libc::c_int;
+                if (*mode as u8 as char).is_ascii_digit() {
+                    blockSize100k = (*mode as u8 - 0x30) as libc::c_int;
                 }
             }
         }
