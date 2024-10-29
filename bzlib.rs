@@ -1,11 +1,13 @@
 use crate::compress::BZ2_compressBlock;
+use crate::crctable::BZ2_crc32Table;
 use crate::decompress::BZ2_decompress;
+use crate::randtable::BZ2_rNums;
 use ::libc;
+use libc::FILE;
 use libc::{
     exit, fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, strcat,
     strcmp, ungetc,
 };
-use libc::{fprintf, FILE};
 
 extern "C" {
     static stdin: *mut FILE;
@@ -13,8 +15,18 @@ extern "C" {
     static stderr: *mut FILE;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
 }
-use crate::crctable::BZ2_crc32Table;
-use crate::randtable::BZ2_rNums;
+
+macro_rules! version {
+    () => {
+        "1.1.0"
+    };
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn BZ2_bzlibVersion() -> *const libc::c_char {
+    concat!(version!(), "\0").as_ptr().cast()
+}
+
 pub type size_t = libc::c_ulong;
 pub type __off_t = libc::c_long;
 pub type __off64_t = libc::c_long;
@@ -181,18 +193,14 @@ pub struct bzFile {
 pub type Char = libc::c_char;
 #[no_mangle]
 pub unsafe extern "C" fn BZ2_bz__AssertH__fail(mut errcode: libc::c_int) {
-    fprintf(
-        stderr,
-        b"\n\nbzip2/libbzip2: internal error number %d.\nThis is a bug in bzip2/libbzip2, %s.\nPlease report it at: https://gitlab.com/bzip2/bzip2/-/issues\nIf this happened when you were using some program which uses\nlibbzip2 as a component, you should also report this bug to\nthe author(s) of that program.\nPlease make an effort to report this bug;\ntimely and accurate bug reports eventually lead to higher\nquality software.  Thanks.\n\n\0"
-            as *const u8 as *const libc::c_char,
+    eprint!(
+        "\n\nbzip2/libbzip2: internal error number {}.\nThis is a bug in bzip2/libbzip2, {}.\nPlease report it at: https://gitlab.com/bzip2/bzip2/-/issues\nIf this happened when you were using some program which uses\nlibbzip2 as a component, you should also report this bug to\nthe author(s) of that program.\nPlease make an effort to report this bug;\ntimely and accurate bug reports eventually lead to higher\nquality software.  Thanks.\n\n",
         errcode,
-        BZ2_bzlibVersion(),
+        version!()
     );
     if errcode == 1007 as libc::c_int {
-        fprintf(
-            stderr,
-            b"\n*** A special note about internal error number 1007 ***\n\nExperience suggests that a common cause of i.e. 1007\nis unreliable memory or other hardware.  The 1007 assertion\njust happens to cross-check the results of huge numbers of\nmemory reads/writes, and so acts (unintendedly) as a stress\ntest of your memory system.\n\nI suggest the following: try compressing the file again,\npossibly monitoring progress in detail with the -vv flag.\n\n* If the error cannot be reproduced, and/or happens at different\n  points in compression, you may have a flaky memory system.\n  Try a memory-test program.  I have used Memtest86\n  (www.memtest86.com).  At the time of writing it is free (GPLd).\n  Memtest86 tests memory much more thorougly than your BIOSs\n  power-on test, and may find failures that the BIOS doesn't.\n\n* If the error can be repeatably reproduced, this is a bug in\n  bzip2, and I would very much like to hear about it.  Please\n  let me know, and, ideally, save a copy of the file causing the\n  problem -- without which I will be unable to investigate it.\n\n\0"
-                as *const u8 as *const libc::c_char,
+        eprint!(
+            "\n*** A special note about internal error number 1007 ***\n\nExperience suggests that a common cause of i.e. 1007\nis unreliable memory or other hardware.  The 1007 assertion\njust happens to cross-check the results of huge numbers of\nmemory reads/writes, and so acts (unintendedly) as a stress\ntest of your memory system.\n\nI suggest the following: try compressing the file again,\npossibly monitoring progress in detail with the -vv flag.\n\n* If the error cannot be reproduced, and/or happens at different\n  points in compression, you may have a flaky memory system.\n  Try a memory-test program.  I have used Memtest86\n  (www.memtest86.com).  At the time of writing it is free (GPLd).\n  Memtest86 tests memory much more thorougly than your BIOSs\n  power-on test, and may find failures that the BIOS doesn't.\n\n* If the error can be repeatably reproduced, this is a bug in\n  bzip2, and I would very much like to hear about it.  Please\n  let me know, and, ideally, save a copy of the file causing the\n  problem -- without which I will be unable to investigate it.\n\n"
         );
     }
     exit(3 as libc::c_int);
@@ -212,14 +220,14 @@ unsafe extern "C" fn bz_config_ok() -> libc::c_int {
     1 as libc::c_int
 }
 unsafe extern "C" fn default_bzalloc(
-    mut opaque: *mut libc::c_void,
+    _opaque: *mut libc::c_void,
     mut items: Int32,
     mut size: Int32,
 ) -> *mut libc::c_void {
-    let mut v: *mut libc::c_void = malloc((items * size) as libc::size_t);
+    let mut v: *mut libc::c_void = malloc((items * size) as usize);
     v
 }
-unsafe extern "C" fn default_bzfree(mut opaque: *mut libc::c_void, mut addr: *mut libc::c_void) {
+unsafe extern "C" fn default_bzfree(_opaque: *mut libc::c_void, mut addr: *mut libc::c_void) {
     if !addr.is_null() {
         free(addr);
     }
@@ -1530,15 +1538,14 @@ pub unsafe extern "C" fn BZ2_bzDecompress(mut strm: *mut bz_stream) -> libc::c_i
             {
                 (*s).calculatedBlockCRC = !(*s).calculatedBlockCRC;
                 if (*s).verbosity >= 3 as libc::c_int {
-                    fprintf(
-                        stderr,
-                        b" {0x%08x, 0x%08x}\0" as *const u8 as *const libc::c_char,
+                    eprint!(
+                        " {{0x{:08x}, 0x{:08x}}}",
                         (*s).storedBlockCRC,
                         (*s).calculatedBlockCRC,
                     );
                 }
                 if (*s).verbosity >= 2 as libc::c_int {
-                    fprintf(stderr, b"]\0" as *const u8 as *const libc::c_char);
+                    eprint!("]");
                 }
                 if (*s).calculatedBlockCRC != (*s).storedBlockCRC {
                     return -(4 as libc::c_int);
@@ -1555,10 +1562,8 @@ pub unsafe extern "C" fn BZ2_bzDecompress(mut strm: *mut bz_stream) -> libc::c_i
             let mut r: Int32 = BZ2_decompress(s);
             if r == 4 as libc::c_int {
                 if (*s).verbosity >= 3 as libc::c_int {
-                    fprintf(
-                        stderr,
-                        b"\n    combined CRCs: stored = 0x%08x, computed = 0x%08x\0" as *const u8
-                            as *const libc::c_char,
+                    eprint!(
+                        "\n    combined CRCs: stored = 0x{:08x}, computed = 0x{:08x}",
                         (*s).storedCombinedCRC,
                         (*s).calculatedCombinedCRC,
                     );
@@ -2346,10 +2351,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
         return 0 as libc::c_int;
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn BZ2_bzlibVersion() -> *const libc::c_char {
-    b"1.1.0\0" as *const u8 as *const libc::c_char
-}
+
 unsafe extern "C" fn bzopen_or_bzdopen(
     mut path: *const libc::c_char,
     mut fd: libc::c_int,
@@ -2498,7 +2500,7 @@ pub unsafe extern "C" fn BZ2_bzwrite(
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn BZ2_bzflush(mut b: *mut libc::c_void) -> libc::c_int {
+pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut libc::c_void) -> libc::c_int {
     0 as libc::c_int
 }
 #[no_mangle]
