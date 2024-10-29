@@ -145,7 +145,7 @@ unsafe extern "C" fn bsW(mut s: *mut EState, mut n: Int32, mut v: UInt32) {
         (*s).bsBuff <<= 8 as libc::c_int;
         (*s).bsLive -= 8 as libc::c_int;
     }
-    (*s).bsBuff |= v << 32 as libc::c_int - (*s).bsLive - n;
+    (*s).bsBuff |= v << (32 as libc::c_int - (*s).bsLive - n);
     (*s).bsLive += n;
 }
 unsafe extern "C" fn bsPutUInt32(mut s: *mut EState, mut u: UInt32) {
@@ -247,7 +247,7 @@ unsafe extern "C" fn generateMTFValues(mut s: *mut EState) {
                 zPend = 0 as libc::c_int;
             }
             let mut rtmp: UChar = 0;
-            let mut ryy_j: *mut UChar = 0 as *mut UChar;
+            let mut ryy_j: *mut UChar = std::ptr::null_mut::<UChar>();
             let mut rll_i: UChar = 0;
             rtmp = yy[1 as libc::c_int as usize];
             yy[1 as libc::c_int as usize] = yy[0 as libc::c_int as usize];
@@ -350,7 +350,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         t += 1;
         t;
     }
-    if !((*s).nMTF > 0 as libc::c_int) {
+    if (*s).nMTF <= 0 as libc::c_int {
         BZ2_bz__AssertH__fail(3001 as libc::c_int);
     }
     if (*s).nMTF < 200 as libc::c_int {
@@ -1444,7 +1444,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         iter += 1;
         iter;
     }
-    if !(nGroups < 8 as libc::c_int) {
+    if nGroups >= 8 as libc::c_int {
         BZ2_bz__AssertH__fail(3002 as libc::c_int);
     }
     if !(nSelectors < 32768 as libc::c_int
@@ -1628,7 +1628,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         if ge >= (*s).nMTF {
             ge = (*s).nMTF - 1 as libc::c_int;
         }
-        if !(((*s).selector[selCtr as usize] as libc::c_int) < nGroups) {
+        if ((*s).selector[selCtr as usize] as libc::c_int) >= nGroups {
             BZ2_bz__AssertH__fail(3006 as libc::c_int);
         }
         if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int
@@ -1964,7 +1964,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         selCtr += 1;
         selCtr;
     }
-    if !(selCtr == nSelectors) {
+    if selCtr != nSelectors {
         BZ2_bz__AssertH__fail(3007 as libc::c_int);
     }
     if (*s).verbosity >= 3 as libc::c_int {

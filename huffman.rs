@@ -60,7 +60,7 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             i += 1;
             i;
         }
-        if !(nHeap < 258 as libc::c_int + 2 as libc::c_int) {
+        if nHeap >= 258 as libc::c_int + 2 as libc::c_int {
             BZ2_bz__AssertH__fail(2001 as libc::c_int);
         }
         while nHeap > 1 as libc::c_int {
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
             }
             heap[zz_2 as usize] = tmp_2;
         }
-        if !(nNodes < 258 as libc::c_int * 2 as libc::c_int) {
+        if nNodes >= 258 as libc::c_int * 2 as libc::c_int {
             BZ2_bz__AssertH__fail(2002 as libc::c_int);
         }
         tooLong = 0 as libc::c_int as Bool;
@@ -254,10 +254,10 @@ pub unsafe extern "C" fn BZ2_hbCreateDecodeTables(
     }
     i = 0 as libc::c_int;
     while i < alphaSize {
-        let ref mut fresh0 = *base
+        let fresh0 = &mut (*base
             .offset(
                 (*length.offset(i as isize) as libc::c_int + 1 as libc::c_int) as isize,
-            );
+            ));
         *fresh0 += 1;
         *fresh0;
         i += 1;
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn BZ2_hbCreateDecodeTables(
     }
     i = 1 as libc::c_int;
     while i < 23 as libc::c_int {
-        let ref mut fresh1 = *base.offset(i as isize);
+        let fresh1 = &mut (*base.offset(i as isize));
         *fresh1 += *base.offset((i - 1 as libc::c_int) as isize);
         i += 1;
         i;
