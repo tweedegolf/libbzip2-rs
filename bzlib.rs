@@ -323,14 +323,11 @@ unsafe fn init_RL(s: *mut EState) {
     (*s).state_in_ch = 256 as libc::c_int as u32;
     (*s).state_in_len = 0 as libc::c_int;
 }
-unsafe fn isempty_RL(s: *mut EState) -> Bool {
-    if (*s).state_in_ch < 256 as libc::c_int as libc::c_uint && (*s).state_in_len > 0 as libc::c_int
-    {
-        0 as libc::c_int as Bool
-    } else {
-        1 as libc::c_int as Bool
-    }
+
+fn isempty_RL(s: &mut EState) -> bool {
+    !(s.state_in_ch < 256 && s.state_in_len > 0)
 }
+
 #[export_name = prefix!(BZ2_bzCompressInit)]
 pub unsafe extern "C" fn BZ2_bzCompressInit(
     strm: *mut bz_stream,
@@ -638,7 +635,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
             }
             if (*s).mode == 4 as libc::c_int
                 && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
-                && isempty_RL(s) as libc::c_int != 0
+                && isempty_RL(&mut *s)
             {
                 break;
             }
@@ -646,7 +643,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
             (*s).state = 2 as libc::c_int;
             if (*s).mode == 3 as libc::c_int
                 && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
-                && isempty_RL(s) as libc::c_int != 0
+                && isempty_RL(&mut *s)
             {
                 break;
             }
@@ -714,7 +711,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                 }
                 handle_compress(strm);
                 if (*s).avail_in_expect > 0 as libc::c_int as libc::c_uint
-                    || isempty_RL(s) == 0
+                    || !isempty_RL(&mut *s)
                     || (*s).state_out_pos < (*s).numZ
                 {
                     return 2 as libc::c_int;
@@ -734,7 +731,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                     return -1 as libc::c_int;
                 }
                 if (*s).avail_in_expect > 0 as libc::c_int as libc::c_uint
-                    || isempty_RL(s) == 0
+                    || !isempty_RL(&mut *s)
                     || (*s).state_out_pos < (*s).numZ
                 {
                     return 3 as libc::c_int;
