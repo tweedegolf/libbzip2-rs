@@ -10,8 +10,17 @@ edition = "2021"
 autobins = false
 
 [lib]
-name = "c2rust_out"
+name = "bzip2"
 path = "c2rust-lib.rs"
 crate-type = ["staticlib", "rlib"]
+
+[[bin]]
+name = "bzip2"
+path = "bzip2.rs"
+
+[[bin]]
+name = "bzip2recover"
+path = "bzip2recover.rs"
+
 [dependencies]
 libc= "0.2"

@@ -11,8 +11,6 @@
 
 extern crate libc;
 pub mod blocksort;
-pub mod bzip2;
-pub mod bzip2recover;
 pub mod bzlib;
 pub mod compress;
 pub mod crctable;
