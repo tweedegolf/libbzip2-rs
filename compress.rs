@@ -1,11 +1,7 @@
-use ::libc;
-use libc::{fprintf, FILE};
-extern "C" {
-    static mut stderr: *mut FILE;
-}
 use crate::blocksort::BZ2_blockSort;
 use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState, Int32, UChar, UInt16, UInt32};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
+use ::libc;
 #[no_mangle]
 pub unsafe extern "C" fn BZ2_bsInitWrite(mut s: *mut EState) {
     (*s).bsLive = 0 as libc::c_int;
@@ -200,10 +196,8 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
     let mut fave: [Int32; 6] = [0; 6];
     let mut mtfv: *mut UInt16 = (*s).mtfv;
     if (*s).verbosity >= 3 as libc::c_int {
-        fprintf(
-            stderr,
-            b"      %d in block, %d after MTF & 1-2 coding, %d+2 syms in use\n\0" as *const u8
-                as *const libc::c_char,
+        eprintln!(
+            "      {} in block, {} after MTF & 1-2 coding, {}+2 syms in use",
             (*s).nblock,
             (*s).nMTF,
             (*s).nInUse,
@@ -257,10 +251,8 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             ge -= 1;
         }
         if (*s).verbosity >= 3 as libc::c_int {
-            fprintf(
-                stderr,
-                b"      initial group %d, [%d .. %d], has %d syms (%4.1f%%)\n\0" as *const u8
-                    as *const libc::c_char,
+            eprintln!(
+                "      initial group {}, [{} .. {}], has {} syms ({:4.1}%%)",
                 nPart,
                 gs,
                 ge,
@@ -1045,22 +1037,17 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
             gs = ge + 1 as libc::c_int;
         }
         if (*s).verbosity >= 3 as libc::c_int {
-            fprintf(
-                stderr,
-                b"      pass %d: size is %d, grp uses are \0" as *const u8 as *const libc::c_char,
+            eprint!(
+                "      pass {}: size is {}, grp uses are ",
                 iter + 1 as libc::c_int,
                 totc / 8 as libc::c_int,
             );
             t = 0 as libc::c_int;
             while t < nGroups {
-                fprintf(
-                    stderr,
-                    b"%d \0" as *const u8 as *const libc::c_char,
-                    fave[t as usize],
-                );
+                eprint!("{} ", fave[t as usize],);
                 t += 1;
             }
-            fprintf(stderr, b"\n\0" as *const u8 as *const libc::c_char);
+            eprintln!("");
         }
         t = 0 as libc::c_int;
         while t < nGroups {
@@ -1182,11 +1169,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         i += 1;
     }
     if (*s).verbosity >= 3 as libc::c_int {
-        fprintf(
-            stderr,
-            b"      bytes: mapping %d, \0" as *const u8 as *const libc::c_char,
-            (*s).numZ - nBytes,
-        );
+        eprint!("      bytes: mapping {}, ", (*s).numZ - nBytes,);
     }
     nBytes = (*s).numZ;
     bsW(s, 3 as libc::c_int, nGroups as UInt32);
@@ -1202,11 +1185,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         i += 1;
     }
     if (*s).verbosity >= 3 as libc::c_int {
-        fprintf(
-            stderr,
-            b"selectors %d, \0" as *const u8 as *const libc::c_char,
-            (*s).numZ - nBytes,
-        );
+        eprint!("selectors {}, ", (*s).numZ - nBytes,);
     }
     nBytes = (*s).numZ;
     t = 0 as libc::c_int;
@@ -1229,11 +1208,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         t += 1;
     }
     if (*s).verbosity >= 3 as libc::c_int {
-        fprintf(
-            stderr,
-            b"code lengths %d, \0" as *const u8 as *const libc::c_char,
-            (*s).numZ - nBytes,
-        );
+        eprint!("code lengths {}, ", (*s).numZ - nBytes,);
     }
     nBytes = (*s).numZ;
     selCtr = 0 as libc::c_int;
@@ -1583,11 +1558,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         BZ2_bz__AssertH__fail(3007 as libc::c_int);
     }
     if (*s).verbosity >= 3 as libc::c_int {
-        fprintf(
-            stderr,
-            b"codes %d\n\0" as *const u8 as *const libc::c_char,
-            (*s).numZ - nBytes,
-        );
+        eprintln!("codes {}", (*s).numZ - nBytes,);
     }
 }
 #[no_mangle]
@@ -1601,10 +1572,8 @@ pub unsafe extern "C" fn BZ2_compressBlock(mut s: *mut EState, mut is_last_block
             (*s).numZ = 0 as libc::c_int;
         }
         if (*s).verbosity >= 2 as libc::c_int {
-            fprintf(
-                stderr,
-                b"    block %d: crc = 0x%08x, combined CRC = 0x%08x, size = %d\n\0" as *const u8
-                    as *const libc::c_char,
+            eprintln!(
+                "   block {}: crc = 0x{:08x}, combined CRC = 0x{:08x}, size = {}",
                 (*s).blockNo,
                 (*s).blockCRC,
                 (*s).combinedCRC,
@@ -1643,11 +1612,7 @@ pub unsafe extern "C" fn BZ2_compressBlock(mut s: *mut EState, mut is_last_block
         bsPutUChar(s, 0x90 as libc::c_int as UChar);
         bsPutUInt32(s, (*s).combinedCRC);
         if (*s).verbosity >= 2 as libc::c_int {
-            fprintf(
-                stderr,
-                b"    final combined CRC = 0x%08x\n   \0" as *const u8 as *const libc::c_char,
-                (*s).combinedCRC,
-            );
+            eprint!("    final combined CRC = 0x{:08x}\n   ", (*s).combinedCRC,);
         }
         bsFinishWrite(s);
     }
