@@ -1268,7 +1268,6 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(mut s: *mut DState) -> Bool {
 }
 #[no_mangle]
 #[inline]
-#[linkage = "external"]
 pub unsafe extern "C" fn BZ2_indexIntoF(
     mut indx: Int32,
     mut cftab: *mut Int32,
