@@ -10,7 +10,6 @@ use libbzip2_rs_sys::bzlib::{
     BZ2_bzWriteClose64, BZ2_bzWriteOpen, BZ2_bzlibVersion,
 };
 
-use ::libc;
 use libc::{
     __errno_location, _exit, close, exit, fchmod, fchown, fclose, fdopen, ferror, fflush, fgetc,
     fileno, fopen, fprintf, fread, free, fwrite, getenv, isatty, malloc, open, perror, remove,

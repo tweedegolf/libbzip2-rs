@@ -1,9 +1,7 @@
 use crate::blocksort::BZ2_blockSort;
 use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
-use ::libc;
-#[no_mangle]
-pub unsafe extern "C" fn BZ2_bsInitWrite(s: *mut EState) {
+pub unsafe fn BZ2_bsInitWrite(s: *mut EState) {
     (*s).bsLive = 0 as libc::c_int;
     (*s).bsBuff = 0 as libc::c_int as u32;
 }
@@ -1558,8 +1556,7 @@ unsafe extern "C" fn sendMTFValues(s: *mut EState) {
         eprintln!("codes {}", (*s).numZ - nBytes);
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn BZ2_compressBlock(s: *mut EState, is_last_block: Bool) {
+pub unsafe fn BZ2_compressBlock(s: *mut EState, is_last_block: Bool) {
     if (*s).nblock > 0 as libc::c_int {
         (*s).blockCRC = !(*s).blockCRC;
         (*s).combinedCRC =

@@ -1,13 +1,6 @@
 use crate::bzlib::BZ2_bz__AssertH__fail;
-use ::libc;
 pub type Bool = libc::c_uchar;
-#[no_mangle]
-pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
-    len: *mut u8,
-    freq: *mut i32,
-    alphaSize: i32,
-    maxLen: i32,
-) {
+pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32, maxLen: i32) {
     let mut nNodes: i32;
     let mut nHeap: i32;
     let mut n1: i32;
@@ -165,8 +158,7 @@ pub unsafe extern "C" fn BZ2_hbMakeCodeLengths(
         }
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn BZ2_hbAssignCodes(
+pub unsafe fn BZ2_hbAssignCodes(
     code: *mut i32,
     length: *mut u8,
     minLen: i32,
@@ -191,8 +183,7 @@ pub unsafe extern "C" fn BZ2_hbAssignCodes(
         n += 1;
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn BZ2_hbCreateDecodeTables(
+pub unsafe fn BZ2_hbCreateDecodeTables(
     limit: *mut i32,
     base: *mut i32,
     perm: *mut i32,

@@ -1,8 +1,7 @@
 use crate::compress::BZ2_compressBlock;
-use crate::crctable::BZ2_crc32Table;
+use crate::crctable::BZ2_CRC32TABLE;
 use crate::decompress::BZ2_decompress;
 use crate::randtable::BZ2_RNUMS;
-use ::libc;
 use libc::FILE;
 use libc::{
     exit, fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, strcat,
@@ -168,8 +167,7 @@ pub struct bzFile {
     pub lastErr: i32,
     pub initialisedOk: Bool,
 }
-#[no_mangle]
-pub unsafe extern "C" fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
+pub fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
     eprint!(
         "\n\nbzip2/libbzip2: internal error number {}.\nThis is a bug in bzip2/libbzip2, {}.\nPlease report it at: https://gitlab.com/bzip2/bzip2/-/issues\nIf this happened when you were using some program which uses\nlibbzip2 as a component, you should also report this bug to\nthe author(s) of that program.\nPlease make an effort to report this bug;\ntimely and accurate bug reports eventually lead to higher\nquality software.  Thanks.\n\n",
         errcode,
@@ -180,7 +178,9 @@ pub unsafe extern "C" fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
             "\n*** A special note about internal error number 1007 ***\n\nExperience suggests that a common cause of i.e. 1007\nis unreliable memory or other hardware.  The 1007 assertion\njust happens to cross-check the results of huge numbers of\nmemory reads/writes, and so acts (unintendedly) as a stress\ntest of your memory system.\n\nI suggest the following: try compressing the file again,\npossibly monitoring progress in detail with the -vv flag.\n\n* If the error cannot be reproduced, and/or happens at different\n  points in compression, you may have a flaky memory system.\n  Try a memory-test program.  I have used Memtest86\n  (www.memtest86.com).  At the time of writing it is free (GPLd).\n  Memtest86 tests memory much more thorougly than your BIOSs\n  power-on test, and may find failures that the BIOS doesn't.\n\n* If the error can be repeatably reproduced, this is a bug in\n  bzip2, and I would very much like to hear about it.  Please\n  let me know, and, ideally, save a copy of the file causing the\n  problem -- without which I will be unable to investigate it.\n\n"
         );
     }
-    exit(3 as libc::c_int);
+    unsafe {
+        exit(3 as libc::c_int);
+    }
 }
 unsafe extern "C" fn bz_config_ok() -> libc::c_int {
     if core::mem::size_of::<libc::c_int>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong {
@@ -353,7 +353,7 @@ unsafe extern "C" fn add_pair_to_block(s: *mut EState) {
     i = 0 as libc::c_int;
     while i < (*s).state_in_len {
         (*s).blockCRC = (*s).blockCRC << 8 as libc::c_int
-            ^ BZ2_crc32Table[((*s).blockCRC >> 24 as libc::c_int ^ ch as libc::c_uint) as usize];
+            ^ BZ2_CRC32TABLE[((*s).blockCRC >> 24 as libc::c_int ^ ch as libc::c_uint) as usize];
         i += 1;
     }
     (*s).inUse[(*s).state_in_ch as usize] = 1 as libc::c_int as Bool;
@@ -424,7 +424,7 @@ unsafe extern "C" fn copy_input_until_stop(s: *mut EState) -> Bool {
             if zchh != (*s).state_in_ch && (*s).state_in_len == 1 as libc::c_int {
                 let ch: u8 = (*s).state_in_ch as u8;
                 (*s).blockCRC = (*s).blockCRC << 8 as libc::c_int
-                    ^ BZ2_crc32Table
+                    ^ BZ2_CRC32TABLE
                         [((*s).blockCRC >> 24 as libc::c_int ^ ch as libc::c_uint) as usize];
                 (*s).inUse[(*s).state_in_ch as usize] = 1 as libc::c_int as Bool;
                 *((*s).block).offset((*s).nblock as isize) = ch;
@@ -468,7 +468,7 @@ unsafe extern "C" fn copy_input_until_stop(s: *mut EState) -> Bool {
             if zchh_0 != (*s).state_in_ch && (*s).state_in_len == 1 as libc::c_int {
                 let ch_0: u8 = (*s).state_in_ch as u8;
                 (*s).blockCRC = (*s).blockCRC << 8 as libc::c_int
-                    ^ BZ2_crc32Table
+                    ^ BZ2_CRC32TABLE
                         [((*s).blockCRC >> 24 as libc::c_int ^ ch_0 as libc::c_uint) as usize];
                 (*s).inUse[(*s).state_in_ch as usize] = 1 as libc::c_int as Bool;
                 *((*s).block).offset((*s).nblock as isize) = ch_0;
@@ -753,7 +753,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                 }
                 *((*(*s).strm).next_out as *mut u8) = (*s).state_out_ch;
                 (*s).calculatedBlockCRC = (*s).calculatedBlockCRC << 8 as libc::c_int
-                    ^ BZ2_crc32Table[((*s).calculatedBlockCRC >> 24 as libc::c_int
+                    ^ BZ2_CRC32TABLE[((*s).calculatedBlockCRC >> 24 as libc::c_int
                         ^ (*s).state_out_ch as libc::c_uint)
                         as usize];
                 (*s).state_out_len -= 1;
@@ -956,7 +956,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                     }
                     *(cs_next_out as *mut u8) = c_state_out_ch;
                     c_calculatedBlockCRC = c_calculatedBlockCRC << 8 as libc::c_int
-                        ^ BZ2_crc32Table[(c_calculatedBlockCRC >> 24 as libc::c_int
+                        ^ BZ2_CRC32TABLE[(c_calculatedBlockCRC >> 24 as libc::c_int
                             ^ c_state_out_ch as libc::c_uint)
                             as usize];
                     c_state_out_len -= 1;
@@ -976,7 +976,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                         } else {
                             *(cs_next_out as *mut u8) = c_state_out_ch;
                             c_calculatedBlockCRC = c_calculatedBlockCRC << 8 as libc::c_int
-                                ^ BZ2_crc32Table[(c_calculatedBlockCRC >> 24 as libc::c_int
+                                ^ BZ2_CRC32TABLE[(c_calculatedBlockCRC >> 24 as libc::c_int
                                     ^ c_state_out_ch as libc::c_uint)
                                     as usize];
                             cs_next_out = cs_next_out.offset(1);
@@ -1100,9 +1100,8 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
     }
     0 as libc::c_int as Bool
 }
-#[no_mangle]
 #[inline]
-pub unsafe extern "C" fn BZ2_indexIntoF(indx: i32, cftab: *mut i32) -> i32 {
+pub unsafe fn BZ2_indexIntoF(indx: i32, cftab: *mut i32) -> i32 {
     let mut nb: i32;
     let mut na: i32;
     let mut mid: i32;
@@ -1134,7 +1133,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                 }
                 *((*(*s).strm).next_out as *mut u8) = (*s).state_out_ch;
                 (*s).calculatedBlockCRC = (*s).calculatedBlockCRC << 8 as libc::c_int
-                    ^ BZ2_crc32Table[((*s).calculatedBlockCRC >> 24 as libc::c_int
+                    ^ BZ2_CRC32TABLE[((*s).calculatedBlockCRC >> 24 as libc::c_int
                         ^ (*s).state_out_ch as libc::c_uint)
                         as usize];
                 (*s).state_out_len -= 1;
@@ -1341,7 +1340,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                 }
                 *((*(*s).strm).next_out as *mut u8) = (*s).state_out_ch;
                 (*s).calculatedBlockCRC = (*s).calculatedBlockCRC << 8 as libc::c_int
-                    ^ BZ2_crc32Table[((*s).calculatedBlockCRC >> 24 as libc::c_int
+                    ^ BZ2_CRC32TABLE[((*s).calculatedBlockCRC >> 24 as libc::c_int
                         ^ (*s).state_out_ch as libc::c_uint)
                         as usize];
                 (*s).state_out_len -= 1;

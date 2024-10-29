@@ -5,7 +5,6 @@
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
 
-use ::libc;
 use libc::{fprintf, FILE};
 
 use libc::{

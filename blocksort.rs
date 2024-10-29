@@ -1,5 +1,3 @@
-use ::libc;
-
 use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState};
 
 #[inline]
@@ -1245,8 +1243,7 @@ unsafe extern "C" fn mainSort(
         );
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn BZ2_blockSort(s: *mut EState) {
+pub unsafe fn BZ2_blockSort(s: *mut EState) {
     let ptr: *mut u32 = (*s).ptr;
     let block: *mut u8 = (*s).block;
     let ftab: *mut u32 = (*s).ftab;

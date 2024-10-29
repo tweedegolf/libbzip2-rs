@@ -1,6 +1,4 @@
-use ::libc;
-#[no_mangle]
-pub static mut BZ2_crc32Table: [u32; 256] = [
+pub static BZ2_CRC32TABLE: [u32; 256] = [
     0 as libc::c_long as u32,
     0x4c11db7 as libc::c_long as u32,
     0x9823b6e as libc::c_long as u32,

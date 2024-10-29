@@ -1,4 +1,3 @@
-use ::libc;
 pub static BZ2_RNUMS: [i32; 512] = [
     619 as libc::c_int,
     720 as libc::c_int,
