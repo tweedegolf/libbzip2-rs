@@ -6,7 +6,6 @@
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
 
-use bzip2 as _;
 use bzip2::bzlib::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
     BZ2_bzWriteClose64, BZ2_bzWriteOpen, BZ2_bzlibVersion,

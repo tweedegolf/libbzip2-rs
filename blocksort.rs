@@ -272,7 +272,7 @@ unsafe extern "C" fn fallbackSort(
     H = 1 as libc::c_int;
     loop {
         if verb >= 4 as libc::c_int {
-            eprint!("        depth {:>6} has ", H,);
+            eprint!("        depth {:>6} has ", H);
         }
         j = 0 as libc::c_int;
         i = 0 as libc::c_int;
@@ -1133,7 +1133,7 @@ unsafe extern "C" fn mainSort(
                     if hi > lo {
                         if verb >= 4 as libc::c_int {
                             eprintln!(
-                                "        qsort [0x{:x}, 0x{:x}]   done {}   this {}",
+                                "        qsort [{:#x}, {:#x}]   done {}   this {}",
                                 ss,
                                 j,
                                 numQSorted,

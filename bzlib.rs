@@ -1539,7 +1539,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(mut strm: *mut bz_stream) -> libc::c_i
                 (*s).calculatedBlockCRC = !(*s).calculatedBlockCRC;
                 if (*s).verbosity >= 3 as libc::c_int {
                     eprint!(
-                        " {{0x{:08x}, 0x{:08x}}}",
+                        " {{{:#08x}, {:#08x}}}",
                         (*s).storedBlockCRC,
                         (*s).calculatedBlockCRC,
                     );
@@ -1563,7 +1563,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(mut strm: *mut bz_stream) -> libc::c_i
             if r == 4 as libc::c_int {
                 if (*s).verbosity >= 3 as libc::c_int {
                     eprint!(
-                        "\n    combined CRCs: stored = 0x{:08x}, computed = 0x{:08x}",
+                        "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
                         (*s).storedCombinedCRC,
                         (*s).calculatedCombinedCRC,
                     );

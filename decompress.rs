@@ -1000,7 +1000,7 @@ pub unsafe extern "C" fn BZ2_decompress(mut s: *mut DState) -> Int32 {
                         (*s).currBlockNo += 1;
                         (*s).currBlockNo;
                         if (*s).verbosity >= 2 as libc::c_int {
-                            eprint!("\n    [{}: huff+mtf ", (*s).currBlockNo,);
+                            eprint!("\n    [{}: huff+mtf ", (*s).currBlockNo);
                         }
                         (*s).storedBlockCRC = 0 as libc::c_int as UInt32;
                         current_block = 5821827988509819404;

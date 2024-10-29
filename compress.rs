@@ -1185,7 +1185,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         i += 1;
     }
     if (*s).verbosity >= 3 as libc::c_int {
-        eprint!("selectors {}, ", (*s).numZ - nBytes,);
+        eprint!("selectors {}, ", (*s).numZ - nBytes);
     }
     nBytes = (*s).numZ;
     t = 0 as libc::c_int;
@@ -1208,7 +1208,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         t += 1;
     }
     if (*s).verbosity >= 3 as libc::c_int {
-        eprint!("code lengths {}, ", (*s).numZ - nBytes,);
+        eprint!("code lengths {}, ", (*s).numZ - nBytes);
     }
     nBytes = (*s).numZ;
     selCtr = 0 as libc::c_int;
@@ -1558,7 +1558,7 @@ unsafe extern "C" fn sendMTFValues(mut s: *mut EState) {
         BZ2_bz__AssertH__fail(3007 as libc::c_int);
     }
     if (*s).verbosity >= 3 as libc::c_int {
-        eprintln!("codes {}", (*s).numZ - nBytes,);
+        eprintln!("codes {}", (*s).numZ - nBytes);
     }
 }
 #[no_mangle]
@@ -1612,7 +1612,7 @@ pub unsafe extern "C" fn BZ2_compressBlock(mut s: *mut EState, mut is_last_block
         bsPutUChar(s, 0x90 as libc::c_int as UChar);
         bsPutUInt32(s, (*s).combinedCRC);
         if (*s).verbosity >= 2 as libc::c_int {
-            eprint!("    final combined CRC = 0x{:08x}\n   ", (*s).combinedCRC,);
+            eprint!("    final combined CRC = 0x{:08x}\n   ", (*s).combinedCRC);
         }
         bsFinishWrite(s);
     }
