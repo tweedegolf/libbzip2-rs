@@ -499,11 +499,11 @@ unsafe fn add_pair_to_block(s: *mut EState) {
         }
     };
 }
-unsafe fn flush_RL(s: *mut EState) {
-    if (*s).state_in_ch < 256 as libc::c_int as libc::c_uint {
+unsafe fn flush_RL(s: &mut EState) {
+    if s.state_in_ch < 256 {
         add_pair_to_block(s);
     }
-    init_RL(&mut *s);
+    init_RL(s);
 }
 unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
     let mut progress_in: Bool = 0 as libc::c_int as Bool;
@@ -656,7 +656,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
             (progress_in as libc::c_int | copy_input_until_stop(s) as libc::c_int) as Bool;
         if (*s).mode != 2 as libc::c_int && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
         {
-            flush_RL(s);
+            flush_RL(&mut *s);
             BZ2_compressBlock(s, ((*s).mode == 4 as libc::c_int) as libc::c_int as Bool);
             (*s).state = 1 as libc::c_int;
         } else if (*s).nblock >= (*s).nblockMAX {
