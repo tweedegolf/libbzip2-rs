@@ -1,7 +1,7 @@
 use crate::compress::BZ2_compressBlock;
 use crate::crctable::BZ2_crc32Table;
 use crate::decompress::BZ2_decompress;
-use crate::randtable::BZ2_rNums;
+use crate::randtable::BZ2_RNUMS;
 use ::libc;
 use libc::FILE;
 use libc::{
@@ -784,7 +784,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
             k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
             (*s).tPos >>= 8 as libc::c_int;
             if (*s).rNToGo == 0 as libc::c_int {
-                (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                 (*s).rTPos += 1;
                 (*s).rTPos;
                 if (*s).rTPos == 512 as libc::c_int {
@@ -817,7 +817,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                 k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
                 (*s).tPos >>= 8 as libc::c_int;
                 if (*s).rNToGo == 0 as libc::c_int {
-                    (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                    (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                     (*s).rTPos += 1;
                     (*s).rTPos;
                     if (*s).rTPos == 512 as libc::c_int {
@@ -850,7 +850,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                     k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
                     (*s).tPos >>= 8 as libc::c_int;
                     if (*s).rNToGo == 0 as libc::c_int {
-                        (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                        (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                         (*s).rTPos += 1;
                         (*s).rTPos;
                         if (*s).rTPos == 512 as libc::c_int {
@@ -883,7 +883,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                         k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
                         (*s).tPos >>= 8 as libc::c_int;
                         if (*s).rNToGo == 0 as libc::c_int {
-                            (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                            (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                             (*s).rTPos += 1;
                             (*s).rTPos;
                             if (*s).rTPos == 512 as libc::c_int {
@@ -911,7 +911,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                         (*s).k0 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8 as i32;
                         (*s).tPos >>= 8 as libc::c_int;
                         if (*s).rNToGo == 0 as libc::c_int {
-                            (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                            (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                             (*s).rTPos += 1;
                             (*s).rTPos;
                             if (*s).rTPos == 512 as libc::c_int {
@@ -1168,7 +1168,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                     & 0xf as libc::c_int as libc::c_uint)
                     << 16 as libc::c_int;
             if (*s).rNToGo == 0 as libc::c_int {
-                (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                 (*s).rTPos += 1;
                 (*s).rTPos;
                 if (*s).rTPos == 512 as libc::c_int {
@@ -1204,7 +1204,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         & 0xf as libc::c_int as libc::c_uint)
                         << 16 as libc::c_int;
                 if (*s).rNToGo == 0 as libc::c_int {
-                    (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                    (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                     (*s).rTPos += 1;
                     (*s).rTPos;
                     if (*s).rTPos == 512 as libc::c_int {
@@ -1241,7 +1241,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                             & 0xf as libc::c_int as libc::c_uint)
                             << 16 as libc::c_int;
                     if (*s).rNToGo == 0 as libc::c_int {
-                        (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                        (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                         (*s).rTPos += 1;
                         (*s).rTPos;
                         if (*s).rTPos == 512 as libc::c_int {
@@ -1278,7 +1278,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                                 & 0xf as libc::c_int as libc::c_uint)
                                 << 16 as libc::c_int;
                         if (*s).rNToGo == 0 as libc::c_int {
-                            (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                            (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                             (*s).rTPos += 1;
                             (*s).rTPos;
                             if (*s).rTPos == 512 as libc::c_int {
@@ -1310,7 +1310,7 @@ unsafe extern "C" fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                                 & 0xf as libc::c_int as libc::c_uint)
                                 << 16 as libc::c_int;
                         if (*s).rNToGo == 0 as libc::c_int {
-                            (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                            (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                             (*s).rTPos += 1;
                             (*s).rTPos;
                             if (*s).rTPos == 512 as libc::c_int {

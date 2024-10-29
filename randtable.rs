@@ -1,6 +1,5 @@
 use ::libc;
-#[no_mangle]
-pub static mut BZ2_rNums: [i32; 512] = [
+pub static BZ2_RNUMS: [i32; 512] = [
     619 as libc::c_int,
     720 as libc::c_int,
     127 as libc::c_int,

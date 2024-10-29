@@ -1,6 +1,6 @@
 use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, Bool, DState};
 use crate::huffman::BZ2_hbCreateDecodeTables;
-use crate::randtable::BZ2_rNums;
+use crate::randtable::BZ2_RNUMS;
 use ::libc;
 unsafe extern "C" fn makeMaps_d(s: *mut DState) {
     let mut i: i32;
@@ -2483,7 +2483,7 @@ pub unsafe extern "C" fn BZ2_decompress(s: *mut DState) -> i32 {
                                 (*s).nblock_used += 1;
                                 (*s).nblock_used;
                                 if (*s).rNToGo == 0 as libc::c_int {
-                                    (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                                    (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                                     (*s).rTPos += 1;
                                     (*s).rTPos;
                                     if (*s).rTPos == 512 as libc::c_int {
@@ -2548,7 +2548,7 @@ pub unsafe extern "C" fn BZ2_decompress(s: *mut DState) -> i32 {
                                 (*s).nblock_used += 1;
                                 (*s).nblock_used;
                                 if (*s).rNToGo == 0 as libc::c_int {
-                                    (*s).rNToGo = BZ2_rNums[(*s).rTPos as usize];
+                                    (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                                     (*s).rTPos += 1;
                                     (*s).rTPos;
                                     if (*s).rTPos == 512 as libc::c_int {
