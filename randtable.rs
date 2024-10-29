@@ -1,7 +1,6 @@
 use ::libc;
-pub type Int32 = libc::c_int;
 #[no_mangle]
-pub static mut BZ2_rNums: [Int32; 512] = [
+pub static mut BZ2_rNums: [i32; 512] = [
     619 as libc::c_int,
     720 as libc::c_int,
     127 as libc::c_int,
