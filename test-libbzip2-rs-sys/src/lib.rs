@@ -77,6 +77,15 @@ macro_rules! assert_eq_compress {
 }
 
 #[test]
+fn version() {
+    let ptr = libbzip2_rs_sys::bzlib::BZ2_bzlibVersion();
+    let cstr = unsafe { core::ffi::CStr::from_ptr(ptr) };
+    let string = cstr.to_str().unwrap();
+
+    assert!(string.starts_with("1.1.0"));
+}
+
+#[test]
 fn decompress_sample1() {
     assert_eq_decompress!("../../tests/input/quick/sample1.bz2");
 }
