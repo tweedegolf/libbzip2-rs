@@ -277,18 +277,21 @@ pub fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
         exit(3 as libc::c_int);
     }
 }
-unsafe fn bz_config_ok() -> libc::c_int {
-    if core::mem::size_of::<libc::c_int>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong {
-        return 0 as libc::c_int;
+
+const fn bz_config_ok() -> bool {
+    if core::mem::size_of::<core::ffi::c_int>() != 4 {
+        return false;
     }
-    if core::mem::size_of::<libc::c_short>() as libc::c_ulong != 2 as libc::c_int as libc::c_ulong {
-        return 0 as libc::c_int;
+    if core::mem::size_of::<core::ffi::c_short>() != 2 {
+        return false;
     }
-    if core::mem::size_of::<libc::c_char>() as libc::c_ulong != 1 as libc::c_int as libc::c_ulong {
-        return 0 as libc::c_int;
+    if core::mem::size_of::<core::ffi::c_char>() != 1 {
+        return false;
     }
-    1 as libc::c_int
+
+    true
 }
+
 unsafe extern "C" fn default_bzalloc(
     _opaque: *mut libc::c_void,
     items: i32,
@@ -337,7 +340,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
 ) -> libc::c_int {
     let n: i32;
     let s: *mut EState;
-    if bz_config_ok() == 0 {
+    if !bz_config_ok() {
         return -9 as libc::c_int;
     }
     if strm.is_null()
@@ -786,7 +789,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     small: libc::c_int,
 ) -> libc::c_int {
     let s: *mut DState;
-    if bz_config_ok() == 0 {
+    if !bz_config_ok() {
         return -9 as libc::c_int;
     }
     if strm.is_null() {
