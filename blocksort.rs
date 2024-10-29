@@ -716,7 +716,6 @@ unsafe extern "C" fn mainGtU(
         }
         k -= 8 as libc::c_int;
         *budget -= 1;
-        *budget;
         if k < 0 as libc::c_int {
             break;
         }
@@ -1116,28 +1115,24 @@ unsafe extern "C" fn mainSort(
             | (*block.offset(i as isize) as UInt16 as libc::c_int) << 8 as libc::c_int;
         let fresh4 = &mut (*ftab.offset(j as isize));
         *fresh4 = (*fresh4).wrapping_add(1);
-        *fresh4;
         *quadrant.offset((i - 1 as libc::c_int) as isize) = 0 as libc::c_int as UInt16;
         j = j >> 8 as libc::c_int
             | (*block.offset((i - 1 as libc::c_int) as isize) as UInt16 as libc::c_int)
                 << 8 as libc::c_int;
         let fresh5 = &mut (*ftab.offset(j as isize));
         *fresh5 = (*fresh5).wrapping_add(1);
-        *fresh5;
         *quadrant.offset((i - 2 as libc::c_int) as isize) = 0 as libc::c_int as UInt16;
         j = j >> 8 as libc::c_int
             | (*block.offset((i - 2 as libc::c_int) as isize) as UInt16 as libc::c_int)
                 << 8 as libc::c_int;
         let fresh6 = &mut (*ftab.offset(j as isize));
         *fresh6 = (*fresh6).wrapping_add(1);
-        *fresh6;
         *quadrant.offset((i - 3 as libc::c_int) as isize) = 0 as libc::c_int as UInt16;
         j = j >> 8 as libc::c_int
             | (*block.offset((i - 3 as libc::c_int) as isize) as UInt16 as libc::c_int)
                 << 8 as libc::c_int;
         let fresh7 = &mut (*ftab.offset(j as isize));
         *fresh7 = (*fresh7).wrapping_add(1);
-        *fresh7;
         i -= 4 as libc::c_int;
     }
     while i >= 0 as libc::c_int {
@@ -1146,7 +1141,6 @@ unsafe extern "C" fn mainSort(
             | (*block.offset(i as isize) as UInt16 as libc::c_int) << 8 as libc::c_int;
         let fresh8 = &mut (*ftab.offset(j as isize));
         *fresh8 = (*fresh8).wrapping_add(1);
-        *fresh8;
         i -= 1;
     }
     i = 0 as libc::c_int;

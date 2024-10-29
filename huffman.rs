@@ -232,7 +232,6 @@ pub unsafe extern "C" fn BZ2_hbCreateDecodeTables(
         let fresh0 = &mut (*base
             .offset((*length.offset(i as isize) as libc::c_int + 1 as libc::c_int) as isize));
         *fresh0 += 1;
-        *fresh0;
         i += 1;
     }
     i = 1 as libc::c_int;
