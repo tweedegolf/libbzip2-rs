@@ -1,3 +1,5 @@
+use std::cmp;
+
 use crate::bzlib::BZ2_bz__AssertH__fail;
 pub type Bool = libc::c_uchar;
 
@@ -5,20 +7,33 @@ const BZ_MAX_ALPHA_SIZE: usize = 258;
 const BZ_MAX_CODE_LEN: usize = 23;
 
 #[inline]
-unsafe fn upheap(
+fn weight_of(zz0: i32) -> i32 {
+    zz0 & 0xffffff00u32 as i32
+}
+
+#[inline]
+fn depth_of(zz1: i32) -> i32 {
+    zz1 & 0xff
+}
+
+#[inline]
+fn add_weights(zw1: i32, zw2: i32) -> i32 {
+    (weight_of(zw1)).wrapping_add(weight_of(zw2)) | (1 + cmp::max(depth_of(zw1), depth_of(zw2)))
+}
+
+#[inline]
+fn upheap(
     heap: &mut [i32; BZ_MAX_ALPHA_SIZE + 2],
     weight: &mut [i32; BZ_MAX_ALPHA_SIZE * 2],
-    z: i32,
+    mut z: i32,
 ) {
-    let mut zz: i32;
-    let tmp: i32;
-    zz = z;
-    tmp = heap[zz as usize];
-    while weight[tmp as usize] < weight[heap[(zz >> 1 as libc::c_int) as usize] as usize] {
-        heap[zz as usize] = heap[(zz >> 1 as libc::c_int) as usize];
-        zz >>= 1 as libc::c_int;
+    let tmp;
+    tmp = heap[z as usize];
+    while weight[tmp as usize] < weight[heap[(z >> 1) as usize] as usize] {
+        heap[z as usize] = heap[(z >> 1) as usize];
+        z >>= 1;
     }
-    heap[zz as usize] = tmp;
+    heap[z as usize] = tmp;
 }
 
 #[inline]
@@ -26,31 +41,28 @@ fn downheap(
     heap: &mut [i32; BZ_MAX_ALPHA_SIZE + 2],
     weight: &mut [i32; BZ_MAX_ALPHA_SIZE * 2],
     nHeap: i32,
-    z: i32,
+    mut z: i32,
 ) {
-    let mut zz: i32;
     let mut yy: i32;
     let tmp: i32;
-    zz = z;
-    tmp = heap[zz as usize];
+    tmp = heap[z as usize];
     loop {
-        yy = zz << 1 as libc::c_int;
+        yy = z << 1;
         if yy > nHeap {
             break;
         }
         if yy < nHeap
-            && weight[heap[(yy + 1 as libc::c_int) as usize] as usize]
-                < weight[heap[yy as usize] as usize]
+            && weight[heap[(yy + 1) as usize] as usize] < weight[heap[yy as usize] as usize]
         {
             yy += 1;
         }
         if weight[tmp as usize] < weight[heap[yy as usize] as usize] {
             break;
         }
-        heap[zz as usize] = heap[yy as usize];
-        zz = yy;
+        heap[z as usize] = heap[yy as usize];
+        z = yy;
     }
-    heap[zz as usize] = tmp;
+    heap[z as usize] = tmp;
 }
 
 pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32, maxLen: i32) {
@@ -80,13 +92,11 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
         heap[0] = 0;
         weight[0] = 0;
         parent[0] = -2;
-        i = 1;
-        while i <= alphaSize {
+        for i in 1..=alphaSize {
             parent[i as usize] = -1;
             nHeap += 1;
             heap[nHeap as usize] = i;
             upheap(&mut heap, &mut weight, nHeap);
-            i += 1;
         }
         if nHeap >= BZ_MAX_ALPHA_SIZE as libc::c_int + 2 {
             BZ2_bz__AssertH__fail(2001);
@@ -101,15 +111,9 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
             nHeap -= 1;
             downheap(&mut heap, &mut weight, nHeap, 1);
             nNodes += 1;
+            parent[n1 as usize] = nNodes;
             parent[n2 as usize] = nNodes;
-            parent[n1 as usize] = parent[n2 as usize];
-            weight[nNodes as usize] = (weight[n1 as usize] & 0xffffff00u32 as i32)
-                .wrapping_add(weight[n2 as usize] & 0xffffff00u32 as i32)
-                | (1 + (if weight[n1 as usize] & 0xff > weight[n2 as usize] & 0xff {
-                    weight[n1 as usize] & 0xff
-                } else {
-                    weight[n2 as usize] & 0xff
-                }));
+            weight[nNodes as usize] = add_weights(weight[n1 as usize], weight[n2 as usize]);
             parent[nNodes as usize] = -1;
             nHeap += 1;
             heap[nHeap as usize] = nNodes;
@@ -119,8 +123,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
             BZ2_bz__AssertH__fail(2002);
         }
         tooLong = false;
-        i = 1;
-        while i <= alphaSize {
+        for i in 1..=alphaSize {
             j = 0;
             k = i;
             while parent[k as usize] >= 0 {
@@ -131,17 +134,14 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
             if j > maxLen {
                 tooLong = true;
             }
-            i += 1;
         }
         if !tooLong {
             break;
         }
-        i = 1;
-        while i <= alphaSize {
+        for i in 1..=alphaSize {
             j = weight[i as usize] >> 8;
             j = 1 + j / 2;
             weight[i as usize] = j << 8;
-            i += 1;
         }
     }
 }
