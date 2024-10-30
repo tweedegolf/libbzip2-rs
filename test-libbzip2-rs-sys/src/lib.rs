@@ -1,5 +1,7 @@
 #![allow(dead_code, unused_imports, unused_macros, non_snake_case)]
 
+mod chunked;
+
 const SAMPLE1_REF: &[u8] = include_bytes!("../../tests/input/quick/sample1.ref");
 const SAMPLE1_BZ2: &[u8] = include_bytes!("../../tests/input/quick/sample1.bz2");
 
