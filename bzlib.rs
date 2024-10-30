@@ -573,8 +573,8 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> bool {
     }
     progress_in
 }
-unsafe fn copy_output_until_stop(s: *mut EState) -> Bool {
-    let mut progress_out: Bool = 0 as Bool;
+unsafe fn copy_output_until_stop(s: *mut EState) -> bool {
+    let mut progress_out = false;
     loop {
         if (*(*s).strm).avail_out == 0 as libc::c_int as libc::c_uint {
             break;
@@ -582,7 +582,7 @@ unsafe fn copy_output_until_stop(s: *mut EState) -> Bool {
         if (*s).state_out_pos >= (*s).numZ {
             break;
         }
-        progress_out = 1 as Bool;
+        progress_out = true;
         *(*(*s).strm).next_out = *((*s).zbits).offset((*s).state_out_pos as isize) as libc::c_char;
         (*s).state_out_pos += 1;
         (*(*s).strm).avail_out = ((*(*s).strm).avail_out).wrapping_sub(1);
