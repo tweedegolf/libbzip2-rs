@@ -1,7 +1,7 @@
 use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState};
 
 #[inline]
-unsafe extern "C" fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32) {
+unsafe fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32) {
     let mut i: i32;
     let mut j: i32;
     let mut tmp: i32;
@@ -36,7 +36,7 @@ unsafe extern "C" fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i3
         i -= 1;
     }
 }
-unsafe extern "C" fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32) {
+unsafe fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32) {
     let mut unLo: i32;
     let mut unHi: i32;
     let mut ltLo: i32;
@@ -178,13 +178,7 @@ unsafe extern "C" fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32,
         }
     }
 }
-unsafe extern "C" fn fallbackSort(
-    fmap: *mut u32,
-    eclass: *mut u32,
-    bhtab: *mut u32,
-    nblock: i32,
-    verb: i32,
-) {
+unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock: i32, verb: i32) {
     let mut ftab: [i32; 257] = [0; 257];
     let mut ftabCopy: [i32; 256] = [0; 256];
     let mut H: i32;
@@ -376,7 +370,7 @@ unsafe extern "C" fn fallbackSort(
     }
 }
 #[inline]
-unsafe extern "C" fn mainGtU(
+unsafe fn mainGtU(
     mut i1: u32,
     mut i2: u32,
     block: *mut u8,
@@ -601,7 +595,7 @@ static INCS: [i32; 14] = [
     797161 as libc::c_int,
     2391484 as libc::c_int,
 ];
-unsafe extern "C" fn mainSimpleSort(
+unsafe fn mainSimpleSort(
     ptr: *mut u32,
     block: *mut u8,
     quadrant: *mut u16,
@@ -704,7 +698,7 @@ unsafe extern "C" fn mainSimpleSort(
     }
 }
 #[inline]
-unsafe extern "C" fn mmed3(mut a: u8, mut b: u8, c: u8) -> u8 {
+unsafe fn mmed3(mut a: u8, mut b: u8, c: u8) -> u8 {
     let t: u8;
     if a as libc::c_int > b as libc::c_int {
         t = a;
@@ -719,7 +713,7 @@ unsafe extern "C" fn mmed3(mut a: u8, mut b: u8, c: u8) -> u8 {
     }
     b
 }
-unsafe extern "C" fn mainQSort3(
+unsafe fn mainQSort3(
     ptr: *mut u32,
     block: *mut u8,
     quadrant: *mut u16,
@@ -938,7 +932,7 @@ unsafe extern "C" fn mainQSort3(
         }
     }
 }
-unsafe extern "C" fn mainSort(
+unsafe fn mainSort(
     ptr: *mut u32,
     block: *mut u8,
     quadrant: *mut u16,

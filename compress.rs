@@ -5,7 +5,7 @@ pub unsafe fn BZ2_bsInitWrite(s: *mut EState) {
     (*s).bsLive = 0 as libc::c_int;
     (*s).bsBuff = 0 as libc::c_int as u32;
 }
-unsafe extern "C" fn bsFinishWrite(s: *mut EState) {
+unsafe fn bsFinishWrite(s: *mut EState) {
     while (*s).bsLive > 0 as libc::c_int {
         *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as u8;
         (*s).numZ += 1;
@@ -15,7 +15,7 @@ unsafe extern "C" fn bsFinishWrite(s: *mut EState) {
     }
 }
 #[inline]
-unsafe extern "C" fn bsW(s: *mut EState, n: i32, v: u32) {
+unsafe fn bsW(s: *mut EState, n: i32, v: u32) {
     while (*s).bsLive >= 8 as libc::c_int {
         *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as u8;
         (*s).numZ += 1;
@@ -26,7 +26,7 @@ unsafe extern "C" fn bsW(s: *mut EState, n: i32, v: u32) {
     (*s).bsBuff |= v << (32 as libc::c_int - (*s).bsLive - n);
     (*s).bsLive += n;
 }
-unsafe extern "C" fn bsPutUInt32(s: *mut EState, u: u32) {
+unsafe fn bsPutUInt32(s: *mut EState, u: u32) {
     bsW(
         s,
         8 as libc::c_int,
@@ -48,10 +48,10 @@ unsafe extern "C" fn bsPutUInt32(s: *mut EState, u: u32) {
         (u as libc::c_long & 0xff as libc::c_long) as u32,
     );
 }
-unsafe extern "C" fn bsPutUChar(s: *mut EState, c: u8) {
+unsafe fn bsPutUChar(s: *mut EState, c: u8) {
     bsW(s, 8 as libc::c_int, c as u32);
 }
-unsafe extern "C" fn makeMaps_e(s: *mut EState) {
+unsafe fn makeMaps_e(s: *mut EState) {
     let mut i: i32;
     (*s).nInUse = 0 as libc::c_int;
     i = 0 as libc::c_int;
@@ -64,7 +64,7 @@ unsafe extern "C" fn makeMaps_e(s: *mut EState) {
         i += 1;
     }
 }
-unsafe extern "C" fn generateMTFValues(s: *mut EState) {
+unsafe fn generateMTFValues(s: *mut EState) {
     let mut yy: [u8; 256] = [0; 256];
     let mut i: i32;
     let mut j: i32;
@@ -171,7 +171,7 @@ unsafe extern "C" fn generateMTFValues(s: *mut EState) {
     (*s).mtfFreq[EOB as usize];
     (*s).nMTF = wr;
 }
-unsafe extern "C" fn sendMTFValues(s: *mut EState) {
+unsafe fn sendMTFValues(s: *mut EState) {
     let mut v: i32;
     let mut t: i32;
     let mut i: i32;

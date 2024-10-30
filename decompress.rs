@@ -1,7 +1,7 @@
 use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, Bool, DState};
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
-unsafe extern "C" fn makeMaps_d(s: *mut DState) {
+unsafe fn makeMaps_d(s: *mut DState) {
     let mut i: i32;
     (*s).nInUse = 0 as libc::c_int;
     i = 0 as libc::c_int;

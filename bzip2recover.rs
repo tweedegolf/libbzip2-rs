@@ -31,17 +31,12 @@ pub struct BitStream {
     pub buffLive: i32,
     pub mode: i8,
 }
-#[no_mangle]
 pub static mut inFileName: [i8; 2000] = [0; 2000];
-#[no_mangle]
 pub static mut outFileName: [i8; 2000] = [0; 2000];
-#[no_mangle]
 pub static mut progName: [i8; 2000] = [0; 2000];
-#[no_mangle]
 pub static mut bytesOut: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
-#[no_mangle]
 pub static mut bytesIn: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
-unsafe extern "C" fn readError() {
+unsafe fn readError() {
     fprintf(
         stderr,
         b"%s: I/O error reading `%s', possible reason follows.\n\0" as *const u8
@@ -57,7 +52,7 @@ unsafe extern "C" fn readError() {
     );
     exit(1 as libc::c_int);
 }
-unsafe extern "C" fn writeError() {
+unsafe fn writeError() {
     fprintf(
         stderr,
         b"%s: I/O error reading `%s', possible reason follows.\n\0" as *const u8
@@ -73,7 +68,7 @@ unsafe extern "C" fn writeError() {
     );
     exit(1 as libc::c_int);
 }
-unsafe extern "C" fn mallocFail(mut n: i32) {
+unsafe fn mallocFail(mut n: i32) {
     fprintf(
         stderr,
         b"%s: malloc failed on request for %d bytes.\n\0" as *const u8 as *const libc::c_char,
@@ -87,7 +82,7 @@ unsafe extern "C" fn mallocFail(mut n: i32) {
     );
     exit(1 as libc::c_int);
 }
-unsafe extern "C" fn tooManyBlocks(mut max_handled_blocks: i32) {
+unsafe fn tooManyBlocks(mut max_handled_blocks: i32) {
     fprintf(
         stderr,
         b"%s: `%s' appears to contain more than %d blocks\n\0" as *const u8 as *const libc::c_char,
@@ -108,7 +103,7 @@ unsafe extern "C" fn tooManyBlocks(mut max_handled_blocks: i32) {
     );
     exit(1 as libc::c_int);
 }
-unsafe extern "C" fn bsOpenReadStream(mut stream: *mut FILE) -> *mut BitStream {
+unsafe fn bsOpenReadStream(mut stream: *mut FILE) -> *mut BitStream {
     let mut bs: *mut BitStream = malloc(core::mem::size_of::<BitStream>()) as *mut BitStream;
     if bs.is_null() {
         mallocFail(::core::mem::size_of::<BitStream>() as libc::c_ulong as i32);
@@ -119,7 +114,7 @@ unsafe extern "C" fn bsOpenReadStream(mut stream: *mut FILE) -> *mut BitStream {
     (*bs).mode = 'r' as i32 as i8;
     return bs;
 }
-unsafe extern "C" fn bsOpenWriteStream(mut stream: *mut FILE) -> *mut BitStream {
+unsafe fn bsOpenWriteStream(mut stream: *mut FILE) -> *mut BitStream {
     let mut bs: *mut BitStream = malloc(core::mem::size_of::<BitStream>()) as *mut BitStream;
     if bs.is_null() {
         mallocFail(::core::mem::size_of::<BitStream>() as libc::c_ulong as i32);
@@ -130,7 +125,7 @@ unsafe extern "C" fn bsOpenWriteStream(mut stream: *mut FILE) -> *mut BitStream 
     (*bs).mode = 'w' as i32 as i8;
     return bs;
 }
-unsafe extern "C" fn bsPutBit(mut bs: *mut BitStream, mut bit: i32) {
+unsafe fn bsPutBit(mut bs: *mut BitStream, mut bit: i32) {
     if (*bs).buffLive == 8 as libc::c_int {
         let mut retVal: i32 = putc((*bs).buffer as u8 as libc::c_int, (*bs).handle);
         if retVal == -1 as libc::c_int {
@@ -145,7 +140,7 @@ unsafe extern "C" fn bsPutBit(mut bs: *mut BitStream, mut bit: i32) {
         (*bs).buffLive;
     };
 }
-unsafe extern "C" fn bsGetBit(mut bs: *mut BitStream) -> i32 {
+unsafe fn bsGetBit(mut bs: *mut BitStream) -> i32 {
     if (*bs).buffLive > 0 as libc::c_int {
         (*bs).buffLive -= 1;
         (*bs).buffLive;
@@ -163,7 +158,7 @@ unsafe extern "C" fn bsGetBit(mut bs: *mut BitStream) -> i32 {
         return (*bs).buffer >> 7 as libc::c_int & 0x1 as libc::c_int;
     };
 }
-unsafe extern "C" fn bsClose(mut bs: *mut BitStream) {
+unsafe fn bsClose(mut bs: *mut BitStream) {
     let mut retVal: i32 = 0;
     if (*bs).mode as libc::c_int == 'w' as i32 {
         while (*bs).buffLive < 8 as libc::c_int {
@@ -191,7 +186,7 @@ unsafe extern "C" fn bsClose(mut bs: *mut BitStream) {
     }
     free(bs as *mut libc::c_void);
 }
-unsafe extern "C" fn bsPutUChar(mut bs: *mut BitStream, mut c: u8) {
+unsafe fn bsPutUChar(mut bs: *mut BitStream, mut c: u8) {
     let mut i: i32 = 0;
     i = 7 as libc::c_int;
     while i >= 0 as libc::c_int {
@@ -202,7 +197,7 @@ unsafe extern "C" fn bsPutUChar(mut bs: *mut BitStream, mut c: u8) {
         i -= 1;
     }
 }
-unsafe extern "C" fn bsPutUInt32(mut bs: *mut BitStream, mut c: u32) {
+unsafe fn bsPutUInt32(mut bs: *mut BitStream, mut c: u32) {
     let mut i: i32 = 0;
     i = 31 as libc::c_int;
     while i >= 0 as libc::c_int {
@@ -210,7 +205,7 @@ unsafe extern "C" fn bsPutUInt32(mut bs: *mut BitStream, mut c: u32) {
         i -= 1;
     }
 }
-unsafe extern "C" fn endsInBz2(mut name: *mut i8) -> Bool {
+unsafe fn endsInBz2(mut name: *mut i8) -> Bool {
     let mut n: i32 = strlen(name) as i32;
     if n <= 4 as libc::c_int {
         return 0 as libc::c_int as Bool;
@@ -221,10 +216,7 @@ unsafe extern "C" fn endsInBz2(mut name: *mut i8) -> Bool {
         && *name.offset((n - 1 as libc::c_int) as isize) as libc::c_int == '2' as i32)
         as libc::c_int as Bool;
 }
-unsafe extern "C" fn fopen_output_safely(
-    mut name: *mut i8,
-    mut mode: *const libc::c_char,
-) -> *mut FILE {
+unsafe fn fopen_output_safely(mut name: *mut i8, mut mode: *const libc::c_char) -> *mut FILE {
     let mut fp: *mut FILE = 0 as *mut FILE;
     let mut fh: libc::c_int = 0;
     fh = open(
@@ -241,13 +233,9 @@ unsafe extern "C" fn fopen_output_safely(
     }
     return fp;
 }
-#[no_mangle]
 pub static mut bStart: [MaybeUInt64; 50000] = [0; 50000];
-#[no_mangle]
 pub static mut bEnd: [MaybeUInt64; 50000] = [0; 50000];
-#[no_mangle]
 pub static mut rbStart: [MaybeUInt64; 50000] = [0; 50000];
-#[no_mangle]
 pub static mut rbEnd: [MaybeUInt64; 50000] = [0; 50000];
 unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
     let mut inFile: *mut FILE = 0 as *mut FILE;

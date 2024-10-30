@@ -17,7 +17,6 @@ use libc::{
     ungetc, utimbuf, utime, write, FILE,
 };
 extern "C" {
-
     static mut stdin: *mut FILE;
     static mut stdout: *mut FILE;
     static mut stderr: *mut FILE;
@@ -94,51 +93,29 @@ pub struct zzzz {
     pub link: *mut zzzz,
 }
 pub type Cell = zzzz;
-#[no_mangle]
 pub static mut verbosity: i32 = 0;
-#[no_mangle]
 pub static mut keepInputFiles: Bool = 0;
-#[no_mangle]
 pub static mut smallMode: Bool = 0;
-#[no_mangle]
 pub static mut deleteOutputOnInterrupt: Bool = 0;
-#[no_mangle]
 pub static mut forceOverwrite: Bool = 0;
-#[no_mangle]
 pub static mut testFailsExist: Bool = 0;
-#[no_mangle]
 pub static mut unzFailsExist: Bool = 0;
-#[no_mangle]
 pub static mut noisy: Bool = 0;
-#[no_mangle]
 pub static mut numFileNames: i32 = 0;
-#[no_mangle]
 pub static mut numFilesProcessed: i32 = 0;
-#[no_mangle]
 pub static mut blockSize100k: i32 = 0;
-#[no_mangle]
 pub static mut exitValue: i32 = 0;
-#[no_mangle]
 pub static mut opMode: i32 = 0;
-#[no_mangle]
 pub static mut srcMode: i32 = 0;
-#[no_mangle]
 pub static mut longestFileName: i32 = 0;
-#[no_mangle]
 pub static mut inName: [i8; 1034] = [0; 1034];
-#[no_mangle]
 pub static mut outName: [i8; 1034] = [0; 1034];
-#[no_mangle]
 pub static mut tmpName: [i8; 1034] = [0; 1034];
-#[no_mangle]
 pub static mut progName: *mut i8 = 0 as *const i8 as *mut i8;
-#[no_mangle]
 pub static mut progNameReally: [i8; 1034] = [0; 1034];
-#[no_mangle]
 pub static mut outputHandleJustInCase: *mut FILE = 0 as *const FILE as *mut FILE;
-#[no_mangle]
 pub static mut workFactor: i32 = 0;
-unsafe extern "C" fn uInt64_from_UInt32s(mut n: *mut UInt64, mut lo32: u32, mut hi32: u32) {
+unsafe fn uInt64_from_UInt32s(mut n: *mut UInt64, mut lo32: u32, mut hi32: u32) {
     (*n).b[7 as libc::c_int as usize] =
         (hi32 >> 24 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
     (*n).b[6 as libc::c_int as usize] =
@@ -154,7 +131,7 @@ unsafe extern "C" fn uInt64_from_UInt32s(mut n: *mut UInt64, mut lo32: u32, mut 
         (lo32 >> 8 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
     (*n).b[0 as libc::c_int as usize] = (lo32 & 0xff as libc::c_int as libc::c_uint) as u8;
 }
-unsafe extern "C" fn uInt64_to_double(mut n: *mut UInt64) -> libc::c_double {
+unsafe fn uInt64_to_double(mut n: *mut UInt64) -> libc::c_double {
     let mut i: i32 = 0;
     let mut base: libc::c_double = 1.0f64;
     let mut sum: libc::c_double = 0.0f64;
@@ -166,7 +143,7 @@ unsafe extern "C" fn uInt64_to_double(mut n: *mut UInt64) -> libc::c_double {
     }
     return sum;
 }
-unsafe extern "C" fn uInt64_isZero(mut n: *mut UInt64) -> Bool {
+unsafe fn uInt64_isZero(mut n: *mut UInt64) -> Bool {
     let mut i: i32 = 0;
     i = 0 as libc::c_int;
     while i < 8 as libc::c_int {
@@ -177,7 +154,7 @@ unsafe extern "C" fn uInt64_isZero(mut n: *mut UInt64) -> Bool {
     }
     return 1 as libc::c_int as Bool;
 }
-unsafe extern "C" fn uInt64_qrm10(mut n: *mut UInt64) -> i32 {
+unsafe fn uInt64_qrm10(mut n: *mut UInt64) -> i32 {
     let mut rem: u32 = 0;
     let mut tmp: u32 = 0;
     let mut i: i32 = 0;
@@ -193,7 +170,7 @@ unsafe extern "C" fn uInt64_qrm10(mut n: *mut UInt64) -> i32 {
     }
     return rem as i32;
 }
-unsafe extern "C" fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut UInt64) {
+unsafe fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut UInt64) {
     let mut i: i32 = 0;
     let mut q: i32 = 0;
     let mut buf: [u8; 32] = [0; 32];
@@ -214,7 +191,7 @@ unsafe extern "C" fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut U
         i += 1;
     }
 }
-unsafe extern "C" fn myfeof(mut f: *mut FILE) -> Bool {
+unsafe fn myfeof(mut f: *mut FILE) -> Bool {
     let mut c: i32 = fgetc(f);
     if c == -1 as libc::c_int {
         return 1 as libc::c_int as Bool;
@@ -222,7 +199,7 @@ unsafe extern "C" fn myfeof(mut f: *mut FILE) -> Bool {
     ungetc(c, f);
     return 0 as libc::c_int as Bool;
 }
-unsafe extern "C" fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
+unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
     let mut current_block: u64;
     let mut bzf: *mut libc::c_void = 0 as *mut libc::c_void;
     let mut ibuf: [u8; 5000] = [0; 5000];
@@ -461,7 +438,7 @@ unsafe extern "C" fn compressStream(mut stream: *mut FILE, mut zStream: *mut FIL
     }
     ioError();
 }
-unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Bool {
+unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Bool {
     let mut current_block: u64;
     let mut bzf: *mut libc::c_void = 0 as *mut libc::c_void;
     let mut bzerr: i32 = 0;
@@ -932,7 +909,7 @@ unsafe extern "C" fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut F
     }
     ioError();
 }
-unsafe extern "C" fn testStream(mut zStream: *mut FILE) -> Bool {
+unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
     let mut current_block: u64;
     let mut bzf: *mut libc::c_void = 0 as *mut libc::c_void;
     let mut bzerr: i32 = 0;
@@ -1361,12 +1338,12 @@ unsafe extern "C" fn testStream(mut zStream: *mut FILE) -> Bool {
     }
     ioError();
 }
-unsafe extern "C" fn setExit(mut v: i32) {
+unsafe fn setExit(mut v: i32) {
     if v > exitValue {
         exitValue = v;
     }
 }
-unsafe extern "C" fn cadvise() {
+unsafe fn cadvise() {
     if noisy != 0 {
         fprintf(
             stderr,
@@ -1375,7 +1352,7 @@ unsafe extern "C" fn cadvise() {
         );
     }
 }
-unsafe extern "C" fn showFileNames() {
+unsafe fn showFileNames() {
     if noisy != 0 {
         fprintf(
             stderr,
@@ -1385,7 +1362,7 @@ unsafe extern "C" fn showFileNames() {
         );
     }
 }
-unsafe extern "C" fn cleanUpAndFail(mut ec: i32) -> ! {
+unsafe fn cleanUpAndFail(mut ec: i32) -> ! {
     let mut retVal: IntNative = 0;
     let mut statBuf: stat = stat {
         st_dev: 0,
@@ -1484,7 +1461,7 @@ unsafe extern "C" fn cleanUpAndFail(mut ec: i32) -> ! {
     setExit(ec);
     exit(exitValue);
 }
-unsafe extern "C" fn panic(mut s: *const i8) -> ! {
+unsafe fn panic(mut s: *const i8) -> ! {
     fprintf(
         stderr,
         b"\n%s: PANIC -- internal consistency error:\n\t%s\n\tThis is a BUG.  Please report it at:\n\thttps://gitlab.com/bzip2/bzip2/-/issues\n\0"
@@ -1495,7 +1472,7 @@ unsafe extern "C" fn panic(mut s: *const i8) -> ! {
     showFileNames();
     cleanUpAndFail(3 as libc::c_int);
 }
-unsafe extern "C" fn crcError() -> ! {
+unsafe fn crcError() -> ! {
     fprintf(
         stderr,
         b"\n%s: Data integrity error when decompressing.\n\0" as *const u8 as *const libc::c_char,
@@ -1505,7 +1482,7 @@ unsafe extern "C" fn crcError() -> ! {
     cadvise();
     cleanUpAndFail(2 as libc::c_int);
 }
-unsafe extern "C" fn compressedStreamEOF() -> ! {
+unsafe fn compressedStreamEOF() -> ! {
     if noisy != 0 {
         fprintf(
             stderr,
@@ -1519,7 +1496,7 @@ unsafe extern "C" fn compressedStreamEOF() -> ! {
     }
     cleanUpAndFail(2 as libc::c_int);
 }
-unsafe extern "C" fn ioError() -> ! {
+unsafe fn ioError() -> ! {
     fprintf(
         stderr,
         b"\n%s: I/O or other error, bailing out.  Possible reason follows.\n\0" as *const u8
@@ -1538,7 +1515,7 @@ unsafe extern "C" fn mySignalCatcher(_: IntNative) {
     );
     cleanUpAndFail(1 as libc::c_int);
 }
-unsafe extern "C" fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
+unsafe fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
     let mut msg: *const libc::c_char = 0 as *const libc::c_char;
     if opMode == 1 as libc::c_int {
         msg = b": Caught a SIGSEGV or SIGBUS whilst compressing.\n\n   Possible causes are (most likely first):\n   (1) This computer has unreliable memory or cache hardware\n       (a surprisingly common problem; try a different machine.)\n   (2) A bug in the compiler used to create this executable\n       (unlikely, if you didn't compile bzip2 yourself.)\n   (3) A real bug in bzip2 -- I hope this should never be the case.\n   The user's manual, Section 4.3, has more info on (1) and (2).\n   \n   If you suspect this is a bug in bzip2, or are unsure about (1)\n   or (2), report it at: https://gitlab.com/bzip2/bzip2/-/issues\n   Section 4.3 of the user's manual describes the info a useful\n   bug report should have.  If the manual is available on your\n   system, please try and read it before mailing me.  If you don't\n   have the manual or can't be bothered to read it, mail me anyway.\n\n\0"
@@ -1589,7 +1566,7 @@ unsafe extern "C" fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
     }
     _exit(exitValue);
 }
-unsafe extern "C" fn outOfMemory() -> ! {
+unsafe fn outOfMemory() -> ! {
     fprintf(
         stderr,
         b"\n%s: couldn't allocate enough memory\n\0" as *const u8 as *const libc::c_char,
@@ -1598,7 +1575,7 @@ unsafe extern "C" fn outOfMemory() -> ! {
     showFileNames();
     cleanUpAndFail(1 as libc::c_int);
 }
-unsafe extern "C" fn configError() -> ! {
+unsafe fn configError() -> ! {
     fprintf(
         stderr,
         b"bzip2: I'm not configured correctly for this platform!\n\tI require Int32, Int16 and Char to have sizes\n\tof 4, 2 and 1 bytes to run properly, and they don't.\n\tProbably you can fix this by defining them correctly,\n\tand recompiling.  Bye!\n\0"
@@ -1607,7 +1584,7 @@ unsafe extern "C" fn configError() -> ! {
     setExit(3 as libc::c_int);
     exit(exitValue);
 }
-unsafe extern "C" fn pad(mut s: *mut i8) {
+unsafe fn pad(mut s: *mut i8) {
     let mut i: i32 = 0;
     if strlen(s) as i32 >= longestFileName {
         return;
@@ -1618,7 +1595,7 @@ unsafe extern "C" fn pad(mut s: *mut i8) {
         i += 1;
     }
 }
-unsafe extern "C" fn copyFileName(mut to: *mut i8, mut from: *mut i8) {
+unsafe fn copyFileName(mut to: *mut i8, mut from: *mut i8) {
     if strlen(from) > (1034 as libc::c_int - 10 as libc::c_int) as libc::size_t {
         fprintf(
             stderr,
@@ -1637,7 +1614,7 @@ unsafe extern "C" fn copyFileName(mut to: *mut i8, mut from: *mut i8) {
     );
     *to.offset((1034 as libc::c_int - 10 as libc::c_int) as isize) = '\0' as i32 as i8;
 }
-unsafe extern "C" fn fileExists(mut name: *mut i8) -> Bool {
+unsafe fn fileExists(mut name: *mut i8) -> Bool {
     let mut tmp: *mut FILE = fopen(name, b"rb\0" as *const u8 as *const libc::c_char);
     let mut exists: Bool = (tmp != 0 as *mut libc::c_void as *mut FILE) as libc::c_int as Bool;
     if !tmp.is_null() {
@@ -1645,10 +1622,7 @@ unsafe extern "C" fn fileExists(mut name: *mut i8) -> Bool {
     }
     return exists;
 }
-unsafe extern "C" fn fopen_output_safely(
-    mut name: *mut i8,
-    mut mode: *const libc::c_char,
-) -> *mut FILE {
+unsafe fn fopen_output_safely(mut name: *mut i8, mut mode: *const libc::c_char) -> *mut FILE {
     let mut fp: *mut FILE = 0 as *mut FILE;
     let mut fh: IntNative = 0;
     fh = open(
@@ -1665,7 +1639,7 @@ unsafe extern "C" fn fopen_output_safely(
     }
     return fp;
 }
-unsafe extern "C" fn notAStandardFile(mut name: *mut i8) -> Bool {
+unsafe fn notAStandardFile(mut name: *mut i8) -> Bool {
     let mut i: IntNative = 0;
     let mut statBuf: stat = stat {
         st_dev: 0,
@@ -1704,7 +1678,7 @@ unsafe extern "C" fn notAStandardFile(mut name: *mut i8) -> Bool {
     }
     return 1 as libc::c_int as Bool;
 }
-unsafe extern "C" fn countHardLinks(mut name: *mut i8) -> i32 {
+unsafe fn countHardLinks(mut name: *mut i8) -> i32 {
     let mut i: IntNative = 0;
     let mut statBuf: stat = stat {
         st_dev: 0,
@@ -1764,14 +1738,14 @@ static mut fileMetaInfo: stat = stat {
     },
     __glibc_reserved: [0; 3],
 };
-unsafe extern "C" fn saveInputFileMetaInfo(mut srcName: *mut i8) {
+unsafe fn saveInputFileMetaInfo(mut srcName: *mut i8) {
     let mut retVal: IntNative = 0;
     retVal = stat(srcName, core::ptr::addr_of_mut!(fileMetaInfo));
     if retVal != 0 as libc::c_int {
         ioError();
     }
 }
-unsafe extern "C" fn applySavedTimeInfoToOutputFile(mut dstName: *mut i8) {
+unsafe fn applySavedTimeInfoToOutputFile(mut dstName: *mut i8) {
     let mut retVal: IntNative = 0;
     let mut uTimBuf: utimbuf = utimbuf {
         actime: 0,
@@ -1784,7 +1758,7 @@ unsafe extern "C" fn applySavedTimeInfoToOutputFile(mut dstName: *mut i8) {
         ioError();
     }
 }
-unsafe extern "C" fn applySavedFileAttrToOutputFile(mut fd: IntNative) {
+unsafe fn applySavedFileAttrToOutputFile(mut fd: IntNative) {
     let mut retVal: IntNative = 0;
     retVal = fchmod(fd, fileMetaInfo.st_mode);
     if retVal != 0 as libc::c_int {
@@ -1792,24 +1766,22 @@ unsafe extern "C" fn applySavedFileAttrToOutputFile(mut fd: IntNative) {
     }
     fchown(fd, fileMetaInfo.st_uid, fileMetaInfo.st_gid);
 }
-unsafe extern "C" fn containsDubiousChars(_: *mut i8) -> Bool {
+unsafe fn containsDubiousChars(_: *mut i8) -> Bool {
     0
 }
-#[no_mangle]
 pub static mut zSuffix: [*const i8; 4] = [
     b".bz2\0" as *const u8 as *const libc::c_char,
     b".bz\0" as *const u8 as *const libc::c_char,
     b".tbz2\0" as *const u8 as *const libc::c_char,
     b".tbz\0" as *const u8 as *const libc::c_char,
 ];
-#[no_mangle]
 pub static mut unzSuffix: [*const i8; 4] = [
     b"\0" as *const u8 as *const libc::c_char,
     b"\0" as *const u8 as *const libc::c_char,
     b".tar\0" as *const u8 as *const libc::c_char,
     b".tar\0" as *const u8 as *const libc::c_char,
 ];
-unsafe extern "C" fn hasSuffix(mut s: *mut i8, mut suffix: *const i8) -> Bool {
+unsafe fn hasSuffix(mut s: *mut i8, mut suffix: *const i8) -> Bool {
     let mut ns: i32 = strlen(s) as i32;
     let mut nx: i32 = strlen(suffix) as i32;
     if ns < nx {
@@ -1820,11 +1792,7 @@ unsafe extern "C" fn hasSuffix(mut s: *mut i8, mut suffix: *const i8) -> Bool {
     }
     return 0 as libc::c_int as Bool;
 }
-unsafe extern "C" fn mapSuffix(
-    mut name: *mut i8,
-    mut oldSuffix: *const i8,
-    mut newSuffix: *const i8,
-) -> Bool {
+unsafe fn mapSuffix(mut name: *mut i8, mut oldSuffix: *const i8, mut newSuffix: *const i8) -> Bool {
     if hasSuffix(name, oldSuffix) == 0 {
         return 0 as libc::c_int as Bool;
     }
@@ -1832,7 +1800,7 @@ unsafe extern "C" fn mapSuffix(
     strcat(name, newSuffix);
     return 1 as libc::c_int as Bool;
 }
-unsafe extern "C" fn compress(mut name: *mut i8) {
+unsafe fn compress(mut name: *mut i8) {
     let mut inStr: *mut FILE = 0 as *mut FILE;
     let mut outStr: *mut FILE = 0 as *mut FILE;
     let mut n: i32 = 0;
@@ -2128,7 +2096,7 @@ unsafe extern "C" fn compress(mut name: *mut i8) {
     }
     deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
 }
-unsafe extern "C" fn uncompress(mut name: *mut i8) {
+unsafe fn uncompress(mut name: *mut i8) {
     let mut current_block: u64;
     let mut inStr: *mut FILE = 0 as *mut FILE;
     let mut outStr: *mut FILE = 0 as *mut FILE;
@@ -2460,7 +2428,7 @@ unsafe extern "C" fn uncompress(mut name: *mut i8) {
         }
     };
 }
-unsafe extern "C" fn testf(mut name: *mut i8) {
+unsafe fn testf(mut name: *mut i8) {
     let mut inStr: *mut FILE = 0 as *mut FILE;
     let mut allOK: Bool = 0;
     let mut statBuf: stat = stat {
@@ -2610,7 +2578,7 @@ unsafe extern "C" fn testf(mut name: *mut i8) {
         testFailsExist = 1 as libc::c_int as Bool;
     }
 }
-unsafe extern "C" fn license() {
+unsafe fn license() {
     fprintf(
         stdout,
         b"bzip2, a block-sorting file compressor.  Version %s.\n   \n   Copyright (C) 1996-2010 by Julian Seward.\n   \n   This program is free software; you can redistribute it and/or modify\n   it under the terms set out in the LICENSE file, which is included\n   in the bzip2-1.0.6 source distribution.\n   \n   This program is distributed in the hope that it will be useful,\n   but WITHOUT ANY WARRANTY; without even the implied warranty of\n   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n   LICENSE file for more details.\n   \n\0"
@@ -2618,7 +2586,7 @@ unsafe extern "C" fn license() {
         BZ2_bzlibVersion(),
     );
 }
-unsafe extern "C" fn usage(mut fullProgName: *mut i8) {
+unsafe fn usage(mut fullProgName: *mut i8) {
     fprintf(
         stderr,
         b"bzip2, a block-sorting file compressor.  Version %s.\n\n   usage: %s [flags and input files in any order]\n\n   -h --help           print this message\n   -d --decompress     force decompression\n   -z --compress       force compression\n   -k --keep           keep (don't delete) input files\n   -f --force          overwrite existing output files\n   -t --test           test compressed file integrity\n   -c --stdout         output to standard out\n   -q --quiet          suppress noncritical error messages\n   -v --verbose        be verbose (a 2nd -v gives more)\n   -L --license        display software version & license\n   -V --version        display software version & license\n   -s --small          use less memory (at most 2500k)\n   -1 .. -9            set block size to 100k .. 900k\n   --fast              alias for -1\n   --best              alias for -9\n\n   If invoked as `bzip2', default action is to compress.\n              as `bunzip2',  default action is to decompress.\n              as `bzcat', default action is to decompress to stdout.\n\n   If no file names are given, bzip2 compresses or decompresses\n   from standard input to standard output.  You can combine\n   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n\n\0"
@@ -2627,7 +2595,7 @@ unsafe extern "C" fn usage(mut fullProgName: *mut i8) {
         fullProgName,
     );
 }
-unsafe extern "C" fn redundant(mut flag: *mut i8) {
+unsafe fn redundant(mut flag: *mut i8) {
     fprintf(
         stderr,
         b"%s: %s is redundant in versions 0.9.5 and above\n\0" as *const u8 as *const libc::c_char,
@@ -2635,7 +2603,7 @@ unsafe extern "C" fn redundant(mut flag: *mut i8) {
         flag,
     );
 }
-unsafe extern "C" fn myMalloc(mut n: i32) -> *mut libc::c_void {
+unsafe fn myMalloc(mut n: i32) -> *mut libc::c_void {
     let mut p: *mut libc::c_void = 0 as *mut libc::c_void;
     p = malloc(n as size_t);
     if p.is_null() {
@@ -2643,14 +2611,14 @@ unsafe extern "C" fn myMalloc(mut n: i32) -> *mut libc::c_void {
     }
     return p;
 }
-unsafe extern "C" fn mkCell() -> *mut Cell {
+unsafe fn mkCell() -> *mut Cell {
     let mut c: *mut Cell = 0 as *mut Cell;
     c = myMalloc(core::mem::size_of::<Cell>() as libc::c_ulong as i32) as *mut Cell;
     (*c).name = 0 as *mut i8;
     (*c).link = 0 as *mut zzzz;
     return c;
 }
-unsafe extern "C" fn snocString(mut root: *mut Cell, mut name: *mut i8) -> *mut Cell {
+unsafe fn snocString(mut root: *mut Cell, mut name: *mut i8) -> *mut Cell {
     if root.is_null() {
         let mut tmp: *mut Cell = mkCell();
         (*tmp).name = myMalloc((5 as libc::c_int as libc::size_t).wrapping_add(strlen(name)) as i32)
@@ -2666,7 +2634,7 @@ unsafe extern "C" fn snocString(mut root: *mut Cell, mut name: *mut i8) -> *mut 
         return root;
     };
 }
-unsafe extern "C" fn addFlagsFromEnvVar(mut argList: *mut *mut Cell, mut varName: *mut i8) {
+unsafe fn addFlagsFromEnvVar(mut argList: *mut *mut Cell, mut varName: *mut i8) {
     let mut i: i32 = 0;
     let mut j: i32 = 0;
     let mut k: i32 = 0;
@@ -2746,11 +2714,11 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
     i = j;
     signal(
         11 as libc::c_int,
-        mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(IntNative) as usize,
+        mySIGSEGVorSIGBUScatcher as unsafe fn(IntNative) as usize,
     );
     signal(
         7 as libc::c_int,
-        mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(IntNative) as usize,
+        mySIGSEGVorSIGBUScatcher as unsafe fn(IntNative) as usize,
     );
     copyFileName(
         inName.as_mut_ptr(),

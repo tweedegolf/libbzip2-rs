@@ -254,7 +254,7 @@ pub fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
         exit(3 as libc::c_int);
     }
 }
-unsafe extern "C" fn bz_config_ok() -> libc::c_int {
+unsafe fn bz_config_ok() -> libc::c_int {
     if core::mem::size_of::<libc::c_int>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong {
         return 0 as libc::c_int;
     }
@@ -279,7 +279,7 @@ unsafe extern "C" fn default_bzfree(_opaque: *mut libc::c_void, addr: *mut libc:
         free(addr);
     }
 }
-unsafe extern "C" fn prepare_new_block(s: *mut EState) {
+unsafe fn prepare_new_block(s: *mut EState) {
     let mut i: i32;
     (*s).nblock = 0 as libc::c_int;
     (*s).numZ = 0 as libc::c_int;
@@ -293,11 +293,11 @@ unsafe extern "C" fn prepare_new_block(s: *mut EState) {
     (*s).blockNo += 1;
     (*s).blockNo;
 }
-unsafe extern "C" fn init_RL(s: *mut EState) {
+unsafe fn init_RL(s: *mut EState) {
     (*s).state_in_ch = 256 as libc::c_int as u32;
     (*s).state_in_len = 0 as libc::c_int;
 }
-unsafe extern "C" fn isempty_RL(s: *mut EState) -> Bool {
+unsafe fn isempty_RL(s: *mut EState) -> Bool {
     if (*s).state_in_ch < 256 as libc::c_int as libc::c_uint && (*s).state_in_len > 0 as libc::c_int
     {
         0 as libc::c_int as Bool
@@ -419,7 +419,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     prepare_new_block(s);
     0 as libc::c_int
 }
-unsafe extern "C" fn add_pair_to_block(s: *mut EState) {
+unsafe fn add_pair_to_block(s: *mut EState) {
     let mut i: i32;
     let ch: u8 = (*s).state_in_ch as u8;
     i = 0 as libc::c_int;
@@ -475,13 +475,13 @@ unsafe extern "C" fn add_pair_to_block(s: *mut EState) {
         }
     };
 }
-unsafe extern "C" fn flush_RL(s: *mut EState) {
+unsafe fn flush_RL(s: *mut EState) {
     if (*s).state_in_ch < 256 as libc::c_int as libc::c_uint {
         add_pair_to_block(s);
     }
     init_RL(s);
 }
-unsafe extern "C" fn copy_input_until_stop(s: *mut EState) -> Bool {
+unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
     let mut progress_in: Bool = 0 as libc::c_int as Bool;
     if (*s).mode == 2 as libc::c_int {
         loop {
@@ -573,7 +573,7 @@ unsafe extern "C" fn copy_input_until_stop(s: *mut EState) -> Bool {
     }
     progress_in
 }
-unsafe extern "C" fn copy_output_until_stop(s: *mut EState) -> Bool {
+unsafe fn copy_output_until_stop(s: *mut EState) -> Bool {
     let mut progress_out: Bool = 0 as libc::c_int as Bool;
     loop {
         if (*(*s).strm).avail_out == 0 as libc::c_int as libc::c_uint {
@@ -599,7 +599,7 @@ unsafe extern "C" fn copy_output_until_stop(s: *mut EState) -> Bool {
     }
     progress_out
 }
-unsafe extern "C" fn handle_compress(strm: *mut bz_stream) -> Bool {
+unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
     let mut progress_in: Bool = 0 as libc::c_int as Bool;
     let mut progress_out: Bool = 0 as libc::c_int as Bool;
     let s: *mut EState = (*strm).state as *mut EState;
@@ -811,7 +811,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     (*s).verbosity = verbosity;
     0 as libc::c_int
 }
-unsafe extern "C" fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
+unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
     let mut current_block: u64;
     let mut k1: u8;
     if (*s).blockRandomised != 0 {
@@ -1192,7 +1192,7 @@ pub unsafe fn BZ2_indexIntoF(indx: i32, cftab: *mut i32) -> i32 {
     }
     nb
 }
-unsafe extern "C" fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
+unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
     let mut k1: u8;
     if (*s).blockRandomised != 0 {
         loop {
@@ -1639,7 +1639,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
     (*strm).state = std::ptr::null_mut::<libc::c_void>();
     0 as libc::c_int
 }
-unsafe extern "C" fn myfeof(f: *mut FILE) -> Bool {
+unsafe fn myfeof(f: *mut FILE) -> Bool {
     let c: i32 = fgetc(f);
     if c == -1 as libc::c_int {
         return 1 as libc::c_int as Bool;
@@ -2372,7 +2372,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     }
 }
 
-unsafe extern "C" fn bzopen_or_bzdopen(
+unsafe fn bzopen_or_bzdopen(
     path: *const libc::c_char,
     fd: libc::c_int,
     mut mode: *const libc::c_char,
