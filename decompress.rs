@@ -145,12 +145,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_MAGIC_1;
             loop {
                 if s.bsLive >= 8 {
-                    let v: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v as u8;
                     current_block = 5235537862154438448;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -160,7 +160,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -311,12 +311,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         s.state = BZ_X_MAGIC_2;
         loop {
             if s.bsLive >= 8 {
-                let v_0: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                let v_0: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                 s.bsLive -= 8;
                 uc = v_0 as u8;
                 current_block = 2168227384378665163;
                 break;
-            } else if (*s.strm).avail_in == 0 as libc::c_uint {
+            } else if (*s.strm).avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
@@ -326,7 +326,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                if (*s.strm).total_in_lo32 == 0 {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                 }
             }
@@ -347,12 +347,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         s.state = BZ_X_MAGIC_3;
         loop {
             if s.bsLive >= 8 {
-                let v_1: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                let v_1: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                 s.bsLive -= 8;
                 uc = v_1 as u8;
                 current_block = 178030534879405462;
                 break;
-            } else if (*s.strm).avail_in == 0 as libc::c_uint {
+            } else if (*s.strm).avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
@@ -362,7 +362,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                if (*s.strm).total_in_lo32 == 0 {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                 }
             }
@@ -383,12 +383,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         s.state = BZ_X_MAGIC_4;
         loop {
             if s.bsLive >= 8 {
-                let v_2: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                let v_2: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                 s.bsLive -= 8;
                 s.blockSize100k = v_2 as i32;
                 current_block = 7639320476250304355;
                 break;
-            } else if (*s.strm).avail_in == 0 as libc::c_uint {
+            } else if (*s.strm).avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
@@ -398,7 +398,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                if (*s.strm).total_in_lo32 == 0 {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                 }
             }
@@ -455,12 +455,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         s.state = BZ_X_BLKHDR_1;
         loop {
             if s.bsLive >= 8 {
-                let v_3: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                let v_3: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                 s.bsLive -= 8;
                 uc = v_3 as u8;
                 current_block = 16937825661756021828;
                 break;
-            } else if (*s.strm).avail_in == 0 as libc::c_uint {
+            } else if (*s.strm).avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
@@ -470,7 +470,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                if (*s.strm).total_in_lo32 == 0 {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                 }
             }
@@ -494,12 +494,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_ENDHDR_2;
             loop {
                 if s.bsLive >= 8 {
-                    let v_32: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_32: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_32 as u8;
                     current_block = 13733404100380861831;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -509,7 +509,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -530,12 +530,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_BLKHDR_2;
             loop {
                 if s.bsLive >= 8 {
-                    let v_4: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_4: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_4 as u8;
                     current_block = 1228639923084383292;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -545,7 +545,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -569,12 +569,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_ENDHDR_3;
             loop {
                 if s.bsLive >= 8 {
-                    let v_33: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_33: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_33 as u8;
                     current_block = 12721425419429475574;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -584,7 +584,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -605,12 +605,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_BLKHDR_3;
             loop {
                 if s.bsLive >= 8 {
-                    let v_5: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_5: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_5 as u8;
                     current_block = 9235179519944561532;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -620,7 +620,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -644,12 +644,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_ENDHDR_4;
             loop {
                 if s.bsLive >= 8 {
-                    let v_34: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_34: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_34 as u8;
                     current_block = 13813414375753095368;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -659,7 +659,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -680,12 +680,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_BLKHDR_4;
             loop {
                 if s.bsLive >= 8 {
-                    let v_6: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_6: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_6 as u8;
                     current_block = 12467039471581323981;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -695,7 +695,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -719,12 +719,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_ENDHDR_5;
             loop {
                 if s.bsLive >= 8 {
-                    let v_35: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_35: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_35 as u8;
                     current_block = 1472103348880861285;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -734,7 +734,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -755,12 +755,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_BLKHDR_5;
             loop {
                 if s.bsLive >= 8 {
-                    let v_7: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_7: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_7 as u8;
                     current_block = 13164310931121142693;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -770,7 +770,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -794,12 +794,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_ENDHDR_6;
             loop {
                 if s.bsLive >= 8 {
-                    let v_36: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_36: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_36 as u8;
                     current_block = 8232347840743503282;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -809,7 +809,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -831,12 +831,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_BLKHDR_6;
             loop {
                 if s.bsLive >= 8 {
-                    let v_8: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_8: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_8 as u8;
                     current_block = 14723615986260991866;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -846,7 +846,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -875,12 +875,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_CCRC_1;
             loop {
                 if s.bsLive >= 8 {
-                    let v_37: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_37: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_37 as u8;
                     current_block = 5465979950226085365;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -890,7 +890,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -907,12 +907,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_BCRC_1;
             loop {
                 if s.bsLive >= 8 {
-                    let v_9: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_9: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_9 as u8;
                     current_block = 15627786036016112248;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -922,7 +922,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -942,12 +942,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_CCRC_2;
             loop {
                 if s.bsLive >= 8 {
-                    let v_38: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_38: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_38 as u8;
                     current_block = 3854366583354019639;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -957,7 +957,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -974,12 +974,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_BCRC_2;
             loop {
                 if s.bsLive >= 8 {
-                    let v_10: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_10: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_10 as u8;
                     current_block = 13493279574219925475;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -989,7 +989,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -1009,12 +1009,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_CCRC_3;
             loop {
                 if s.bsLive >= 8 {
-                    let v_39: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_39: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_39 as u8;
                     current_block = 12082794684616777938;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -1024,7 +1024,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -1041,12 +1041,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_BCRC_3;
             loop {
                 if s.bsLive >= 8 {
-                    let v_11: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_11: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_11 as u8;
                     current_block = 4839309778395429725;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -1056,7 +1056,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -1076,12 +1076,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_BCRC_4;
             loop {
                 if s.bsLive >= 8 {
-                    let v_12: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_12: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_12 as u8;
                     current_block = 17937968408868551711;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -1091,7 +1091,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -1108,12 +1108,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             s.state = BZ_X_CCRC_4;
             loop {
                 if s.bsLive >= 8 {
-                    let v_40: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                    let v_40: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                     s.bsLive -= 8;
                     uc = v_40 as u8;
                     current_block = 6276941480907995842;
                     break;
-                } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                } else if (*s.strm).avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
@@ -1123,7 +1123,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                    if (*s.strm).total_in_lo32 == 0 {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                     }
                 }
@@ -1144,12 +1144,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         s.state = BZ_X_RANDBIT;
         loop {
             if s.bsLive >= 1 {
-                let v_13: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1) as libc::c_uint;
+                let v_13: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                 s.bsLive -= 1;
                 s.blockRandomised = v_13 as Bool;
                 current_block = 7926734633677835471;
                 break;
-            } else if (*s.strm).avail_in == 0 as libc::c_uint {
+            } else if (*s.strm).avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
@@ -1159,7 +1159,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                if (*s.strm).total_in_lo32 == 0 {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                 }
             }
@@ -1176,12 +1176,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         s.state = BZ_X_ORIGPTR_1;
         loop {
             if s.bsLive >= 8 {
-                let v_14: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                let v_14: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                 s.bsLive -= 8;
                 uc = v_14 as u8;
                 current_block = 5948065351908552372;
                 break;
-            } else if (*s.strm).avail_in == 0 as libc::c_uint {
+            } else if (*s.strm).avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
@@ -1191,7 +1191,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                if (*s.strm).total_in_lo32 == 0 {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                 }
             }
@@ -1208,12 +1208,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         s.state = BZ_X_ORIGPTR_2;
         loop {
             if s.bsLive >= 8 {
-                let v_15: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                let v_15: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                 s.bsLive -= 8;
                 uc = v_15 as u8;
                 current_block = 8940662058537996670;
                 break;
-            } else if (*s.strm).avail_in == 0 as libc::c_uint {
+            } else if (*s.strm).avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
@@ -1223,7 +1223,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                if (*s.strm).total_in_lo32 == 0 {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                 }
             }
@@ -1240,12 +1240,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         s.state = BZ_X_ORIGPTR_3;
         loop {
             if s.bsLive >= 8 {
-                let v_16: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1) as libc::c_uint;
+                let v_16: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
                 s.bsLive -= 8;
                 uc = v_16 as u8;
                 current_block = 13366002463409402866;
                 break;
-            } else if (*s.strm).avail_in == 0 as libc::c_uint {
+            } else if (*s.strm).avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
@@ -1255,7 +1255,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                if (*s.strm).total_in_lo32 == 0 {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                 }
             }
@@ -1287,12 +1287,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_MTF_5;
                 loop {
                     if s.bsLive >= zn {
-                        let v_30: u32 =
-                            s.bsBuff >> (s.bsLive - zn) & (((1) << zn) - 1) as libc::c_uint;
+                        let v_30: u32 = s.bsBuff >> (s.bsLive - zn) & (((1) << zn) - 1);
                         s.bsLive -= zn;
                         zvec = v_30 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1302,7 +1301,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1313,12 +1312,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_MTF_4;
                 loop {
                     if s.bsLive >= 1 {
-                        let v_29: u32 =
-                            s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1) as libc::c_uint;
+                        let v_29: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                         s.bsLive -= 1;
                         zj = v_29 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1328,7 +1326,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1340,12 +1338,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_MTF_3;
                 loop {
                     if s.bsLive >= zn {
-                        let v_28: u32 =
-                            s.bsBuff >> (s.bsLive - zn) & (((1) << zn) - 1) as libc::c_uint;
+                        let v_28: u32 = s.bsBuff >> (s.bsLive - zn) & (((1) << zn) - 1);
                         s.bsLive -= zn;
                         zvec = v_28 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1355,7 +1352,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1366,12 +1363,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_MTF_2;
                 loop {
                     if s.bsLive >= 1 {
-                        let v_27: u32 =
-                            s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1) as libc::c_uint;
+                        let v_27: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                         s.bsLive -= 1;
                         zj = v_27 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1381,7 +1377,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1393,12 +1389,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_MTF_1;
                 loop {
                     if s.bsLive >= zn {
-                        let v_26: u32 =
-                            s.bsBuff >> (s.bsLive - zn) & (((1) << zn) - 1) as libc::c_uint;
+                        let v_26: u32 = s.bsBuff >> (s.bsLive - zn) & (((1) << zn) - 1);
                         s.bsLive -= zn;
                         zvec = v_26 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1408,7 +1403,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1419,12 +1414,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_CODING_3;
                 loop {
                     if s.bsLive >= 1 {
-                        let v_25: u32 =
-                            s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1) as libc::c_uint;
+                        let v_25: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                         s.bsLive -= 1;
                         uc = v_25 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1434,7 +1428,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1450,12 +1444,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_CODING_2;
                 loop {
                     if s.bsLive >= 1 {
-                        let v_24: u32 =
-                            s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1) as libc::c_uint;
+                        let v_24: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                         s.bsLive -= 1;
                         uc = v_24 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1465,7 +1458,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1480,12 +1473,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_CODING_1;
                 loop {
                     if s.bsLive >= 5 {
-                        let v_23: u32 =
-                            s.bsBuff >> (s.bsLive - 5) & (((1) << 5) - 1) as libc::c_uint;
+                        let v_23: u32 = s.bsBuff >> (s.bsLive - 5) & (((1) << 5) - 1);
                         s.bsLive -= 5;
                         curr = v_23 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1495,7 +1487,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1507,12 +1499,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_SELECTOR_3;
                 loop {
                     if s.bsLive >= 1 {
-                        let v_21: u32 =
-                            s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1) as libc::c_uint;
+                        let v_21: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                         s.bsLive -= 1;
                         uc = v_21 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1522,7 +1513,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1544,12 +1535,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_SELECTOR_2;
                 loop {
                     if s.bsLive >= 15 {
-                        let v_20: u32 =
-                            s.bsBuff >> (s.bsLive - 15) & (((1) << 15) - 1) as libc::c_uint;
+                        let v_20: u32 = s.bsBuff >> (s.bsLive - 15) & (((1) << 15) - 1);
                         s.bsLive -= 15;
                         nSelectors = v_20 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1559,7 +1549,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1577,12 +1567,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_SELECTOR_1;
                 loop {
                     if s.bsLive >= 3 {
-                        let v_19: u32 =
-                            s.bsBuff >> (s.bsLive - 3) & (((1) << 3) - 1) as libc::c_uint;
+                        let v_19: u32 = s.bsBuff >> (s.bsLive - 3) & (((1) << 3) - 1);
                         s.bsLive -= 3;
                         nGroups = v_19 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1592,7 +1581,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1609,12 +1598,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_MAPPING_2;
                 loop {
                     if s.bsLive >= 1 {
-                        let v_18: u32 =
-                            s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1) as libc::c_uint;
+                        let v_18: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                         s.bsLive -= 1;
                         uc = v_18 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1624,7 +1612,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1652,12 +1640,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_MAPPING_1;
                 loop {
                     if s.bsLive >= 1 {
-                        let v_17: u32 =
-                            s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1) as libc::c_uint;
+                        let v_17: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                         s.bsLive -= 1;
                         uc = v_17 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1667,7 +1654,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1685,12 +1672,11 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.state = BZ_X_MTF_6;
                 loop {
                     if s.bsLive >= 1 {
-                        let v_31: u32 =
-                            s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1) as libc::c_uint;
+                        let v_31: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                         s.bsLive -= 1;
                         zj = v_31 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 as libc::c_uint {
+                    } else if (*s.strm).avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
@@ -1700,7 +1686,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 as libc::c_uint {
+                        if (*s.strm).total_in_lo32 == 0 {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
                         }
                     }
@@ -1831,30 +1817,26 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         let off: i32;
                         let mut nn: u32;
                         nn = (nextSym - 1) as u32;
-                        if nn < 16 as libc::c_uint {
+                        if nn < 16 {
                             pp = s.mtfbase[0 as usize];
                             uc = s.mtfa[(pp as libc::c_uint).wrapping_add(nn) as usize];
-                            while nn > 3 as libc::c_uint {
+                            while nn > 3 {
                                 let z: i32 = (pp as libc::c_uint).wrapping_add(nn) as i32;
                                 s.mtfa[z as usize] = s.mtfa[(z - 1) as usize];
                                 s.mtfa[(z - 1) as usize] = s.mtfa[(z - 2) as usize];
                                 s.mtfa[(z - 2) as usize] = s.mtfa[(z - 3) as usize];
                                 s.mtfa[(z - 3) as usize] = s.mtfa[(z - 4) as usize];
-                                nn = (nn as libc::c_uint).wrapping_sub(4 as libc::c_uint) as u32
-                                    as u32;
+                                nn = (nn).wrapping_sub(4) as u32 as u32;
                             }
-                            while nn > 0 as libc::c_uint {
-                                s.mtfa[(pp as libc::c_uint).wrapping_add(nn) as usize] = s.mtfa[(pp
-                                    as libc::c_uint)
-                                    .wrapping_add(nn)
-                                    .wrapping_sub(1 as libc::c_uint)
-                                    as usize];
+                            while nn > 0 {
+                                s.mtfa[(pp as libc::c_uint).wrapping_add(nn) as usize] =
+                                    s.mtfa[(pp as libc::c_uint).wrapping_add(nn).wrapping_sub(1) as usize];
                                 nn = nn.wrapping_sub(1);
                             }
                             s.mtfa[pp as usize] = uc;
                         } else {
-                            lno = nn.wrapping_div(16 as libc::c_uint) as i32;
-                            off = nn.wrapping_rem(16 as libc::c_uint) as i32;
+                            lno = nn.wrapping_div(16) as i32;
+                            off = nn.wrapping_rem(16) as i32;
                             pp = s.mtfbase[lno as usize] + off;
                             uc = s.mtfa[pp as usize];
                             while pp > s.mtfbase[lno as usize] {
@@ -2016,12 +1998,12 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             i = s.origPtr;
                             j = (*(s.ll16).offset(i as isize) as u32
                                 | (*(s.ll4).offset((i >> 1) as isize) as u32 >> (i << 2 & 0x4)
-                                    & 0xf as libc::c_uint)
+                                    & 0xf)
                                     << 16) as i32;
                             loop {
                                 let tmp_0: i32 = (*(s.ll16).offset(j as isize) as u32
                                     | (*(s.ll4).offset((j >> 1) as isize) as u32 >> (j << 2 & 0x4)
-                                        & 0xf as libc::c_uint)
+                                        & 0xf)
                                         << 16)
                                     as i32;
                                 *(s.ll16).offset(j as isize) = (i & 0xffff) as u16;
@@ -2053,8 +2035,8 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                 s.k0 = BZ2_indexIntoF(s.tPos as i32, (s.cftab).as_mut_ptr());
                                 s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
                                     | (*(s.ll4).offset((s.tPos >> 1) as isize) as u32
-                                        >> (s.tPos << 2 & 0x4 as libc::c_uint)
-                                        & 0xf as libc::c_uint)
+                                        >> (s.tPos << 2 & 0x4)
+                                        & 0xf)
                                         << 16;
                                 s.nblock_used += 1;
                                 if s.rNToGo == 0 {
@@ -2073,15 +2055,15 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                 s.k0 = BZ2_indexIntoF(s.tPos as i32, (s.cftab).as_mut_ptr());
                                 s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
                                     | (*(s.ll4).offset((s.tPos >> 1) as isize) as u32
-                                        >> (s.tPos << 2 & 0x4 as libc::c_uint)
-                                        & 0xf as libc::c_uint)
+                                        >> (s.tPos << 2 & 0x4)
+                                        & 0xf)
                                         << 16;
                                 s.nblock_used += 1;
                             }
                         } else {
                             i = 0;
                             while i < nblock {
-                                uc = (*(s.tt).offset(i as isize) & 0xff as libc::c_uint) as u8;
+                                uc = (*(s.tt).offset(i as isize) & 0xff) as u8;
                                 let fresh0 = &mut (*(s.tt).offset(s.cftab[uc as usize] as isize));
                                 *fresh0 |= (i << 8) as libc::c_uint;
                                 s.cftab[uc as usize] += 1;
@@ -2097,7 +2079,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                     return 1 as Bool as i32;
                                 }
                                 s.tPos = *(s.tt).offset(s.tPos as isize);
-                                s.k0 = (s.tPos & 0xff as libc::c_uint) as u8 as i32;
+                                s.k0 = (s.tPos & 0xff) as u8 as i32;
                                 s.tPos >>= 8;
                                 s.nblock_used += 1;
                                 if s.rNToGo == 0 {
@@ -2114,7 +2096,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                     return 1 as Bool as i32;
                                 }
                                 s.tPos = *(s.tt).offset(s.tPos as isize);
-                                s.k0 = (s.tPos & 0xff as libc::c_uint) as u8 as i32;
+                                s.k0 = (s.tPos & 0xff) as u8 as i32;
                                 s.tPos >>= 8;
                                 s.nblock_used += 1;
                             }
