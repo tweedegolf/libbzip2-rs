@@ -112,12 +112,19 @@ pub enum Mode {
     Finishing = 4,
 }
 
+#[repr(i32)]
+#[derive(Copy, Clone)]
+pub enum State {
+    Output = 1,
+    Input = 2,
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct EState {
     pub strm: *mut bz_stream,
     pub mode: Mode,
-    pub state: i32,
+    pub state: State,
     pub avail_in_expect: u32,
     pub arr1: *mut u32,
     pub arr2: *mut u32,
@@ -432,7 +439,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         return -3 as libc::c_int;
     }
     (*s).blockNo = 0 as libc::c_int;
-    (*s).state = 2 as libc::c_int;
+    (*s).state = State::Output;
     (*s).mode = Mode::Running;
     (*s).combinedCRC = 0 as libc::c_int as u32;
     (*s).blockSize100k = blockSize100k;
@@ -608,7 +615,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
     let mut progress_out = false;
     let s: *mut EState = (*strm).state as *mut EState;
     loop {
-        if (*s).state == 1 as libc::c_int {
+        if let State::Input = (*s).state {
             progress_out |= copy_output_until_stop(s);
             if (*s).state_out_pos < (*s).numZ {
                 break;
@@ -620,7 +627,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
                 break;
             }
             prepare_new_block(s);
-            (*s).state = 2 as libc::c_int;
+            (*s).state = State::Output;
             if matches!((*s).mode, Mode::Flushing)
                 && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
                 && isempty_RL(&mut *s)
@@ -628,7 +635,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
                 break;
             }
         }
-        if (*s).state != 2 as libc::c_int {
+        if let State::Input = (*s).state {
             continue;
         }
         progress_in |= copy_input_until_stop(s);
@@ -637,10 +644,10 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
         {
             flush_RL(&mut *s);
             BZ2_compressBlock(s, matches!((*s).mode, Mode::Finishing));
-            (*s).state = 1 as libc::c_int;
+            (*s).state = State::Input;
         } else if (*s).nblock >= (*s).nblockMAX {
             BZ2_compressBlock(s, false);
-            (*s).state = 1 as libc::c_int;
+            (*s).state = State::Input;
         } else if (*(*s).strm).avail_in == 0 as libc::c_int as libc::c_uint {
             break;
         }
