@@ -102,11 +102,20 @@ impl bz_stream {
     }
 }
 
+#[repr(i32)]
+#[derive(Copy, Clone)]
+pub enum Mode {
+    Idle = 1,
+    Running = 2,
+    Flushing = 3,
+    Finishing = 4,
+}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct EState {
     pub strm: *mut bz_stream,
-    pub mode: i32,
+    pub mode: Mode,
     pub state: i32,
     pub avail_in_expect: u32,
     pub arr1: *mut u32,
@@ -423,7 +432,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     }
     (*s).blockNo = 0 as libc::c_int;
     (*s).state = 2 as libc::c_int;
-    (*s).mode = 2 as libc::c_int;
+    (*s).mode = Mode::Running;
     (*s).combinedCRC = 0 as libc::c_int as u32;
     (*s).blockSize100k = blockSize100k;
     (*s).nblockMAX = 100000 as libc::c_int * blockSize100k - 19 as libc::c_int;
@@ -532,8 +541,8 @@ macro_rules! ADD_CHAR_TO_BLOCK {
 
 unsafe fn copy_input_until_stop(s: *mut EState) -> bool {
     let mut progress_in = false;
-    if (*s).mode == 2 as libc::c_int {
-        loop {
+    match (*s).mode {
+        Mode::Running => loop {
             if (*s).nblock >= (*s).nblockMAX {
                 break;
             }
@@ -548,9 +557,8 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> bool {
             if (*(*s).strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                 (*(*s).strm).total_in_hi32 = ((*(*s).strm).total_in_hi32).wrapping_add(1);
             }
-        }
-    } else {
-        loop {
+        },
+        _ => loop {
             if (*s).nblock >= (*s).nblockMAX {
                 break;
             }
@@ -569,7 +577,7 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> bool {
                 (*(*s).strm).total_in_hi32 = ((*(*s).strm).total_in_hi32).wrapping_add(1);
             }
             (*s).avail_in_expect = ((*s).avail_in_expect).wrapping_sub(1);
-        }
+        },
     }
     progress_in
 }
@@ -604,7 +612,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
             if (*s).state_out_pos < (*s).numZ {
                 break;
             }
-            if (*s).mode == 4 as libc::c_int
+            if matches!((*s).mode, Mode::Finishing)
                 && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
                 && isempty_RL(&mut *s)
             {
@@ -612,7 +620,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
             }
             prepare_new_block(s);
             (*s).state = 2 as libc::c_int;
-            if (*s).mode == 3 as libc::c_int
+            if matches!((*s).mode, Mode::Flushing)
                 && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
                 && isempty_RL(&mut *s)
             {
@@ -623,13 +631,14 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
             continue;
         }
         progress_in |= copy_input_until_stop(s);
-        if (*s).mode != 2 as libc::c_int && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
+        if !matches!((*s).mode, Mode::Running)
+            && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
         {
             flush_RL(&mut *s);
-            BZ2_compressBlock(s, ((*s).mode == 4 as libc::c_int) as Bool);
+            BZ2_compressBlock(s, matches!((*s).mode, Mode::Finishing));
             (*s).state = 1 as libc::c_int;
         } else if (*s).nblock >= (*s).nblockMAX {
-            BZ2_compressBlock(s, 0 as Bool);
+            BZ2_compressBlock(s, false);
             (*s).state = 1 as libc::c_int;
         } else if (*(*s).strm).avail_in == 0 as libc::c_int as libc::c_uint {
             break;
@@ -655,8 +664,8 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
     }
     loop {
         match (*s).mode {
-            1 => return -1 as libc::c_int,
-            2 => {
+            Mode::Idle => return -1 as libc::c_int,
+            Mode::Running => {
                 if action == 0 as libc::c_int {
                     progress = handle_compress(strm);
                     return if progress as libc::c_int != 0 {
@@ -666,15 +675,15 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                     };
                 } else if action == 1 as libc::c_int {
                     (*s).avail_in_expect = (*strm).avail_in;
-                    (*s).mode = 3 as libc::c_int;
+                    (*s).mode = Mode::Flushing;
                 } else if action == 2 as libc::c_int {
                     (*s).avail_in_expect = (*strm).avail_in;
-                    (*s).mode = 4 as libc::c_int;
+                    (*s).mode = Mode::Finishing;
                 } else {
                     return -2 as libc::c_int;
                 }
             }
-            3 => {
+            Mode::Flushing => {
                 if action != 1 as libc::c_int {
                     return -1 as libc::c_int;
                 }
@@ -688,10 +697,10 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                 {
                     return 2 as libc::c_int;
                 }
-                (*s).mode = 2 as libc::c_int;
+                (*s).mode = Mode::Running;
                 return 1 as libc::c_int;
             }
-            4 => {
+            Mode::Finishing => {
                 if action != 2 as libc::c_int {
                     return -1 as libc::c_int;
                 }
@@ -708,10 +717,9 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                 {
                     return 3 as libc::c_int;
                 }
-                (*s).mode = 1 as libc::c_int;
+                (*s).mode = Mode::Idle;
                 return 4 as libc::c_int;
             }
-            _ => return 0 as libc::c_int,
         }
     }
 }

@@ -1553,7 +1553,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
         eprintln!("codes {}", (*s).numZ - nBytes);
     }
 }
-pub unsafe fn BZ2_compressBlock(s: *mut EState, is_last_block: Bool) {
+pub unsafe fn BZ2_compressBlock(s: *mut EState, is_last_block: bool) {
     if (*s).nblock > 0 as libc::c_int {
         (*s).blockCRC = !(*s).blockCRC;
         (*s).combinedCRC =
@@ -1594,7 +1594,7 @@ pub unsafe fn BZ2_compressBlock(s: *mut EState, is_last_block: Bool) {
         generateMTFValues(s);
         sendMTFValues(s);
     }
-    if is_last_block != 0 {
+    if is_last_block {
         bsPutUChar(s, 0x17 as libc::c_int as u8);
         bsPutUChar(s, 0x72 as libc::c_int as u8);
         bsPutUChar(s, 0x45 as libc::c_int as u8);
