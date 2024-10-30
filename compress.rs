@@ -169,6 +169,9 @@ unsafe fn generateMTFValues(s: *mut EState) {
     (*s).nMTF = wr;
 }
 unsafe fn sendMTFValues(s: *mut EState) {
+    const BZ_LESSER_ICOST: u8 = 0;
+    const BZ_GREATER_ICOST: u8 = 15;
+
     let mut v: i32;
     let mut t: i32;
     let mut i: i32;
@@ -198,17 +201,9 @@ unsafe fn sendMTFValues(s: *mut EState) {
         );
     }
     alphaSize = (*s).nInUse + 2 as libc::c_int;
-    t = 0 as libc::c_int;
-    while t < 6 as libc::c_int {
-        v = 0 as libc::c_int;
-        while v < alphaSize {
-            (*s).len[t as usize][v as usize] = 15 as libc::c_int as u8;
-            v += 1;
-        }
-        t += 1;
-    }
-    if (*s).nMTF <= 0 as libc::c_int {
-        BZ2_bz__AssertH__fail(3001 as libc::c_int);
+
+    for t in (*s).len.iter_mut() {
+        t[..alphaSize as usize].fill(BZ_GREATER_ICOST);
     }
     if (*s).nMTF < 200 as libc::c_int {
         nGroups = 2 as libc::c_int;
