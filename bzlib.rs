@@ -493,36 +493,55 @@ unsafe fn flush_RL(s: &mut EState) {
     }
     init_RL(s);
 }
-unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
-    let mut progress_in: Bool = 0 as Bool;
+
+macro_rules! BZ_UPDATE_CRC {
+    ($crcVar:expr, $cha:expr) => {
+        let index = ($crcVar >> 24) ^ ($cha as core::ffi::c_uint);
+        $crcVar = ($crcVar << 8) ^ BZ2_CRC32TABLE[index as usize];
+    };
+}
+
+macro_rules! ADD_CHAR_TO_BLOCK {
+    ($zs:expr, $zchh0:expr) => {
+        let s = $zs;
+        let zchh: u32 = $zchh0 as u32;
+
+        if zchh != (*s).state_in_ch && (*s).state_in_len == 1 {
+            /*-- fast track the common case --*/
+
+            let ch: u8 = (*s).state_in_ch as u8;
+            BZ_UPDATE_CRC!((*s).blockCRC, ch);
+            (*s).inUse[(*s).state_in_ch as usize] = 1;
+            *((*s).block).offset((*s).nblock as isize) = ch;
+            (*s).nblock += 1;
+            (*s).nblock;
+            (*s).state_in_ch = zchh;
+        } else if zchh != (*s).state_in_ch || (*s).state_in_len == 255 {
+            /*-- general, uncommon cases --*/
+
+            if (*s).state_in_ch < 256 {
+                add_pair_to_block(s);
+            }
+            (*s).state_in_ch = zchh;
+            (*s).state_in_len = 1;
+        } else {
+            (*s).state_in_len += 1;
+        }
+    };
+}
+
+unsafe fn copy_input_until_stop(s: *mut EState) -> bool {
+    let mut progress_in = false;
     if (*s).mode == 2 as libc::c_int {
         loop {
             if (*s).nblock >= (*s).nblockMAX {
                 break;
             }
-            if (*(*s).strm).avail_in == 0 as libc::c_int as libc::c_uint {
+            if (*(*s).strm).avail_in == 0 {
                 break;
             }
-            progress_in = 1 as Bool;
-            let zchh: u32 = *((*(*s).strm).next_in as *mut u8) as u32;
-            if zchh != (*s).state_in_ch && (*s).state_in_len == 1 as libc::c_int {
-                let ch: u8 = (*s).state_in_ch as u8;
-                (*s).blockCRC = (*s).blockCRC << 8 as libc::c_int
-                    ^ BZ2_CRC32TABLE
-                        [((*s).blockCRC >> 24 as libc::c_int ^ ch as libc::c_uint) as usize];
-                (*s).inUse[(*s).state_in_ch as usize] = 1 as Bool;
-                *((*s).block).offset((*s).nblock as isize) = ch;
-                (*s).nblock += 1;
-                (*s).state_in_ch = zchh;
-            } else if zchh != (*s).state_in_ch || (*s).state_in_len == 255 as libc::c_int {
-                if (*s).state_in_ch < 256 as libc::c_int as libc::c_uint {
-                    add_pair_to_block(s);
-                }
-                (*s).state_in_ch = zchh;
-                (*s).state_in_len = 1 as libc::c_int;
-            } else {
-                (*s).state_in_len += 1;
-            }
+            progress_in = true;
+            ADD_CHAR_TO_BLOCK!(s, *((*(*s).strm).next_in as *mut u8) as u32);
             (*(*s).strm).next_in = ((*(*s).strm).next_in).offset(1);
             (*(*s).strm).avail_in = ((*(*s).strm).avail_in).wrapping_sub(1);
             (*(*s).strm).total_in_lo32 = ((*(*s).strm).total_in_lo32).wrapping_add(1);
@@ -535,36 +554,18 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
             if (*s).nblock >= (*s).nblockMAX {
                 break;
             }
-            if (*(*s).strm).avail_in == 0 as libc::c_int as libc::c_uint {
+            if (*(*s).strm).avail_in == 0 {
                 break;
             }
-            if (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint {
+            if (*s).avail_in_expect == 0 {
                 break;
             }
-            progress_in = 1 as Bool;
-            let zchh_0: u32 = *((*(*s).strm).next_in as *mut u8) as u32;
-            if zchh_0 != (*s).state_in_ch && (*s).state_in_len == 1 as libc::c_int {
-                let ch_0: u8 = (*s).state_in_ch as u8;
-                (*s).blockCRC = (*s).blockCRC << 8 as libc::c_int
-                    ^ BZ2_CRC32TABLE
-                        [((*s).blockCRC >> 24 as libc::c_int ^ ch_0 as libc::c_uint) as usize];
-                (*s).inUse[(*s).state_in_ch as usize] = 1 as Bool;
-                *((*s).block).offset((*s).nblock as isize) = ch_0;
-                (*s).nblock += 1;
-                (*s).state_in_ch = zchh_0;
-            } else if zchh_0 != (*s).state_in_ch || (*s).state_in_len == 255 as libc::c_int {
-                if (*s).state_in_ch < 256 as libc::c_int as libc::c_uint {
-                    add_pair_to_block(s);
-                }
-                (*s).state_in_ch = zchh_0;
-                (*s).state_in_len = 1 as libc::c_int;
-            } else {
-                (*s).state_in_len += 1;
-            }
+            progress_in = true;
+            ADD_CHAR_TO_BLOCK!(s, *((*(*s).strm).next_in as *mut u8) as u32);
             (*(*s).strm).next_in = ((*(*s).strm).next_in).offset(1);
             (*(*s).strm).avail_in = ((*(*s).strm).avail_in).wrapping_sub(1);
             (*(*s).strm).total_in_lo32 = ((*(*s).strm).total_in_lo32).wrapping_add(1);
-            if (*(*s).strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
+            if (*(*s).strm).total_in_lo32 == 0 {
                 (*(*s).strm).total_in_hi32 = ((*(*s).strm).total_in_hi32).wrapping_add(1);
             }
             (*s).avail_in_expect = ((*s).avail_in_expect).wrapping_sub(1);
@@ -572,8 +573,8 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
     }
     progress_in
 }
-unsafe fn copy_output_until_stop(s: *mut EState) -> Bool {
-    let mut progress_out: Bool = 0 as Bool;
+unsafe fn copy_output_until_stop(s: *mut EState) -> bool {
+    let mut progress_out = false;
     loop {
         if (*(*s).strm).avail_out == 0 as libc::c_int as libc::c_uint {
             break;
@@ -581,7 +582,7 @@ unsafe fn copy_output_until_stop(s: *mut EState) -> Bool {
         if (*s).state_out_pos >= (*s).numZ {
             break;
         }
-        progress_out = 1 as Bool;
+        progress_out = true;
         *(*(*s).strm).next_out = *((*s).zbits).offset((*s).state_out_pos as isize) as libc::c_char;
         (*s).state_out_pos += 1;
         (*(*s).strm).avail_out = ((*(*s).strm).avail_out).wrapping_sub(1);
@@ -593,14 +594,13 @@ unsafe fn copy_output_until_stop(s: *mut EState) -> Bool {
     }
     progress_out
 }
-unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
-    let mut progress_in: Bool = 0 as Bool;
-    let mut progress_out: Bool = 0 as Bool;
+unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
+    let mut progress_in = false;
+    let mut progress_out = false;
     let s: *mut EState = (*strm).state as *mut EState;
     loop {
         if (*s).state == 1 as libc::c_int {
-            progress_out =
-                (progress_out as libc::c_int | copy_output_until_stop(s) as libc::c_int) as Bool;
+            progress_out |= copy_output_until_stop(s);
             if (*s).state_out_pos < (*s).numZ {
                 break;
             }
@@ -622,8 +622,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
         if (*s).state != 2 as libc::c_int {
             continue;
         }
-        progress_in =
-            (progress_in as libc::c_int | copy_input_until_stop(s) as libc::c_int) as Bool;
+        progress_in |= copy_input_until_stop(s);
         if (*s).mode != 2 as libc::c_int && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
         {
             flush_RL(&mut *s);
@@ -636,11 +635,13 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
             break;
         }
     }
-    (progress_in as libc::c_int != 0 || progress_out as libc::c_int != 0) as Bool
+
+    progress_in || progress_out
 }
+
 #[export_name = prefix!(BZ2_bzCompress)]
 pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_int) -> libc::c_int {
-    let progress: Bool;
+    let progress: bool;
     let s: *mut EState;
     if strm.is_null() {
         return -2 as libc::c_int;
@@ -698,7 +699,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                     return -1 as libc::c_int;
                 }
                 progress = handle_compress(strm);
-                if progress == 0 {
+                if !progress {
                     return -1 as libc::c_int;
                 }
                 if (*s).avail_in_expect > 0 as libc::c_int as libc::c_uint
@@ -1583,14 +1584,17 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
     (*strm).state = std::ptr::null_mut::<libc::c_void>();
     0 as libc::c_int
 }
-unsafe fn myfeof(f: *mut FILE) -> Bool {
-    let c: i32 = fgetc(f);
-    if c == -1 as libc::c_int {
-        return 1 as Bool;
+unsafe fn myfeof(f: *mut FILE) -> bool {
+    let c = fgetc(f);
+    if c == -1 {
+        return true;
     }
+
     ungetc(c, f);
-    0 as Bool
+
+    false
 }
+
 #[export_name = prefix!(BZ2_bzWriteOpen)]
 pub unsafe extern "C" fn BZ2_bzWriteOpen(
     bzerror: *mut libc::c_int,
@@ -2081,7 +2085,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
             }
             return 0 as libc::c_int;
         }
-        if (*bzf).strm.avail_in == 0 as libc::c_int as libc::c_uint && myfeof((*bzf).handle) == 0 {
+        if (*bzf).strm.avail_in == 0 as libc::c_int as libc::c_uint && !myfeof((*bzf).handle) {
             n = fread(
                 ((*bzf).buf).as_mut_ptr() as *mut libc::c_void,
                 ::core::mem::size_of::<u8>() as libc::size_t,
@@ -2112,7 +2116,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
             return 0 as libc::c_int;
         }
         if ret == 0 as libc::c_int
-            && myfeof((*bzf).handle) as libc::c_int != 0
+            && myfeof((*bzf).handle)
             && (*bzf).strm.avail_in == 0 as libc::c_int as libc::c_uint
             && (*bzf).strm.avail_out > 0 as libc::c_int as libc::c_uint
         {
