@@ -1,4 +1,4 @@
-use core::ffi::{c_char, c_int, c_void};
+use core::ffi::{c_char, c_int, c_uint, c_void};
 
 use libc::FILE;
 use libc::{
@@ -63,24 +63,25 @@ pub extern "C" fn BZ2_bzlibVersion() -> *const core::ffi::c_char {
     LIBBZIP2_RS_SYS_VERSION.as_ptr().cast::<core::ffi::c_char>()
 }
 
+type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
+type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
+
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct bz_stream {
-    pub next_in: *mut libc::c_char,
-    pub avail_in: libc::c_uint,
-    pub total_in_lo32: libc::c_uint,
-    pub total_in_hi32: libc::c_uint,
-    pub next_out: *mut libc::c_char,
-    pub avail_out: libc::c_uint,
-    pub total_out_lo32: libc::c_uint,
-    pub total_out_hi32: libc::c_uint,
-    pub state: *mut libc::c_void,
-    pub bzalloc: Option<
-        unsafe extern "C" fn(*mut libc::c_void, libc::c_int, libc::c_int) -> *mut libc::c_void,
-    >,
-    pub bzfree: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>,
-    pub opaque: *mut libc::c_void,
+    pub next_in: *mut c_char,
+    pub avail_in: c_uint,
+    pub total_in_lo32: c_uint,
+    pub total_in_hi32: c_uint,
+    pub next_out: *mut c_char,
+    pub avail_out: c_uint,
+    pub total_out_lo32: c_uint,
+    pub total_out_hi32: c_uint,
+    pub state: *mut c_void,
+    pub bzalloc: Option<AllocFunc>,
+    pub bzfree: Option<FreeFunc>,
+    pub opaque: *mut c_void,
 }
 
 impl bz_stream {
@@ -703,40 +704,40 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
             },
             Mode::Flushing => {
                 let Ok(Action::Flush) = Action::try_from(action) else {
-                    return -1 as libc::c_int;
+                    return -1;
                 };
                 if (*s).avail_in_expect != (*(*s).strm).avail_in {
-                    return -1 as libc::c_int;
+                    return -1;
                 }
                 handle_compress(strm);
-                if (*s).avail_in_expect > 0 as libc::c_int as libc::c_uint
+                if (*s).avail_in_expect > 0
                     || !isempty_RL(&mut *s)
                     || (*s).state_out_pos < (*s).numZ
                 {
-                    return 2 as libc::c_int;
+                    return 2;
                 }
                 (*s).mode = Mode::Running;
-                return 1 as libc::c_int;
+                return 1;
             }
             Mode::Finishing => {
                 let Ok(Action::Finish) = Action::try_from(action) else {
-                    return -1 as libc::c_int;
+                    return -1;
                 };
                 if (*s).avail_in_expect != (*(*s).strm).avail_in {
-                    return -1 as libc::c_int;
+                    return -1;
                 }
                 let progress = handle_compress(strm);
                 if !progress {
-                    return -1 as libc::c_int;
+                    return -1;
                 }
-                if (*s).avail_in_expect > 0 as libc::c_int as libc::c_uint
+                if (*s).avail_in_expect > 0
                     || !isempty_RL(&mut *s)
                     || (*s).state_out_pos < (*s).numZ
                 {
-                    return 3 as libc::c_int;
+                    return 3;
                 }
                 (*s).mode = Mode::Idle;
-                return 4 as libc::c_int;
+                return 4;
             }
         }
     }
