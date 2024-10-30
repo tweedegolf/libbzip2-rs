@@ -27,8 +27,7 @@ fn upheap(
     weight: &mut [i32; BZ_MAX_ALPHA_SIZE * 2],
     mut z: i32,
 ) {
-    let tmp;
-    tmp = heap[z as usize];
+    let tmp = heap[z as usize];
     while weight[tmp as usize] < weight[heap[(z >> 1) as usize] as usize] {
         heap[z as usize] = heap[(z >> 1) as usize];
         z >>= 1;
@@ -43,11 +42,9 @@ fn downheap(
     nHeap: i32,
     mut z: i32,
 ) {
-    let mut yy: i32;
-    let tmp: i32;
-    tmp = heap[z as usize];
+    let tmp = heap[z as usize];
     loop {
-        yy = z << 1;
+        let mut yy = z << 1;
         if yy > nHeap {
             break;
         }
@@ -68,64 +65,65 @@ fn downheap(
 pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32, maxLen: i32) {
     let mut nNodes: i32;
     let mut nHeap: i32;
-    let mut n1: i32;
-    let mut n2: i32;
-    let mut i: i32;
     let mut j: i32;
-    let mut k: i32;
-    let mut tooLong: bool;
     let mut heap = [0i32; BZ_MAX_ALPHA_SIZE + 2];
     let mut weight = [0i32; BZ_MAX_ALPHA_SIZE * 2];
     let mut parent = [0i32; BZ_MAX_ALPHA_SIZE * 2];
-    i = 0;
-    while i < alphaSize {
+
+    for i in 0..alphaSize {
         weight[(i + 1) as usize] = (if *freq.offset(i as isize) == 0 as libc::c_int {
             1
         } else {
             *freq.offset(i as isize)
         }) << 8;
-        i += 1;
     }
+
     loop {
         nNodes = alphaSize;
         nHeap = 0;
+
         heap[0] = 0;
         weight[0] = 0;
         parent[0] = -2;
+
         for i in 1..=alphaSize {
             parent[i as usize] = -1;
             nHeap += 1;
             heap[nHeap as usize] = i;
             upheap(&mut heap, &mut weight, nHeap);
         }
+
         if nHeap >= BZ_MAX_ALPHA_SIZE as libc::c_int + 2 {
             BZ2_bz__AssertH__fail(2001);
         }
+
         while nHeap > 1 {
-            n1 = heap[1];
+            let n1 = heap[1] as usize;
             heap[1] = heap[nHeap as usize];
             nHeap -= 1;
             downheap(&mut heap, &mut weight, nHeap, 1);
-            n2 = heap[1];
+            let n2 = heap[1] as usize;
             heap[1] = heap[nHeap as usize];
             nHeap -= 1;
             downheap(&mut heap, &mut weight, nHeap, 1);
             nNodes += 1;
-            parent[n1 as usize] = nNodes;
-            parent[n2 as usize] = nNodes;
-            weight[nNodes as usize] = add_weights(weight[n1 as usize], weight[n2 as usize]);
+            parent[n1] = nNodes;
+            parent[n2] = nNodes;
+            weight[nNodes as usize] = add_weights(weight[n1], weight[n2]);
             parent[nNodes as usize] = -1;
             nHeap += 1;
             heap[nHeap as usize] = nNodes;
             upheap(&mut heap, &mut weight, nHeap);
         }
+
         if nNodes >= BZ_MAX_ALPHA_SIZE as libc::c_int * 2 {
             BZ2_bz__AssertH__fail(2002);
         }
-        tooLong = false;
+
+        let mut tooLong = false;
         for i in 1..=alphaSize {
             j = 0;
-            k = i;
+            let mut k = i;
             while parent[k as usize] >= 0 {
                 k = parent[k as usize];
                 j += 1;
@@ -135,9 +133,11 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
                 tooLong = true;
             }
         }
+
         if !tooLong {
             break;
         }
+
         for i in 1..=alphaSize {
             j = weight[i as usize] >> 8;
             j = 1 + j / 2;
@@ -152,22 +152,15 @@ pub unsafe fn BZ2_hbAssignCodes(
     maxLen: i32,
     alphaSize: i32,
 ) {
-    let mut n: i32;
-    let mut vec: i32;
-    let mut i: i32;
-    vec = 0;
-    n = minLen;
-    while n <= maxLen {
-        i = 0;
-        while i < alphaSize {
+    let mut vec: i32 = 0;
+    for n in minLen..=maxLen {
+        for i in 0..alphaSize {
             if *length.offset(i as isize) as libc::c_int == n {
                 *code.offset(i as isize) = vec;
                 vec += 1;
             }
-            i += 1;
         }
         vec <<= 1;
-        n += 1;
     }
 }
 pub unsafe fn BZ2_hbCreateDecodeTables(
@@ -179,57 +172,39 @@ pub unsafe fn BZ2_hbCreateDecodeTables(
     maxLen: i32,
     alphaSize: i32,
 ) {
-    let mut pp: i32;
-    let mut i: i32;
-    let mut j: i32;
-    let mut vec: i32;
-    pp = 0;
-    i = minLen;
-    while i <= maxLen {
-        j = 0;
-        while j < alphaSize {
+    let mut pp: i32 = 0;
+    for i in minLen..=maxLen {
+        for j in 0..alphaSize {
             if *length.offset(j as isize) as libc::c_int == i {
                 *perm.offset(pp as isize) = j;
                 pp += 1;
             }
-            j += 1;
         }
-        i += 1;
     }
-    i = 0;
-    while i < BZ_MAX_CODE_LEN as libc::c_int {
+
+    for i in 0..BZ_MAX_CODE_LEN as libc::c_int {
         *base.offset(i as isize) = 0;
-        i += 1;
     }
-    i = 0;
-    while i < alphaSize {
-        let fresh0 = &mut (*base.offset((*length.offset(i as isize) + 1) as isize));
-        *fresh0 += 1;
-        i += 1;
+    for i in 0..alphaSize {
+        *base.offset((*length.offset(i as isize) + 1) as isize) += 1;
     }
-    i = 1;
-    while i < BZ_MAX_CODE_LEN as libc::c_int {
-        let fresh1 = &mut (*base.offset(i as isize));
-        *fresh1 += *base.offset((i - 1) as isize);
-        i += 1;
+
+    for i in 1..BZ_MAX_CODE_LEN as libc::c_int {
+        *base.offset(i as isize) += *base.offset((i - 1) as isize);
     }
-    i = 0;
-    while i < BZ_MAX_CODE_LEN as libc::c_int {
+
+    for i in 0..BZ_MAX_CODE_LEN as libc::c_int {
         *limit.offset(i as isize) = 0;
-        i += 1;
     }
-    vec = 0;
-    i = minLen;
-    while i <= maxLen {
+    let mut vec = 0;
+
+    for i in minLen..=maxLen {
         vec += *base.offset((i + 1) as isize) - *base.offset(i as isize);
         *limit.offset(i as isize) = vec - 1;
         vec <<= 1;
-        i += 1;
     }
-    i = minLen + 1;
-    while i <= maxLen {
+    for i in minLen + 1..=maxLen {
         *base.offset(i as isize) =
             ((*limit.offset((i - 1) as isize) + 1) << 1) - *base.offset(i as isize);
-        i += 1;
     }
 }
