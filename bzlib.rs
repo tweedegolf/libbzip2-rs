@@ -648,45 +648,63 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
     progress_in || progress_out
 }
 
+enum Action {
+    Run = 0,
+    Flush = 1,
+    Finish = 2,
+}
+
+impl TryFrom<i32> for Action {
+    type Error = ();
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::Run),
+            1 => Ok(Self::Flush),
+            2 => Ok(Self::Finish),
+            _ => Err(()),
+        }
+    }
+}
+
 #[export_name = prefix!(BZ2_bzCompress)]
 pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_int) -> libc::c_int {
-    let progress: bool;
-    let s: *mut EState;
     if strm.is_null() {
         return -2 as libc::c_int;
     }
-    s = (*strm).state as *mut EState;
+
+    let s = (*strm).state as *mut EState;
     if s.is_null() {
         return -2 as libc::c_int;
     }
     if (*s).strm != strm {
         return -2 as libc::c_int;
     }
+
     loop {
         match (*s).mode {
             Mode::Idle => return -1 as libc::c_int,
-            Mode::Running => {
-                if action == 0 as libc::c_int {
-                    progress = handle_compress(strm);
-                    return if progress as libc::c_int != 0 {
-                        1 as libc::c_int
-                    } else {
-                        -2 as libc::c_int
-                    };
-                } else if action == 1 as libc::c_int {
+            Mode::Running => match Action::try_from(action) {
+                Ok(Action::Run) => {
+                    let progress = handle_compress(strm);
+                    return if progress { 1 } else { -2 };
+                }
+                Ok(Action::Flush) => {
                     (*s).avail_in_expect = (*strm).avail_in;
                     (*s).mode = Mode::Flushing;
-                } else if action == 2 as libc::c_int {
+                }
+                Ok(Action::Finish) => {
                     (*s).avail_in_expect = (*strm).avail_in;
                     (*s).mode = Mode::Finishing;
-                } else {
-                    return -2 as libc::c_int;
                 }
-            }
+                Err(()) => {
+                    return -2;
+                }
+            },
             Mode::Flushing => {
-                if action != 1 as libc::c_int {
+                let Ok(Action::Flush) = Action::try_from(action) else {
                     return -1 as libc::c_int;
-                }
+                };
                 if (*s).avail_in_expect != (*(*s).strm).avail_in {
                     return -1 as libc::c_int;
                 }
@@ -701,13 +719,13 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                 return 1 as libc::c_int;
             }
             Mode::Finishing => {
-                if action != 2 as libc::c_int {
+                let Ok(Action::Finish) = Action::try_from(action) else {
                     return -1 as libc::c_int;
-                }
+                };
                 if (*s).avail_in_expect != (*(*s).strm).avail_in {
                     return -1 as libc::c_int;
                 }
-                progress = handle_compress(strm);
+                let progress = handle_compress(strm);
                 if !progress {
                     return -1 as libc::c_int;
                 }
