@@ -16,6 +16,13 @@ extern "C" {
     static stdout: *mut FILE;
 }
 
+pub(crate) const BZ_MAX_ALPHA_SIZE: usize = 258;
+pub(crate) const BZ_MAX_CODE_LEN: usize = 23;
+
+pub(crate) const BZ_N_GROUPS: usize = 6;
+pub(crate) const BZ_G_SIZE: usize = 50;
+pub(crate) const BZ_N_ITERS: usize = 4;
+
 #[cfg(feature = "custom-prefix")]
 macro_rules! prefix {
     ($name:expr) => {
