@@ -1571,7 +1571,7 @@ pub unsafe fn BZ2_compressBlock(s: *mut EState, is_last_block: Bool) {
                 (*s).nblock,
             );
         }
-        BZ2_blockSort(s);
+        BZ2_blockSort(&mut *s);
     }
     (*s).zbits = &mut *((*s).arr2 as *mut u8).offset((*s).nblock as isize) as *mut u8;
     if (*s).blockNo == 1 as libc::c_int {

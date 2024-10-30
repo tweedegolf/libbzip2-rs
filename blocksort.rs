@@ -1237,19 +1237,19 @@ unsafe fn mainSort(
         );
     }
 }
-pub unsafe fn BZ2_blockSort(s: *mut EState) {
-    let ptr: *mut u32 = (*s).ptr;
-    let block: *mut u8 = (*s).block;
-    let ftab: *mut u32 = (*s).ftab;
-    let nblock: i32 = (*s).nblock;
-    let verb: i32 = (*s).verbosity;
-    let mut wfact: i32 = (*s).workFactor;
+pub unsafe fn BZ2_blockSort(s: &mut EState) {
+    let ptr: *mut u32 = s.ptr;
+    let block: *mut u8 = s.block;
+    let ftab: *mut u32 = s.ftab;
+    let nblock: i32 = s.nblock;
+    let verb: i32 = s.verbosity;
+    let mut wfact: i32 = s.workFactor;
     let quadrant: *mut u16;
     let mut budget: i32;
     let budgetInit: i32;
     let mut i: i32;
     if nblock < 10000 as libc::c_int {
-        fallbackSort((*s).arr1, (*s).arr2, ftab, nblock, verb);
+        fallbackSort(s.arr1, s.arr2, ftab, nblock, verb);
     } else {
         i = nblock + (2 as libc::c_int + 12 as libc::c_int + 18 as libc::c_int + 2 as libc::c_int);
         if i & 1 as libc::c_int != 0 {
@@ -1282,20 +1282,20 @@ pub unsafe fn BZ2_blockSort(s: *mut EState) {
             if verb >= 2 as libc::c_int {
                 eprintln!("    too repetitive; using fallback sorting algorithm");
             }
-            fallbackSort((*s).arr1, (*s).arr2, ftab, nblock, verb);
+            fallbackSort(s.arr1, s.arr2, ftab, nblock, verb);
         }
     }
-    (*s).origPtr = -1 as libc::c_int;
+    s.origPtr = -1 as libc::c_int;
     i = 0 as libc::c_int;
-    while i < (*s).nblock {
+    while i < s.nblock {
         if *ptr.offset(i as isize) == 0 as libc::c_int as libc::c_uint {
-            (*s).origPtr = i;
+            s.origPtr = i;
             break;
         } else {
             i += 1;
         }
     }
-    if (*s).origPtr == -1 as libc::c_int {
+    if s.origPtr == -1 as libc::c_int {
         BZ2_bz__AssertH__fail(1003 as libc::c_int);
     }
 }
