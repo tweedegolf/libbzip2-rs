@@ -108,17 +108,17 @@ fn compress_sample3() {
 
 pub fn decompress_c<'a>(
     dest: *mut u8,
-    destLen: *mut libc::c_uint,
+    dest_len: *mut libc::c_uint,
     source: *const u8,
-    sourceLen: libc::c_uint,
+    source_len: libc::c_uint,
 ) -> i32 {
     use bzip2_sys::*;
 
     pub unsafe fn BZ2_bzBuffToBuffDecompress(
         dest: *mut libc::c_char,
-        destLen: *mut libc::c_uint,
+        dest_len: *mut libc::c_uint,
         source: *mut libc::c_char,
-        sourceLen: libc::c_uint,
+        source_len: libc::c_uint,
         small: libc::c_int,
         verbosity: libc::c_int,
     ) -> libc::c_int {
@@ -138,7 +138,7 @@ pub fn decompress_c<'a>(
         };
         let mut ret: libc::c_int;
         if dest.is_null()
-            || destLen.is_null()
+            || dest_len.is_null()
             || source.is_null()
             || small != 0 as libc::c_int && small != 1 as libc::c_int
             || verbosity < 0 as libc::c_int
@@ -155,8 +155,8 @@ pub fn decompress_c<'a>(
         }
         strm.next_in = source;
         strm.next_out = dest;
-        strm.avail_in = sourceLen;
-        strm.avail_out = *destLen;
+        strm.avail_in = source_len;
+        strm.avail_out = *dest_len;
         ret = BZ2_bzDecompress(&mut strm);
         if ret == 0 as libc::c_int {
             if strm.avail_out > 0 as libc::c_int as libc::c_uint {
@@ -170,7 +170,7 @@ pub fn decompress_c<'a>(
             BZ2_bzDecompressEnd(&mut strm);
             return ret;
         } else {
-            *destLen = (*destLen).wrapping_sub(strm.avail_out);
+            *dest_len = (*dest_len).wrapping_sub(strm.avail_out);
             BZ2_bzDecompressEnd(&mut strm);
             return 0 as libc::c_int;
         }
@@ -179,9 +179,9 @@ pub fn decompress_c<'a>(
     unsafe {
         BZ2_bzBuffToBuffDecompress(
             dest.cast::<core::ffi::c_char>(),
-            destLen,
+            dest_len,
             source as *mut _,
-            sourceLen,
+            source_len,
             0,
             0,
         )
@@ -190,17 +190,17 @@ pub fn decompress_c<'a>(
 
 pub fn decompress_rs<'a>(
     dest: *mut u8,
-    destLen: *mut libc::c_uint,
+    dest_len: *mut libc::c_uint,
     source: *const u8,
-    sourceLen: libc::c_uint,
+    source_len: libc::c_uint,
 ) -> i32 {
     use libbzip2_rs_sys::bzlib::*;
 
     pub unsafe fn BZ2_bzBuffToBuffDecompress(
         dest: *mut libc::c_char,
-        destLen: *mut libc::c_uint,
+        dest_len: *mut libc::c_uint,
         source: *mut libc::c_char,
-        sourceLen: libc::c_uint,
+        source_len: libc::c_uint,
         small: libc::c_int,
         verbosity: libc::c_int,
     ) -> libc::c_int {
@@ -220,7 +220,7 @@ pub fn decompress_rs<'a>(
         };
         let mut ret: libc::c_int;
         if dest.is_null()
-            || destLen.is_null()
+            || dest_len.is_null()
             || source.is_null()
             || small != 0 as libc::c_int && small != 1 as libc::c_int
             || verbosity < 0 as libc::c_int
@@ -237,8 +237,8 @@ pub fn decompress_rs<'a>(
         }
         strm.next_in = source;
         strm.next_out = dest;
-        strm.avail_in = sourceLen;
-        strm.avail_out = *destLen;
+        strm.avail_in = source_len;
+        strm.avail_out = *dest_len;
         ret = BZ2_bzDecompress(&mut strm);
         if ret == 0 as libc::c_int {
             if strm.avail_out > 0 as libc::c_int as libc::c_uint {
@@ -252,7 +252,7 @@ pub fn decompress_rs<'a>(
             BZ2_bzDecompressEnd(&mut strm);
             return ret;
         } else {
-            *destLen = (*destLen).wrapping_sub(strm.avail_out);
+            *dest_len = (*dest_len).wrapping_sub(strm.avail_out);
             BZ2_bzDecompressEnd(&mut strm);
             return 0 as libc::c_int;
         }
@@ -261,9 +261,9 @@ pub fn decompress_rs<'a>(
     unsafe {
         BZ2_bzBuffToBuffDecompress(
             dest.cast::<core::ffi::c_char>(),
-            destLen,
+            dest_len,
             source as *mut _,
-            sourceLen,
+            source_len,
             0,
             0,
         )
@@ -272,19 +272,19 @@ pub fn decompress_rs<'a>(
 
 pub fn compress_c<'a>(
     dest: *mut u8,
-    destLen: *mut libc::c_uint,
+    dest_len: *mut libc::c_uint,
     source: *const u8,
-    sourceLen: libc::c_uint,
+    source_len: libc::c_uint,
 ) -> i32 {
     use bzip2_sys::*;
     pub unsafe fn BZ2_bzBuffToBuffCompress(
         dest: *mut libc::c_char,
-        destLen: *mut libc::c_uint,
+        dest_len: *mut libc::c_uint,
         source: *mut libc::c_char,
-        sourceLen: libc::c_uint,
-        blockSize100k: libc::c_int,
+        source_len: libc::c_uint,
+        block_size_100k: libc::c_int,
         verbosity: libc::c_int,
-        mut workFactor: libc::c_int,
+        mut work_factor: libc::c_int,
     ) -> libc::c_int {
         let mut strm: bz_stream = bz_stream {
             next_in: std::ptr::null_mut::<libc::c_char>(),
@@ -302,31 +302,31 @@ pub fn compress_c<'a>(
         };
         let mut ret: libc::c_int;
         if dest.is_null()
-            || destLen.is_null()
+            || dest_len.is_null()
             || source.is_null()
-            || blockSize100k < 1 as libc::c_int
-            || blockSize100k > 9 as libc::c_int
+            || block_size_100k < 1 as libc::c_int
+            || block_size_100k > 9 as libc::c_int
             || verbosity < 0 as libc::c_int
             || verbosity > 4 as libc::c_int
-            || workFactor < 0 as libc::c_int
-            || workFactor > 250 as libc::c_int
+            || work_factor < 0 as libc::c_int
+            || work_factor > 250 as libc::c_int
         {
             return -2 as libc::c_int;
         }
-        if workFactor == 0 as libc::c_int {
-            workFactor = 30 as libc::c_int;
+        if work_factor == 0 as libc::c_int {
+            work_factor = 30 as libc::c_int;
         }
         strm.bzalloc = None;
         strm.bzfree = None;
         strm.opaque = std::ptr::null_mut::<libc::c_void>();
-        ret = BZ2_bzCompressInit(&mut strm, blockSize100k, verbosity, workFactor);
+        ret = BZ2_bzCompressInit(&mut strm, block_size_100k, verbosity, work_factor);
         if ret != 0 as libc::c_int {
             return ret;
         }
         strm.next_in = source;
         strm.next_out = dest;
-        strm.avail_in = sourceLen;
-        strm.avail_out = *destLen;
+        strm.avail_in = source_len;
+        strm.avail_out = *dest_len;
         ret = BZ2_bzCompress(&mut strm, 2 as libc::c_int);
         if ret == 3 as libc::c_int {
             BZ2_bzCompressEnd(&mut strm);
@@ -335,45 +335,45 @@ pub fn compress_c<'a>(
             BZ2_bzCompressEnd(&mut strm);
             return ret;
         } else {
-            *destLen = (*destLen).wrapping_sub(strm.avail_out);
+            *dest_len = (*dest_len).wrapping_sub(strm.avail_out);
             BZ2_bzCompressEnd(&mut strm);
             return 0 as libc::c_int;
         }
     }
 
     let verbosity = 0;
-    let blockSize100k = 9;
-    let workFactor = 30;
+    let block_size_100k = 9;
+    let work_factor = 30;
 
     unsafe {
         BZ2_bzBuffToBuffCompress(
             dest.cast::<core::ffi::c_char>(),
-            destLen,
+            dest_len,
             source as *mut _,
-            sourceLen,
-            blockSize100k,
+            source_len,
+            block_size_100k,
             verbosity,
-            workFactor,
+            work_factor,
         )
     }
 }
 
 pub fn compress_rs<'a>(
     dest: *mut u8,
-    destLen: *mut libc::c_uint,
+    dest_len: *mut libc::c_uint,
     source: *const u8,
-    sourceLen: libc::c_uint,
+    source_len: libc::c_uint,
 ) -> i32 {
     use libbzip2_rs_sys::bzlib::*;
 
     pub unsafe fn BZ2_bzBuffToBuffCompress(
         dest: *mut libc::c_char,
-        destLen: *mut libc::c_uint,
+        dest_len: *mut libc::c_uint,
         source: *mut libc::c_char,
-        sourceLen: libc::c_uint,
-        blockSize100k: libc::c_int,
+        source_len: libc::c_uint,
+        block_size_100k: libc::c_int,
         verbosity: libc::c_int,
-        mut workFactor: libc::c_int,
+        mut work_factor: libc::c_int,
     ) -> libc::c_int {
         let mut strm: bz_stream = bz_stream {
             next_in: std::ptr::null_mut::<libc::c_char>(),
@@ -391,31 +391,31 @@ pub fn compress_rs<'a>(
         };
         let mut ret: libc::c_int;
         if dest.is_null()
-            || destLen.is_null()
+            || dest_len.is_null()
             || source.is_null()
-            || blockSize100k < 1 as libc::c_int
-            || blockSize100k > 9 as libc::c_int
+            || block_size_100k < 1 as libc::c_int
+            || block_size_100k > 9 as libc::c_int
             || verbosity < 0 as libc::c_int
             || verbosity > 4 as libc::c_int
-            || workFactor < 0 as libc::c_int
-            || workFactor > 250 as libc::c_int
+            || work_factor < 0 as libc::c_int
+            || work_factor > 250 as libc::c_int
         {
             return -2 as libc::c_int;
         }
-        if workFactor == 0 as libc::c_int {
-            workFactor = 30 as libc::c_int;
+        if work_factor == 0 as libc::c_int {
+            work_factor = 30 as libc::c_int;
         }
         strm.bzalloc = None;
         strm.bzfree = None;
         strm.opaque = std::ptr::null_mut::<libc::c_void>();
-        ret = BZ2_bzCompressInit(&mut strm, blockSize100k, verbosity, workFactor);
+        ret = BZ2_bzCompressInit(&mut strm, block_size_100k, verbosity, work_factor);
         if ret != 0 as libc::c_int {
             return ret;
         }
         strm.next_in = source;
         strm.next_out = dest;
-        strm.avail_in = sourceLen;
-        strm.avail_out = *destLen;
+        strm.avail_in = source_len;
+        strm.avail_out = *dest_len;
         ret = BZ2_bzCompress(&mut strm, 2 as libc::c_int);
         if ret == 3 as libc::c_int {
             BZ2_bzCompressEnd(&mut strm);
@@ -424,25 +424,25 @@ pub fn compress_rs<'a>(
             BZ2_bzCompressEnd(&mut strm);
             return ret;
         } else {
-            *destLen = (*destLen).wrapping_sub(strm.avail_out);
+            *dest_len = (*dest_len).wrapping_sub(strm.avail_out);
             BZ2_bzCompressEnd(&mut strm);
             return 0 as libc::c_int;
         }
     }
 
     let verbosity = 0;
-    let blockSize100k = 9;
-    let workFactor = 30;
+    let block_size_100k = 9;
+    let work_factor = 30;
 
     unsafe {
         BZ2_bzBuffToBuffCompress(
             dest.cast::<core::ffi::c_char>(),
-            destLen,
+            dest_len,
             source as *mut _,
-            sourceLen,
-            blockSize100k,
+            source_len,
+            block_size_100k,
             verbosity,
-            workFactor,
+            work_factor,
         )
     }
 }

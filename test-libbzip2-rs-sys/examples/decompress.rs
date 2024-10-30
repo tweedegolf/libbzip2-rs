@@ -20,7 +20,7 @@ fn main() {
             let source = input.as_ptr();
             let source_len = input.len() as _;
 
-            let err = unsafe { decompress_c(dest, &mut dest_len, source, source_len) };
+            let err = decompress_c(dest, &mut dest_len, source, source_len);
 
             if err != 0 {
                 panic!("error {err}");
@@ -42,7 +42,7 @@ fn main() {
             let source = input.as_ptr();
             let source_len = input.len() as _;
 
-            let err = unsafe { decompress_rs(dest, &mut dest_len, source, source_len) };
+            let err = decompress_rs(dest, &mut dest_len, source, source_len);
 
             if err != 0 {
                 panic!("error {err}");
