@@ -369,12 +369,9 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
         } else {
             buffHi = buffHi << 1 as libc::c_int | buffLo >> 31 as libc::c_int;
             buffLo = buffLo << 1 as libc::c_int | (b & 1 as libc::c_int) as libc::c_uint;
-            if (buffHi & 0xffff as libc::c_int as libc::c_uint) as libc::c_ulong
-                == 0x3141 as libc::c_ulong
-                && buffLo as libc::c_ulong == 0x59265359 as libc::c_ulong
-                || (buffHi & 0xffff as libc::c_int as libc::c_uint) as libc::c_ulong
-                    == 0x1772 as libc::c_ulong
-                    && buffLo as libc::c_ulong == 0x45385090 as libc::c_ulong
+            if (buffHi & 0xffff as libc::c_int as libc::c_uint) == 0x3141 && buffLo == 0x59265359
+                || (buffHi & 0xffff as libc::c_int as libc::c_uint) == 0x1772
+                    && buffLo == 0x45385090
             {
                 if bitsRead > 49 as libc::c_int as libc::c_ulonglong {
                     bEnd[currBlock as usize] =
@@ -498,7 +495,7 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
                 wrBlock + 1 as libc::c_int,
             );
             p = split;
-            while *p as libc::c_int != 0 as libc::c_int {
+            while *p != 0 {
                 if *p as libc::c_int == ' ' as i32 {
                     *p = '0' as i32 as i8;
                 }

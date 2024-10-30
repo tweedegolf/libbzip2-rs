@@ -385,84 +385,84 @@ unsafe fn mainGtU(
     let mut s2: u16;
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
-    if c1 as libc::c_int != c2 as libc::c_int {
+    if c1 != c2 {
         return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
     }
     i1 = i1.wrapping_add(1);
@@ -471,96 +471,96 @@ unsafe fn mainGtU(
     loop {
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
-        if c1 as libc::c_int != c2 as libc::c_int {
+        if c1 != c2 {
             return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
-        if s1 as libc::c_int != s2 as libc::c_int {
+        if s1 != s2 {
             return (s1 as libc::c_int > s2 as libc::c_int) as libc::c_int as Bool;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
-        if c1 as libc::c_int != c2 as libc::c_int {
+        if c1 != c2 {
             return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
-        if s1 as libc::c_int != s2 as libc::c_int {
+        if s1 != s2 {
             return (s1 as libc::c_int > s2 as libc::c_int) as libc::c_int as Bool;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
-        if c1 as libc::c_int != c2 as libc::c_int {
+        if c1 != c2 {
             return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
-        if s1 as libc::c_int != s2 as libc::c_int {
+        if s1 != s2 {
             return (s1 as libc::c_int > s2 as libc::c_int) as libc::c_int as Bool;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
-        if c1 as libc::c_int != c2 as libc::c_int {
+        if c1 != c2 {
             return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
-        if s1 as libc::c_int != s2 as libc::c_int {
+        if s1 != s2 {
             return (s1 as libc::c_int > s2 as libc::c_int) as libc::c_int as Bool;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
-        if c1 as libc::c_int != c2 as libc::c_int {
+        if c1 != c2 {
             return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
-        if s1 as libc::c_int != s2 as libc::c_int {
+        if s1 != s2 {
             return (s1 as libc::c_int > s2 as libc::c_int) as libc::c_int as Bool;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
-        if c1 as libc::c_int != c2 as libc::c_int {
+        if c1 != c2 {
             return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
-        if s1 as libc::c_int != s2 as libc::c_int {
+        if s1 != s2 {
             return (s1 as libc::c_int > s2 as libc::c_int) as libc::c_int as Bool;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
-        if c1 as libc::c_int != c2 as libc::c_int {
+        if c1 != c2 {
             return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
-        if s1 as libc::c_int != s2 as libc::c_int {
+        if s1 != s2 {
             return (s1 as libc::c_int > s2 as libc::c_int) as libc::c_int as Bool;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
-        if c1 as libc::c_int != c2 as libc::c_int {
+        if c1 != c2 {
             return (c1 as libc::c_int > c2 as libc::c_int) as libc::c_int as Bool;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
-        if s1 as libc::c_int != s2 as libc::c_int {
+        if s1 != s2 {
             return (s1 as libc::c_int > s2 as libc::c_int) as libc::c_int as Bool;
         }
         i1 = i1.wrapping_add(1);

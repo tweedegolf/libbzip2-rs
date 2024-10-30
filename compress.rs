@@ -96,7 +96,7 @@ unsafe fn generateMTFValues(s: *mut EState) {
             j += (*s).nblock;
         }
         ll_i = (*s).unseqToSeq[*block.offset(j as isize) as usize];
-        if yy[0 as libc::c_int as usize] as libc::c_int == ll_i as libc::c_int {
+        if yy[0 as libc::c_int as usize] == ll_i {
             zPend += 1;
         } else {
             if zPend > 0 as libc::c_int {
@@ -127,7 +127,7 @@ unsafe fn generateMTFValues(s: *mut EState) {
             yy[1 as libc::c_int as usize] = yy[0 as libc::c_int as usize];
             ryy_j = &mut *yy.as_mut_ptr().offset(1 as libc::c_int as isize) as *mut u8;
             rll_i = ll_i;
-            while rll_i as libc::c_int != rtmp as libc::c_int {
+            while rll_i != rtmp {
                 let rtmp2: u8;
                 ryy_j = ryy_j.offset(1);
                 rtmp2 = rtmp;
@@ -1082,7 +1082,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
         ll_i = (*s).selector[i as usize];
         j = 0 as libc::c_int;
         tmp = pos[j as usize];
-        while ll_i as libc::c_int != tmp as libc::c_int {
+        while ll_i != tmp {
             j += 1;
             tmp2 = tmp;
             tmp = pos[j as usize];

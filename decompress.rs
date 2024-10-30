@@ -180,7 +180,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x42 as libc::c_int {
+                    if uc != 0x42 {
                         retVal = -5 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -355,7 +355,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         match current_block {
             3350591128142761507 => {}
             _ => {
-                if uc as libc::c_int != 0x5a as libc::c_int {
+                if uc != 0x5a {
                     retVal = -5 as libc::c_int;
                     current_block = 3350591128142761507;
                 } else {
@@ -400,7 +400,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         match current_block {
             3350591128142761507 => {}
             _ => {
-                if uc as libc::c_int != 0x68 as libc::c_int {
+                if uc != 0x68 {
                     retVal = -5 as libc::c_int;
                     current_block = 3350591128142761507;
                 } else {
@@ -529,9 +529,9 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         match current_block {
             3350591128142761507 => {}
             _ => {
-                if uc as libc::c_int == 0x17 as libc::c_int {
+                if uc == 0x17 {
                     current_block = 14366592556287126287;
-                } else if uc as libc::c_int != 0x31 as libc::c_int {
+                } else if uc != 0x31 {
                     retVal = -4 as libc::c_int;
                     current_block = 3350591128142761507;
                 } else {
@@ -579,7 +579,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x72 as libc::c_int {
+                    if uc != 0x72 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -626,7 +626,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x41 as libc::c_int {
+                    if uc != 0x41 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -676,7 +676,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x45 as libc::c_int {
+                    if uc != 0x45 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -723,7 +723,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x59 as libc::c_int {
+                    if uc != 0x59 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -773,7 +773,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x38 as libc::c_int {
+                    if uc != 0x38 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -820,7 +820,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x26 as libc::c_int {
+                    if uc != 0x26 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -870,7 +870,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x50 as libc::c_int {
+                    if uc != 0x50 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -917,7 +917,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x53 as libc::c_int {
+                    if uc != 0x53 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -967,7 +967,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x90 as libc::c_int {
+                    if uc != 0x90 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -1015,7 +1015,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             match current_block {
                 3350591128142761507 => {}
                 _ => {
-                    if uc as libc::c_int != 0x59 as libc::c_int {
+                    if uc != 0x59 {
                         retVal = -4 as libc::c_int;
                         current_block = 3350591128142761507;
                     } else {
@@ -1758,7 +1758,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         }
                     }
                 }
-                if uc as libc::c_int == 0 as libc::c_int {
+                if uc == 0 {
                     curr += 1;
                 } else {
                     curr -= 1;
@@ -1795,7 +1795,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         }
                     }
                 }
-                if uc as libc::c_int != 0 as libc::c_int {
+                if uc != 0 {
                     current_block = 7191958063352112897;
                     continue;
                 }
@@ -1864,7 +1864,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         }
                     }
                 }
-                if uc as libc::c_int == 0 as libc::c_int {
+                if uc == 0 {
                     current_block = 10081471997089450706;
                 } else {
                     j += 1;
@@ -1984,7 +1984,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         }
                     }
                 }
-                if uc as libc::c_int == 1 as libc::c_int {
+                if uc == 1 {
                     s.inUse[(i * 16 as libc::c_int + j) as usize] = 1 as libc::c_int as Bool;
                 }
                 j += 1;
@@ -2033,7 +2033,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         }
                     }
                 }
-                if uc as libc::c_int == 1 as libc::c_int {
+                if uc == 1 {
                     s.inUse16[i as usize] = 1 as libc::c_int as Bool;
                 } else {
                     s.inUse16[i as usize] = 0 as libc::c_int as Bool;
