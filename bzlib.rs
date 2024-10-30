@@ -594,14 +594,13 @@ unsafe fn copy_output_until_stop(s: *mut EState) -> bool {
     }
     progress_out
 }
-unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
-    let mut progress_in: Bool = 0 as Bool;
-    let mut progress_out: Bool = 0 as Bool;
+unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
+    let mut progress_in = false;
+    let mut progress_out = false;
     let s: *mut EState = (*strm).state as *mut EState;
     loop {
         if (*s).state == 1 as libc::c_int {
-            progress_out =
-                (progress_out as libc::c_int | copy_output_until_stop(s) as libc::c_int) as Bool;
+            progress_out |= copy_output_until_stop(s);
             if (*s).state_out_pos < (*s).numZ {
                 break;
             }
@@ -623,8 +622,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
         if (*s).state != 2 as libc::c_int {
             continue;
         }
-        progress_in =
-            (progress_in as libc::c_int | copy_input_until_stop(s) as libc::c_int) as Bool;
+        progress_in |= copy_input_until_stop(s);
         if (*s).mode != 2 as libc::c_int && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
         {
             flush_RL(&mut *s);
@@ -637,11 +635,13 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> Bool {
             break;
         }
     }
-    (progress_in as libc::c_int != 0 || progress_out as libc::c_int != 0) as Bool
+
+    progress_in || progress_out
 }
+
 #[export_name = prefix!(BZ2_bzCompress)]
 pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_int) -> libc::c_int {
-    let progress: Bool;
+    let progress: bool;
     let s: *mut EState;
     if strm.is_null() {
         return -2 as libc::c_int;
@@ -699,7 +699,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                     return -1 as libc::c_int;
                 }
                 progress = handle_compress(strm);
-                if progress == 0 {
+                if !progress {
                     return -1 as libc::c_int;
                 }
                 if (*s).avail_in_expect > 0 as libc::c_int as libc::c_uint
