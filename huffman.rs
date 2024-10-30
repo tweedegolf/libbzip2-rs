@@ -131,7 +131,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
         if nNodes >= 258 as libc::c_int * 2 as libc::c_int {
             BZ2_bz__AssertH__fail(2002 as libc::c_int);
         }
-        tooLong = 0 as libc::c_int as Bool;
+        tooLong = 0 as Bool;
         i = 1 as libc::c_int;
         while i <= alphaSize {
             j = 0 as libc::c_int;
@@ -142,7 +142,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
             }
             *len.offset((i - 1 as libc::c_int) as isize) = j as u8;
             if j > maxLen {
-                tooLong = 1 as libc::c_int as Bool;
+                tooLong = 1 as Bool;
             }
             i += 1;
         }

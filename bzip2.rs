@@ -148,11 +148,11 @@ unsafe fn uInt64_isZero(mut n: *mut UInt64) -> Bool {
     i = 0 as libc::c_int;
     while i < 8 as libc::c_int {
         if (*n).b[i as usize] as libc::c_int != 0 as libc::c_int {
-            return 0 as libc::c_int as Bool;
+            return 0 as Bool;
         }
         i += 1;
     }
-    return 1 as libc::c_int as Bool;
+    return 1 as Bool;
 }
 unsafe fn uInt64_qrm10(mut n: *mut UInt64) -> i32 {
     let mut rem: u32 = 0;
@@ -194,10 +194,10 @@ unsafe fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut UInt64) {
 unsafe fn myfeof(mut f: *mut FILE) -> Bool {
     let mut c: i32 = fgetc(f);
     if c == -1 as libc::c_int {
-        return 1 as libc::c_int as Bool;
+        return 1 as Bool;
     }
     ungetc(c, f);
-    return 0 as libc::c_int as Bool;
+    return 0 as Bool;
 }
 unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
     let mut current_block: u64;
@@ -221,7 +221,7 @@ unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
                     fprintf(stderr, b"\n\0" as *const u8 as *const libc::c_char);
                 }
                 loop {
-                    if !(1 as libc::c_int as Bool != 0) {
+                    if false {
                         current_block = 9606288038608642794;
                         break;
                     }
@@ -457,7 +457,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
     if !(ferror(stream) != 0) {
         if !(ferror(zStream) != 0) {
             's_37: loop {
-                if !(1 as libc::c_int as Bool != 0) {
+                if false {
                     current_block = 17487785624869370758;
                     break;
                 }
@@ -531,7 +531,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                             if forceOverwrite != 0 {
                                 rewind(zStream);
                                 loop {
-                                    if !(1 as libc::c_int as Bool != 0) {
+                                    if false {
                                         current_block = 17487785624869370758;
                                         break;
                                     }
@@ -603,7 +603,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                     fclose(stream);
                                                 }
                                                 if streamNo == 1 as libc::c_int {
-                                                    return 0 as libc::c_int as Bool;
+                                                    return 0 as Bool;
                                                 } else {
                                                     if noisy != 0 {
                                                         fprintf(
@@ -614,7 +614,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                                 inName.as_mut_ptr(),
                                                             );
                                                     }
-                                                    return 1 as libc::c_int as Bool;
+                                                    return 1 as Bool;
                                                 }
                                             }
                                         }
@@ -649,7 +649,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                     fclose(stream);
                                                 }
                                                 if streamNo == 1 as libc::c_int {
-                                                    return 0 as libc::c_int as Bool;
+                                                    return 0 as Bool;
                                                 } else {
                                                     if noisy != 0 {
                                                         fprintf(
@@ -660,7 +660,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                                 inName.as_mut_ptr(),
                                                             );
                                                     }
-                                                    return 1 as libc::c_int as Bool;
+                                                    return 1 as Bool;
                                                 }
                                             }
                                         }
@@ -694,7 +694,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                     fclose(stream);
                                                 }
                                                 if streamNo == 1 as libc::c_int {
-                                                    return 0 as libc::c_int as Bool;
+                                                    return 0 as Bool;
                                                 } else {
                                                     if noisy != 0 {
                                                         fprintf(
@@ -705,7 +705,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                                 inName.as_mut_ptr(),
                                                             );
                                                     }
-                                                    return 1 as libc::c_int as Bool;
+                                                    return 1 as Bool;
                                                 }
                                             }
                                         }
@@ -739,7 +739,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                     fclose(stream);
                                                 }
                                                 if streamNo == 1 as libc::c_int {
-                                                    return 0 as libc::c_int as Bool;
+                                                    return 0 as Bool;
                                                 } else {
                                                     if noisy != 0 {
                                                         fprintf(
@@ -750,7 +750,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                                 inName.as_mut_ptr(),
                                                             );
                                                     }
-                                                    return 1 as libc::c_int as Bool;
+                                                    return 1 as Bool;
                                                 }
                                             }
                                         }
@@ -784,7 +784,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                     fclose(stream);
                                                 }
                                                 if streamNo == 1 as libc::c_int {
-                                                    return 0 as libc::c_int as Bool;
+                                                    return 0 as Bool;
                                                 } else {
                                                     if noisy != 0 {
                                                         fprintf(
@@ -795,7 +795,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                                 inName.as_mut_ptr(),
                                                             );
                                                     }
-                                                    return 1 as libc::c_int as Bool;
+                                                    return 1 as Bool;
                                                 }
                                             }
                                         }
@@ -829,7 +829,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                     fclose(stream);
                                                 }
                                                 if streamNo == 1 as libc::c_int {
-                                                    return 0 as libc::c_int as Bool;
+                                                    return 0 as Bool;
                                                 } else {
                                                     if noisy != 0 {
                                                         fprintf(
@@ -840,7 +840,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                                 inName.as_mut_ptr(),
                                                             );
                                                     }
-                                                    return 1 as libc::c_int as Bool;
+                                                    return 1 as Bool;
                                                 }
                                             }
                                         }
@@ -891,7 +891,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                                                             as *const libc::c_char,
                                                                     );
                                                                 }
-                                                                return 1 as libc::c_int as Bool;
+                                                                return 1 as Bool;
                                                             }
                                                         }
                                                     }
@@ -926,7 +926,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
     streamNo = 0 as libc::c_int;
     if !(ferror(zStream) != 0) {
         's_29: loop {
-            if !(1 as libc::c_int as Bool != 0) {
+            if false {
                 current_block = 5783071609795492627;
                 break;
             }
@@ -986,7 +986,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                         if verbosity >= 2 as libc::c_int {
                             fprintf(stderr, b"\n    \0" as *const u8 as *const libc::c_char);
                         }
-                        return 1 as libc::c_int as Bool;
+                        return 1 as Bool;
                     }
                 }
             }
@@ -1015,7 +1015,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"file ends unexpectedly\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                             17188754426950485343 => {
                                 if zStream != stdin {
@@ -1028,7 +1028,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                             as *const u8
                                             as *const libc::c_char,
                                     );
-                                    return 0 as libc::c_int as Bool;
+                                    return 0 as Bool;
                                 } else {
                                     if noisy != 0 {
                                         fprintf(
@@ -1037,7 +1037,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                                 as *const libc::c_char,
                                         );
                                     }
-                                    return 1 as libc::c_int as Bool;
+                                    return 1 as Bool;
                                 }
                             }
                             7033902699813040753 => {
@@ -1052,7 +1052,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"data integrity (CRC) error in data\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                         }
                     }
@@ -1071,7 +1071,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"file ends unexpectedly\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                             17188754426950485343 => {
                                 if zStream != stdin {
@@ -1084,7 +1084,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                             as *const u8
                                             as *const libc::c_char,
                                     );
-                                    return 0 as libc::c_int as Bool;
+                                    return 0 as Bool;
                                 } else {
                                     if noisy != 0 {
                                         fprintf(
@@ -1093,7 +1093,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                                 as *const libc::c_char,
                                         );
                                     }
-                                    return 1 as libc::c_int as Bool;
+                                    return 1 as Bool;
                                 }
                             }
                             7033902699813040753 => {
@@ -1108,7 +1108,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"data integrity (CRC) error in data\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                         }
                     }
@@ -1126,7 +1126,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"file ends unexpectedly\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                             17188754426950485343 => {
                                 if zStream != stdin {
@@ -1139,7 +1139,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                             as *const u8
                                             as *const libc::c_char,
                                     );
-                                    return 0 as libc::c_int as Bool;
+                                    return 0 as Bool;
                                 } else {
                                     if noisy != 0 {
                                         fprintf(
@@ -1148,7 +1148,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                                 as *const libc::c_char,
                                         );
                                     }
-                                    return 1 as libc::c_int as Bool;
+                                    return 1 as Bool;
                                 }
                             }
                             7033902699813040753 => {
@@ -1163,7 +1163,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"data integrity (CRC) error in data\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                         }
                     }
@@ -1181,7 +1181,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"file ends unexpectedly\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                             17188754426950485343 => {
                                 if zStream != stdin {
@@ -1194,7 +1194,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                             as *const u8
                                             as *const libc::c_char,
                                     );
-                                    return 0 as libc::c_int as Bool;
+                                    return 0 as Bool;
                                 } else {
                                     if noisy != 0 {
                                         fprintf(
@@ -1203,7 +1203,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                                 as *const libc::c_char,
                                         );
                                     }
-                                    return 1 as libc::c_int as Bool;
+                                    return 1 as Bool;
                                 }
                             }
                             7033902699813040753 => {
@@ -1218,7 +1218,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"data integrity (CRC) error in data\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                         }
                     }
@@ -1236,7 +1236,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"file ends unexpectedly\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                             17188754426950485343 => {
                                 if zStream != stdin {
@@ -1249,7 +1249,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                             as *const u8
                                             as *const libc::c_char,
                                     );
-                                    return 0 as libc::c_int as Bool;
+                                    return 0 as Bool;
                                 } else {
                                     if noisy != 0 {
                                         fprintf(
@@ -1258,7 +1258,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                                 as *const libc::c_char,
                                         );
                                     }
-                                    return 1 as libc::c_int as Bool;
+                                    return 1 as Bool;
                                 }
                             }
                             7033902699813040753 => {
@@ -1273,7 +1273,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"data integrity (CRC) error in data\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                         }
                     }
@@ -1291,7 +1291,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"file ends unexpectedly\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                             17188754426950485343 => {
                                 if zStream != stdin {
@@ -1304,7 +1304,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                             as *const u8
                                             as *const libc::c_char,
                                     );
-                                    return 0 as libc::c_int as Bool;
+                                    return 0 as Bool;
                                 } else {
                                     if noisy != 0 {
                                         fprintf(
@@ -1313,7 +1313,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                                 as *const libc::c_char,
                                         );
                                     }
-                                    return 1 as libc::c_int as Bool;
+                                    return 1 as Bool;
                                 }
                             }
                             7033902699813040753 => {
@@ -1328,7 +1328,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
                                     b"data integrity (CRC) error in data\n\0" as *const u8
                                         as *const libc::c_char,
                                 );
-                                return 0 as libc::c_int as Bool;
+                                return 0 as Bool;
                             }
                         }
                     }
@@ -1616,7 +1616,7 @@ unsafe fn copyFileName(mut to: *mut i8, mut from: *mut i8) {
 }
 unsafe fn fileExists(mut name: *mut i8) -> Bool {
     let mut tmp: *mut FILE = fopen(name, b"rb\0" as *const u8 as *const libc::c_char);
-    let mut exists: Bool = (tmp != 0 as *mut libc::c_void as *mut FILE) as libc::c_int as Bool;
+    let mut exists: Bool = (tmp != 0 as *mut libc::c_void as *mut FILE) as Bool;
     if !tmp.is_null() {
         fclose(tmp);
     }
@@ -1669,14 +1669,14 @@ unsafe fn notAStandardFile(mut name: *mut i8) -> Bool {
     };
     i = lstat(name, &mut statBuf);
     if i != 0 as libc::c_int {
-        return 1 as libc::c_int as Bool;
+        return 1 as Bool;
     }
     if statBuf.st_mode & 0o170000 as libc::c_int as libc::c_uint
         == 0o100000 as libc::c_int as libc::c_uint
     {
-        return 0 as libc::c_int as Bool;
+        return 0 as Bool;
     }
-    return 1 as libc::c_int as Bool;
+    return 1 as Bool;
 }
 unsafe fn countHardLinks(mut name: *mut i8) -> i32 {
     let mut i: IntNative = 0;
@@ -1785,20 +1785,20 @@ unsafe fn hasSuffix(mut s: *mut i8, mut suffix: *const i8) -> Bool {
     let mut ns: i32 = strlen(s) as i32;
     let mut nx: i32 = strlen(suffix) as i32;
     if ns < nx {
-        return 0 as libc::c_int as Bool;
+        return 0 as Bool;
     }
     if strcmp(s.offset(ns as isize).offset(-nx as isize), suffix) == 0 as libc::c_int {
-        return 1 as libc::c_int as Bool;
+        return 1 as Bool;
     }
-    return 0 as libc::c_int as Bool;
+    return 0 as Bool;
 }
 unsafe fn mapSuffix(mut name: *mut i8, mut oldSuffix: *const i8, mut newSuffix: *const i8) -> Bool {
     if hasSuffix(name, oldSuffix) == 0 {
-        return 0 as libc::c_int as Bool;
+        return 0 as Bool;
     }
     *name.offset((strlen(name)).wrapping_sub(strlen(oldSuffix)) as isize) = 0 as libc::c_int as i8;
     strcat(name, newSuffix);
-    return 1 as libc::c_int as Bool;
+    return 1 as Bool;
 }
 unsafe fn compress(mut name: *mut i8) {
     let mut inStr: *mut FILE = 0 as *mut FILE;
@@ -1831,7 +1831,7 @@ unsafe fn compress(mut name: *mut i8) {
         },
         __glibc_reserved: [0; 3],
     };
-    deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
+    deleteOutputOnInterrupt = 0 as Bool;
     if name.is_null() && srcMode != 1 as libc::c_int {
         panic(b"compress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
@@ -2081,12 +2081,12 @@ unsafe fn compress(mut name: *mut i8) {
         fflush(stderr);
     }
     outputHandleJustInCase = outStr;
-    deleteOutputOnInterrupt = 1 as libc::c_int as Bool;
+    deleteOutputOnInterrupt = 1 as Bool;
     compressStream(inStr, outStr);
     outputHandleJustInCase = 0 as *mut FILE;
     if srcMode == 3 as libc::c_int {
         applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
-        deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
+        deleteOutputOnInterrupt = 0 as Bool;
         if keepInputFiles == 0 {
             let mut retVal: IntNative = remove(inName.as_mut_ptr());
             if retVal != 0 as libc::c_int {
@@ -2094,7 +2094,7 @@ unsafe fn compress(mut name: *mut i8) {
             }
         }
     }
-    deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
+    deleteOutputOnInterrupt = 0 as Bool;
 }
 unsafe fn uncompress(mut name: *mut i8) {
     let mut current_block: u64;
@@ -2130,11 +2130,11 @@ unsafe fn uncompress(mut name: *mut i8) {
         },
         __glibc_reserved: [0; 3],
     };
-    deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
+    deleteOutputOnInterrupt = 0 as Bool;
     if name.is_null() && srcMode != 1 as libc::c_int {
         panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
-    cantGuess = 0 as libc::c_int as Bool;
+    cantGuess = 0 as Bool;
     match srcMode {
         1 => {
             copyFileName(
@@ -2169,7 +2169,7 @@ unsafe fn uncompress(mut name: *mut i8) {
             match current_block {
                 4003995367480147712 => {}
                 _ => {
-                    cantGuess = 1 as libc::c_int as Bool;
+                    cantGuess = 1 as Bool;
                     strcat(
                         outName.as_mut_ptr(),
                         b".out\0" as *const u8 as *const libc::c_char,
@@ -2382,13 +2382,13 @@ unsafe fn uncompress(mut name: *mut i8) {
         fflush(stderr);
     }
     outputHandleJustInCase = outStr;
-    deleteOutputOnInterrupt = 1 as libc::c_int as Bool;
+    deleteOutputOnInterrupt = 1 as Bool;
     magicNumberOK = uncompressStream(inStr, outStr);
     outputHandleJustInCase = 0 as *mut FILE;
     if magicNumberOK != 0 {
         if srcMode == 3 as libc::c_int {
             applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
-            deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
+            deleteOutputOnInterrupt = 0 as Bool;
             if keepInputFiles == 0 {
                 let mut retVal: IntNative = remove(inName.as_mut_ptr());
                 if retVal != 0 as libc::c_int {
@@ -2397,8 +2397,8 @@ unsafe fn uncompress(mut name: *mut i8) {
             }
         }
     } else {
-        unzFailsExist = 1 as libc::c_int as Bool;
-        deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
+        unzFailsExist = 1 as Bool;
+        deleteOutputOnInterrupt = 0 as Bool;
         if srcMode == 3 as libc::c_int {
             let mut retVal_0: IntNative = remove(outName.as_mut_ptr());
             if retVal_0 != 0 as libc::c_int {
@@ -2406,7 +2406,7 @@ unsafe fn uncompress(mut name: *mut i8) {
             }
         }
     }
-    deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
+    deleteOutputOnInterrupt = 0 as Bool;
     if magicNumberOK != 0 {
         if verbosity >= 1 as libc::c_int {
             fprintf(stderr, b"done\n\0" as *const u8 as *const libc::c_char);
@@ -2457,7 +2457,7 @@ unsafe fn testf(mut name: *mut i8) {
         },
         __glibc_reserved: [0; 3],
     };
-    deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
+    deleteOutputOnInterrupt = 0 as Bool;
     if name.is_null() && srcMode != 1 as libc::c_int {
         panic(b"testf: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
@@ -2575,7 +2575,7 @@ unsafe fn testf(mut name: *mut i8) {
         fprintf(stderr, b"ok\n\0" as *const u8 as *const libc::c_char);
     }
     if allOK == 0 {
-        testFailsExist = 1 as libc::c_int as Bool;
+        testFailsExist = 1 as Bool;
     }
 }
 unsafe fn license() {
@@ -2697,18 +2697,18 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
         configError();
     }
     outputHandleJustInCase = 0 as *mut FILE;
-    smallMode = 0 as libc::c_int as Bool;
-    keepInputFiles = 0 as libc::c_int as Bool;
-    forceOverwrite = 0 as libc::c_int as Bool;
-    noisy = 1 as libc::c_int as Bool;
+    smallMode = 0 as Bool;
+    keepInputFiles = 0 as Bool;
+    forceOverwrite = 0 as Bool;
+    noisy = 1 as Bool;
     verbosity = 0 as libc::c_int;
     blockSize100k = 9 as libc::c_int;
-    testFailsExist = 0 as libc::c_int as Bool;
-    unzFailsExist = 0 as libc::c_int as Bool;
+    testFailsExist = 0 as Bool;
+    unzFailsExist = 0 as Bool;
     numFileNames = 0 as libc::c_int;
     numFilesProcessed = 0 as libc::c_int;
     workFactor = 30 as libc::c_int;
-    deleteOutputOnInterrupt = 0 as libc::c_int as Bool;
+    deleteOutputOnInterrupt = 0 as Bool;
     exitValue = 0 as libc::c_int;
     j = 0 as libc::c_int;
     i = j;
@@ -2760,11 +2760,11 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
     }
     longestFileName = 7 as libc::c_int;
     numFileNames = 0 as libc::c_int;
-    decode = 1 as libc::c_int as Bool;
+    decode = 1 as Bool;
     aa = argList;
     while !aa.is_null() {
         if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char) == 0 as libc::c_int {
-            decode = 0 as libc::c_int as Bool;
+            decode = 0 as Bool;
         } else if !(*((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int == '-' as i32
             && decode as libc::c_int != 0)
         {
@@ -2819,19 +2819,19 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
                         opMode = 1 as libc::c_int;
                     }
                     102 => {
-                        forceOverwrite = 1 as libc::c_int as Bool;
+                        forceOverwrite = 1 as Bool;
                     }
                     116 => {
                         opMode = 3 as libc::c_int;
                     }
                     107 => {
-                        keepInputFiles = 1 as libc::c_int as Bool;
+                        keepInputFiles = 1 as Bool;
                     }
                     115 => {
-                        smallMode = 1 as libc::c_int as Bool;
+                        smallMode = 1 as Bool;
                     }
                     113 => {
-                        noisy = 0 as libc::c_int as Bool;
+                        noisy = 0 as Bool;
                     }
                     49 => {
                         blockSize100k = 1 as libc::c_int;
@@ -2913,7 +2913,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
         } else if strcmp((*aa).name, b"--force\0" as *const u8 as *const libc::c_char)
             == 0 as libc::c_int
         {
-            forceOverwrite = 1 as libc::c_int as Bool;
+            forceOverwrite = 1 as Bool;
         } else if strcmp((*aa).name, b"--test\0" as *const u8 as *const libc::c_char)
             == 0 as libc::c_int
         {
@@ -2921,15 +2921,15 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
         } else if strcmp((*aa).name, b"--keep\0" as *const u8 as *const libc::c_char)
             == 0 as libc::c_int
         {
-            keepInputFiles = 1 as libc::c_int as Bool;
+            keepInputFiles = 1 as Bool;
         } else if strcmp((*aa).name, b"--small\0" as *const u8 as *const libc::c_char)
             == 0 as libc::c_int
         {
-            smallMode = 1 as libc::c_int as Bool;
+            smallMode = 1 as Bool;
         } else if strcmp((*aa).name, b"--quiet\0" as *const u8 as *const libc::c_char)
             == 0 as libc::c_int
         {
-            noisy = 0 as libc::c_int as Bool;
+            noisy = 0 as Bool;
         } else if strcmp(
             (*aa).name,
             b"--version\0" as *const u8 as *const libc::c_char,
@@ -3039,13 +3039,13 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
         if srcMode == 1 as libc::c_int {
             compress(0 as *mut i8);
         } else {
-            decode = 1 as libc::c_int as Bool;
+            decode = 1 as Bool;
             aa = argList;
             while !aa.is_null() {
                 if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char)
                     == 0 as libc::c_int
                 {
-                    decode = 0 as libc::c_int as Bool;
+                    decode = 0 as Bool;
                 } else if !(*((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int
                     == '-' as i32
                     && decode as libc::c_int != 0)
@@ -3057,17 +3057,17 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
             }
         }
     } else if opMode == 2 as libc::c_int {
-        unzFailsExist = 0 as libc::c_int as Bool;
+        unzFailsExist = 0 as Bool;
         if srcMode == 1 as libc::c_int {
             uncompress(0 as *mut i8);
         } else {
-            decode = 1 as libc::c_int as Bool;
+            decode = 1 as Bool;
             aa = argList;
             while !aa.is_null() {
                 if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char)
                     == 0 as libc::c_int
                 {
-                    decode = 0 as libc::c_int as Bool;
+                    decode = 0 as Bool;
                 } else if !(*((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int
                     == '-' as i32
                     && decode as libc::c_int != 0)
@@ -3083,17 +3083,17 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
             exit(exitValue);
         }
     } else {
-        testFailsExist = 0 as libc::c_int as Bool;
+        testFailsExist = 0 as Bool;
         if srcMode == 1 as libc::c_int {
             testf(0 as *mut i8);
         } else {
-            decode = 1 as libc::c_int as Bool;
+            decode = 1 as Bool;
             aa = argList;
             while !aa.is_null() {
                 if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char)
                     == 0 as libc::c_int
                 {
-                    decode = 0 as libc::c_int as Bool;
+                    decode = 0 as Bool;
                 } else if !(*((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int
                     == '-' as i32
                     && decode as libc::c_int != 0)

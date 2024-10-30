@@ -208,13 +208,13 @@ unsafe fn bsPutUInt32(mut bs: *mut BitStream, mut c: u32) {
 unsafe fn endsInBz2(mut name: *mut i8) -> Bool {
     let mut n: i32 = strlen(name) as i32;
     if n <= 4 as libc::c_int {
-        return 0 as libc::c_int as Bool;
+        return 0 as Bool;
     }
     return (*name.offset((n - 4 as libc::c_int) as isize) as libc::c_int == '.' as i32
         && *name.offset((n - 3 as libc::c_int) as isize) as libc::c_int == 'b' as i32
         && *name.offset((n - 2 as libc::c_int) as isize) as libc::c_int == 'z' as i32
         && *name.offset((n - 1 as libc::c_int) as isize) as libc::c_int == '2' as i32)
-        as libc::c_int as Bool;
+        as Bool;
 }
 unsafe fn fopen_output_safely(mut name: *mut i8, mut mode: *const libc::c_char) -> *mut FILE {
     let mut fp: *mut FILE = 0 as *mut FILE;

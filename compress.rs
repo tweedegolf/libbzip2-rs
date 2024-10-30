@@ -1128,11 +1128,11 @@ unsafe fn sendMTFValues(s: *mut EState) {
     let mut inUse16: [Bool; 16] = [0; 16];
     i = 0 as libc::c_int;
     while i < 16 as libc::c_int {
-        inUse16[i as usize] = 0 as libc::c_int as Bool;
+        inUse16[i as usize] = 0 as Bool;
         j = 0 as libc::c_int;
         while j < 16 as libc::c_int {
             if (*s).inUse[(i * 16 as libc::c_int + j) as usize] != 0 {
-                inUse16[i as usize] = 1 as libc::c_int as Bool;
+                inUse16[i as usize] = 1 as Bool;
             }
             j += 1;
         }
