@@ -221,10 +221,6 @@ unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
                     fprintf(stderr, b"\n\0" as *const u8 as *const libc::c_char);
                 }
                 loop {
-                    if false {
-                        current_block = 9606288038608642794;
-                        break;
-                    }
                     if myfeof(stream) != 0 {
                         current_block = 9606288038608642794;
                         break;
@@ -457,10 +453,6 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
     if !(ferror(stream) != 0) {
         if !(ferror(zStream) != 0) {
             's_37: loop {
-                if false {
-                    current_block = 17487785624869370758;
-                    break;
-                }
                 bzf = BZ2_bzReadOpen(
                     &mut bzerr,
                     zStream,
@@ -531,10 +523,6 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                             if forceOverwrite != 0 {
                                 rewind(zStream);
                                 loop {
-                                    if false {
-                                        current_block = 17487785624869370758;
-                                        break;
-                                    }
                                     if myfeof(zStream) != 0 {
                                         current_block = 17487785624869370758;
                                         break;
@@ -926,10 +914,6 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
     streamNo = 0 as libc::c_int;
     if !(ferror(zStream) != 0) {
         's_29: loop {
-            if false {
-                current_block = 5783071609795492627;
-                break;
-            }
             bzf = BZ2_bzReadOpen(
                 &mut bzerr,
                 zStream,
