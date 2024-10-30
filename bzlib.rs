@@ -530,8 +530,8 @@ macro_rules! ADD_CHAR_TO_BLOCK {
     };
 }
 
-unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
-    let mut progress_in: Bool = 0 as Bool;
+unsafe fn copy_input_until_stop(s: *mut EState) -> bool {
+    let mut progress_in = false;
     if (*s).mode == 2 as libc::c_int {
         loop {
             if (*s).nblock >= (*s).nblockMAX {
@@ -540,7 +540,7 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
             if (*(*s).strm).avail_in == 0 {
                 break;
             }
-            progress_in = 1;
+            progress_in = true;
             ADD_CHAR_TO_BLOCK!(s, *((*(*s).strm).next_in as *mut u8) as u32);
             (*(*s).strm).next_in = ((*(*s).strm).next_in).offset(1);
             (*(*s).strm).avail_in = ((*(*s).strm).avail_in).wrapping_sub(1);
@@ -560,7 +560,7 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
             if (*s).avail_in_expect == 0 {
                 break;
             }
-            progress_in = 1;
+            progress_in = true;
             ADD_CHAR_TO_BLOCK!(s, *((*(*s).strm).next_in as *mut u8) as u32);
             (*(*s).strm).next_in = ((*(*s).strm).next_in).offset(1);
             (*(*s).strm).avail_in = ((*(*s).strm).avail_in).wrapping_sub(1);
