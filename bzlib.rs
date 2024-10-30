@@ -1584,14 +1584,17 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
     (*strm).state = std::ptr::null_mut::<libc::c_void>();
     0 as libc::c_int
 }
-unsafe fn myfeof(f: *mut FILE) -> Bool {
-    let c: i32 = fgetc(f);
-    if c == -1 as libc::c_int {
-        return 1 as Bool;
+unsafe fn myfeof(f: *mut FILE) -> bool {
+    let c = fgetc(f);
+    if c == -1 {
+        return true;
     }
+
     ungetc(c, f);
-    0 as Bool
+
+    false
 }
+
 #[export_name = prefix!(BZ2_bzWriteOpen)]
 pub unsafe extern "C" fn BZ2_bzWriteOpen(
     bzerror: *mut libc::c_int,
@@ -2082,7 +2085,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
             }
             return 0 as libc::c_int;
         }
-        if (*bzf).strm.avail_in == 0 as libc::c_int as libc::c_uint && myfeof((*bzf).handle) == 0 {
+        if (*bzf).strm.avail_in == 0 as libc::c_int as libc::c_uint && !myfeof((*bzf).handle) {
             n = fread(
                 ((*bzf).buf).as_mut_ptr() as *mut libc::c_void,
                 ::core::mem::size_of::<u8>() as libc::size_t,
@@ -2113,7 +2116,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
             return 0 as libc::c_int;
         }
         if ret == 0 as libc::c_int
-            && myfeof((*bzf).handle) as libc::c_int != 0
+            && myfeof((*bzf).handle)
             && (*bzf).strm.avail_in == 0 as libc::c_int as libc::c_uint
             && (*bzf).strm.avail_out > 0 as libc::c_int as libc::c_uint
         {
