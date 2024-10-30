@@ -137,13 +137,11 @@ unsafe fn bsPutBit(mut bs: *mut BitStream, mut bit: i32) {
     } else {
         (*bs).buffer = (*bs).buffer << 1 as libc::c_int | bit & 0x1 as libc::c_int;
         (*bs).buffLive += 1;
-        (*bs).buffLive;
     };
 }
 unsafe fn bsGetBit(mut bs: *mut BitStream) -> i32 {
     if (*bs).buffLive > 0 as libc::c_int {
         (*bs).buffLive -= 1;
-        (*bs).buffLive;
         return (*bs).buffer >> (*bs).buffLive & 0x1 as libc::c_int;
     } else {
         let mut retVal: i32 = getc((*bs).handle);
@@ -163,7 +161,6 @@ unsafe fn bsClose(mut bs: *mut BitStream) {
     if (*bs).mode as libc::c_int == 'w' as i32 {
         while (*bs).buffLive < 8 as libc::c_int {
             (*bs).buffLive += 1;
-            (*bs).buffLive;
             (*bs).buffer <<= 1 as libc::c_int;
         }
         retVal = putc((*bs).buffer as u8 as libc::c_int, (*bs).handle);

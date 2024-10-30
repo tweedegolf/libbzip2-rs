@@ -317,7 +317,6 @@ unsafe fn prepare_new_block(s: *mut EState) {
         i += 1;
     }
     (*s).blockNo += 1;
-    (*s).blockNo;
 }
 
 fn init_RL(s: &mut EState) {
@@ -457,45 +456,34 @@ unsafe fn add_pair_to_block(s: *mut EState) {
         1 => {
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
         }
         2 => {
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
         }
         3 => {
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
         }
         _ => {
             (*s).inUse[((*s).state_in_len - 4 as libc::c_int) as usize] = 1 as Bool;
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
-            (*s).nblock;
             *((*s).block).offset((*s).nblock as isize) =
                 ((*s).state_in_len - 4 as libc::c_int) as u8;
             (*s).nblock += 1;
-            (*s).nblock;
         }
     };
 }
@@ -525,7 +513,6 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
                 (*s).inUse[(*s).state_in_ch as usize] = 1 as Bool;
                 *((*s).block).offset((*s).nblock as isize) = ch;
                 (*s).nblock += 1;
-                (*s).nblock;
                 (*s).state_in_ch = zchh;
             } else if zchh != (*s).state_in_ch || (*s).state_in_len == 255 as libc::c_int {
                 if (*s).state_in_ch < 256 as libc::c_int as libc::c_uint {
@@ -535,17 +522,12 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
                 (*s).state_in_len = 1 as libc::c_int;
             } else {
                 (*s).state_in_len += 1;
-                (*s).state_in_len;
             }
             (*(*s).strm).next_in = ((*(*s).strm).next_in).offset(1);
-            (*(*s).strm).next_in;
             (*(*s).strm).avail_in = ((*(*s).strm).avail_in).wrapping_sub(1);
-            (*(*s).strm).avail_in;
             (*(*s).strm).total_in_lo32 = ((*(*s).strm).total_in_lo32).wrapping_add(1);
-            (*(*s).strm).total_in_lo32;
             if (*(*s).strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                 (*(*s).strm).total_in_hi32 = ((*(*s).strm).total_in_hi32).wrapping_add(1);
-                (*(*s).strm).total_in_hi32;
             }
         }
     } else {
@@ -569,7 +551,6 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
                 (*s).inUse[(*s).state_in_ch as usize] = 1 as Bool;
                 *((*s).block).offset((*s).nblock as isize) = ch_0;
                 (*s).nblock += 1;
-                (*s).nblock;
                 (*s).state_in_ch = zchh_0;
             } else if zchh_0 != (*s).state_in_ch || (*s).state_in_len == 255 as libc::c_int {
                 if (*s).state_in_ch < 256 as libc::c_int as libc::c_uint {
@@ -579,20 +560,14 @@ unsafe fn copy_input_until_stop(s: *mut EState) -> Bool {
                 (*s).state_in_len = 1 as libc::c_int;
             } else {
                 (*s).state_in_len += 1;
-                (*s).state_in_len;
             }
             (*(*s).strm).next_in = ((*(*s).strm).next_in).offset(1);
-            (*(*s).strm).next_in;
             (*(*s).strm).avail_in = ((*(*s).strm).avail_in).wrapping_sub(1);
-            (*(*s).strm).avail_in;
             (*(*s).strm).total_in_lo32 = ((*(*s).strm).total_in_lo32).wrapping_add(1);
-            (*(*s).strm).total_in_lo32;
             if (*(*s).strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                 (*(*s).strm).total_in_hi32 = ((*(*s).strm).total_in_hi32).wrapping_add(1);
-                (*(*s).strm).total_in_hi32;
             }
             (*s).avail_in_expect = ((*s).avail_in_expect).wrapping_sub(1);
-            (*s).avail_in_expect;
         }
     }
     progress_in
@@ -609,16 +584,11 @@ unsafe fn copy_output_until_stop(s: *mut EState) -> Bool {
         progress_out = 1 as Bool;
         *(*(*s).strm).next_out = *((*s).zbits).offset((*s).state_out_pos as isize) as libc::c_char;
         (*s).state_out_pos += 1;
-        (*s).state_out_pos;
         (*(*s).strm).avail_out = ((*(*s).strm).avail_out).wrapping_sub(1);
-        (*(*s).strm).avail_out;
         (*(*s).strm).next_out = ((*(*s).strm).next_out).offset(1);
-        (*(*s).strm).next_out;
         (*(*s).strm).total_out_lo32 = ((*(*s).strm).total_out_lo32).wrapping_add(1);
-        (*(*s).strm).total_out_lo32;
         if (*(*s).strm).total_out_lo32 == 0 as libc::c_int as libc::c_uint {
             (*(*s).strm).total_out_hi32 = ((*(*s).strm).total_out_hi32).wrapping_add(1);
-            (*(*s).strm).total_out_hi32;
         }
     }
     progress_out
@@ -854,16 +824,11 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                         ^ (*s).state_out_ch as libc::c_uint)
                         as usize];
                 (*s).state_out_len -= 1;
-                (*s).state_out_len;
                 (*(*s).strm).next_out = ((*(*s).strm).next_out).offset(1);
-                (*(*s).strm).next_out;
                 (*(*s).strm).avail_out = ((*(*s).strm).avail_out).wrapping_sub(1);
-                (*(*s).strm).avail_out;
                 (*(*s).strm).total_out_lo32 = ((*(*s).strm).total_out_lo32).wrapping_add(1);
-                (*(*s).strm).total_out_lo32;
                 if (*(*s).strm).total_out_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*(*s).strm).total_out_hi32 = ((*(*s).strm).total_out_hi32).wrapping_add(1);
-                    (*(*s).strm).total_out_hi32;
                 }
             }
             if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
@@ -883,13 +848,11 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
             if (*s).rNToGo == 0 as libc::c_int {
                 (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                 (*s).rTPos += 1;
-                (*s).rTPos;
                 if (*s).rTPos == 512 as libc::c_int {
                     (*s).rTPos = 0 as libc::c_int;
                 }
             }
             (*s).rNToGo -= 1;
-            (*s).rNToGo;
             k1 = (k1 as libc::c_int
                 ^ if (*s).rNToGo == 1 as libc::c_int {
                     1 as libc::c_int
@@ -897,7 +860,6 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                     0 as libc::c_int
                 }) as u8;
             (*s).nblock_used += 1;
-            (*s).nblock_used;
             if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
                 continue;
             }
@@ -916,13 +878,11 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                 if (*s).rNToGo == 0 as libc::c_int {
                     (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                     (*s).rTPos += 1;
-                    (*s).rTPos;
                     if (*s).rTPos == 512 as libc::c_int {
                         (*s).rTPos = 0 as libc::c_int;
                     }
                 }
                 (*s).rNToGo -= 1;
-                (*s).rNToGo;
                 k1 = (k1 as libc::c_int
                     ^ if (*s).rNToGo == 1 as libc::c_int {
                         1 as libc::c_int
@@ -930,7 +890,6 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                         0 as libc::c_int
                     }) as u8;
                 (*s).nblock_used += 1;
-                (*s).nblock_used;
                 if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
                     continue;
                 }
@@ -949,13 +908,11 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                     if (*s).rNToGo == 0 as libc::c_int {
                         (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                         (*s).rTPos += 1;
-                        (*s).rTPos;
                         if (*s).rTPos == 512 as libc::c_int {
                             (*s).rTPos = 0 as libc::c_int;
                         }
                     }
                     (*s).rNToGo -= 1;
-                    (*s).rNToGo;
                     k1 = (k1 as libc::c_int
                         ^ if (*s).rNToGo == 1 as libc::c_int {
                             1 as libc::c_int
@@ -963,7 +920,6 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                             0 as libc::c_int
                         }) as u8;
                     (*s).nblock_used += 1;
-                    (*s).nblock_used;
                     if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
                         continue;
                     }
@@ -982,13 +938,11 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                         if (*s).rNToGo == 0 as libc::c_int {
                             (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                             (*s).rTPos += 1;
-                            (*s).rTPos;
                             if (*s).rTPos == 512 as libc::c_int {
                                 (*s).rTPos = 0 as libc::c_int;
                             }
                         }
                         (*s).rNToGo -= 1;
-                        (*s).rNToGo;
                         k1 = (k1 as libc::c_int
                             ^ if (*s).rNToGo == 1 as libc::c_int {
                                 1 as libc::c_int
@@ -996,7 +950,6 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                                 0 as libc::c_int
                             }) as u8;
                         (*s).nblock_used += 1;
-                        (*s).nblock_used;
                         (*s).state_out_len = k1 as i32 + 4 as libc::c_int;
                         if (*s).tPos
                             >= (100000 as libc::c_int as u32)
@@ -1010,20 +963,17 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                         if (*s).rNToGo == 0 as libc::c_int {
                             (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                             (*s).rTPos += 1;
-                            (*s).rTPos;
                             if (*s).rTPos == 512 as libc::c_int {
                                 (*s).rTPos = 0 as libc::c_int;
                             }
                         }
                         (*s).rNToGo -= 1;
-                        (*s).rNToGo;
                         (*s).k0 ^= if (*s).rNToGo == 1 as libc::c_int {
                             1 as libc::c_int
                         } else {
                             0 as libc::c_int
                         };
                         (*s).nblock_used += 1;
-                        (*s).nblock_used;
                     }
                 }
             }
@@ -1183,7 +1133,6 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
             ((*(*s).strm).total_out_lo32).wrapping_add(avail_out_INIT.wrapping_sub(cs_avail_out));
         if (*(*s).strm).total_out_lo32 < total_out_lo32_old {
             (*(*s).strm).total_out_hi32 = ((*(*s).strm).total_out_hi32).wrapping_add(1);
-            (*(*s).strm).total_out_hi32;
         }
         (*s).calculatedBlockCRC = c_calculatedBlockCRC;
         (*s).state_out_ch = c_state_out_ch;
@@ -1234,16 +1183,11 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         ^ (*s).state_out_ch as libc::c_uint)
                         as usize];
                 (*s).state_out_len -= 1;
-                (*s).state_out_len;
                 (*(*s).strm).next_out = ((*(*s).strm).next_out).offset(1);
-                (*(*s).strm).next_out;
                 (*(*s).strm).avail_out = ((*(*s).strm).avail_out).wrapping_sub(1);
-                (*(*s).strm).avail_out;
                 (*(*s).strm).total_out_lo32 = ((*(*s).strm).total_out_lo32).wrapping_add(1);
-                (*(*s).strm).total_out_lo32;
                 if (*(*s).strm).total_out_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*(*s).strm).total_out_hi32 = ((*(*s).strm).total_out_hi32).wrapping_add(1);
-                    (*(*s).strm).total_out_hi32;
                 }
             }
             if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
@@ -1266,13 +1210,11 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
             if (*s).rNToGo == 0 as libc::c_int {
                 (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                 (*s).rTPos += 1;
-                (*s).rTPos;
                 if (*s).rTPos == 512 as libc::c_int {
                     (*s).rTPos = 0 as libc::c_int;
                 }
             }
             (*s).rNToGo -= 1;
-            (*s).rNToGo;
             k1 = (k1 as libc::c_int
                 ^ if (*s).rNToGo == 1 as libc::c_int {
                     1 as libc::c_int
@@ -1280,7 +1222,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                     0 as libc::c_int
                 }) as u8;
             (*s).nblock_used += 1;
-            (*s).nblock_used;
             if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
                 continue;
             }
@@ -1302,13 +1243,11 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                 if (*s).rNToGo == 0 as libc::c_int {
                     (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                     (*s).rTPos += 1;
-                    (*s).rTPos;
                     if (*s).rTPos == 512 as libc::c_int {
                         (*s).rTPos = 0 as libc::c_int;
                     }
                 }
                 (*s).rNToGo -= 1;
-                (*s).rNToGo;
                 k1 = (k1 as libc::c_int
                     ^ if (*s).rNToGo == 1 as libc::c_int {
                         1 as libc::c_int
@@ -1316,7 +1255,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         0 as libc::c_int
                     }) as u8;
                 (*s).nblock_used += 1;
-                (*s).nblock_used;
                 if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
                     continue;
                 }
@@ -1339,13 +1277,11 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                     if (*s).rNToGo == 0 as libc::c_int {
                         (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                         (*s).rTPos += 1;
-                        (*s).rTPos;
                         if (*s).rTPos == 512 as libc::c_int {
                             (*s).rTPos = 0 as libc::c_int;
                         }
                     }
                     (*s).rNToGo -= 1;
-                    (*s).rNToGo;
                     k1 = (k1 as libc::c_int
                         ^ if (*s).rNToGo == 1 as libc::c_int {
                             1 as libc::c_int
@@ -1353,7 +1289,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                             0 as libc::c_int
                         }) as u8;
                     (*s).nblock_used += 1;
-                    (*s).nblock_used;
                     if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
                         continue;
                     }
@@ -1376,13 +1311,11 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         if (*s).rNToGo == 0 as libc::c_int {
                             (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                             (*s).rTPos += 1;
-                            (*s).rTPos;
                             if (*s).rTPos == 512 as libc::c_int {
                                 (*s).rTPos = 0 as libc::c_int;
                             }
                         }
                         (*s).rNToGo -= 1;
-                        (*s).rNToGo;
                         k1 = (k1 as libc::c_int
                             ^ if (*s).rNToGo == 1 as libc::c_int {
                                 1 as libc::c_int
@@ -1390,7 +1323,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                                 0 as libc::c_int
                             }) as u8;
                         (*s).nblock_used += 1;
-                        (*s).nblock_used;
                         (*s).state_out_len = k1 as i32 + 4 as libc::c_int;
                         if (*s).tPos
                             >= (100000 as libc::c_int as u32)
@@ -1408,20 +1340,17 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         if (*s).rNToGo == 0 as libc::c_int {
                             (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
                             (*s).rTPos += 1;
-                            (*s).rTPos;
                             if (*s).rTPos == 512 as libc::c_int {
                                 (*s).rTPos = 0 as libc::c_int;
                             }
                         }
                         (*s).rNToGo -= 1;
-                        (*s).rNToGo;
                         (*s).k0 ^= if (*s).rNToGo == 1 as libc::c_int {
                             1 as libc::c_int
                         } else {
                             0 as libc::c_int
                         };
                         (*s).nblock_used += 1;
-                        (*s).nblock_used;
                     }
                 }
             }
@@ -1441,16 +1370,11 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         ^ (*s).state_out_ch as libc::c_uint)
                         as usize];
                 (*s).state_out_len -= 1;
-                (*s).state_out_len;
                 (*(*s).strm).next_out = ((*(*s).strm).next_out).offset(1);
-                (*(*s).strm).next_out;
                 (*(*s).strm).avail_out = ((*(*s).strm).avail_out).wrapping_sub(1);
-                (*(*s).strm).avail_out;
                 (*(*s).strm).total_out_lo32 = ((*(*s).strm).total_out_lo32).wrapping_add(1);
-                (*(*s).strm).total_out_lo32;
                 if (*(*s).strm).total_out_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*(*s).strm).total_out_hi32 = ((*(*s).strm).total_out_hi32).wrapping_add(1);
-                    (*(*s).strm).total_out_hi32;
                 }
             }
             if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
@@ -1471,7 +1395,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                     & 0xf as libc::c_int as libc::c_uint)
                     << 16 as libc::c_int;
             (*s).nblock_used += 1;
-            (*s).nblock_used;
             if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
                 continue;
             }
@@ -1491,7 +1414,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         & 0xf as libc::c_int as libc::c_uint)
                         << 16 as libc::c_int;
                 (*s).nblock_used += 1;
-                (*s).nblock_used;
                 if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
                     continue;
                 }
@@ -1512,7 +1434,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                             & 0xf as libc::c_int as libc::c_uint)
                             << 16 as libc::c_int;
                     (*s).nblock_used += 1;
-                    (*s).nblock_used;
                     if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
                         continue;
                     }
@@ -1533,7 +1454,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                                 & 0xf as libc::c_int as libc::c_uint)
                                 << 16 as libc::c_int;
                         (*s).nblock_used += 1;
-                        (*s).nblock_used;
                         (*s).state_out_len = k1 as i32 + 4 as libc::c_int;
                         if (*s).tPos
                             >= (100000 as libc::c_int as u32)
@@ -1549,7 +1469,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                                 & 0xf as libc::c_int as libc::c_uint)
                                 << 16 as libc::c_int;
                         (*s).nblock_used += 1;
-                        (*s).nblock_used;
                     }
                 }
             }
@@ -2056,7 +1975,6 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     while nUnused > 0 as libc::c_int {
         (*bzf).buf[(*bzf).bufN as usize] = *(unused as *mut u8) as i8;
         (*bzf).bufN += 1;
-        (*bzf).bufN;
         unused = (unused as *mut u8).offset(1 as libc::c_int as isize) as *mut libc::c_void;
         nUnused -= 1;
     }

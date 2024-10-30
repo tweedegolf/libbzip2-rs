@@ -9,7 +9,6 @@ unsafe fn bsFinishWrite(s: *mut EState) {
     while (*s).bsLive > 0 as libc::c_int {
         *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as u8;
         (*s).numZ += 1;
-        (*s).numZ;
         (*s).bsBuff <<= 8 as libc::c_int;
         (*s).bsLive -= 8 as libc::c_int;
     }
@@ -19,7 +18,6 @@ unsafe fn bsW(s: *mut EState, n: i32, v: u32) {
     while (*s).bsLive >= 8 as libc::c_int {
         *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as u8;
         (*s).numZ += 1;
-        (*s).numZ;
         (*s).bsBuff <<= 8 as libc::c_int;
         (*s).bsLive -= 8 as libc::c_int;
     }
@@ -59,7 +57,6 @@ unsafe fn makeMaps_e(s: *mut EState) {
         if (*s).inUse[i as usize] != 0 {
             (*s).unseqToSeq[i as usize] = (*s).nInUse as u8;
             (*s).nInUse += 1;
-            (*s).nInUse;
         }
         i += 1;
     }

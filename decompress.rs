@@ -54,7 +54,6 @@ fn makeMaps_d(s: &mut DState) {
         if s.inUse[i as usize] != 0 {
             s.seqToUnseq[s.nInUse as usize] = i as u8;
             s.nInUse += 1;
-            s.nInUse;
         }
         i += 1;
     }
@@ -162,14 +161,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -333,14 +328,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.bsBuff = s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                 s.bsLive += 8 as libc::c_int;
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).next_in;
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).avail_in;
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                (*s.strm).total_in_lo32;
                 if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                    (*s.strm).total_in_hi32;
                 }
             }
         }
@@ -374,14 +365,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.bsBuff = s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                 s.bsLive += 8 as libc::c_int;
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).next_in;
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).avail_in;
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                (*s.strm).total_in_lo32;
                 if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                    (*s.strm).total_in_hi32;
                 }
             }
         }
@@ -415,14 +402,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.bsBuff = s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                 s.bsLive += 8 as libc::c_int;
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).next_in;
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).avail_in;
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                (*s.strm).total_in_lo32;
                 if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                    (*s.strm).total_in_hi32;
                 }
             }
         }
@@ -495,14 +478,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.bsBuff = s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                 s.bsLive += 8 as libc::c_int;
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).next_in;
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).avail_in;
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                (*s.strm).total_in_lo32;
                 if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                    (*s.strm).total_in_hi32;
                 }
             }
         }
@@ -541,14 +520,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -584,14 +559,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -630,14 +601,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -673,14 +640,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -719,14 +682,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -762,14 +721,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -808,14 +763,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -851,14 +802,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -897,14 +844,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -941,14 +884,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -960,7 +899,6 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         current_block = 3350591128142761507;
                     } else {
                         s.currBlockNo += 1;
-                        s.currBlockNo;
                         if s.verbosity >= 2 as libc::c_int {
                             eprint!("\n    [{}: huff+mtf ", s.currBlockNo);
                         }
@@ -993,14 +931,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -1032,14 +966,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -1074,14 +1004,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -1113,14 +1039,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -1155,14 +1077,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -1194,14 +1112,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -1236,14 +1150,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -1275,14 +1185,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                     s.bsLive += 8 as libc::c_int;
                     (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).next_in;
                     (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).avail_in;
                     (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    (*s.strm).total_in_lo32;
                     if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                         (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                        (*s.strm).total_in_hi32;
                     }
                 }
             }
@@ -1316,14 +1222,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.bsBuff = s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                 s.bsLive += 8 as libc::c_int;
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).next_in;
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).avail_in;
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                (*s.strm).total_in_lo32;
                 if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                    (*s.strm).total_in_hi32;
                 }
             }
         }
@@ -1353,14 +1255,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.bsBuff = s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                 s.bsLive += 8 as libc::c_int;
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).next_in;
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).avail_in;
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                (*s.strm).total_in_lo32;
                 if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                    (*s.strm).total_in_hi32;
                 }
             }
         }
@@ -1390,14 +1288,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.bsBuff = s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                 s.bsLive += 8 as libc::c_int;
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).next_in;
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).avail_in;
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                (*s.strm).total_in_lo32;
                 if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                    (*s.strm).total_in_hi32;
                 }
             }
         }
@@ -1427,14 +1321,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.bsBuff = s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                 s.bsLive += 8 as libc::c_int;
                 (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).next_in;
                 (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).avail_in;
                 (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                (*s.strm).total_in_lo32;
                 if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                     (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                    (*s.strm).total_in_hi32;
                 }
             }
         }
@@ -1479,14 +1369,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1511,14 +1397,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1543,14 +1425,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1575,14 +1453,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1607,14 +1481,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1639,14 +1509,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1676,14 +1542,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1712,14 +1574,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1745,14 +1603,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1788,14 +1642,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1827,14 +1677,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1865,14 +1711,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1914,14 +1756,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -1953,14 +1791,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             s.bsBuff << 8 as libc::c_int | *((*s.strm).next_in as *mut u8) as u32;
                         s.bsLive += 8 as libc::c_int;
                         (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).next_in;
                         (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).avail_in;
                         (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        (*s.strm).total_in_lo32;
                         if (*s.strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
                             (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
-                            (*s.strm).total_in_hi32;
                         }
                     }
                 }
@@ -2344,17 +2178,14 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                         & 0xf as libc::c_int as libc::c_uint)
                                         << 16 as libc::c_int;
                                 s.nblock_used += 1;
-                                s.nblock_used;
                                 if s.rNToGo == 0 as libc::c_int {
                                     s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
                                     s.rTPos += 1;
-                                    s.rTPos;
                                     if s.rTPos == 512 as libc::c_int {
                                         s.rTPos = 0 as libc::c_int;
                                     }
                                 }
                                 s.rNToGo -= 1;
-                                s.rNToGo;
                                 s.k0 ^= if s.rNToGo == 1 as libc::c_int {
                                     1 as libc::c_int
                                 } else {
@@ -2376,7 +2207,6 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                         & 0xf as libc::c_int as libc::c_uint)
                                         << 16 as libc::c_int;
                                 s.nblock_used += 1;
-                                s.nblock_used;
                             }
                         } else {
                             i = 0 as libc::c_int;
@@ -2405,17 +2235,14 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                 s.k0 = (s.tPos & 0xff as libc::c_int as libc::c_uint) as u8 as i32;
                                 s.tPos >>= 8 as libc::c_int;
                                 s.nblock_used += 1;
-                                s.nblock_used;
                                 if s.rNToGo == 0 as libc::c_int {
                                     s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
                                     s.rTPos += 1;
-                                    s.rTPos;
                                     if s.rTPos == 512 as libc::c_int {
                                         s.rTPos = 0 as libc::c_int;
                                     }
                                 }
                                 s.rNToGo -= 1;
-                                s.rNToGo;
                                 s.k0 ^= if s.rNToGo == 1 as libc::c_int {
                                     1 as libc::c_int
                                 } else {
@@ -2432,7 +2259,6 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                 s.k0 = (s.tPos & 0xff as libc::c_int as libc::c_uint) as u8 as i32;
                                 s.tPos >>= 8 as libc::c_int;
                                 s.nblock_used += 1;
-                                s.nblock_used;
                             }
                         }
                         retVal = 0 as libc::c_int;
