@@ -1,24 +1,21 @@
-use std::cmp;
-
 use crate::assert_h;
-pub type Bool = libc::c_uchar;
 
 const BZ_MAX_ALPHA_SIZE: usize = 258;
 const BZ_MAX_CODE_LEN: usize = 23;
 
 #[inline]
-fn weight_of(zz0: i32) -> i32 {
+const fn weight_of(zz0: i32) -> i32 {
     zz0 & 0xffffff00u32 as i32
 }
 
 #[inline]
-fn depth_of(zz1: i32) -> i32 {
+const fn depth_of(zz1: i32) -> i32 {
     zz1 & 0xff
 }
 
 #[inline]
 fn add_weights(zw1: i32, zw2: i32) -> i32 {
-    (weight_of(zw1)).wrapping_add(weight_of(zw2)) | (1 + cmp::max(depth_of(zw1), depth_of(zw2)))
+    (weight_of(zw1)).wrapping_add(weight_of(zw2)) | (1 + Ord::max(depth_of(zw1), depth_of(zw2)))
 }
 
 #[inline]
