@@ -145,7 +145,7 @@ pub struct EState {
     pub ptr: *mut u32,
     pub block: *mut u8,
     pub mtfv: *mut u16,
-    pub zbits: *mut u8,
+    pub writer: crate::compress::EWriter,
     pub workFactor: i32,
     pub state_in_ch: u32,
     pub state_in_len: i32,
@@ -153,13 +153,10 @@ pub struct EState {
     pub rTPos: i32,
     pub nblock: i32,
     pub nblockMAX: i32,
-    pub numZ: i32,
     pub state_out_pos: i32,
     pub nInUse: i32,
     pub inUse: [bool; 256],
     pub unseqToSeq: [u8; 256],
-    pub bsBuff: u32,
-    pub bsLive: i32,
     pub blockCRC: u32,
     pub combinedCRC: u32,
     pub verbosity: i32,
@@ -336,7 +333,7 @@ unsafe extern "C" fn default_bzfree(_opaque: *mut libc::c_void, addr: *mut libc:
 }
 unsafe fn prepare_new_block(s: *mut EState) {
     (*s).nblock = 0 as libc::c_int;
-    (*s).numZ = 0 as libc::c_int;
+    (*s).writer.num_z = 0;
     (*s).state_out_pos = 0 as libc::c_int;
     (*s).blockCRC = 0xffffffff as libc::c_long as u32;
     (*s).inUse.fill(false);
@@ -455,7 +452,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     (*s).workFactor = workFactor;
     (*s).block = (*s).arr2 as *mut u8;
     (*s).mtfv = (*s).arr1 as *mut u16;
-    (*s).zbits = std::ptr::null_mut::<u8>();
+    (*s).writer.zbits = std::ptr::null_mut::<u8>();
     (*s).ptr = (*s).arr1;
     (*strm).state = s as *mut libc::c_void;
     (*strm).total_in_lo32 = 0 as libc::c_int as libc::c_uint;
@@ -602,11 +599,12 @@ unsafe fn copy_output_until_stop(s: *mut EState) -> bool {
         if (*(*s).strm).avail_out == 0 as libc::c_int as libc::c_uint {
             break;
         }
-        if (*s).state_out_pos >= (*s).numZ {
+        if (*s).state_out_pos >= (*s).writer.num_z as i32 {
             break;
         }
         progress_out = true;
-        *(*(*s).strm).next_out = *((*s).zbits).offset((*s).state_out_pos as isize) as libc::c_char;
+        *(*(*s).strm).next_out =
+            *((*s).writer.zbits).offset((*s).state_out_pos as isize) as libc::c_char;
         (*s).state_out_pos += 1;
         (*(*s).strm).avail_out = ((*(*s).strm).avail_out).wrapping_sub(1);
         (*(*s).strm).next_out = ((*(*s).strm).next_out).offset(1);
@@ -624,7 +622,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
     loop {
         if let State::Input = (*s).state {
             progress_out |= copy_output_until_stop(s);
-            if (*s).state_out_pos < (*s).numZ {
+            if (*s).state_out_pos < (*s).writer.num_z as i32 {
                 break;
             }
             if matches!((*s).mode, Mode::Finishing)
@@ -727,7 +725,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                 handle_compress(strm);
                 if (*s).avail_in_expect > 0
                     || !isempty_RL(&mut *s)
-                    || (*s).state_out_pos < (*s).numZ
+                    || (*s).state_out_pos < (*s).writer.num_z as i32
                 {
                     return 2;
                 }
@@ -747,7 +745,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                 }
                 if (*s).avail_in_expect > 0
                     || !isempty_RL(&mut *s)
-                    || (*s).state_out_pos < (*s).numZ
+                    || (*s).state_out_pos < (*s).writer.num_z as i32
                 {
                     return 3;
                 }
