@@ -1,6 +1,6 @@
 use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
-use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS};
+use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS, BZ_RUNA, BZ_RUNB};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 
 pub fn BZ2_bsInitWrite(s: &mut EState) {
@@ -52,112 +52,128 @@ fn makeMaps_e(s: &mut EState) {
     }
 }
 
-unsafe fn generateMTFValues(s: *mut EState) {
+unsafe fn generateMTFValues(s: &mut EState) {
+    /*
+       After sorting (eg, here),
+          s.arr1 [ 0 .. s->nblock-1 ] holds sorted order,
+          and
+          s.arr2 [ 0 .. s->nblock-1 ]
+          holds the original block data.
+
+       The first thing to do is generate the MTF values,
+       and put them in
+          s.arr1 [ 0 .. s->nblock-1 ].
+       Because there are strictly fewer or equal MTF values
+       than block values, ptr values in this area are overwritten
+       with MTF values only when they are no longer needed.
+
+       The final compressed bitstream is generated into the
+       area starting at
+          (UChar*) (&((UChar*)s->arr2)[s->nblock])
+
+       These storage aliases are set up in bzCompressInit(),
+       except for the last one, which is arranged in
+       compressBlock().
+    */
+
+    let ptr: *mut u32 = s.ptr;
+    let block: *mut u8 = s.block;
+    let mtfv: *mut u16 = s.mtfv;
+
+    makeMaps_e(s);
+    let EOB = s.nInUse + 1 as libc::c_int;
+
+    s.mtfFreq[..EOB as usize].fill(0);
+
+    let mut wr = 0;
+    let mut zPend = 0;
+
     let mut yy: [u8; 256] = [0; 256];
-    let mut i: i32;
-    let mut j: i32;
-    let mut zPend: i32;
-    let mut wr: i32;
-    let EOB: i32;
-    let ptr: *mut u32 = (*s).ptr;
-    let block: *mut u8 = (*s).block;
-    let mtfv: *mut u16 = (*s).mtfv;
-    makeMaps_e(&mut *s);
-    EOB = (*s).nInUse + 1 as libc::c_int;
-    i = 0 as libc::c_int;
-    while i <= EOB {
-        (*s).mtfFreq[i as usize] = 0 as libc::c_int;
-        i += 1;
-    }
-    wr = 0 as libc::c_int;
-    zPend = 0 as libc::c_int;
-    i = 0 as libc::c_int;
-    while i < (*s).nInUse {
+    for i in 0..s.nInUse {
         yy[i as usize] = i as u8;
-        i += 1;
     }
-    i = 0 as libc::c_int;
-    while i < (*s).nblock {
+
+    for i in 0..s.nblock {
         let ll_i: u8;
-        j = (*ptr.offset(i as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-        if j < 0 as libc::c_int {
-            j += (*s).nblock;
+        debug_assert!(wr <= i, "generateMTFValues(1)");
+        let mut j = (*ptr.offset(i as isize)).wrapping_sub(1) as i32;
+        if j < 0 {
+            j += s.nblock;
         }
-        ll_i = (*s).unseqToSeq[*block.offset(j as isize) as usize];
-        if yy[0 as libc::c_int as usize] == ll_i {
+        ll_i = s.unseqToSeq[*block.offset(j as isize) as usize];
+        debug_assert!((ll_i as i32) < s.nInUse, "generateMTFValues(2a)");
+
+        if yy[0] == ll_i {
             zPend += 1;
         } else {
-            if zPend > 0 as libc::c_int {
+            if zPend > 0 {
                 zPend -= 1;
                 loop {
-                    if zPend & 1 as libc::c_int != 0 {
-                        *mtfv.offset(wr as isize) = 1 as libc::c_int as u16;
+                    if zPend & 1 != 0 {
+                        *mtfv.offset(wr as isize) = 1;
                         wr += 1;
-                        (*s).mtfFreq[1 as libc::c_int as usize] += 1;
-                        (*s).mtfFreq[1 as libc::c_int as usize];
+                        s.mtfFreq[1] += 1;
                     } else {
-                        *mtfv.offset(wr as isize) = 0 as libc::c_int as u16;
+                        *mtfv.offset(wr as isize) = 0;
                         wr += 1;
-                        (*s).mtfFreq[0 as libc::c_int as usize] += 1;
-                        (*s).mtfFreq[0 as libc::c_int as usize];
+                        s.mtfFreq[0] += 1;
                     }
-                    if zPend < 2 as libc::c_int {
+                    if zPend < 2 {
                         break;
                     }
-                    zPend = (zPend - 2 as libc::c_int) / 2 as libc::c_int;
+                    zPend = (zPend - 2) / 2;
                 }
-                zPend = 0 as libc::c_int;
+                zPend = 0;
             }
-            let mut rtmp: u8;
-            let mut ryy_j: *mut u8;
-            let rll_i: u8;
-            rtmp = yy[1 as libc::c_int as usize];
-            yy[1 as libc::c_int as usize] = yy[0 as libc::c_int as usize];
-            ryy_j = &mut *yy.as_mut_ptr().offset(1 as libc::c_int as isize) as *mut u8;
-            rll_i = ll_i;
-            while rll_i != rtmp {
-                let rtmp2: u8;
-                ryy_j = ryy_j.offset(1);
-                rtmp2 = rtmp;
-                rtmp = *ryy_j;
-                *ryy_j = rtmp2;
+
+            {
+                let mut rtmp: u8;
+                let mut ryy_j: *mut u8;
+                let rll_i: u8;
+                rtmp = yy[1];
+                yy[1] = yy[0];
+                ryy_j = &mut *yy.as_mut_ptr().offset(1) as *mut u8;
+                rll_i = ll_i;
+                while rll_i != rtmp {
+                    let rtmp2: u8;
+                    ryy_j = ryy_j.offset(1);
+                    rtmp2 = rtmp;
+                    rtmp = *ryy_j;
+                    *ryy_j = rtmp2;
+                }
+                yy[0] = rtmp;
+                j = ryy_j.offset_from(&mut *yy.as_mut_ptr().offset(0) as *mut u8) as i32;
+                *mtfv.offset(wr as isize) = (j + 1) as u16;
+                wr += 1;
+                s.mtfFreq[(j + 1) as usize] += 1;
             }
-            yy[0 as libc::c_int as usize] = rtmp;
-            j = ryy_j
-                .offset_from(&mut *yy.as_mut_ptr().offset(0 as libc::c_int as isize) as *mut u8)
-                as libc::c_long as i32;
-            *mtfv.offset(wr as isize) = (j + 1 as libc::c_int) as u16;
-            wr += 1;
-            (*s).mtfFreq[(j + 1 as libc::c_int) as usize] += 1;
-            (*s).mtfFreq[(j + 1 as libc::c_int) as usize];
         }
-        i += 1;
     }
+
     if zPend > 0 as libc::c_int {
         zPend -= 1;
         loop {
-            if zPend & 1 as libc::c_int != 0 {
-                *mtfv.offset(wr as isize) = 1 as libc::c_int as u16;
+            if zPend & 1 != 0 {
+                *mtfv.offset(wr as isize) = BZ_RUNB;
                 wr += 1;
-                (*s).mtfFreq[1 as libc::c_int as usize] += 1;
-                (*s).mtfFreq[1 as libc::c_int as usize];
+                s.mtfFreq[BZ_RUNB as usize] += 1;
             } else {
-                *mtfv.offset(wr as isize) = 0 as libc::c_int as u16;
+                *mtfv.offset(wr as isize) = BZ_RUNA;
                 wr += 1;
-                (*s).mtfFreq[0 as libc::c_int as usize] += 1;
-                (*s).mtfFreq[0 as libc::c_int as usize];
+                s.mtfFreq[BZ_RUNA as usize] += 1;
             }
-            if zPend < 2 as libc::c_int {
+            if zPend < 2 {
                 break;
             }
-            zPend = (zPend - 2 as libc::c_int) / 2 as libc::c_int;
+            zPend = (zPend - 2) / 2;
         }
     }
+
     *mtfv.offset(wr as isize) = EOB as u16;
     wr += 1;
-    (*s).mtfFreq[EOB as usize] += 1;
-    (*s).mtfFreq[EOB as usize];
-    (*s).nMTF = wr;
+    s.mtfFreq[EOB as usize] += 1;
+
+    s.nMTF = wr;
 }
 
 unsafe fn sendMTFValues(s: *mut EState) {
@@ -655,7 +671,7 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
         bsW(s, 1, 0);
 
         bsW(s, 24, s.origPtr as u32);
-        generateMTFValues(s);
+        generateMTFValues(&mut *s);
         sendMTFValues(s);
     }
 
