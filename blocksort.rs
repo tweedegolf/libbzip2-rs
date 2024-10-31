@@ -384,7 +384,7 @@ unsafe fn mainGtU(
     quadrant: *mut u16,
     nblock: u32,
     budget: *mut i32,
-) -> Bool {
+) -> bool {
     let mut k: i32;
     let mut c1: u8;
     let mut c2: u8;
@@ -396,84 +396,84 @@ unsafe fn mainGtU(
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
-        return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+        return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
@@ -482,96 +482,96 @@ unsafe fn mainGtU(
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
         if c1 != c2 {
-            return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+            return c1 > c2;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
         if s1 != s2 {
-            return (s1 as libc::c_int > s2 as libc::c_int) as Bool;
+            return s1 > s2;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
         if c1 != c2 {
-            return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+            return c1 > c2;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
         if s1 != s2 {
-            return (s1 as libc::c_int > s2 as libc::c_int) as Bool;
+            return s1 > s2;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
         if c1 != c2 {
-            return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+            return c1 > c2;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
         if s1 != s2 {
-            return (s1 as libc::c_int > s2 as libc::c_int) as Bool;
+            return s1 > s2;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
         if c1 != c2 {
-            return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+            return c1 > c2;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
         if s1 != s2 {
-            return (s1 as libc::c_int > s2 as libc::c_int) as Bool;
+            return s1 > s2;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
         if c1 != c2 {
-            return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+            return c1 > c2;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
         if s1 != s2 {
-            return (s1 as libc::c_int > s2 as libc::c_int) as Bool;
+            return s1 > s2;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
         if c1 != c2 {
-            return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+            return c1 > c2;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
         if s1 != s2 {
-            return (s1 as libc::c_int > s2 as libc::c_int) as Bool;
+            return s1 > s2;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
         if c1 != c2 {
-            return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+            return c1 > c2;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
         if s1 != s2 {
-            return (s1 as libc::c_int > s2 as libc::c_int) as Bool;
+            return s1 > s2;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         c1 = *block.offset(i1 as isize);
         c2 = *block.offset(i2 as isize);
         if c1 != c2 {
-            return (c1 as libc::c_int > c2 as libc::c_int) as Bool;
+            return c1 > c2;
         }
         s1 = *quadrant.offset(i1 as isize);
         s2 = *quadrant.offset(i2 as isize);
         if s1 != s2 {
-            return (s1 as libc::c_int > s2 as libc::c_int) as Bool;
+            return s1 > s2;
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
@@ -584,10 +584,9 @@ unsafe fn mainGtU(
         k -= 8 as libc::c_int;
         *budget -= 1;
         if k < 0 as libc::c_int {
-            break;
+            break false;
         }
     }
-    0 as Bool
 }
 static INCS: [i32; 14] = [
     1 as libc::c_int,
@@ -646,8 +645,7 @@ unsafe fn mainSimpleSort(
                 quadrant,
                 nblock as u32,
                 budget,
-            ) != 0
-            {
+            ) {
                 *ptr.offset(j as isize) = *ptr.offset((j - h) as isize);
                 j -= h;
                 if j <= lo + h - 1 as libc::c_int {
@@ -668,8 +666,7 @@ unsafe fn mainSimpleSort(
                 quadrant,
                 nblock as u32,
                 budget,
-            ) != 0
-            {
+            ) {
                 *ptr.offset(j as isize) = *ptr.offset((j - h) as isize);
                 j -= h;
                 if j <= lo + h - 1 as libc::c_int {
@@ -690,8 +687,7 @@ unsafe fn mainSimpleSort(
                 quadrant,
                 nblock as u32,
                 budget,
-            ) != 0
-            {
+            ) {
                 *ptr.offset(j as isize) = *ptr.offset((j - h) as isize);
                 j -= h;
                 if j <= lo + h - 1 as libc::c_int {
