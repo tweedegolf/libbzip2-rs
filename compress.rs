@@ -1,6 +1,6 @@
 use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
-use crate::bzlib::{BZ2_bz__AssertH__fail, EState, BZ_MAX_SELECTORS, BZ_N_ITERS};
+use crate::bzlib::{BZ2_bz__AssertH__fail, EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 
 pub fn BZ2_bsInitWrite(s: &mut EState) {
@@ -177,7 +177,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
     let mut minLen: i32;
     let mut maxLen: i32;
     let mut selCtr: usize;
-    let nGroups: i32;
+    let nGroups: usize;
     let mut nBytes: i32;
 
     /*--
@@ -234,7 +234,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
         let mut gs = 0i32;
 
         while nPart > 0 {
-            tFreq = remF / nPart;
+            tFreq = remF / nPart as i32;
             ge = gs - 1;
             aFreq = 0;
             while aFreq < tFreq && ge < alphaSize as i32 - 1 {
@@ -275,12 +275,12 @@ unsafe fn sendMTFValues(s: *mut EState) {
     ---*/
     for iter in 0..BZ_N_ITERS {
         for t in 0..nGroups {
-            fave[t as usize] = 0;
+            fave[t] = 0;
         }
 
         for t in 0..nGroups {
             for v in 0..alphaSize {
-                (*s).rfreq[t as usize][v as usize] = 0 as libc::c_int;
+                (*s).rfreq[t][v] = 0 as libc::c_int;
             }
         }
 
@@ -314,7 +314,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
                by each of the coding tables.
             --*/
             for t in 0..nGroups {
-                cost[t as usize] = 0;
+                cost[t] = 0;
             }
 
             if nGroups == 6 && 50 == ge - gs + 1 {
@@ -361,8 +361,8 @@ unsafe fn sendMTFValues(s: *mut EState) {
                     let icv_0: u16 = *mtfv.offset(i as isize);
 
                     for t in 0..nGroups {
-                        cost[t as usize] = (cost[t as usize] as libc::c_int
-                            + (*s).len[t as usize][icv_0 as usize] as libc::c_int)
+                        cost[t as usize] = (cost[t] as libc::c_int
+                            + (*s).len[t][icv_0 as usize] as libc::c_int)
                             as u16;
                     }
                 }
@@ -377,7 +377,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
             for t in 0..nGroups {
                 if (cost[t as usize] as libc::c_int) < bc {
                     bc = cost[t as usize] as i32;
-                    bt = t;
+                    bt = t as i32;
                 }
             }
             totc += bc;
@@ -416,14 +416,14 @@ unsafe fn sendMTFValues(s: *mut EState) {
             gs = ge + 1;
         }
 
-        if (*s).verbosity >= 3 as libc::c_int {
+        if (*s).verbosity >= 3 {
             eprint!(
                 "      pass {}: size is {}, grp uses are ",
                 iter + 1,
                 totc / 8,
             );
             for t in 0..nGroups {
-                eprint!("{} ", fave[t as usize],);
+                eprint!("{} ", fave[t],);
             }
             eprintln!("");
         }
@@ -434,44 +434,43 @@ unsafe fn sendMTFValues(s: *mut EState) {
         /* maxLen was changed from 20 to 17 in bzip2-1.0.3.  See
         comment in huffman.c for details. */
         for t in 0..nGroups {
-            BZ2_hbMakeCodeLengths(
-                &mut (*s).len[t as usize],
-                &(*s).rfreq[t as usize],
-                alphaSize as i32,
-                17 as libc::c_int,
-            );
+            BZ2_hbMakeCodeLengths(&mut (*s).len[t], &(*s).rfreq[t], alphaSize as i32, 17);
         }
     }
 
     assert_h!(nGroups < 8, 3002);
     assert_h!(nSelectors < 32768 && nSelectors <= BZ_MAX_SELECTORS, 3003);
 
-    let mut pos: [u8; 6] = [0; 6];
-    let mut ll_i: u8;
-    let mut tmp2: u8;
-    let mut tmp: u8;
-    i = 0 as libc::c_int;
-    while i < nGroups {
-        pos[i as usize] = i as u8;
-        i += 1;
-    }
-    for i in 0..nSelectors {
-        ll_i = (*s).selector[i as usize];
-        j = 0 as libc::c_int;
-        tmp = pos[j as usize];
-        while ll_i != tmp {
-            j += 1;
-            tmp2 = tmp;
-            tmp = pos[j as usize];
-            pos[j as usize] = tmp2;
+    /*--- Compute MTF values for the selectors. ---*/
+    {
+        let mut pos: [u8; BZ_N_GROUPS] = [0; BZ_N_GROUPS];
+        let mut ll_i: u8;
+        let mut tmp2: u8;
+        let mut tmp: u8;
+
+        for i in 0..nGroups as usize {
+            pos[i] = i as u8;
         }
-        pos[0 as libc::c_int as usize] = tmp;
-        (*s).selectorMtf[i as usize] = j as u8;
+
+        for i in 0..nSelectors {
+            ll_i = (*s).selector[i];
+            j = 0 as libc::c_int;
+            tmp = pos[j as usize];
+            while ll_i != tmp {
+                j += 1;
+                tmp2 = tmp;
+                tmp = pos[j as usize];
+                pos[j as usize] = tmp2;
+            }
+            pos[0 as libc::c_int as usize] = tmp;
+            (*s).selectorMtf[i as usize] = j as u8;
+        }
     }
-    t = 0 as libc::c_int;
-    while t < nGroups {
-        minLen = 32 as libc::c_int;
-        maxLen = 0 as libc::c_int;
+
+    for t in 0..nGroups {
+        minLen = 32;
+        maxLen = 0;
+
         for i in 0..alphaSize {
             if (*s).len[t as usize][i] as libc::c_int > maxLen {
                 maxLen = (*s).len[t as usize][i] as i32;
@@ -497,7 +496,6 @@ unsafe fn sendMTFValues(s: *mut EState) {
             maxLen,
             alphaSize as i32,
         );
-        t += 1;
     }
 
     /*--- Transmit the mapping table. ---*/
@@ -570,7 +568,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
         if ge >= (*s).nMTF {
             ge = (*s).nMTF - 1 as libc::c_int;
         }
-        assert_h!(((*s).selector[selCtr] as libc::c_int) < nGroups, 3006);
+        assert_h!(((*s).selector[selCtr] as usize) < nGroups, 3006);
         if nGroups == 6 && 50 == ge - gs + 1 {
             /*--- fast track the common case ---*/
             let mut mtfv_i: u16;
