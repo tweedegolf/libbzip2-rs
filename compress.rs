@@ -3,30 +3,62 @@ use crate::blocksort::BZ2_blockSort;
 use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS, BZ_RUNA, BZ_RUNB};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 
+#[derive(Copy, Clone)]
+pub struct EWriter {
+    pub zbits: *mut u8,
+    pub num_z: u32,
+    pub bs_live: i32,
+    pub bs_buff: u32,
+}
+
+impl EWriter {
+    unsafe fn new(ptr: *mut u8) -> Self {
+        Self {
+            zbits: ptr,
+            num_z: 0,
+            bs_live: 0,
+            bs_buff: 0,
+        }
+    }
+
+    fn initialize(&mut self) {
+        self.bs_live = 0;
+        self.bs_buff = 0;
+    }
+
+    fn finish(&mut self) {
+        while self.bs_live > 0 {
+            unsafe { *(self.zbits).add(self.num_z as usize) = (self.bs_buff >> 24) as u8 };
+            self.num_z += 1;
+            self.bs_buff <<= 8;
+            self.bs_live -= 8;
+        }
+    }
+
+    fn write(&mut self, n: i32, v: u32) {
+        while self.bs_live >= 8 {
+            unsafe { *(self.zbits).add(self.num_z as usize) = (self.bs_buff >> 24) as u8 };
+            self.num_z += 1;
+            self.bs_buff <<= 8;
+            self.bs_live -= 8;
+        }
+
+        self.bs_buff |= v << (32 - self.bs_live - n);
+        self.bs_live += n;
+    }
+}
+
 pub fn BZ2_bsInitWrite(s: &mut EState) {
-    s.bsLive = 0;
-    s.bsBuff = 0;
+    s.writer.initialize();
 }
 
 unsafe fn bsFinishWrite(s: &mut EState) {
-    while s.bsLive > 0 {
-        *(s.zbits).offset(s.numZ as isize) = (s.bsBuff >> 24) as u8;
-        s.numZ += 1;
-        s.bsBuff <<= 8;
-        s.bsLive -= 8;
-    }
+    s.writer.finish();
 }
 
 #[inline]
 unsafe fn bsW(s: &mut EState, n: i32, v: u32) {
-    while s.bsLive >= 8 {
-        *(s.zbits).offset(s.numZ as isize) = (s.bsBuff >> 24) as u8;
-        s.numZ += 1;
-        s.bsBuff <<= 8;
-        s.bsLive -= 8;
-    }
-    s.bsBuff |= v << (32 - s.bsLive - n);
-    s.bsLive += n;
+    s.writer.write(n, v)
 }
 
 unsafe fn bsPutUInt32(s: &mut EState, u: u32) {
@@ -494,7 +526,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
         let inUse16: [bool; 16] =
             core::array::from_fn(|i| s.inUse[i * 16..][..16].iter().any(|x| *x));
 
-        nBytes = s.numZ;
+        nBytes = s.writer.num_z as i32;
         for in_use in inUse16 {
             bsW(s, 1, in_use as u32);
         }
@@ -506,12 +538,12 @@ unsafe fn sendMTFValues(s: &mut EState) {
             }
         }
         if s.verbosity >= 3 {
-            eprint!("      bytes: mapping {}, ", s.numZ - nBytes,);
+            eprint!("      bytes: mapping {}, ", s.writer.num_z as i32 - nBytes,);
         }
     }
 
     /*--- Now the selectors. ---*/
-    nBytes = s.numZ;
+    nBytes = s.writer.num_z as i32;
     bsW(s, 3, nGroups as u32);
     bsW(s, 15, nSelectors as u32);
 
@@ -522,11 +554,11 @@ unsafe fn sendMTFValues(s: &mut EState) {
         bsW(s, 1, 0);
     }
     if s.verbosity >= 3 {
-        eprint!("selectors {}, ", s.numZ - nBytes);
+        eprint!("selectors {}, ", s.writer.num_z as i32 - nBytes);
     }
 
     /*--- Now the coding tables. ---*/
-    nBytes = s.numZ;
+    nBytes = s.writer.num_z as i32;
 
     for t in 0..nGroups {
         let mut curr = s.len[t as usize][0];
@@ -544,11 +576,11 @@ unsafe fn sendMTFValues(s: &mut EState) {
         }
     }
     if s.verbosity >= 3 {
-        eprint!("code lengths {}, ", s.numZ - nBytes);
+        eprint!("code lengths {}, ", s.writer.num_z as i32 - nBytes);
     }
 
     /*--- And finally, the block data proper ---*/
-    nBytes = s.numZ;
+    nBytes = s.writer.num_z as i32;
     selCtr = 0;
     gs = 0;
     loop {
@@ -604,7 +636,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
     assert_h!(selCtr == nSelectors, 3007);
 
     if s.verbosity >= 3 {
-        eprintln!("codes {}", s.numZ - nBytes);
+        eprintln!("codes {}", s.writer.num_z as i32 - nBytes);
     }
 }
 
@@ -614,7 +646,7 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
         s.combinedCRC = s.combinedCRC.rotate_left(1);
         s.combinedCRC ^= s.blockCRC;
         if s.blockNo > 1 {
-            s.numZ = 0;
+            s.writer.num_z = 0;
         }
 
         if s.verbosity >= 2 {
@@ -627,7 +659,7 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
         BZ2_blockSort(&mut *s);
     }
 
-    s.zbits = &mut *(s.arr2 as *mut u8).offset(s.nblock as isize) as *mut u8;
+    s.writer.zbits = &mut *(s.arr2 as *mut u8).offset(s.nblock as isize) as *mut u8;
 
     /*-- If this is the first block, create the stream header. --*/
     if s.blockNo == 1 {
