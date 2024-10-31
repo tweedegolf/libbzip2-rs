@@ -1830,7 +1830,8 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                             }
                             while nn > 0 {
                                 s.mtfa[(pp as libc::c_uint).wrapping_add(nn) as usize] =
-                                    s.mtfa[(pp as libc::c_uint).wrapping_add(nn).wrapping_sub(1) as usize];
+                                    s.mtfa[(pp as libc::c_uint).wrapping_add(nn).wrapping_sub(1)
+                                        as usize];
                                 nn = nn.wrapping_sub(1);
                             }
                             s.mtfa[pp as usize] = uc;
@@ -2032,7 +2033,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                 if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
                                     return 1 as Bool as i32;
                                 }
-                                s.k0 = BZ2_indexIntoF(s.tPos as i32, (s.cftab).as_mut_ptr());
+                                s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
                                 s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
                                     | (*(s.ll4).offset((s.tPos >> 1) as isize) as u32
                                         >> (s.tPos << 2 & 0x4)
@@ -2052,7 +2053,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                                 if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
                                     return 1 as Bool as i32;
                                 }
-                                s.k0 = BZ2_indexIntoF(s.tPos as i32, (s.cftab).as_mut_ptr());
+                                s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
                                 s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
                                     | (*(s.ll4).offset((s.tPos >> 1) as isize) as u32
                                         >> (s.tPos << 2 & 0x4)

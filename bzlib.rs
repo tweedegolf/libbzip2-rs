@@ -1188,26 +1188,25 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
     }
     0 as Bool
 }
+
 #[inline]
-pub unsafe fn BZ2_indexIntoF(indx: i32, cftab: *mut i32) -> i32 {
-    let mut nb: i32;
-    let mut na: i32;
-    let mut mid: i32;
-    nb = 0 as libc::c_int;
-    na = 256 as libc::c_int;
+pub fn BZ2_indexIntoF(indx: i32, cftab: &mut [i32]) -> i32 {
+    let mut nb = 0;
+    let mut na = 256;
     loop {
-        mid = (nb + na) >> 1 as libc::c_int;
-        if indx >= *cftab.offset(mid as isize) {
+        let mid = (nb + na) >> 1;
+        if indx >= cftab[mid as usize] {
             nb = mid;
         } else {
             na = mid;
         }
-        if na - nb == 1 as libc::c_int {
+        if na - nb == 1 {
             break;
         }
     }
     nb
 }
+
 unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
     let mut k1: u8;
     if (*s).blockRandomised != 0 {
@@ -1243,7 +1242,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
             if (*s).tPos >= (100000 as libc::c_int as u32).wrapping_mul((*s).blockSize100k as u32) {
                 return 1 as Bool;
             }
-            k1 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr()) as u8;
+            k1 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab) as u8;
             (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                 | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                     >> ((*s).tPos << 2 as libc::c_int & 0x4 as libc::c_int as libc::c_uint)
@@ -1276,7 +1275,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                 {
                     return 1 as Bool;
                 }
-                k1 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr()) as u8;
+                k1 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab) as u8;
                 (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                     | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                         >> ((*s).tPos << 2 as libc::c_int & 0x4 as libc::c_int as libc::c_uint)
@@ -1309,7 +1308,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                     {
                         return 1 as Bool;
                     }
-                    k1 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr()) as u8;
+                    k1 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab) as u8;
                     (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                         | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                             >> ((*s).tPos << 2 as libc::c_int
@@ -1343,7 +1342,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         {
                             return 1 as Bool;
                         }
-                        k1 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr()) as u8;
+                        k1 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab) as u8;
                         (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                             | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                                 >> ((*s).tPos << 2 as libc::c_int
@@ -1372,7 +1371,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         {
                             return 1 as Bool;
                         }
-                        (*s).k0 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr());
+                        (*s).k0 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab);
                         (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                             | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                                 >> ((*s).tPos << 2 as libc::c_int
@@ -1430,7 +1429,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
             if (*s).tPos >= (100000 as libc::c_int as u32).wrapping_mul((*s).blockSize100k as u32) {
                 return 1 as Bool;
             }
-            k1 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr()) as u8;
+            k1 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab) as u8;
             (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                 | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                     >> ((*s).tPos << 2 as libc::c_int & 0x4 as libc::c_int as libc::c_uint)
@@ -1449,7 +1448,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                 {
                     return 1 as Bool;
                 }
-                k1 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr()) as u8;
+                k1 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab) as u8;
                 (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                     | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                         >> ((*s).tPos << 2 as libc::c_int & 0x4 as libc::c_int as libc::c_uint)
@@ -1468,7 +1467,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                     {
                         return 1 as Bool;
                     }
-                    k1 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr()) as u8;
+                    k1 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab) as u8;
                     (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                         | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                             >> ((*s).tPos << 2 as libc::c_int
@@ -1488,7 +1487,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         {
                             return 1 as Bool;
                         }
-                        k1 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr()) as u8;
+                        k1 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab) as u8;
                         (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                             | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                                 >> ((*s).tPos << 2 as libc::c_int
@@ -1503,7 +1502,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
                         {
                             return 1 as Bool;
                         }
-                        (*s).k0 = BZ2_indexIntoF((*s).tPos as i32, ((*s).cftab).as_mut_ptr());
+                        (*s).k0 = BZ2_indexIntoF((*s).tPos as i32, &mut (*s).cftab);
                         (*s).tPos = *((*s).ll16).offset((*s).tPos as isize) as u32
                             | (*((*s).ll4).offset(((*s).tPos >> 1 as libc::c_int) as isize) as u32
                                 >> ((*s).tPos << 2 as libc::c_int
