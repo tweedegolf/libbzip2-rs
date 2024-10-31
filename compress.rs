@@ -1,6 +1,6 @@
 use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
-use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState, BZ_N_GROUPS};
+use crate::bzlib::{BZ2_bz__AssertH__fail, EState};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 pub unsafe fn BZ2_bsInitWrite(s: *mut EState) {
     (*s).bsLive = 0 as libc::c_int;
@@ -1121,86 +1121,66 @@ unsafe fn sendMTFValues(s: *mut EState) {
         );
         t += 1;
     }
-    let mut inUse16: [Bool; 16] = [0; 16];
-    i = 0 as libc::c_int;
-    while i < 16 as libc::c_int {
-        inUse16[i as usize] = 0 as Bool;
-        j = 0 as libc::c_int;
-        while j < 16 as libc::c_int {
-            if (*s).inUse[(i * 16 as libc::c_int + j) as usize] != 0 {
-                inUse16[i as usize] = 1 as Bool;
-            }
-            j += 1;
+
+    /*--- Transmit the mapping table. ---*/
+    {
+        let inUse16: [bool; 16] =
+            core::array::from_fn(|i| (*s).inUse[i * 16..][..16].iter().any(|x| *x != 0));
+
+        nBytes = (*s).numZ;
+        for in_use in inUse16 {
+            bsW(s, 1, in_use as u32);
         }
-        i += 1;
-    }
-    nBytes = (*s).numZ;
-    i = 0 as libc::c_int;
-    while i < 16 as libc::c_int {
-        if inUse16[i as usize] != 0 {
-            bsW(s, 1 as libc::c_int, 1 as libc::c_int as u32);
-        } else {
-            bsW(s, 1 as libc::c_int, 0 as libc::c_int as u32);
-        }
-        i += 1;
-    }
-    i = 0 as libc::c_int;
-    while i < 16 as libc::c_int {
-        if inUse16[i as usize] != 0 {
-            j = 0 as libc::c_int;
-            while j < 16 as libc::c_int {
-                if (*s).inUse[(i * 16 as libc::c_int + j) as usize] != 0 {
-                    bsW(s, 1 as libc::c_int, 1 as libc::c_int as u32);
-                } else {
-                    bsW(s, 1 as libc::c_int, 0 as libc::c_int as u32);
+        for (any_in_use, chunk_in_use) in inUse16.iter().zip((*s).inUse.chunks_exact(16)) {
+            if *any_in_use {
+                for in_use in chunk_in_use {
+                    bsW(s, 1, *in_use as u32);
                 }
-                j += 1;
             }
         }
-        i += 1;
-    }
-    if (*s).verbosity >= 3 as libc::c_int {
-        eprint!("      bytes: mapping {}, ", (*s).numZ - nBytes,);
-    }
-    nBytes = (*s).numZ;
-    bsW(s, 3 as libc::c_int, nGroups as u32);
-    bsW(s, 15 as libc::c_int, nSelectors as u32);
-    i = 0 as libc::c_int;
-    while i < nSelectors {
-        j = 0 as libc::c_int;
-        while j < (*s).selectorMtf[i as usize] as libc::c_int {
-            bsW(s, 1 as libc::c_int, 1 as libc::c_int as u32);
-            j += 1;
+        if (*s).verbosity >= 3 {
+            eprint!("      bytes: mapping {}, ", (*s).numZ - nBytes,);
         }
-        bsW(s, 1 as libc::c_int, 0 as libc::c_int as u32);
-        i += 1;
     }
-    if (*s).verbosity >= 3 as libc::c_int {
+
+    /*--- Now the selectors. ---*/
+    nBytes = (*s).numZ;
+    bsW(s, 3, nGroups as u32);
+    bsW(s, 15, nSelectors as u32);
+
+    for i in 0..nSelectors {
+        for _ in 0..(*s).selectorMtf[i as usize] {
+            bsW(s, 1, 1);
+        }
+        bsW(s, 1, 0);
+    }
+    if (*s).verbosity >= 3 {
         eprint!("selectors {}, ", (*s).numZ - nBytes);
     }
+
+    /*--- Now the coding tables. ---*/
     nBytes = (*s).numZ;
-    t = 0 as libc::c_int;
-    while t < nGroups {
-        let mut curr: i32 = (*s).len[t as usize][0 as libc::c_int as usize] as i32;
+
+    for t in 0..nGroups {
+        let mut curr = (*s).len[t as usize][0 as libc::c_int as usize];
         bsW(s, 5 as libc::c_int, curr as u32);
-        i = 0 as libc::c_int;
-        while i < alphaSize {
-            while curr < (*s).len[t as usize][i as usize] as libc::c_int {
-                bsW(s, 2 as libc::c_int, 2 as libc::c_int as u32);
+        for i in 0..alphaSize {
+            while curr < (*s).len[t as usize][i as usize] {
+                bsW(s, 2, 2);
                 curr += 1;
             }
-            while curr > (*s).len[t as usize][i as usize] as libc::c_int {
-                bsW(s, 2 as libc::c_int, 3 as libc::c_int as u32);
+            while curr > (*s).len[t as usize][i as usize] {
+                bsW(s, 2, 3);
                 curr -= 1;
             }
-            bsW(s, 1 as libc::c_int, 0 as libc::c_int as u32);
-            i += 1;
+            bsW(s, 1, 0);
         }
-        t += 1;
     }
     if (*s).verbosity >= 3 as libc::c_int {
         eprint!("code lengths {}, ", (*s).numZ - nBytes);
     }
+
+    /*--- And finally, the block data proper ---*/
     nBytes = (*s).numZ;
     selCtr = 0 as libc::c_int;
     gs = 0 as libc::c_int;
