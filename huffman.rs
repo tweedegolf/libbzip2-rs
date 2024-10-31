@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use crate::assert_h;
 
 const BZ_MAX_ALPHA_SIZE: usize = 258;
@@ -57,7 +59,7 @@ fn downheap(
     heap[z] = tmp;
 }
 
-pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: usize, maxLen: i32) {
+pub fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: usize, maxLen: i32) {
     /*--
        Nodes and heap entries run from 1.  Entry 0
        for both the heap and nodes is a sentinel.
