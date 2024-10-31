@@ -43,7 +43,7 @@ unsafe fn bsPutUChar(s: &mut EState, c: u8) {
 }
 
 fn makeMaps_e(s: &mut EState) {
-    s.nInUse = 0 as libc::c_int;
+    s.nInUse = 0;
     for (i, in_use) in s.inUse.iter().enumerate() {
         if *in_use {
             s.unseqToSeq[i as usize] = s.nInUse as u8;
