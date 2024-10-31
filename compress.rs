@@ -45,7 +45,7 @@ unsafe fn bsPutUChar(s: &mut EState, c: u8) {
 fn makeMaps_e(s: &mut EState) {
     s.nInUse = 0 as libc::c_int;
     for (i, in_use) in s.inUse.iter().enumerate() {
-        if *in_use != 0 {
+        if *in_use {
             s.unseqToSeq[i as usize] = s.nInUse as u8;
             s.nInUse += 1;
         }
@@ -482,7 +482,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
     /*--- Transmit the mapping table. ---*/
     {
         let inUse16: [bool; 16] =
-            core::array::from_fn(|i| (*s).inUse[i * 16..][..16].iter().any(|x| *x != 0));
+            core::array::from_fn(|i| (*s).inUse[i * 16..][..16].iter().any(|x| *x));
 
         nBytes = (*s).numZ;
         for in_use in inUse16 {

@@ -153,7 +153,7 @@ pub struct EState {
     pub numZ: i32,
     pub state_out_pos: i32,
     pub nInUse: i32,
-    pub inUse: [Bool; 256],
+    pub inUse: [bool; 256],
     pub unseqToSeq: [u8; 256],
     pub bsBuff: u32,
     pub bsLive: i32,
@@ -332,16 +332,11 @@ unsafe extern "C" fn default_bzfree(_opaque: *mut libc::c_void, addr: *mut libc:
     }
 }
 unsafe fn prepare_new_block(s: *mut EState) {
-    let mut i: i32;
     (*s).nblock = 0 as libc::c_int;
     (*s).numZ = 0 as libc::c_int;
     (*s).state_out_pos = 0 as libc::c_int;
     (*s).blockCRC = 0xffffffff as libc::c_long as u32;
-    i = 0 as libc::c_int;
-    while i < 256 as libc::c_int {
-        (*s).inUse[i as usize] = 0 as Bool;
-        i += 1;
-    }
+    (*s).inUse.fill(false);
     (*s).blockNo += 1;
 }
 
@@ -477,7 +472,7 @@ unsafe fn add_pair_to_block(s: *mut EState) {
             ^ BZ2_CRC32TABLE[((*s).blockCRC >> 24 as libc::c_int ^ ch as libc::c_uint) as usize];
         i += 1;
     }
-    (*s).inUse[(*s).state_in_ch as usize] = 1 as Bool;
+    (*s).inUse[(*s).state_in_ch as usize] = true;
     match (*s).state_in_len {
         1 => {
             *((*s).block).offset((*s).nblock as isize) = ch;
@@ -498,7 +493,7 @@ unsafe fn add_pair_to_block(s: *mut EState) {
             (*s).nblock += 1;
         }
         _ => {
-            (*s).inUse[((*s).state_in_len - 4 as libc::c_int) as usize] = 1 as Bool;
+            (*s).inUse[((*s).state_in_len - 4 as libc::c_int) as usize] = true;
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
             *((*s).block).offset((*s).nblock as isize) = ch;
@@ -537,7 +532,7 @@ macro_rules! ADD_CHAR_TO_BLOCK {
 
             let ch: u8 = (*s).state_in_ch as u8;
             BZ_UPDATE_CRC!((*s).blockCRC, ch);
-            (*s).inUse[(*s).state_in_ch as usize] = 1;
+            (*s).inUse[(*s).state_in_ch as usize] = true;
             *((*s).block).offset((*s).nblock as isize) = ch;
             (*s).nblock += 1;
             (*s).nblock;
