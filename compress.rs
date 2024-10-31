@@ -1,6 +1,6 @@
 use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
-use crate::bzlib::{BZ2_bz__AssertH__fail, EState};
+use crate::bzlib::{BZ2_bz__AssertH__fail, EState, BZ_N_ITERS};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 pub unsafe fn BZ2_bsInitWrite(s: *mut EState) {
     (*s).bsLive = 0 as libc::c_int;
@@ -173,7 +173,6 @@ unsafe fn sendMTFValues(s: *mut EState) {
     const BZ_LESSER_ICOST: u8 = 0;
     const BZ_GREATER_ICOST: u8 = 15;
 
-    let mut v: i32;
     let mut t: i32;
     let mut i: i32;
     let mut j: i32;
@@ -182,18 +181,30 @@ unsafe fn sendMTFValues(s: *mut EState) {
     let mut totc: i32;
     let mut bt: i32;
     let mut bc: i32;
-    let mut iter: i32;
     let mut nSelectors: i32 = 0;
-    let alphaSize: i32;
     let mut minLen: i32;
     let mut maxLen: i32;
     let mut selCtr: i32;
     let nGroups: i32;
     let mut nBytes: i32;
+
+    /*--
+    s.len: [[u8; BZ_MAX_ALPHA_SIZE]; BZ_N_GROUPS];
+    is a global because the decoder also needs it.
+
+    s.code: [[i32; BZ_MAX_ALPHA_SIZE]; BZ_N_GROUPS];
+    s.rfreq: [[i32; BZ_MAX_ALPHA_SIZE]; BZ_N_GROUPS];
+
+    are also globals only used in this proc.
+    Made global to keep stack frame size small.
+    --*/
+
     let mut cost: [u16; 6] = [0; 6];
     let mut fave: [i32; 6] = [0; 6];
+
     let mtfv: *mut u16 = (*s).mtfv;
-    if (*s).verbosity >= 3 as libc::c_int {
+
+    if (*s).verbosity >= 3 {
         eprintln!(
             "      {} in block, {} after MTF & 1-2 coding, {}+2 syms in use",
             (*s).nblock,
@@ -201,10 +212,10 @@ unsafe fn sendMTFValues(s: *mut EState) {
             (*s).nInUse,
         );
     }
-    alphaSize = (*s).nInUse + 2 as libc::c_int;
+    let alphaSize = usize::try_from((*s).nInUse + 2).unwrap_or(0);
 
     for t in (*s).len.iter_mut() {
-        t[..alphaSize as usize].fill(BZ_GREATER_ICOST);
+        t[..alphaSize].fill(BZ_GREATER_ICOST);
     }
 
     /*--- Decide how many coding tables to use ---*/
@@ -220,94 +231,84 @@ unsafe fn sendMTFValues(s: *mut EState) {
     } else {
         nGroups = 6;
     }
-    let mut nPart: i32;
-    let mut remF: i32;
-    let mut tFreq: i32;
-    let mut aFreq: i32;
-    nPart = nGroups;
-    remF = (*s).nMTF;
-    gs = 0 as libc::c_int;
-    while nPart > 0 as libc::c_int {
-        tFreq = remF / nPart;
-        ge = gs - 1 as libc::c_int;
-        aFreq = 0 as libc::c_int;
-        while aFreq < tFreq && ge < alphaSize - 1 as libc::c_int {
-            ge += 1;
-            aFreq += (*s).mtfFreq[ge as usize];
-        }
-        if ge > gs
-            && nPart != nGroups
-            && nPart != 1 as libc::c_int
-            && (nGroups - nPart) % 2 as libc::c_int == 1 as libc::c_int
-        {
-            aFreq -= (*s).mtfFreq[ge as usize];
-            ge -= 1;
-        }
-        if (*s).verbosity >= 3 as libc::c_int {
-            eprintln!(
-                "      initial group {}, [{} .. {}], has {} syms ({:4.1}%%)",
-                nPart,
-                gs,
-                ge,
-                aFreq,
-                100.0f64 * aFreq as libc::c_float as libc::c_double
-                    / (*s).nMTF as libc::c_float as libc::c_double,
-            );
-        }
-        v = 0 as libc::c_int;
-        while v < alphaSize {
-            if v >= gs && v <= ge {
-                (*s).len[(nPart - 1 as libc::c_int) as usize][v as usize] = 0 as libc::c_int as u8;
-            } else {
-                (*s).len[(nPart - 1 as libc::c_int) as usize][v as usize] = 15 as libc::c_int as u8;
+
+    /*--- Generate an initial set of coding tables ---*/
+    {
+        let mut tFreq: i32;
+        let mut aFreq: i32;
+
+        let mut nPart = nGroups;
+        let mut remF = (*s).nMTF;
+        let mut gs = 0i32;
+
+        while nPart > 0 {
+            tFreq = remF / nPart;
+            ge = gs - 1;
+            aFreq = 0;
+            while aFreq < tFreq && ge < alphaSize as i32 - 1 {
+                ge += 1;
+                aFreq += (*s).mtfFreq[ge as usize];
             }
-            v += 1;
+            if ge > gs && nPart != nGroups && nPart != 1 && (nGroups - nPart) % 2 == 1 {
+                aFreq -= (*s).mtfFreq[ge as usize];
+                ge -= 1;
+            }
+
+            if (*s).verbosity >= 3 {
+                eprintln!(
+                    "      initial group {}, [{} .. {}], has {} syms ({:4.1}%%)",
+                    nPart,
+                    gs,
+                    ge,
+                    aFreq,
+                    100.0f64 * aFreq as f64 / (*s).nMTF as f64,
+                );
+            }
+
+            for v in 0..alphaSize {
+                if v as i32 >= gs && v as i32 <= ge {
+                    (*s).len[(nPart - 1) as usize][v] = 0;
+                } else {
+                    (*s).len[(nPart - 1) as usize][v] = 15;
+                }
+            }
+            nPart -= 1;
+            gs = ge + 1;
+            remF -= aFreq;
         }
-        nPart -= 1;
-        gs = ge + 1 as libc::c_int;
-        remF -= aFreq;
     }
-    iter = 0 as libc::c_int;
-    while iter < 4 as libc::c_int {
-        t = 0 as libc::c_int;
-        while t < nGroups {
-            fave[t as usize] = 0 as libc::c_int;
-            t += 1;
+
+    /*---
+       Iterate up to BZ_N_ITERS times to improve the tables.
+    ---*/
+    for iter in 0..BZ_N_ITERS {
+        for t in 0..nGroups {
+            fave[t as usize] = 0;
         }
-        t = 0 as libc::c_int;
-        while t < nGroups {
-            v = 0 as libc::c_int;
-            while v < alphaSize {
+
+        for t in 0..nGroups {
+            for v in 0..alphaSize {
                 (*s).rfreq[t as usize][v as usize] = 0 as libc::c_int;
-                v += 1;
-            }
-            t += 1;
-        }
-        if nGroups == 6 as libc::c_int {
-            v = 0 as libc::c_int;
-            while v < alphaSize {
-                (*s).len_pack[v as usize][0 as libc::c_int as usize] =
-                    (((*s).len[1 as libc::c_int as usize][v as usize] as libc::c_int)
-                        << 16 as libc::c_int
-                        | (*s).len[0 as libc::c_int as usize][v as usize] as libc::c_int)
-                        as u32;
-                (*s).len_pack[v as usize][1 as libc::c_int as usize] =
-                    (((*s).len[3 as libc::c_int as usize][v as usize] as libc::c_int)
-                        << 16 as libc::c_int
-                        | (*s).len[2 as libc::c_int as usize][v as usize] as libc::c_int)
-                        as u32;
-                (*s).len_pack[v as usize][2 as libc::c_int as usize] =
-                    (((*s).len[5 as libc::c_int as usize][v as usize] as libc::c_int)
-                        << 16 as libc::c_int
-                        | (*s).len[4 as libc::c_int as usize][v as usize] as libc::c_int)
-                        as u32;
-                v += 1;
             }
         }
+
+        /*---
+          Set up an auxiliary length table which is used to fast-track
+          the common case (nGroups == 6).
+        ---*/
+        if nGroups == 6 {
+            for v in 0..alphaSize {
+                (*s).len_pack[v][0] = ((*s).len[1][v] as u32) << 16 | (*s).len[0][v] as u32;
+                (*s).len_pack[v][1] = ((*s).len[3][v] as u32) << 16 | (*s).len[2][v] as u32;
+                (*s).len_pack[v][2] = ((*s).len[5][v] as u32) << 16 | (*s).len[4][v] as u32;
+            }
+        }
+
         nSelectors = 0 as libc::c_int;
         totc = 0 as libc::c_int;
         gs = 0 as libc::c_int;
         loop {
+            /*--- Set group start & end marks. --*/
             if gs >= (*s).nMTF {
                 break;
             }
@@ -315,12 +316,16 @@ unsafe fn sendMTFValues(s: *mut EState) {
             if ge >= (*s).nMTF {
                 ge = (*s).nMTF - 1 as libc::c_int;
             }
-            t = 0 as libc::c_int;
-            while t < nGroups {
-                cost[t as usize] = 0 as libc::c_int as u16;
-                t += 1;
+
+            /*--
+               Calculate the cost of this group as coded
+               by each of the coding tables.
+            --*/
+            for t in 0..nGroups {
+                cost[t as usize] = 0;
             }
-            if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
+
+            if nGroups == 6 && 50 == ge - gs + 1 {
                 let mut cost01: u32;
                 let mut cost23: u32;
                 let mut cost45: u32;
@@ -1030,8 +1035,8 @@ unsafe fn sendMTFValues(s: *mut EState) {
         if (*s).verbosity >= 3 as libc::c_int {
             eprint!(
                 "      pass {}: size is {}, grp uses are ",
-                iter + 1 as libc::c_int,
-                totc / 8 as libc::c_int,
+                iter + 1,
+                totc / 8,
             );
             t = 0 as libc::c_int;
             while t < nGroups {
@@ -1049,12 +1054,11 @@ unsafe fn sendMTFValues(s: *mut EState) {
                 &mut *(*((*s).rfreq).as_mut_ptr().offset(t as isize))
                     .as_mut_ptr()
                     .offset(0 as libc::c_int as isize),
-                alphaSize,
+                alphaSize as i32,
                 17 as libc::c_int,
             );
             t += 1;
         }
-        iter += 1;
     }
     if nGroups >= 8 as libc::c_int {
         BZ2_bz__AssertH__fail(3002 as libc::c_int);
@@ -1092,15 +1096,13 @@ unsafe fn sendMTFValues(s: *mut EState) {
     while t < nGroups {
         minLen = 32 as libc::c_int;
         maxLen = 0 as libc::c_int;
-        i = 0 as libc::c_int;
-        while i < alphaSize {
-            if (*s).len[t as usize][i as usize] as libc::c_int > maxLen {
-                maxLen = (*s).len[t as usize][i as usize] as i32;
+        for i in 0..alphaSize {
+            if (*s).len[t as usize][i] as libc::c_int > maxLen {
+                maxLen = (*s).len[t as usize][i] as i32;
             }
-            if ((*s).len[t as usize][i as usize] as libc::c_int) < minLen {
-                minLen = (*s).len[t as usize][i as usize] as i32;
+            if ((*s).len[t as usize][i] as libc::c_int) < minLen {
+                minLen = (*s).len[t as usize][i] as i32;
             }
-            i += 1;
         }
         if maxLen > 17 as libc::c_int {
             BZ2_bz__AssertH__fail(3004 as libc::c_int);
@@ -1117,7 +1119,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
                 .offset(0 as libc::c_int as isize),
             minLen,
             maxLen,
-            alphaSize,
+            alphaSize as i32,
         );
         t += 1;
     }
@@ -1162,7 +1164,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
     nBytes = (*s).numZ;
 
     for t in 0..nGroups {
-        let mut curr = (*s).len[t as usize][0 as libc::c_int as usize];
+        let mut curr = (*s).len[t as usize][0];
         bsW(s, 5 as libc::c_int, curr as u32);
         for i in 0..alphaSize {
             while curr < (*s).len[t as usize][i as usize] {
@@ -1238,13 +1240,12 @@ unsafe fn sendMTFValues(s: *mut EState) {
                 );
             }
         }
-        gs = ge + 1 as libc::c_int;
+        gs = ge + 1;
         selCtr += 1;
     }
-    if selCtr != nSelectors {
-        BZ2_bz__AssertH__fail(3007 as libc::c_int);
-    }
-    if (*s).verbosity >= 3 as libc::c_int {
+    assert_h!(selCtr == nSelectors, 3007);
+
+    if (*s).verbosity >= 3 {
         eprintln!("codes {}", (*s).numZ - nBytes);
     }
 }
