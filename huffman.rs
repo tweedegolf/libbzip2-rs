@@ -22,11 +22,11 @@ fn add_weights(zw1: i32, zw2: i32) -> i32 {
 fn upheap(
     heap: &mut [i32; BZ_MAX_ALPHA_SIZE + 2],
     weight: &mut [i32; BZ_MAX_ALPHA_SIZE * 2],
-    mut z: i32,
+    mut z: usize,
 ) {
-    let tmp = heap[z as usize];
+    let tmp = heap[z];
     while weight[tmp as usize] < weight[heap[(z >> 1) as usize] as usize] {
-        heap[z as usize] = heap[(z >> 1) as usize];
+        heap[z] = heap[z >> 1];
         z >>= 1;
     }
     heap[z as usize] = tmp;
@@ -36,27 +36,25 @@ fn upheap(
 fn downheap(
     heap: &mut [i32; BZ_MAX_ALPHA_SIZE + 2],
     weight: &mut [i32; BZ_MAX_ALPHA_SIZE * 2],
-    nHeap: i32,
-    mut z: i32,
+    nHeap: usize,
+    mut z: usize,
 ) {
-    let tmp = heap[z as usize];
+    let tmp = heap[z];
     loop {
         let mut yy = z << 1;
         if yy > nHeap {
             break;
         }
-        if yy < nHeap
-            && weight[heap[(yy + 1) as usize] as usize] < weight[heap[yy as usize] as usize]
-        {
+        if yy < nHeap && weight[heap[yy + 1] as usize] < weight[heap[yy] as usize] {
             yy += 1;
         }
-        if weight[tmp as usize] < weight[heap[yy as usize] as usize] {
+        if weight[tmp as usize] < weight[heap[yy] as usize] {
             break;
         }
-        heap[z as usize] = heap[yy as usize];
+        heap[z] = heap[yy];
         z = yy;
     }
-    heap[z as usize] = tmp;
+    heap[z] = tmp;
 }
 
 pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32, maxLen: i32) {
@@ -65,7 +63,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32
        for both the heap and nodes is a sentinel.
     --*/
     let mut nNodes: i32;
-    let mut nHeap: i32;
+    let mut nHeap: usize;
     let mut j: i32;
     let mut heap = [0i32; BZ_MAX_ALPHA_SIZE + 2];
     let mut weight = [0i32; BZ_MAX_ALPHA_SIZE * 2];
@@ -87,18 +85,18 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32
             parent[i as usize] = -1;
             nHeap += 1;
             heap[nHeap as usize] = i;
-            upheap(&mut heap, &mut weight, nHeap);
+            upheap(&mut heap, &mut weight, nHeap as usize);
         }
 
-        assert_h!(nHeap < (BZ_MAX_ALPHA_SIZE as i32 + 2), 2001);
+        assert_h!(nHeap < (BZ_MAX_ALPHA_SIZE + 2), 2001);
 
         while nHeap > 1 {
             let n1 = heap[1] as usize;
-            heap[1] = heap[nHeap as usize];
+            heap[1] = heap[nHeap];
             nHeap -= 1;
             downheap(&mut heap, &mut weight, nHeap, 1);
             let n2 = heap[1] as usize;
-            heap[1] = heap[nHeap as usize];
+            heap[1] = heap[nHeap];
             nHeap -= 1;
             downheap(&mut heap, &mut weight, nHeap, 1);
             nNodes += 1;
@@ -107,7 +105,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32
             weight[nNodes as usize] = add_weights(weight[n1], weight[n2]);
             parent[nNodes as usize] = -1;
             nHeap += 1;
-            heap[nHeap as usize] = nNodes;
+            heap[nHeap] = nNodes;
             upheap(&mut heap, &mut weight, nHeap);
         }
 
