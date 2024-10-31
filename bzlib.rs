@@ -136,6 +136,8 @@ pub const BZ_N_QSORT: i32 = 12;
 const BZ_N_SHELL: i32 = 18;
 const BZ_N_OVERSHOOT: i32 = BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2;
 
+const FTAB_LEN: usize = (u16::MAX as usize + 1) * core::mem::size_of::<u32>();
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct EState {
@@ -336,13 +338,13 @@ unsafe extern "C" fn default_bzfree(_opaque: *mut libc::c_void, addr: *mut libc:
         free(addr);
     }
 }
-unsafe fn prepare_new_block(s: *mut EState) {
-    (*s).nblock = 0 as libc::c_int;
-    (*s).writer.num_z = 0;
-    (*s).state_out_pos = 0 as libc::c_int;
-    (*s).blockCRC = 0xffffffff as libc::c_long as u32;
-    (*s).inUse.fill(false);
-    (*s).blockNo += 1;
+unsafe fn prepare_new_block(s: &mut EState) {
+    s.nblock = 0;
+    s.writer.num_z = 0;
+    s.state_out_pos = 0;
+    s.blockCRC = 0xffffffff;
+    s.inUse.fill(false);
+    s.blockNo += 1;
 }
 
 fn init_RL(s: &mut EState) {
@@ -361,54 +363,50 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     verbosity: libc::c_int,
     mut workFactor: libc::c_int,
 ) -> libc::c_int {
-    let n: i32;
-    let s: *mut EState;
     if !bz_config_ok() {
         return -9 as libc::c_int;
     }
+
     if strm.is_null()
-        || blockSize100k < 1 as libc::c_int
-        || blockSize100k > 9 as libc::c_int
-        || workFactor < 0 as libc::c_int
-        || workFactor > 250 as libc::c_int
+        || blockSize100k < 1
+        || blockSize100k > 9
+        || workFactor < 0
+        || workFactor > 250
     {
         return -2 as libc::c_int;
     }
-    if workFactor == 0 as libc::c_int {
-        workFactor = 30 as libc::c_int;
+
+    if workFactor == 0 {
+        workFactor = 30;
     }
 
     let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
     let bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
 
-    s = (bzalloc)((*strm).opaque, core::mem::size_of::<EState>() as i32, 1) as *mut EState;
+    let s = (bzalloc)((*strm).opaque, core::mem::size_of::<EState>() as i32, 1) as *mut EState;
     if s.is_null() {
         return -3 as libc::c_int;
     }
+
     (*s).strm = strm;
+
     (*s).arr1 = std::ptr::null_mut::<u32>();
     (*s).arr2 = std::ptr::null_mut::<u32>();
     (*s).ftab = std::ptr::null_mut::<u32>();
-    n = 100000 as libc::c_int * blockSize100k;
+
+    let n = 100000 * blockSize100k;
+
     (*s).arr1 = (bzalloc)(
         (*strm).opaque,
-        (n as libc::c_ulong).wrapping_mul(::core::mem::size_of::<u32>() as libc::c_ulong)
-            as libc::c_int,
+        (n as u64).wrapping_mul(::core::mem::size_of::<u32>() as u64) as i32,
         1,
     ) as *mut u32;
     (*s).arr2 = (bzalloc)(
         (*strm).opaque,
-        ((n + (2 as libc::c_int + 12 as libc::c_int + 18 as libc::c_int + 2 as libc::c_int))
-            as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<u32>() as libc::c_ulong) as libc::c_int,
+        ((n + (2 + 12 + 18 + 2)) as u64).wrapping_mul(::core::mem::size_of::<u32>() as u64) as i32,
         1,
     ) as *mut u32;
-    (*s).ftab = (bzalloc)(
-        (*strm).opaque,
-        (65537 as libc::c_int as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<u32>() as libc::c_ulong) as libc::c_int,
-        1,
-    ) as *mut u32;
+    (*s).ftab = (bzalloc)((*strm).opaque, FTAB_LEN as i32, 1) as *mut u32;
 
     if ((*s).arr1).is_null() || ((*s).arr2).is_null() || ((*s).ftab).is_null() {
         if !((*s).arr1).is_null() {
@@ -426,27 +424,33 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         return -3 as libc::c_int;
     }
 
-    (*s).blockNo = 0 as libc::c_int;
+    (*s).blockNo = 0;
     (*s).state = State::Output;
     (*s).mode = Mode::Running;
-    (*s).combinedCRC = 0 as libc::c_int as u32;
+    (*s).combinedCRC = 0;
     (*s).blockSize100k = blockSize100k;
-    (*s).nblockMAX = 100000 as libc::c_int * blockSize100k - 19 as libc::c_int;
+    (*s).nblockMAX = 100000 * blockSize100k - 19;
     (*s).verbosity = verbosity;
     (*s).workFactor = workFactor;
+
     (*s).block = (*s).arr2 as *mut u8;
     (*s).mtfv = (*s).arr1 as *mut u16;
     (*s).writer.zbits = std::ptr::null_mut::<u8>();
     (*s).ptr = (*s).arr1;
+
     (*strm).state = s as *mut libc::c_void;
-    (*strm).total_in_lo32 = 0 as libc::c_int as libc::c_uint;
-    (*strm).total_in_hi32 = 0 as libc::c_int as libc::c_uint;
-    (*strm).total_out_lo32 = 0 as libc::c_int as libc::c_uint;
-    (*strm).total_out_hi32 = 0 as libc::c_int as libc::c_uint;
+
+    (*strm).total_in_lo32 = 0;
+    (*strm).total_in_hi32 = 0;
+    (*strm).total_out_lo32 = 0;
+    (*strm).total_out_hi32 = 0;
+
     init_RL(&mut *s);
-    prepare_new_block(s);
-    0 as libc::c_int
+    prepare_new_block(&mut *s);
+
+    0
 }
+
 unsafe fn add_pair_to_block(s: *mut EState) {
     let mut i: i32;
     let ch: u8 = (*s).state_in_ch as u8;
@@ -615,7 +619,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
             {
                 break;
             }
-            prepare_new_block(s);
+            prepare_new_block(&mut *s);
             (*s).state = State::Output;
             if matches!((*s).mode, Mode::Flushing)
                 && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
