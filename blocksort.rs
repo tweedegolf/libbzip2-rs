@@ -383,7 +383,7 @@ unsafe fn mainGtU(
     block: *mut u8,
     quadrant: *mut u16,
     nblock: u32,
-    budget: *mut i32,
+    budget: &mut i32,
 ) -> bool {
     let mut k: i32;
     let mut c1: u8;
@@ -612,7 +612,7 @@ unsafe fn mainSimpleSort(
     lo: i32,
     hi: i32,
     d: i32,
-    budget: *mut i32,
+    budget: &mut i32,
 ) {
     let mut i: i32;
     let mut j: i32;
@@ -732,7 +732,7 @@ unsafe fn mainQSort3(
     loSt: i32,
     hiSt: i32,
     dSt: i32,
-    budget: *mut i32,
+    budget: &mut i32,
 ) {
     let mut unLo: i32;
     let mut unHi: i32;
@@ -949,7 +949,7 @@ unsafe fn mainSort(
     ftab: *mut u32,
     nblock: i32,
     verb: i32,
-    budget: *mut i32,
+    budget: &mut i32,
 ) {
     let mut i: i32;
     let mut j: i32;
