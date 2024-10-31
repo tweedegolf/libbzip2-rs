@@ -60,11 +60,6 @@ unsafe fn bsFinishWrite(s: &mut EState) {
     s.writer.finish();
 }
 
-#[inline]
-unsafe fn bsW(s: &mut EState, n: i32, v: u32) {
-    s.writer.write(n, v)
-}
-
 fn makeMaps_e(s: &mut EState) {
     s.nInUse = 0;
     for (i, in_use) in s.inUse.iter().enumerate() {
@@ -519,12 +514,12 @@ unsafe fn sendMTFValues(s: &mut EState) {
 
         nBytes = s.writer.num_z as i32;
         for in_use in inUse16 {
-            bsW(s, 1, in_use as u32);
+            s.writer.write(1, in_use as u32);
         }
         for (i, any_in_use) in inUse16.iter().enumerate() {
             if *any_in_use {
                 for j in 0..16 {
-                    bsW(s, 1, s.inUse[i * 16 + j] as u32);
+                    s.writer.write(1, s.inUse[i * 16 + j] as u32);
                 }
             }
         }
@@ -535,14 +530,14 @@ unsafe fn sendMTFValues(s: &mut EState) {
 
     /*--- Now the selectors. ---*/
     nBytes = s.writer.num_z as i32;
-    bsW(s, 3, nGroups as u32);
-    bsW(s, 15, nSelectors as u32);
+    s.writer.write(3, nGroups as u32);
+    s.writer.write(15, nSelectors as u32);
 
     for i in 0..nSelectors {
         for _ in 0..s.selectorMtf[i as usize] {
-            bsW(s, 1, 1);
+            s.writer.write(1, 1);
         }
-        bsW(s, 1, 0);
+        s.writer.write(1, 0);
     }
     if s.verbosity >= 3 {
         eprint!("selectors {}, ", s.writer.num_z as i32 - nBytes);
@@ -553,17 +548,17 @@ unsafe fn sendMTFValues(s: &mut EState) {
 
     for t in 0..nGroups {
         let mut curr = s.len[t as usize][0];
-        bsW(s, 5, curr as u32);
+        s.writer.write(5, curr as u32);
         for i in 0..alphaSize {
             while curr < s.len[t as usize][i as usize] {
-                bsW(s, 2, 2);
+                s.writer.write(2, 2);
                 curr += 1;
             }
             while curr > s.len[t as usize][i as usize] {
-                bsW(s, 2, 3);
+                s.writer.write(2, 3);
                 curr -= 1;
             }
-            bsW(s, 1, 0);
+            s.writer.write(1, 0);
         }
     }
     if s.verbosity >= 3 {
@@ -590,8 +585,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
             macro_rules! BZ_ITAH {
                 ($nn:expr) => {
                     mtfv_i = *mtfv.add((gs + $nn) as usize);
-                    bsW(
-                        s,
+                    s.writer.write(
                         s.len[s.selector[selCtr] as usize][mtfv_i as usize] as i32,
                         s.code[s.selector[selCtr] as usize][mtfv_i as usize] as u32,
                     );
@@ -614,8 +608,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
         } else {
             /*--- slow version which correctly handles all situations ---*/
             for i in gs..=ge {
-                bsW(
-                    s,
+                s.writer.write(
                     s.len[s.selector[selCtr] as usize][*mtfv.offset(i as isize) as usize] as i32,
                     s.code[s.selector[selCtr] as usize][*mtfv.offset(i as isize) as usize] as u32,
                 );
@@ -681,9 +674,9 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
            so as to maintain backwards compatibility with
            older versions of bzip2.
         --*/
-        bsW(s, 1, 0);
+        s.writer.write(1, 0);
 
-        bsW(s, 24, s.origPtr as u32);
+        s.writer.write(24, s.origPtr as u32);
         generateMTFValues(&mut *s);
         sendMTFValues(s);
     }
