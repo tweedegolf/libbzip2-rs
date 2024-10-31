@@ -9,23 +9,23 @@ pub fn BZ2_bsInitWrite(s: &mut EState) {
 }
 
 unsafe fn bsFinishWrite(s: &mut EState) {
-    while s.bsLive > 0 as libc::c_int {
+    while s.bsLive > 0 {
         *(s.zbits).offset(s.numZ as isize) = (s.bsBuff >> 24) as u8;
         s.numZ += 1;
-        s.bsBuff <<= 8 as libc::c_int;
-        s.bsLive -= 8 as libc::c_int;
+        s.bsBuff <<= 8;
+        s.bsLive -= 8;
     }
 }
 
 #[inline]
 unsafe fn bsW(s: *mut EState, n: i32, v: u32) {
-    while (*s).bsLive >= 8 as libc::c_int {
-        *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as u8;
+    while (*s).bsLive >= 8 {
+        *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24) as u8;
         (*s).numZ += 1;
-        (*s).bsBuff <<= 8 as libc::c_int;
-        (*s).bsLive -= 8 as libc::c_int;
+        (*s).bsBuff <<= 8;
+        (*s).bsLive -= 8;
     }
-    (*s).bsBuff |= v << (32 as libc::c_int - (*s).bsLive - n);
+    (*s).bsBuff |= v << (32 - (*s).bsLive - n);
     (*s).bsLive += n;
 }
 
@@ -81,7 +81,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
     let mtfv: *mut u16 = s.mtfv;
 
     makeMaps_e(s);
-    let EOB = s.nInUse + 1 as libc::c_int;
+    let EOB = s.nInUse + 1;
 
     s.mtfFreq[..EOB as usize].fill(0);
 
@@ -150,7 +150,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
         }
     }
 
-    if zPend > 0 as libc::c_int {
+    if zPend > 0 {
         zPend -= 1;
         loop {
             if zPend & 1 != 0 {
@@ -330,13 +330,10 @@ unsafe fn sendMTFValues(s: *mut EState) {
             }
 
             if nGroups == 6 && 50 == ge - gs + 1 {
-                let mut cost01: u32;
-                let mut cost23: u32;
-                let mut cost45: u32;
+                let mut cost01: u32 = 0;
+                let mut cost23: u32 = 0;
+                let mut cost45: u32 = 0;
                 let mut icv: u16;
-                cost45 = 0 as libc::c_int as u32;
-                cost23 = cost45;
-                cost01 = cost23;
 
                 macro_rules! BZ_ITER {
                     ($nn:expr) => {
@@ -373,9 +370,8 @@ unsafe fn sendMTFValues(s: *mut EState) {
                     let icv_0: u16 = *mtfv.offset(i as isize);
 
                     for t in 0..nGroups {
-                        cost[t as usize] = (cost[t] as libc::c_int
-                            + (*s).len[t][icv_0 as usize] as libc::c_int)
-                            as u16;
+                        cost[t as usize] =
+                            (cost[t] as i32 + (*s).len[t][icv_0 as usize] as i32) as u16;
                     }
                 }
             }
@@ -387,7 +383,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
             bc = 999999999;
             bt = -1;
             for t in 0..nGroups {
-                if (cost[t as usize] as libc::c_int) < bc {
+                if (cost[t as usize] as i32) < bc {
                     bc = cost[t as usize] as i32;
                     bt = t as i32;
                 }
@@ -536,7 +532,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
 
     for t in 0..nGroups {
         let mut curr = (*s).len[t as usize][0];
-        bsW(s, 5 as libc::c_int, curr as u32);
+        bsW(s, 5, curr as u32);
         for i in 0..alphaSize {
             while curr < (*s).len[t as usize][i as usize] {
                 bsW(s, 2, 2);
@@ -561,9 +557,9 @@ unsafe fn sendMTFValues(s: *mut EState) {
         if gs >= (*s).nMTF {
             break;
         }
-        ge = gs + 50 as libc::c_int - 1 as libc::c_int;
+        ge = gs + 50 - 1;
         if ge >= (*s).nMTF {
-            ge = (*s).nMTF - 1 as libc::c_int;
+            ge = (*s).nMTF - 1;
         }
         assert_h!(((*s).selector[selCtr] as usize) < nGroups, 3006);
         if nGroups == 6 && 50 == ge - gs + 1 {
