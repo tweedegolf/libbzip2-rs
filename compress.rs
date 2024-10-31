@@ -582,12 +582,15 @@ unsafe fn sendMTFValues(s: &mut EState) {
             /*--- fast track the common case ---*/
             let mut mtfv_i: u16;
 
+            let s_len_sel_selCtr = s.len[s.selector[selCtr] as usize];
+            let s_code_sel_selCtr = s.code[s.selector[selCtr] as usize];
+
             macro_rules! BZ_ITAH {
                 ($nn:expr) => {
                     mtfv_i = *mtfv.add((gs + $nn) as usize);
                     s.writer.write(
-                        s.len[s.selector[selCtr] as usize][mtfv_i as usize] as i32,
-                        s.code[s.selector[selCtr] as usize][mtfv_i as usize] as u32,
+                        s_len_sel_selCtr[mtfv_i as usize] as i32,
+                        s_code_sel_selCtr[mtfv_i as usize] as u32,
                     );
                 };
             }
