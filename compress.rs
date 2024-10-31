@@ -435,12 +435,8 @@ unsafe fn sendMTFValues(s: *mut EState) {
         comment in huffman.c for details. */
         for t in 0..nGroups {
             BZ2_hbMakeCodeLengths(
-                &mut *(*((*s).len).as_mut_ptr().offset(t as isize))
-                    .as_mut_ptr()
-                    .offset(0 as libc::c_int as isize),
-                &mut *(*((*s).rfreq).as_mut_ptr().offset(t as isize))
-                    .as_mut_ptr()
-                    .offset(0 as libc::c_int as isize),
+                &mut (*s).len[t as usize],
+                &(*s).rfreq[t as usize],
                 alphaSize as i32,
                 17 as libc::c_int,
             );

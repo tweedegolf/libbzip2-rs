@@ -62,7 +62,7 @@ fn downheap(
     heap[z as usize] = tmp;
 }
 
-pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32, maxLen: i32) {
+pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32, maxLen: i32) {
     let mut nNodes: i32;
     let mut nHeap: i32;
     let mut j: i32;
@@ -70,12 +70,8 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
     let mut weight = [0i32; BZ_MAX_ALPHA_SIZE * 2];
     let mut parent = [0i32; BZ_MAX_ALPHA_SIZE * 2];
 
-    for i in 0..alphaSize {
-        weight[(i + 1) as usize] = (if *freq.offset(i as isize) == 0 as libc::c_int {
-            1
-        } else {
-            *freq.offset(i as isize)
-        }) << 8;
+    for i in 0..alphaSize as usize {
+        weight[i + 1] = (if freq[i] == 0 { 1 } else { freq[i] }) << 8;
     }
 
     loop {
@@ -128,7 +124,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: *mut u8, freq: *mut i32, alphaSize: i32
                 k = parent[k as usize];
                 j += 1;
             }
-            *len.offset((i - 1) as isize) = j as u8;
+            len[i as usize - 1] = j as u8;
             if j > maxLen {
                 tooLong = true;
             }
