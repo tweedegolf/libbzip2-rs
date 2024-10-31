@@ -1,6 +1,6 @@
 use crate::{
     assert_h,
-    bzlib::{Bool, EState, BZ_N_QSORT, BZ_N_RADIX},
+    bzlib::{EState, BZ_N_QSORT, BZ_N_RADIX},
 };
 
 #[inline]
@@ -957,7 +957,7 @@ unsafe fn mainSort(
     let mut ss: i32;
     let mut sb: i32;
     let mut runningOrder: [i32; 256] = [0; 256];
-    let mut bigDone: [Bool; 256] = [0; 256];
+    let mut bigDone: [bool; 256] = [false; 256];
     let mut copyStart: [i32; 256] = [0; 256];
     let mut copyEnd: [i32; 256] = [0; 256];
     let mut c1: u8;
@@ -1060,9 +1060,9 @@ unsafe fn mainSort(
         *ptr.offset(j as isize) = i as u32;
         i -= 1;
     }
+    bigDone.fill(false);
     i = 0 as libc::c_int;
     while i <= 255 as libc::c_int {
-        bigDone[i as usize] = 0 as Bool;
         runningOrder[i as usize] = i;
         i += 1;
     }
@@ -1151,7 +1151,7 @@ unsafe fn mainSort(
             }
             j += 1;
         }
-        assert_h!(!bigDone[ss as usize] != 0, 1006);
+        assert_h!(!bigDone[ss as usize], 1006);
         j = 0 as libc::c_int;
         while j <= 255 as libc::c_int {
             copyStart[j as usize] = (*ftab.offset(((j << 8 as libc::c_int) + ss) as isize)
@@ -1171,7 +1171,7 @@ unsafe fn mainSort(
                 k += nblock;
             }
             c1 = *block.offset(k as isize);
-            if bigDone[c1 as usize] == 0 {
+            if !bigDone[c1 as usize] {
                 let fresh11 = copyStart[c1 as usize];
                 copyStart[c1 as usize] += 1;
                 *ptr.offset(fresh11 as isize) = k as u32;
@@ -1187,7 +1187,7 @@ unsafe fn mainSort(
                 k += nblock;
             }
             c1 = *block.offset(k as isize);
-            if bigDone[c1 as usize] == 0 {
+            if !bigDone[c1 as usize] {
                 let fresh12 = copyEnd[c1 as usize];
                 copyEnd[c1 as usize] -= 1;
                 *ptr.offset(fresh12 as isize) = k as u32;
@@ -1210,7 +1210,7 @@ unsafe fn mainSort(
             *fresh13 |= ((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint;
             j += 1;
         }
-        bigDone[ss as usize] = 1 as Bool;
+        bigDone[ss as usize] = true;
         if i < 255 as libc::c_int {
             let bbStart: i32 = (*ftab.offset((ss << 8 as libc::c_int) as isize)
                 & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
