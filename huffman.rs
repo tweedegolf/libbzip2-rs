@@ -141,24 +141,26 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32
         }
     }
 }
-pub unsafe fn BZ2_hbAssignCodes(
-    code: *mut i32,
-    length: *mut u8,
+
+pub fn BZ2_hbAssignCodes(
+    code: &mut [i32],
+    length: &[u8],
     minLen: i32,
     maxLen: i32,
-    alphaSize: i32,
+    alphaSize: usize,
 ) {
     let mut vec: i32 = 0;
     for n in minLen..=maxLen {
         for i in 0..alphaSize {
-            if *length.offset(i as isize) as libc::c_int == n {
-                *code.offset(i as isize) = vec;
+            if length[i] as i32 == n {
+                code[i] = vec;
                 vec += 1;
             }
         }
         vec <<= 1;
     }
 }
+
 pub unsafe fn BZ2_hbCreateDecodeTables(
     limit: *mut i32,
     base: *mut i32,

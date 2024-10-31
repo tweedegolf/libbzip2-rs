@@ -165,8 +165,6 @@ unsafe fn sendMTFValues(s: *mut EState) {
     const BZ_LESSER_ICOST: u8 = 0;
     const BZ_GREATER_ICOST: u8 = 15;
 
-    let mut t: i32;
-    let mut i: i32;
     let mut j: i32;
     let mut gs: i32;
     let mut ge: i32;
@@ -204,6 +202,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
             (*s).nInUse,
         );
     }
+
     let alphaSize = usize::try_from((*s).nInUse + 2).unwrap_or(0);
 
     for t in (*s).len.iter_mut() {
@@ -258,11 +257,11 @@ unsafe fn sendMTFValues(s: *mut EState) {
             }
 
             for v in 0..alphaSize {
-                if v as i32 >= gs && v as i32 <= ge {
-                    (*s).len[(nPart - 1) as usize][v] = 0;
+                (*s).len[(nPart - 1) as usize][v] = if (gs..=ge).contains(&(v as i32)) {
+                    BZ_LESSER_ICOST
                 } else {
-                    (*s).len[(nPart - 1) as usize][v] = 15;
-                }
+                    BZ_GREATER_ICOST
+                };
             }
             nPart -= 1;
             gs = ge + 1;
@@ -274,13 +273,11 @@ unsafe fn sendMTFValues(s: *mut EState) {
        Iterate up to BZ_N_ITERS times to improve the tables.
     ---*/
     for iter in 0..BZ_N_ITERS {
-        for t in 0..nGroups {
-            fave[t] = 0;
-        }
+        fave[..nGroups].fill(0);
 
         for t in 0..nGroups {
             for v in 0..alphaSize {
-                (*s).rfreq[t][v] = 0 as libc::c_int;
+                (*s).rfreq[t][v] = 0;
             }
         }
 
@@ -297,16 +294,16 @@ unsafe fn sendMTFValues(s: *mut EState) {
         }
 
         nSelectors = 0;
-        totc = 0 as libc::c_int;
-        gs = 0 as libc::c_int;
+        totc = 0;
+        gs = 0;
         loop {
             /*--- Set group start & end marks. --*/
             if gs >= (*s).nMTF {
                 break;
             }
-            ge = gs + 50 as libc::c_int - 1 as libc::c_int;
+            ge = gs + 50 - 1;
             if ge >= (*s).nMTF {
-                ge = (*s).nMTF - 1 as libc::c_int;
+                ge = (*s).nMTF - 1;
             }
 
             /*--
@@ -454,7 +451,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
 
         for i in 0..nSelectors {
             ll_i = (*s).selector[i];
-            j = 0 as libc::c_int;
+            j = 0;
             tmp = pos[j as usize];
             while ll_i != tmp {
                 j += 1;
@@ -462,40 +459,25 @@ unsafe fn sendMTFValues(s: *mut EState) {
                 tmp = pos[j as usize];
                 pos[j as usize] = tmp2;
             }
-            pos[0 as libc::c_int as usize] = tmp;
-            (*s).selectorMtf[i as usize] = j as u8;
+            pos[0] = tmp;
+            (*s).selectorMtf[i] = j as u8;
         }
     }
 
+    /*--- Assign actual codes for the tables. --*/
     for t in 0..nGroups {
         minLen = 32;
         maxLen = 0;
 
         for i in 0..alphaSize {
-            if (*s).len[t as usize][i] as libc::c_int > maxLen {
-                maxLen = (*s).len[t as usize][i] as i32;
-            }
-            if ((*s).len[t as usize][i] as libc::c_int) < minLen {
-                minLen = (*s).len[t as usize][i] as i32;
-            }
+            maxLen = Ord::max(maxLen, (*s).len[t][i] as i32);
+            minLen = Ord::min(minLen, (*s).len[t][i] as i32);
         }
-        if maxLen > 17 as libc::c_int {
-            BZ2_bz__AssertH__fail(3004 as libc::c_int);
-        }
-        if minLen < 1 as libc::c_int {
-            BZ2_bz__AssertH__fail(3005 as libc::c_int);
-        }
-        BZ2_hbAssignCodes(
-            &mut *(*((*s).code).as_mut_ptr().offset(t as isize))
-                .as_mut_ptr()
-                .offset(0 as libc::c_int as isize),
-            &mut *(*((*s).len).as_mut_ptr().offset(t as isize))
-                .as_mut_ptr()
-                .offset(0 as libc::c_int as isize),
-            minLen,
-            maxLen,
-            alphaSize as i32,
-        );
+
+        assert_h!(!(maxLen > 17/*20*/), 3004);
+        assert_h!(!(minLen < 1), 3005);
+
+        BZ2_hbAssignCodes(&mut (*s).code[t], &(*s).len[t], minLen, maxLen, alphaSize);
     }
 
     /*--- Transmit the mapping table. ---*/
