@@ -57,12 +57,12 @@ fn downheap(
     heap[z] = tmp;
 }
 
-pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32, maxLen: i32) {
+pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: usize, maxLen: i32) {
     /*--
        Nodes and heap entries run from 1.  Entry 0
        for both the heap and nodes is a sentinel.
     --*/
-    let mut nNodes: i32;
+    let mut nNodes: usize;
     let mut nHeap: usize;
     let mut j: i32;
     let mut heap = [0i32; BZ_MAX_ALPHA_SIZE + 2];
@@ -82,10 +82,10 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32
         parent[0] = -2;
 
         for i in 1..=alphaSize {
-            parent[i as usize] = -1;
+            parent[i] = -1;
             nHeap += 1;
-            heap[nHeap as usize] = i;
-            upheap(&mut heap, &mut weight, nHeap as usize);
+            heap[nHeap] = i as i32;
+            upheap(&mut heap, &mut weight, nHeap);
         }
 
         assert_h!(nHeap < (BZ_MAX_ALPHA_SIZE + 2), 2001);
@@ -100,23 +100,23 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32
             nHeap -= 1;
             downheap(&mut heap, &mut weight, nHeap, 1);
             nNodes += 1;
-            parent[n1] = nNodes;
-            parent[n2] = nNodes;
-            weight[nNodes as usize] = add_weights(weight[n1], weight[n2]);
-            parent[nNodes as usize] = -1;
+            parent[n1] = nNodes as i32;
+            parent[n2] = nNodes as i32;
+            weight[nNodes] = add_weights(weight[n1], weight[n2]);
+            parent[nNodes] = -1;
             nHeap += 1;
-            heap[nHeap] = nNodes;
+            heap[nHeap] = nNodes as i32;
             upheap(&mut heap, &mut weight, nHeap);
         }
 
-        assert_h!(nNodes < (BZ_MAX_ALPHA_SIZE as i32 * 2), 2002);
+        assert_h!(nNodes < (BZ_MAX_ALPHA_SIZE * 2), 2002);
 
         let mut tooLong = false;
         for i in 1..=alphaSize {
             j = 0;
             let mut k = i;
-            while parent[k as usize] >= 0 {
-                k = parent[k as usize];
+            while parent[k] >= 0 {
+                k = parent[k] as usize;
                 j += 1;
             }
             len[i as usize - 1] = j as u8;

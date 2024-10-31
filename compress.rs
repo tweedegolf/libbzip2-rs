@@ -442,7 +442,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
         /* maxLen was changed from 20 to 17 in bzip2-1.0.3.  See
         comment in huffman.c for details. */
         for t in 0..nGroups {
-            BZ2_hbMakeCodeLengths(&mut (*s).len[t], &(*s).rfreq[t], alphaSize as i32, 17);
+            BZ2_hbMakeCodeLengths(&mut (*s).len[t], &(*s).rfreq[t], alphaSize, 17);
         }
     }
 
