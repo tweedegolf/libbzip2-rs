@@ -377,22 +377,11 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     if workFactor == 0 as libc::c_int {
         workFactor = 30 as libc::c_int;
     }
-    if ((*strm).bzalloc).is_none() {
-        (*strm).bzalloc = Some(
-            default_bzalloc
-                as unsafe extern "C" fn(*mut libc::c_void, i32, i32) -> *mut libc::c_void,
-        );
-    }
-    if ((*strm).bzfree).is_none() {
-        (*strm).bzfree = Some(
-            default_bzfree as unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> (),
-        );
-    }
-    s = ((*strm).bzalloc).expect("non-null function pointer")(
-        (*strm).opaque,
-        core::mem::size_of::<EState>() as libc::c_ulong as libc::c_int,
-        1 as libc::c_int,
-    ) as *mut EState;
+
+    let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
+    let bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
+
+    s = (bzalloc)((*strm).opaque, core::mem::size_of::<EState>() as i32, 1) as *mut EState;
     if s.is_null() {
         return -3 as libc::c_int;
     }
@@ -401,52 +390,42 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     (*s).arr2 = std::ptr::null_mut::<u32>();
     (*s).ftab = std::ptr::null_mut::<u32>();
     n = 100000 as libc::c_int * blockSize100k;
-    (*s).arr1 = ((*strm).bzalloc).expect("non-null function pointer")(
+    (*s).arr1 = (bzalloc)(
         (*strm).opaque,
         (n as libc::c_ulong).wrapping_mul(::core::mem::size_of::<u32>() as libc::c_ulong)
             as libc::c_int,
-        1 as libc::c_int,
+        1,
     ) as *mut u32;
-    (*s).arr2 = ((*strm).bzalloc).expect("non-null function pointer")(
+    (*s).arr2 = (bzalloc)(
         (*strm).opaque,
         ((n + (2 as libc::c_int + 12 as libc::c_int + 18 as libc::c_int + 2 as libc::c_int))
             as libc::c_ulong)
             .wrapping_mul(::core::mem::size_of::<u32>() as libc::c_ulong) as libc::c_int,
-        1 as libc::c_int,
+        1,
     ) as *mut u32;
-    (*s).ftab = ((*strm).bzalloc).expect("non-null function pointer")(
+    (*s).ftab = (bzalloc)(
         (*strm).opaque,
         (65537 as libc::c_int as libc::c_ulong)
             .wrapping_mul(::core::mem::size_of::<u32>() as libc::c_ulong) as libc::c_int,
-        1 as libc::c_int,
+        1,
     ) as *mut u32;
+
     if ((*s).arr1).is_null() || ((*s).arr2).is_null() || ((*s).ftab).is_null() {
         if !((*s).arr1).is_null() {
-            ((*strm).bzfree).expect("non-null function pointer")(
-                (*strm).opaque,
-                (*s).arr1 as *mut libc::c_void,
-            );
+            (bzfree)((*strm).opaque, (*s).arr1 as *mut libc::c_void);
         }
         if !((*s).arr2).is_null() {
-            ((*strm).bzfree).expect("non-null function pointer")(
-                (*strm).opaque,
-                (*s).arr2 as *mut libc::c_void,
-            );
+            (bzfree)((*strm).opaque, (*s).arr2 as *mut libc::c_void);
         }
         if !((*s).ftab).is_null() {
-            ((*strm).bzfree).expect("non-null function pointer")(
-                (*strm).opaque,
-                (*s).ftab as *mut libc::c_void,
-            );
+            (bzfree)((*strm).opaque, (*s).ftab as *mut libc::c_void);
         }
         if !s.is_null() {
-            ((*strm).bzfree).expect("non-null function pointer")(
-                (*strm).opaque,
-                s as *mut libc::c_void,
-            );
+            (bzfree)((*strm).opaque, s as *mut libc::c_void);
         }
         return -3 as libc::c_int;
     }
+
     (*s).blockNo = 0 as libc::c_int;
     (*s).state = State::Output;
     (*s).mode = Mode::Running;
