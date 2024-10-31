@@ -208,7 +208,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
     }
 
     /*--- Decide how many coding tables to use ---*/
-    assert_h!((*s).nMTF <= 0, 3001);
+    assert_h!((*s).nMTF > 0, 3001);
     if (*s).nMTF < 200 {
         nGroups = 2;
     } else if (*s).nMTF < 600 {
@@ -1176,14 +1176,14 @@ unsafe fn sendMTFValues(s: *mut EState) {
             bsW(s, 1, 0);
         }
     }
-    if (*s).verbosity >= 3 as libc::c_int {
+    if (*s).verbosity >= 3 {
         eprint!("code lengths {}, ", (*s).numZ - nBytes);
     }
 
     /*--- And finally, the block data proper ---*/
     nBytes = (*s).numZ;
-    selCtr = 0 as libc::c_int;
-    gs = 0 as libc::c_int;
+    selCtr = 0;
+    gs = 0;
     loop {
         if gs >= (*s).nMTF {
             break;
@@ -1192,9 +1192,10 @@ unsafe fn sendMTFValues(s: *mut EState) {
         if ge >= (*s).nMTF {
             ge = (*s).nMTF - 1 as libc::c_int;
         }
-        if ((*s).selector[selCtr as usize] as libc::c_int) >= nGroups {
-            BZ2_bz__AssertH__fail(3006 as libc::c_int);
-        }
+        assert_h!(
+            ((*s).selector[selCtr as usize] as libc::c_int) < nGroups,
+            3006
+        );
         if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
             let mut mtfv_i: u16;
             let s_len_sel_selCtr: *mut u8 = &mut *(*((*s).len)
