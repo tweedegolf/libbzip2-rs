@@ -1,6 +1,6 @@
 use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
-use crate::bzlib::{BZ2_bz__AssertH__fail, EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS};
+use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 
 pub fn BZ2_bsInitWrite(s: &mut EState) {
@@ -42,18 +42,16 @@ unsafe fn bsPutUChar(s: &mut EState, c: u8) {
     bsW(s, 8, c as u32);
 }
 
-unsafe fn makeMaps_e(s: *mut EState) {
-    let mut i: i32;
-    (*s).nInUse = 0 as libc::c_int;
-    i = 0 as libc::c_int;
-    while i < 256 as libc::c_int {
-        if (*s).inUse[i as usize] != 0 {
-            (*s).unseqToSeq[i as usize] = (*s).nInUse as u8;
-            (*s).nInUse += 1;
+fn makeMaps_e(s: &mut EState) {
+    s.nInUse = 0 as libc::c_int;
+    for (i, in_use) in s.inUse.iter().enumerate() {
+        if *in_use != 0 {
+            s.unseqToSeq[i as usize] = s.nInUse as u8;
+            s.nInUse += 1;
         }
-        i += 1;
     }
 }
+
 unsafe fn generateMTFValues(s: *mut EState) {
     let mut yy: [u8; 256] = [0; 256];
     let mut i: i32;
@@ -64,7 +62,7 @@ unsafe fn generateMTFValues(s: *mut EState) {
     let ptr: *mut u32 = (*s).ptr;
     let block: *mut u8 = (*s).block;
     let mtfv: *mut u16 = (*s).mtfv;
-    makeMaps_e(s);
+    makeMaps_e(&mut *s);
     EOB = (*s).nInUse + 1 as libc::c_int;
     i = 0 as libc::c_int;
     while i <= EOB {
@@ -161,6 +159,7 @@ unsafe fn generateMTFValues(s: *mut EState) {
     (*s).mtfFreq[EOB as usize];
     (*s).nMTF = wr;
 }
+
 unsafe fn sendMTFValues(s: *mut EState) {
     const BZ_LESSER_ICOST: u8 = 0;
     const BZ_GREATER_ICOST: u8 = 15;
