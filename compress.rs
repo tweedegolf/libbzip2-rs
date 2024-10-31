@@ -12,15 +12,6 @@ pub struct EWriter {
 }
 
 impl EWriter {
-    unsafe fn new(ptr: *mut u8) -> Self {
-        Self {
-            zbits: ptr,
-            num_z: 0,
-            bs_live: 0,
-            bs_buff: 0,
-        }
-    }
-
     fn initialize(&mut self) {
         self.bs_live = 0;
         self.bs_buff = 0;
@@ -46,6 +37,19 @@ impl EWriter {
         self.bs_buff |= v << (32 - self.bs_live - n);
         self.bs_live += n;
     }
+
+    fn write_u8(&mut self, c: u8) {
+        self.write(8, c as u32);
+    }
+
+    fn write_u32(&mut self, u: u32) {
+        let [a, b, c, d] = u.to_le_bytes();
+
+        self.write(8, d as u32);
+        self.write(8, c as u32);
+        self.write(8, b as u32);
+        self.write(8, a as u32);
+    }
 }
 
 pub fn BZ2_bsInitWrite(s: &mut EState) {
@@ -59,19 +63,6 @@ unsafe fn bsFinishWrite(s: &mut EState) {
 #[inline]
 unsafe fn bsW(s: &mut EState, n: i32, v: u32) {
     s.writer.write(n, v)
-}
-
-unsafe fn bsPutUInt32(s: &mut EState, u: u32) {
-    let [a, b, c, d] = u.to_le_bytes();
-
-    bsW(s, 8, d as u32);
-    bsW(s, 8, c as u32);
-    bsW(s, 8, b as u32);
-    bsW(s, 8, a as u32);
-}
-
-unsafe fn bsPutUChar(s: &mut EState, c: u8) {
-    bsW(s, 8, c as u32);
 }
 
 fn makeMaps_e(s: &mut EState) {
@@ -664,22 +655,22 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
     /*-- If this is the first block, create the stream header. --*/
     if s.blockNo == 1 {
         BZ2_bsInitWrite(s);
-        bsPutUChar(s, b'B');
-        bsPutUChar(s, b'Z');
-        bsPutUChar(s, b'h');
-        bsPutUChar(s, b'0' + s.blockSize100k as u8);
+        s.writer.write_u8(b'B');
+        s.writer.write_u8(b'Z');
+        s.writer.write_u8(b'h');
+        s.writer.write_u8(b'0' + s.blockSize100k as u8);
     }
 
     if s.nblock > 0 {
-        bsPutUChar(s, 0x31);
-        bsPutUChar(s, 0x41);
-        bsPutUChar(s, 0x59);
-        bsPutUChar(s, 0x26);
-        bsPutUChar(s, 0x53);
-        bsPutUChar(s, 0x59);
+        s.writer.write_u8(0x31);
+        s.writer.write_u8(0x41);
+        s.writer.write_u8(0x59);
+        s.writer.write_u8(0x26);
+        s.writer.write_u8(0x53);
+        s.writer.write_u8(0x59);
 
         /*-- Now the block's CRC, so it is in a known place. --*/
-        bsPutUInt32(s, s.blockCRC);
+        s.writer.write_u32(s.blockCRC);
 
         /*--
            Now a single bit indicating (non-)randomisation.
@@ -699,13 +690,13 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
 
     /*-- If this is the last block, add the stream trailer. --*/
     if is_last_block {
-        bsPutUChar(s, 0x17);
-        bsPutUChar(s, 0x72);
-        bsPutUChar(s, 0x45);
-        bsPutUChar(s, 0x38);
-        bsPutUChar(s, 0x50);
-        bsPutUChar(s, 0x90);
-        bsPutUInt32(s, s.combinedCRC);
+        s.writer.write_u8(0x17);
+        s.writer.write_u8(0x72);
+        s.writer.write_u8(0x45);
+        s.writer.write_u8(0x38);
+        s.writer.write_u8(0x50);
+        s.writer.write_u8(0x90);
+        s.writer.write_u32(s.combinedCRC);
 
         if s.verbosity >= 2 {
             eprint!("    final combined CRC = 0x{:08x}\n   ", s.combinedCRC);
