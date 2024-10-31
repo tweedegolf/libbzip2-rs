@@ -1,6 +1,6 @@
 use std::cmp;
 
-use crate::bzlib::BZ2_bz__AssertH__fail;
+use crate::assert_h;
 pub type Bool = libc::c_uchar;
 
 const BZ_MAX_ALPHA_SIZE: usize = 258;
@@ -63,6 +63,10 @@ fn downheap(
 }
 
 pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32, maxLen: i32) {
+    /*--
+       Nodes and heap entries run from 1.  Entry 0
+       for both the heap and nodes is a sentinel.
+    --*/
     let mut nNodes: i32;
     let mut nHeap: i32;
     let mut j: i32;
@@ -89,9 +93,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32
             upheap(&mut heap, &mut weight, nHeap);
         }
 
-        if nHeap >= BZ_MAX_ALPHA_SIZE as libc::c_int + 2 {
-            BZ2_bz__AssertH__fail(2001);
-        }
+        assert_h!(nHeap < (BZ_MAX_ALPHA_SIZE as i32 + 2), 2001);
 
         while nHeap > 1 {
             let n1 = heap[1] as usize;
@@ -112,9 +114,7 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32
             upheap(&mut heap, &mut weight, nHeap);
         }
 
-        if nNodes >= BZ_MAX_ALPHA_SIZE as libc::c_int * 2 {
-            BZ2_bz__AssertH__fail(2002);
-        }
+        assert_h!(nNodes < (BZ_MAX_ALPHA_SIZE as i32 * 2), 2002);
 
         let mut tooLong = false;
         for i in 1..=alphaSize {
@@ -133,6 +133,23 @@ pub unsafe fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: i32
         if !tooLong {
             break;
         }
+
+        /* 17 Oct 04: keep-going condition for the following loop used
+        to be 'i < alphaSize', which missed the last element,
+        theoretically leading to the possibility of the compressor
+        looping.  However, this count-scaling step is only needed if
+        one of the generated Huffman code words is longer than
+        maxLen, which up to and including version 1.0.2 was 20 bits,
+        which is extremely unlikely.  In version 1.0.3 maxLen was
+        changed to 17 bits, which has minimal effect on compression
+        ratio, but does mean this scaling step is used from time to
+        time, enough to verify that it works.
+
+        This means that bzip2-1.0.3 and later will only produce
+        Huffman codes with a maximum length of 17 bits.  However, in
+        order to preserve backwards compatibility with bitstreams
+        produced by versions pre-1.0.3, the decompressor must still
+        handle lengths of up to 20. */
 
         for i in 1..=alphaSize {
             j = weight[i as usize] >> 8;
