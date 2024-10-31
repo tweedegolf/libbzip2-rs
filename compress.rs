@@ -1196,323 +1196,39 @@ unsafe fn sendMTFValues(s: *mut EState) {
             ((*s).selector[selCtr as usize] as libc::c_int) < nGroups,
             3006
         );
-        if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
+        if nGroups == 6 && 50 == ge - gs + 1 {
+            /*--- fast track the common case ---*/
             let mut mtfv_i: u16;
-            let s_len_sel_selCtr: *mut u8 = &mut *(*((*s).len)
-                .as_mut_ptr()
-                .offset(*((*s).selector).as_mut_ptr().offset(selCtr as isize) as isize))
-            .as_mut_ptr()
-            .offset(0 as libc::c_int as isize)
-                as *mut u8;
-            let s_code_sel_selCtr: *mut i32 = &mut *(*((*s).code)
-                .as_mut_ptr()
-                .offset(*((*s).selector).as_mut_ptr().offset(selCtr as isize) as isize))
-            .as_mut_ptr()
-            .offset(0 as libc::c_int as isize)
-                as *mut i32;
-            mtfv_i = *mtfv.offset((gs + 0 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 1 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 2 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 3 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 4 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 5 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 6 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 7 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 8 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 9 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 10 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 11 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 12 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 13 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 14 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 15 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 16 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 17 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 18 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 19 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 20 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 21 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 22 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 23 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 24 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 25 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 26 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 27 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 28 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 29 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 30 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 31 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 32 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 33 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 34 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 35 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 36 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 37 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 38 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 39 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 40 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 41 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 42 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 43 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 44 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 45 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 46 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 47 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 48 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
-            mtfv_i = *mtfv.offset((gs + 49 as libc::c_int) as isize);
-            bsW(
-                s,
-                *s_len_sel_selCtr.offset(mtfv_i as isize) as i32,
-                *s_code_sel_selCtr.offset(mtfv_i as isize) as u32,
-            );
+            let s_len_sel_selCtr = &(*s).len[(*s).selector[selCtr as usize] as usize];
+            let s_code_sel_selCtr = &(*s).code[(*s).selector[selCtr as usize] as usize];
+
+            macro_rules! BZ_ITAH {
+                ($nn:expr) => {
+                    mtfv_i = *mtfv.add((gs + $nn) as usize);
+                    bsW(
+                        s,
+                        s_len_sel_selCtr[mtfv_i as usize] as i32,
+                        s_code_sel_selCtr[mtfv_i as usize] as u32,
+                    );
+                };
+            }
+
+            #[rustfmt::skip]
+            let _ = {
+                BZ_ITAH!(0);  BZ_ITAH!(1);  BZ_ITAH!(2);  BZ_ITAH!(3);  BZ_ITAH!(4);
+                BZ_ITAH!(5);  BZ_ITAH!(6);  BZ_ITAH!(7);  BZ_ITAH!(8);  BZ_ITAH!(9);
+                BZ_ITAH!(10); BZ_ITAH!(11); BZ_ITAH!(12); BZ_ITAH!(13); BZ_ITAH!(14);
+                BZ_ITAH!(15); BZ_ITAH!(16); BZ_ITAH!(17); BZ_ITAH!(18); BZ_ITAH!(19);
+                BZ_ITAH!(20); BZ_ITAH!(21); BZ_ITAH!(22); BZ_ITAH!(23); BZ_ITAH!(24);
+                BZ_ITAH!(25); BZ_ITAH!(26); BZ_ITAH!(27); BZ_ITAH!(28); BZ_ITAH!(29);
+                BZ_ITAH!(30); BZ_ITAH!(31); BZ_ITAH!(32); BZ_ITAH!(33); BZ_ITAH!(34);
+                BZ_ITAH!(35); BZ_ITAH!(36); BZ_ITAH!(37); BZ_ITAH!(38); BZ_ITAH!(39);
+                BZ_ITAH!(40); BZ_ITAH!(41); BZ_ITAH!(42); BZ_ITAH!(43); BZ_ITAH!(44);
+                BZ_ITAH!(45); BZ_ITAH!(46); BZ_ITAH!(47); BZ_ITAH!(48); BZ_ITAH!(49);
+            };
         } else {
-            i = gs;
-            while i <= ge {
+            /*--- slow version which correctly handles all situations ---*/
+            for i in gs..=ge {
                 bsW(
                     s,
                     (*s).len[(*s).selector[selCtr as usize] as usize]
@@ -1520,7 +1236,6 @@ unsafe fn sendMTFValues(s: *mut EState) {
                     (*s).code[(*s).selector[selCtr as usize] as usize]
                         [*mtfv.offset(i as isize) as usize] as u32,
                 );
-                i += 1;
             }
         }
         gs = ge + 1 as libc::c_int;
