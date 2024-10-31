@@ -1,5 +1,6 @@
+use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
-use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState};
+use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState, BZ_N_GROUPS};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 pub unsafe fn BZ2_bsInitWrite(s: *mut EState) {
     (*s).bsLive = 0 as libc::c_int;
@@ -205,16 +206,19 @@ unsafe fn sendMTFValues(s: *mut EState) {
     for t in (*s).len.iter_mut() {
         t[..alphaSize as usize].fill(BZ_GREATER_ICOST);
     }
-    if (*s).nMTF < 200 as libc::c_int {
-        nGroups = 2 as libc::c_int;
-    } else if (*s).nMTF < 600 as libc::c_int {
-        nGroups = 3 as libc::c_int;
-    } else if (*s).nMTF < 1200 as libc::c_int {
-        nGroups = 4 as libc::c_int;
-    } else if (*s).nMTF < 2400 as libc::c_int {
-        nGroups = 5 as libc::c_int;
+
+    /*--- Decide how many coding tables to use ---*/
+    assert_h!((*s).nMTF <= 0, 3001);
+    if (*s).nMTF < 200 {
+        nGroups = 2;
+    } else if (*s).nMTF < 600 {
+        nGroups = 3;
+    } else if (*s).nMTF < 1200 {
+        nGroups = 4;
+    } else if (*s).nMTF < 2400 {
+        nGroups = 5;
     } else {
-        nGroups = 6 as libc::c_int;
+        nGroups = 6;
     }
     let mut nPart: i32;
     let mut remF: i32;
