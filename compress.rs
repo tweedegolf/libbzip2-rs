@@ -18,15 +18,15 @@ unsafe fn bsFinishWrite(s: &mut EState) {
 }
 
 #[inline]
-unsafe fn bsW(s: *mut EState, n: i32, v: u32) {
-    while (*s).bsLive >= 8 {
-        *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24) as u8;
-        (*s).numZ += 1;
-        (*s).bsBuff <<= 8;
-        (*s).bsLive -= 8;
+unsafe fn bsW(s: &mut EState, n: i32, v: u32) {
+    while s.bsLive >= 8 {
+        *(s.zbits).offset(s.numZ as isize) = (s.bsBuff >> 24) as u8;
+        s.numZ += 1;
+        s.bsBuff <<= 8;
+        s.bsLive -= 8;
     }
-    (*s).bsBuff |= v << (32 - (*s).bsLive - n);
-    (*s).bsLive += n;
+    s.bsBuff |= v << (32 - s.bsLive - n);
+    s.bsLive += n;
 }
 
 unsafe fn bsPutUInt32(s: &mut EState, u: u32) {
@@ -176,7 +176,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
     s.nMTF = wr;
 }
 
-unsafe fn sendMTFValues(s: *mut EState) {
+unsafe fn sendMTFValues(s: &mut EState) {
     const BZ_LESSER_ICOST: u8 = 0;
     const BZ_GREATER_ICOST: u8 = 15;
 
@@ -207,32 +207,30 @@ unsafe fn sendMTFValues(s: *mut EState) {
     let mut cost: [u16; 6] = [0; 6];
     let mut fave: [i32; 6] = [0; 6];
 
-    let mtfv: *mut u16 = (*s).mtfv;
+    let mtfv: *mut u16 = s.mtfv;
 
-    if (*s).verbosity >= 3 {
+    if s.verbosity >= 3 {
         eprintln!(
             "      {} in block, {} after MTF & 1-2 coding, {}+2 syms in use",
-            (*s).nblock,
-            (*s).nMTF,
-            (*s).nInUse,
+            s.nblock, s.nMTF, s.nInUse,
         );
     }
 
-    let alphaSize = usize::try_from((*s).nInUse + 2).unwrap_or(0);
+    let alphaSize = usize::try_from(s.nInUse + 2).unwrap_or(0);
 
-    for t in (*s).len.iter_mut() {
+    for t in s.len.iter_mut() {
         t[..alphaSize].fill(BZ_GREATER_ICOST);
     }
 
     /*--- Decide how many coding tables to use ---*/
-    assert_h!((*s).nMTF > 0, 3001);
-    if (*s).nMTF < 200 {
+    assert_h!(s.nMTF > 0, 3001);
+    if s.nMTF < 200 {
         nGroups = 2;
-    } else if (*s).nMTF < 600 {
+    } else if s.nMTF < 600 {
         nGroups = 3;
-    } else if (*s).nMTF < 1200 {
+    } else if s.nMTF < 1200 {
         nGroups = 4;
-    } else if (*s).nMTF < 2400 {
+    } else if s.nMTF < 2400 {
         nGroups = 5;
     } else {
         nGroups = 6;
@@ -244,7 +242,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
         let mut aFreq: i32;
 
         let mut nPart = nGroups;
-        let mut remF = (*s).nMTF;
+        let mut remF = s.nMTF;
         let mut gs = 0i32;
 
         while nPart > 0 {
@@ -253,26 +251,26 @@ unsafe fn sendMTFValues(s: *mut EState) {
             aFreq = 0;
             while aFreq < tFreq && ge < alphaSize as i32 - 1 {
                 ge += 1;
-                aFreq += (*s).mtfFreq[ge as usize];
+                aFreq += s.mtfFreq[ge as usize];
             }
             if ge > gs && nPart != nGroups && nPart != 1 && (nGroups - nPart) % 2 == 1 {
-                aFreq -= (*s).mtfFreq[ge as usize];
+                aFreq -= s.mtfFreq[ge as usize];
                 ge -= 1;
             }
 
-            if (*s).verbosity >= 3 {
+            if s.verbosity >= 3 {
                 eprintln!(
                     "      initial group {}, [{} .. {}], has {} syms ({:4.1}%%)",
                     nPart,
                     gs,
                     ge,
                     aFreq,
-                    100.0f64 * aFreq as f64 / (*s).nMTF as f64,
+                    100.0f64 * aFreq as f64 / s.nMTF as f64,
                 );
             }
 
             for v in 0..alphaSize {
-                (*s).len[(nPart - 1) as usize][v] = if (gs..=ge).contains(&(v as i32)) {
+                s.len[(nPart - 1) as usize][v] = if (gs..=ge).contains(&(v as i32)) {
                     BZ_LESSER_ICOST
                 } else {
                     BZ_GREATER_ICOST
@@ -292,7 +290,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
 
         for t in 0..nGroups {
             for v in 0..alphaSize {
-                (*s).rfreq[t][v] = 0;
+                s.rfreq[t][v] = 0;
             }
         }
 
@@ -302,9 +300,9 @@ unsafe fn sendMTFValues(s: *mut EState) {
         ---*/
         if nGroups == 6 {
             for v in 0..alphaSize {
-                (*s).len_pack[v][0] = ((*s).len[1][v] as u32) << 16 | (*s).len[0][v] as u32;
-                (*s).len_pack[v][1] = ((*s).len[3][v] as u32) << 16 | (*s).len[2][v] as u32;
-                (*s).len_pack[v][2] = ((*s).len[5][v] as u32) << 16 | (*s).len[4][v] as u32;
+                s.len_pack[v][0] = (s.len[1][v] as u32) << 16 | s.len[0][v] as u32;
+                s.len_pack[v][1] = (s.len[3][v] as u32) << 16 | s.len[2][v] as u32;
+                s.len_pack[v][2] = (s.len[5][v] as u32) << 16 | s.len[4][v] as u32;
             }
         }
 
@@ -313,12 +311,12 @@ unsafe fn sendMTFValues(s: *mut EState) {
         gs = 0;
         loop {
             /*--- Set group start & end marks. --*/
-            if gs >= (*s).nMTF {
+            if gs >= s.nMTF {
                 break;
             }
             ge = gs + 50 - 1;
-            if ge >= (*s).nMTF {
-                ge = (*s).nMTF - 1;
+            if ge >= s.nMTF {
+                ge = s.nMTF - 1;
             }
 
             /*--
@@ -338,9 +336,9 @@ unsafe fn sendMTFValues(s: *mut EState) {
                 macro_rules! BZ_ITER {
                     ($nn:expr) => {
                         icv = *mtfv.add((gs + $nn) as usize);
-                        cost01 = cost01.wrapping_add((*s).len_pack[icv as usize][0]);
-                        cost23 = cost23.wrapping_add((*s).len_pack[icv as usize][1]);
-                        cost45 = cost45.wrapping_add((*s).len_pack[icv as usize][2]);
+                        cost01 = cost01.wrapping_add(s.len_pack[icv as usize][0]);
+                        cost23 = cost23.wrapping_add(s.len_pack[icv as usize][1]);
+                        cost45 = cost45.wrapping_add(s.len_pack[icv as usize][2]);
                     };
                 }
 
@@ -371,7 +369,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
 
                     for t in 0..nGroups {
                         cost[t as usize] =
-                            (cost[t] as i32 + (*s).len[t][icv_0 as usize] as i32) as u16;
+                            (cost[t] as i32 + s.len[t][icv_0 as usize] as i32) as u16;
                     }
                 }
             }
@@ -391,13 +389,13 @@ unsafe fn sendMTFValues(s: *mut EState) {
             totc += bc;
             fave[bt as usize] += 1;
             fave[bt as usize];
-            (*s).selector[nSelectors] = bt as u8;
+            s.selector[nSelectors] = bt as u8;
             nSelectors += 1;
 
             if nGroups == 6 && 50 == ge - gs + 1 {
                 macro_rules! BZ_ITUR {
                     ($nn:expr) => {
-                        (*s).rfreq[bt as usize][*mtfv.add((gs + $nn) as usize) as usize] += 1;
+                        s.rfreq[bt as usize][*mtfv.add((gs + $nn) as usize) as usize] += 1;
                     };
                 }
 
@@ -416,15 +414,15 @@ unsafe fn sendMTFValues(s: *mut EState) {
                 };
             } else {
                 for i in gs..=ge {
-                    (*s).rfreq[bt as usize][*mtfv.add(i as usize) as usize] += 1;
-                    (*s).rfreq[bt as usize][*mtfv.add(i as usize) as usize];
+                    s.rfreq[bt as usize][*mtfv.add(i as usize) as usize] += 1;
+                    s.rfreq[bt as usize][*mtfv.add(i as usize) as usize];
                 }
             }
 
             gs = ge + 1;
         }
 
-        if (*s).verbosity >= 3 {
+        if s.verbosity >= 3 {
             eprint!(
                 "      pass {}: size is {}, grp uses are ",
                 iter + 1,
@@ -442,7 +440,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
         /* maxLen was changed from 20 to 17 in bzip2-1.0.3.  See
         comment in huffman.c for details. */
         for t in 0..nGroups {
-            BZ2_hbMakeCodeLengths(&mut (*s).len[t], &(*s).rfreq[t], alphaSize, 17);
+            BZ2_hbMakeCodeLengths(&mut s.len[t], &s.rfreq[t], alphaSize, 17);
         }
     }
 
@@ -461,7 +459,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
         }
 
         for i in 0..nSelectors {
-            ll_i = (*s).selector[i];
+            ll_i = s.selector[i];
             j = 0;
             tmp = pos[j as usize];
             while ll_i != tmp {
@@ -471,7 +469,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
                 pos[j as usize] = tmp2;
             }
             pos[0] = tmp;
-            (*s).selectorMtf[i] = j as u8;
+            s.selectorMtf[i] = j as u8;
         }
     }
 
@@ -481,100 +479,98 @@ unsafe fn sendMTFValues(s: *mut EState) {
         maxLen = 0;
 
         for i in 0..alphaSize {
-            maxLen = Ord::max(maxLen, (*s).len[t][i] as i32);
-            minLen = Ord::min(minLen, (*s).len[t][i] as i32);
+            maxLen = Ord::max(maxLen, s.len[t][i] as i32);
+            minLen = Ord::min(minLen, s.len[t][i] as i32);
         }
 
         assert_h!(!(maxLen > 17/*20*/), 3004);
         assert_h!(!(minLen < 1), 3005);
 
-        BZ2_hbAssignCodes(&mut (*s).code[t], &(*s).len[t], minLen, maxLen, alphaSize);
+        BZ2_hbAssignCodes(&mut s.code[t], &s.len[t], minLen, maxLen, alphaSize);
     }
 
     /*--- Transmit the mapping table. ---*/
     {
         let inUse16: [bool; 16] =
-            core::array::from_fn(|i| (*s).inUse[i * 16..][..16].iter().any(|x| *x));
+            core::array::from_fn(|i| s.inUse[i * 16..][..16].iter().any(|x| *x));
 
-        nBytes = (*s).numZ;
+        nBytes = s.numZ;
         for in_use in inUse16 {
             bsW(s, 1, in_use as u32);
         }
-        for (any_in_use, chunk_in_use) in inUse16.iter().zip((*s).inUse.chunks_exact(16)) {
+        for (i, any_in_use) in inUse16.iter().enumerate() {
             if *any_in_use {
-                for in_use in chunk_in_use {
-                    bsW(s, 1, *in_use as u32);
+                for j in 0..16 {
+                    bsW(s, 1, s.inUse[i * 16 + j] as u32);
                 }
             }
         }
-        if (*s).verbosity >= 3 {
-            eprint!("      bytes: mapping {}, ", (*s).numZ - nBytes,);
+        if s.verbosity >= 3 {
+            eprint!("      bytes: mapping {}, ", s.numZ - nBytes,);
         }
     }
 
     /*--- Now the selectors. ---*/
-    nBytes = (*s).numZ;
+    nBytes = s.numZ;
     bsW(s, 3, nGroups as u32);
     bsW(s, 15, nSelectors as u32);
 
     for i in 0..nSelectors {
-        for _ in 0..(*s).selectorMtf[i as usize] {
+        for _ in 0..s.selectorMtf[i as usize] {
             bsW(s, 1, 1);
         }
         bsW(s, 1, 0);
     }
-    if (*s).verbosity >= 3 {
-        eprint!("selectors {}, ", (*s).numZ - nBytes);
+    if s.verbosity >= 3 {
+        eprint!("selectors {}, ", s.numZ - nBytes);
     }
 
     /*--- Now the coding tables. ---*/
-    nBytes = (*s).numZ;
+    nBytes = s.numZ;
 
     for t in 0..nGroups {
-        let mut curr = (*s).len[t as usize][0];
+        let mut curr = s.len[t as usize][0];
         bsW(s, 5, curr as u32);
         for i in 0..alphaSize {
-            while curr < (*s).len[t as usize][i as usize] {
+            while curr < s.len[t as usize][i as usize] {
                 bsW(s, 2, 2);
                 curr += 1;
             }
-            while curr > (*s).len[t as usize][i as usize] {
+            while curr > s.len[t as usize][i as usize] {
                 bsW(s, 2, 3);
                 curr -= 1;
             }
             bsW(s, 1, 0);
         }
     }
-    if (*s).verbosity >= 3 {
-        eprint!("code lengths {}, ", (*s).numZ - nBytes);
+    if s.verbosity >= 3 {
+        eprint!("code lengths {}, ", s.numZ - nBytes);
     }
 
     /*--- And finally, the block data proper ---*/
-    nBytes = (*s).numZ;
+    nBytes = s.numZ;
     selCtr = 0;
     gs = 0;
     loop {
-        if gs >= (*s).nMTF {
+        if gs >= s.nMTF {
             break;
         }
         ge = gs + 50 - 1;
-        if ge >= (*s).nMTF {
-            ge = (*s).nMTF - 1;
+        if ge >= s.nMTF {
+            ge = s.nMTF - 1;
         }
-        assert_h!(((*s).selector[selCtr] as usize) < nGroups, 3006);
+        assert_h!((s.selector[selCtr] as usize) < nGroups, 3006);
         if nGroups == 6 && 50 == ge - gs + 1 {
             /*--- fast track the common case ---*/
             let mut mtfv_i: u16;
-            let s_len_sel_selCtr = &(*s).len[(*s).selector[selCtr] as usize];
-            let s_code_sel_selCtr = &(*s).code[(*s).selector[selCtr] as usize];
 
             macro_rules! BZ_ITAH {
                 ($nn:expr) => {
                     mtfv_i = *mtfv.add((gs + $nn) as usize);
                     bsW(
                         s,
-                        s_len_sel_selCtr[mtfv_i as usize] as i32,
-                        s_code_sel_selCtr[mtfv_i as usize] as u32,
+                        s.len[s.selector[selCtr] as usize][mtfv_i as usize] as i32,
+                        s.code[s.selector[selCtr] as usize][mtfv_i as usize] as u32,
                     );
                 };
             }
@@ -597,10 +593,8 @@ unsafe fn sendMTFValues(s: *mut EState) {
             for i in gs..=ge {
                 bsW(
                     s,
-                    (*s).len[(*s).selector[selCtr] as usize][*mtfv.offset(i as isize) as usize]
-                        as i32,
-                    (*s).code[(*s).selector[selCtr] as usize][*mtfv.offset(i as isize) as usize]
-                        as u32,
+                    s.len[s.selector[selCtr] as usize][*mtfv.offset(i as isize) as usize] as i32,
+                    s.code[s.selector[selCtr] as usize][*mtfv.offset(i as isize) as usize] as u32,
                 );
             }
         }
@@ -609,8 +603,8 @@ unsafe fn sendMTFValues(s: *mut EState) {
     }
     assert_h!(selCtr == nSelectors, 3007);
 
-    if (*s).verbosity >= 3 {
-        eprintln!("codes {}", (*s).numZ - nBytes);
+    if s.verbosity >= 3 {
+        eprintln!("codes {}", s.numZ - nBytes);
     }
 }
 
