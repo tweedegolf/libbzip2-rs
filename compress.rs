@@ -1,6 +1,6 @@
 use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
-use crate::bzlib::{BZ2_bz__AssertH__fail, EState, BZ_N_ITERS};
+use crate::bzlib::{BZ2_bz__AssertH__fail, EState, BZ_MAX_SELECTORS, BZ_N_ITERS};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 pub unsafe fn BZ2_bsInitWrite(s: *mut EState) {
     (*s).bsLive = 0 as libc::c_int;
@@ -181,10 +181,10 @@ unsafe fn sendMTFValues(s: *mut EState) {
     let mut totc: i32;
     let mut bt: i32;
     let mut bc: i32;
-    let mut nSelectors: i32 = 0;
+    let mut nSelectors: usize = 0;
     let mut minLen: i32;
     let mut maxLen: i32;
-    let mut selCtr: i32;
+    let mut selCtr: usize;
     let nGroups: i32;
     let mut nBytes: i32;
 
@@ -304,7 +304,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
             }
         }
 
-        nSelectors = 0 as libc::c_int;
+        nSelectors = 0;
         totc = 0 as libc::c_int;
         gs = 0 as libc::c_int;
         loop {
@@ -344,7 +344,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
                 }
 
                 #[rustfmt::skip]
-                let _ = { 
+                let _ = {
                     BZ_ITER!(0);  BZ_ITER!(1);  BZ_ITER!(2);  BZ_ITER!(3);  BZ_ITER!(4);
                     BZ_ITER!(5);  BZ_ITER!(6);  BZ_ITER!(7);  BZ_ITER!(8);  BZ_ITER!(9);
                     BZ_ITER!(10); BZ_ITER!(11); BZ_ITER!(12); BZ_ITER!(13); BZ_ITER!(14);
@@ -357,214 +357,91 @@ unsafe fn sendMTFValues(s: *mut EState) {
                     BZ_ITER!(45); BZ_ITER!(46); BZ_ITER!(47); BZ_ITER!(48); BZ_ITER!(49);
                 };
 
-                cost[0] = (cost01 & 0xffff) as u16; cost[1] = (cost01 >> 16) as u16;
-                cost[2] = (cost23 & 0xffff) as u16; cost[3] = (cost23 >> 16) as u16;
-                cost[4] = (cost45 & 0xffff) as u16; cost[5] = (cost45 >> 16) as u16;
+                cost[0] = (cost01 & 0xffff) as u16;
+                cost[1] = (cost01 >> 16) as u16;
+                cost[2] = (cost23 & 0xffff) as u16;
+                cost[3] = (cost23 >> 16) as u16;
+                cost[4] = (cost45 & 0xffff) as u16;
+                cost[5] = (cost45 >> 16) as u16;
             } else {
-                i = gs;
-                while i <= ge {
+                /*--- slow version which correctly handles all situations ---*/
+                for i in gs..=ge {
                     let icv_0: u16 = *mtfv.offset(i as isize);
-                    t = 0 as libc::c_int;
-                    while t < nGroups {
+
+                    for t in 0..nGroups {
                         cost[t as usize] = (cost[t as usize] as libc::c_int
                             + (*s).len[t as usize][icv_0 as usize] as libc::c_int)
                             as u16;
-                        t += 1;
                     }
-                    i += 1;
                 }
             }
-            bc = 999999999 as libc::c_int;
-            bt = -1 as libc::c_int;
-            t = 0 as libc::c_int;
-            while t < nGroups {
+
+            /*--
+               Find the coding table which is best for this group,
+               and record its identity in the selector table.
+            --*/
+            bc = 999999999;
+            bt = -1;
+            for t in 0..nGroups {
                 if (cost[t as usize] as libc::c_int) < bc {
                     bc = cost[t as usize] as i32;
                     bt = t;
                 }
-                t += 1;
             }
             totc += bc;
             fave[bt as usize] += 1;
             fave[bt as usize];
-            (*s).selector[nSelectors as usize] = bt as u8;
+            (*s).selector[nSelectors] = bt as u8;
             nSelectors += 1;
-            if nGroups == 6 as libc::c_int && 50 as libc::c_int == ge - gs + 1 as libc::c_int {
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 0 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 0 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 1 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 1 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 2 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 2 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 3 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 3 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 4 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 4 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 5 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 5 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 6 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 6 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 7 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 7 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 8 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 8 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 9 as libc::c_int) as isize) as usize] +=
-                    1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 9 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 10 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 10 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 11 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 11 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 12 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 12 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 13 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 13 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 14 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 14 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 15 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 15 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 16 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 16 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 17 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 17 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 18 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 18 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 19 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 19 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 20 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 20 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 21 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 21 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 22 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 22 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 23 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 23 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 24 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 24 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 25 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 25 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 26 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 26 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 27 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 27 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 28 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 28 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 29 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 29 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 30 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 30 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 31 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 31 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 32 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 32 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 33 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 33 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 34 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 34 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 35 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 35 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 36 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 36 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 37 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 37 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 38 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 38 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 39 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 39 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 40 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 40 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 41 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 41 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 42 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 42 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 43 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 43 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 44 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 44 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 45 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 45 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 46 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 46 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 47 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 47 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 48 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 48 as libc::c_int) as isize) as usize];
-                (*s).rfreq[bt as usize]
-                    [*mtfv.offset((gs + 49 as libc::c_int) as isize) as usize] += 1;
-                (*s).rfreq[bt as usize][*mtfv.offset((gs + 49 as libc::c_int) as isize) as usize];
+
+            if nGroups == 6 && 50 == ge - gs + 1 {
+                macro_rules! BZ_ITUR {
+                    ($nn:expr) => {
+                        (*s).rfreq[bt as usize][*mtfv.add((gs + $nn) as usize) as usize] += 1;
+                    };
+                }
+
+                #[rustfmt::skip]
+                let _ = {
+                    BZ_ITUR!(0);  BZ_ITUR!(1);  BZ_ITUR!(2);  BZ_ITUR!(3);  BZ_ITUR!(4);
+                    BZ_ITUR!(5);  BZ_ITUR!(6);  BZ_ITUR!(7);  BZ_ITUR!(8);  BZ_ITUR!(9);
+                    BZ_ITUR!(10); BZ_ITUR!(11); BZ_ITUR!(12); BZ_ITUR!(13); BZ_ITUR!(14);
+                    BZ_ITUR!(15); BZ_ITUR!(16); BZ_ITUR!(17); BZ_ITUR!(18); BZ_ITUR!(19);
+                    BZ_ITUR!(20); BZ_ITUR!(21); BZ_ITUR!(22); BZ_ITUR!(23); BZ_ITUR!(24);
+                    BZ_ITUR!(25); BZ_ITUR!(26); BZ_ITUR!(27); BZ_ITUR!(28); BZ_ITUR!(29);
+                    BZ_ITUR!(30); BZ_ITUR!(31); BZ_ITUR!(32); BZ_ITUR!(33); BZ_ITUR!(34);
+                    BZ_ITUR!(35); BZ_ITUR!(36); BZ_ITUR!(37); BZ_ITUR!(38); BZ_ITUR!(39);
+                    BZ_ITUR!(40); BZ_ITUR!(41); BZ_ITUR!(42); BZ_ITUR!(43); BZ_ITUR!(44);
+                    BZ_ITUR!(45); BZ_ITUR!(46); BZ_ITUR!(47); BZ_ITUR!(48); BZ_ITUR!(49);
+                };
             } else {
-                i = gs;
-                while i <= ge {
-                    (*s).rfreq[bt as usize][*mtfv.offset(i as isize) as usize] += 1;
-                    (*s).rfreq[bt as usize][*mtfv.offset(i as isize) as usize];
-                    i += 1;
+                for i in gs..=ge {
+                    (*s).rfreq[bt as usize][*mtfv.add(i as usize) as usize] += 1;
+                    (*s).rfreq[bt as usize][*mtfv.add(i as usize) as usize];
                 }
             }
-            gs = ge + 1 as libc::c_int;
+
+            gs = ge + 1;
         }
+
         if (*s).verbosity >= 3 as libc::c_int {
             eprint!(
                 "      pass {}: size is {}, grp uses are ",
                 iter + 1,
                 totc / 8,
             );
-            t = 0 as libc::c_int;
-            while t < nGroups {
+            for t in 0..nGroups {
                 eprint!("{} ", fave[t as usize],);
-                t += 1;
             }
             eprintln!("");
         }
-        t = 0 as libc::c_int;
-        while t < nGroups {
+
+        /*--
+          Recompute the tables based on the accumulated frequencies.
+        --*/
+        /* maxLen was changed from 20 to 17 in bzip2-1.0.3.  See
+        comment in huffman.c for details. */
+        for t in 0..nGroups {
             BZ2_hbMakeCodeLengths(
                 &mut *(*((*s).len).as_mut_ptr().offset(t as isize))
                     .as_mut_ptr()
@@ -575,17 +452,12 @@ unsafe fn sendMTFValues(s: *mut EState) {
                 alphaSize as i32,
                 17 as libc::c_int,
             );
-            t += 1;
         }
     }
-    if nGroups >= 8 as libc::c_int {
-        BZ2_bz__AssertH__fail(3002 as libc::c_int);
-    }
-    if !(nSelectors < 32768 as libc::c_int
-        && nSelectors <= 2 as libc::c_int + 900000 as libc::c_int / 50 as libc::c_int)
-    {
-        BZ2_bz__AssertH__fail(3003 as libc::c_int);
-    }
+
+    assert_h!(nGroups < 8, 3002);
+    assert_h!(nSelectors < 32768 && nSelectors <= BZ_MAX_SELECTORS, 3003);
+
     let mut pos: [u8; 6] = [0; 6];
     let mut ll_i: u8;
     let mut tmp2: u8;
@@ -595,8 +467,7 @@ unsafe fn sendMTFValues(s: *mut EState) {
         pos[i as usize] = i as u8;
         i += 1;
     }
-    i = 0 as libc::c_int;
-    while i < nSelectors {
+    for i in 0..nSelectors {
         ll_i = (*s).selector[i as usize];
         j = 0 as libc::c_int;
         tmp = pos[j as usize];
@@ -608,7 +479,6 @@ unsafe fn sendMTFValues(s: *mut EState) {
         }
         pos[0 as libc::c_int as usize] = tmp;
         (*s).selectorMtf[i as usize] = j as u8;
-        i += 1;
     }
     t = 0 as libc::c_int;
     while t < nGroups {
@@ -712,15 +582,12 @@ unsafe fn sendMTFValues(s: *mut EState) {
         if ge >= (*s).nMTF {
             ge = (*s).nMTF - 1 as libc::c_int;
         }
-        assert_h!(
-            ((*s).selector[selCtr as usize] as libc::c_int) < nGroups,
-            3006
-        );
+        assert_h!(((*s).selector[selCtr] as libc::c_int) < nGroups, 3006);
         if nGroups == 6 && 50 == ge - gs + 1 {
             /*--- fast track the common case ---*/
             let mut mtfv_i: u16;
-            let s_len_sel_selCtr = &(*s).len[(*s).selector[selCtr as usize] as usize];
-            let s_code_sel_selCtr = &(*s).code[(*s).selector[selCtr as usize] as usize];
+            let s_len_sel_selCtr = &(*s).len[(*s).selector[selCtr] as usize];
+            let s_code_sel_selCtr = &(*s).code[(*s).selector[selCtr] as usize];
 
             macro_rules! BZ_ITAH {
                 ($nn:expr) => {
@@ -751,10 +618,10 @@ unsafe fn sendMTFValues(s: *mut EState) {
             for i in gs..=ge {
                 bsW(
                     s,
-                    (*s).len[(*s).selector[selCtr as usize] as usize]
-                        [*mtfv.offset(i as isize) as usize] as i32,
-                    (*s).code[(*s).selector[selCtr as usize] as usize]
-                        [*mtfv.offset(i as isize) as usize] as u32,
+                    (*s).len[(*s).selector[selCtr] as usize][*mtfv.offset(i as isize) as usize]
+                        as i32,
+                    (*s).code[(*s).selector[selCtr] as usize][*mtfv.offset(i as isize) as usize]
+                        as u32,
                 );
             }
         }

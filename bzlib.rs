@@ -23,6 +23,8 @@ pub(crate) const BZ_N_GROUPS: usize = 6;
 pub(crate) const BZ_G_SIZE: usize = 50;
 pub(crate) const BZ_N_ITERS: usize = 4;
 
+pub(crate) const BZ_MAX_SELECTORS: usize = 2 + (900000 / BZ_G_SIZE);
+
 #[cfg(feature = "custom-prefix")]
 macro_rules! prefix {
     ($name:expr) => {
