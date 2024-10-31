@@ -1,4 +1,7 @@
-use crate::bzlib::{BZ2_bz__AssertH__fail, Bool, EState};
+use crate::{
+    assert_h,
+    bzlib::{Bool, EState, BZ_N_QSORT, BZ_N_RADIX},
+};
 
 #[inline]
 unsafe fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32) {
@@ -36,6 +39,10 @@ unsafe fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32)
         i -= 1;
     }
 }
+
+const FALLBACK_QSORT_SMALL_THRESH: i32 = 10;
+const FALLBACK_QSORT_STACK_SIZE: i32 = 100;
+
 unsafe fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32) {
     let mut unLo: i32;
     let mut unHi: i32;
@@ -57,9 +64,7 @@ unsafe fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32)
     stackHi[sp as usize] = hiSt;
     sp += 1;
     while sp > 0 as libc::c_int {
-        if sp >= 100 as libc::c_int - 1 as libc::c_int {
-            BZ2_bz__AssertH__fail(1004 as libc::c_int);
-        }
+        assert_h!(sp < FALLBACK_QSORT_STACK_SIZE - 1, 1004);
         sp -= 1;
         lo = stackLo[sp as usize];
         hi = stackHi[sp as usize];
@@ -123,6 +128,9 @@ unsafe fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32)
                 unLo += 1;
                 unHi -= 1;
             }
+
+            debug_assert_eq!(unHi, unLo - 1, "fallbackQSort3(2)");
+
             if gtHi < ltLo {
                 continue;
             }
@@ -365,9 +373,8 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
         *eclass8.offset(*fmap.offset(i as isize) as isize) = j as u8;
         i += 1;
     }
-    if j >= 256 as libc::c_int {
-        BZ2_bz__AssertH__fail(1005 as libc::c_int);
-    }
+
+    assert_h!(j < 256, 1005);
 }
 #[inline]
 unsafe fn mainGtU(
@@ -383,6 +390,9 @@ unsafe fn mainGtU(
     let mut c2: u8;
     let mut s1: u16;
     let mut s2: u16;
+
+    debug_assert_ne!(i1, i2, "mainGtU");
+
     c1 = *block.offset(i1 as isize);
     c2 = *block.offset(i2 as isize);
     if c1 != c2 {
@@ -713,6 +723,11 @@ unsafe fn mmed3(mut a: u8, mut b: u8, c: u8) -> u8 {
     }
     b
 }
+
+const MAIN_QSORT_SMALL_THRESH: i32 = 20;
+const MAIN_QSORT_DEPTH_THRESH: i32 = BZ_N_RADIX + BZ_N_QSORT;
+const MAIN_QSORT_STACK_SIZE: i32 = 100;
+
 unsafe fn mainQSort3(
     ptr: *mut u32,
     block: *mut u8,
@@ -746,9 +761,8 @@ unsafe fn mainQSort3(
     stackD[sp as usize] = dSt;
     sp += 1;
     while sp > 0 as libc::c_int {
-        if sp >= 100 as libc::c_int - 2 as libc::c_int {
-            BZ2_bz__AssertH__fail(1001 as libc::c_int);
-        }
+        assert_h!(sp < MAIN_QSORT_STACK_SIZE - 2, 1001);
+
         sp -= 1;
         lo = stackLo[sp as usize];
         hi = stackHi[sp as usize];
@@ -1141,9 +1155,7 @@ unsafe fn mainSort(
             }
             j += 1;
         }
-        if bigDone[ss as usize] != 0 {
-            BZ2_bz__AssertH__fail(1006 as libc::c_int);
-        }
+        assert_h!(!bigDone[ss as usize] != 0, 1006);
         j = 0 as libc::c_int;
         while j <= 255 as libc::c_int {
             copyStart[j as usize] = (*ftab.offset(((j << 8 as libc::c_int) + ss) as isize)
@@ -1186,12 +1198,16 @@ unsafe fn mainSort(
             }
             j -= 1;
         }
-        if !(copyStart[ss as usize] - 1 as libc::c_int == copyEnd[ss as usize]
-            || copyStart[ss as usize] == 0 as libc::c_int
-                && copyEnd[ss as usize] == nblock - 1 as libc::c_int)
-        {
-            BZ2_bz__AssertH__fail(1007 as libc::c_int);
-        }
+        assert_h!(
+            (copyStart[ss as usize]-1 == copyEnd[ss as usize])
+                ||
+                /* Extremely rare case missing in bzip2-1.0.0 and 1.0.1.
+                   Necessity for this case is demonstrated by compressing
+                   a sequence of approximately 48.5 million of character
+                   251; 1.0.0/1.0.1 will then die here. */
+                (copyStart[ss as usize] == 0 && copyEnd[ss as usize] == nblock-1),
+            1007
+        );
         j = 0 as libc::c_int;
         while j <= 255 as libc::c_int {
             let fresh13 = &mut (*ftab.offset(((j << 8 as libc::c_int) + ss) as isize));
@@ -1222,9 +1238,7 @@ unsafe fn mainSort(
                 }
                 j -= 1;
             }
-            if (bbSize - 1 as libc::c_int) >> shifts > 65535 as libc::c_int {
-                BZ2_bz__AssertH__fail(1002 as libc::c_int);
-            }
+            assert_h!(((bbSize - 1) >> shifts) <= 65535, 1002);
         }
         i += 1;
     }
@@ -1295,7 +1309,5 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
             i += 1;
         }
     }
-    if s.origPtr == -1 as libc::c_int {
-        BZ2_bz__AssertH__fail(1003 as libc::c_int);
-    }
+    assert_h!(s.origPtr != -1, 1003);
 }
