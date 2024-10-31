@@ -2286,18 +2286,10 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         i += 1;
                     }
                     BZ2_hbCreateDecodeTables(
-                        &mut *(*(s.limit).as_mut_ptr().offset(t as isize))
-                            .as_mut_ptr()
-                            .offset(0 as isize),
-                        &mut *(*(s.base).as_mut_ptr().offset(t as isize))
-                            .as_mut_ptr()
-                            .offset(0 as isize),
-                        &mut *(*(s.perm).as_mut_ptr().offset(t as isize))
-                            .as_mut_ptr()
-                            .offset(0 as isize),
-                        &mut *(*(s.len).as_mut_ptr().offset(t as isize))
-                            .as_mut_ptr()
-                            .offset(0 as isize),
+                        &mut (*s).limit[t as usize],
+                        &mut (*s).base[t as usize],
+                        &mut (*s).perm[t as usize],
+                        &mut (*s).len[t as usize],
                         minLen,
                         maxLen,
                         alphaSize,

@@ -161,48 +161,47 @@ pub fn BZ2_hbAssignCodes(
     }
 }
 
-pub unsafe fn BZ2_hbCreateDecodeTables(
-    limit: *mut i32,
-    base: *mut i32,
-    perm: *mut i32,
-    length: *mut u8,
+pub fn BZ2_hbCreateDecodeTables(
+    limit: &mut [i32],
+    base: &mut [i32],
+    perm: &mut [i32],
+    length: &mut [u8],
     minLen: i32,
     maxLen: i32,
     alphaSize: i32,
 ) {
+    let alphaSize = usize::try_from(alphaSize).unwrap_or(0);
+
     let mut pp: i32 = 0;
     for i in minLen..=maxLen {
         for j in 0..alphaSize {
-            if *length.offset(j as isize) as libc::c_int == i {
-                *perm.offset(pp as isize) = j;
+            if length[j] as i32 == i {
+                perm[pp as usize] = j as i32;
                 pp += 1;
             }
         }
     }
 
-    for i in 0..BZ_MAX_CODE_LEN as libc::c_int {
-        *base.offset(i as isize) = 0;
-    }
+    base[0..BZ_MAX_CODE_LEN].fill(0);
+
     for i in 0..alphaSize {
-        *base.offset((*length.offset(i as isize) + 1) as isize) += 1;
+        base[length[i] as usize + 1] += 1;
     }
 
-    for i in 1..BZ_MAX_CODE_LEN as libc::c_int {
-        *base.offset(i as isize) += *base.offset((i - 1) as isize);
+    for i in 1..BZ_MAX_CODE_LEN {
+        base[i] += base[i - 1];
     }
 
-    for i in 0..BZ_MAX_CODE_LEN as libc::c_int {
-        *limit.offset(i as isize) = 0;
-    }
+    limit[0..BZ_MAX_CODE_LEN].fill(0);
+
     let mut vec = 0;
-
     for i in minLen..=maxLen {
-        vec += *base.offset((i + 1) as isize) - *base.offset(i as isize);
-        *limit.offset(i as isize) = vec - 1;
+        vec += base[i as usize + 1] - base[i as usize];
+        limit[i as usize] = vec - 1;
         vec <<= 1;
     }
+
     for i in minLen + 1..=maxLen {
-        *base.offset(i as isize) =
-            ((*limit.offset((i - 1) as isize) + 1) << 1) - *base.offset(i as isize);
+        base[i as usize] = ((limit[i as usize - 1] + 1) << 1) - base[i as usize];
     }
 }
