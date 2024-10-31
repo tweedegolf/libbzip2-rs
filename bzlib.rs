@@ -652,10 +652,11 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
             && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
         {
             flush_RL(&mut *s);
-            BZ2_compressBlock(s, matches!((*s).mode, Mode::Finishing));
+            let is_last_block = matches!((*s).mode, Mode::Finishing);
+            BZ2_compressBlock(&mut *s, is_last_block);
             (*s).state = State::Input;
         } else if (*s).nblock >= (*s).nblockMAX {
-            BZ2_compressBlock(s, false);
+            BZ2_compressBlock(&mut *s, false);
             (*s).state = State::Input;
         } else if (*(*s).strm).avail_in == 0 as libc::c_int as libc::c_uint {
             break;

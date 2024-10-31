@@ -2,18 +2,21 @@ use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
 use crate::bzlib::{BZ2_bz__AssertH__fail, EState, BZ_MAX_SELECTORS, BZ_N_ITERS};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
-pub unsafe fn BZ2_bsInitWrite(s: *mut EState) {
-    (*s).bsLive = 0 as libc::c_int;
-    (*s).bsBuff = 0 as libc::c_int as u32;
+
+pub fn BZ2_bsInitWrite(s: &mut EState) {
+    s.bsLive = 0;
+    s.bsBuff = 0;
 }
-unsafe fn bsFinishWrite(s: *mut EState) {
-    while (*s).bsLive > 0 as libc::c_int {
-        *((*s).zbits).offset((*s).numZ as isize) = ((*s).bsBuff >> 24 as libc::c_int) as u8;
-        (*s).numZ += 1;
-        (*s).bsBuff <<= 8 as libc::c_int;
-        (*s).bsLive -= 8 as libc::c_int;
+
+unsafe fn bsFinishWrite(s: &mut EState) {
+    while s.bsLive > 0 as libc::c_int {
+        *(s.zbits).offset(s.numZ as isize) = (s.bsBuff >> 24) as u8;
+        s.numZ += 1;
+        s.bsBuff <<= 8 as libc::c_int;
+        s.bsLive -= 8 as libc::c_int;
     }
 }
+
 #[inline]
 unsafe fn bsW(s: *mut EState, n: i32, v: u32) {
     while (*s).bsLive >= 8 as libc::c_int {
@@ -25,31 +28,20 @@ unsafe fn bsW(s: *mut EState, n: i32, v: u32) {
     (*s).bsBuff |= v << (32 as libc::c_int - (*s).bsLive - n);
     (*s).bsLive += n;
 }
-unsafe fn bsPutUInt32(s: *mut EState, u: u32) {
-    bsW(
-        s,
-        8 as libc::c_int,
-        ((u >> 24 as libc::c_int) as libc::c_long & 0xff as libc::c_long) as u32,
-    );
-    bsW(
-        s,
-        8 as libc::c_int,
-        ((u >> 16 as libc::c_int) as libc::c_long & 0xff as libc::c_long) as u32,
-    );
-    bsW(
-        s,
-        8 as libc::c_int,
-        ((u >> 8 as libc::c_int) as libc::c_long & 0xff as libc::c_long) as u32,
-    );
-    bsW(
-        s,
-        8 as libc::c_int,
-        (u as libc::c_long & 0xff as libc::c_long) as u32,
-    );
+
+unsafe fn bsPutUInt32(s: &mut EState, u: u32) {
+    let [a, b, c, d] = u.to_le_bytes();
+
+    bsW(s, 8, d as u32);
+    bsW(s, 8, c as u32);
+    bsW(s, 8, b as u32);
+    bsW(s, 8, a as u32);
 }
-unsafe fn bsPutUChar(s: *mut EState, c: u8) {
-    bsW(s, 8 as libc::c_int, c as u32);
+
+unsafe fn bsPutUChar(s: &mut EState, c: u8) {
+    bsW(s, 8, c as u32);
 }
+
 unsafe fn makeMaps_e(s: *mut EState) {
     let mut i: i32;
     (*s).nInUse = 0 as libc::c_int;
@@ -634,58 +626,78 @@ unsafe fn sendMTFValues(s: *mut EState) {
         eprintln!("codes {}", (*s).numZ - nBytes);
     }
 }
-pub unsafe fn BZ2_compressBlock(s: *mut EState, is_last_block: bool) {
-    if (*s).nblock > 0 as libc::c_int {
-        (*s).blockCRC = !(*s).blockCRC;
-        (*s).combinedCRC =
-            (*s).combinedCRC << 1 as libc::c_int | (*s).combinedCRC >> 31 as libc::c_int;
-        (*s).combinedCRC ^= (*s).blockCRC;
-        if (*s).blockNo > 1 as libc::c_int {
-            (*s).numZ = 0 as libc::c_int;
+
+pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
+    if s.nblock > 0 {
+        s.blockCRC = !s.blockCRC;
+        s.combinedCRC = s.combinedCRC.rotate_left(1);
+        s.combinedCRC ^= s.blockCRC;
+        if s.blockNo > 1 {
+            s.numZ = 0;
         }
-        if (*s).verbosity >= 2 as libc::c_int {
+
+        if s.verbosity >= 2 {
             eprintln!(
                 "   block {}: crc = 0x{:08x}, combined CRC = 0x{:08x}, size = {}",
-                (*s).blockNo,
-                (*s).blockCRC,
-                (*s).combinedCRC,
-                (*s).nblock,
+                s.blockNo, s.blockCRC, s.combinedCRC, s.nblock,
             );
         }
+
         BZ2_blockSort(&mut *s);
     }
-    (*s).zbits = &mut *((*s).arr2 as *mut u8).offset((*s).nblock as isize) as *mut u8;
-    if (*s).blockNo == 1 as libc::c_int {
+
+    s.zbits = &mut *(s.arr2 as *mut u8).offset(s.nblock as isize) as *mut u8;
+
+    /*-- If this is the first block, create the stream header. --*/
+    if s.blockNo == 1 {
         BZ2_bsInitWrite(s);
-        bsPutUChar(s, 0x42 as libc::c_int as u8);
-        bsPutUChar(s, 0x5a as libc::c_int as u8);
-        bsPutUChar(s, 0x68 as libc::c_int as u8);
-        bsPutUChar(s, (0x30 as libc::c_int + (*s).blockSize100k) as u8);
+        bsPutUChar(s, b'B');
+        bsPutUChar(s, b'Z');
+        bsPutUChar(s, b'h');
+        bsPutUChar(s, b'0' + s.blockSize100k as u8);
     }
-    if (*s).nblock > 0 as libc::c_int {
-        bsPutUChar(s, 0x31 as libc::c_int as u8);
-        bsPutUChar(s, 0x41 as libc::c_int as u8);
-        bsPutUChar(s, 0x59 as libc::c_int as u8);
-        bsPutUChar(s, 0x26 as libc::c_int as u8);
-        bsPutUChar(s, 0x53 as libc::c_int as u8);
-        bsPutUChar(s, 0x59 as libc::c_int as u8);
-        bsPutUInt32(s, (*s).blockCRC);
-        bsW(s, 1 as libc::c_int, 0 as libc::c_int as u32);
-        bsW(s, 24 as libc::c_int, (*s).origPtr as u32);
+
+    if s.nblock > 0 {
+        bsPutUChar(s, 0x31);
+        bsPutUChar(s, 0x41);
+        bsPutUChar(s, 0x59);
+        bsPutUChar(s, 0x26);
+        bsPutUChar(s, 0x53);
+        bsPutUChar(s, 0x59);
+
+        /*-- Now the block's CRC, so it is in a known place. --*/
+        bsPutUInt32(s, s.blockCRC);
+
+        /*--
+           Now a single bit indicating (non-)randomisation.
+           As of version 0.9.5, we use a better sorting algorithm
+           which makes randomisation unnecessary.  So always set
+           the randomised bit to 'no'.  Of course, the decoder
+           still needs to be able to handle randomised blocks
+           so as to maintain backwards compatibility with
+           older versions of bzip2.
+        --*/
+        bsW(s, 1, 0);
+
+        bsW(s, 24, s.origPtr as u32);
         generateMTFValues(s);
         sendMTFValues(s);
     }
+
+    /*-- If this is the last block, add the stream trailer. --*/
     if is_last_block {
-        bsPutUChar(s, 0x17 as libc::c_int as u8);
-        bsPutUChar(s, 0x72 as libc::c_int as u8);
-        bsPutUChar(s, 0x45 as libc::c_int as u8);
-        bsPutUChar(s, 0x38 as libc::c_int as u8);
-        bsPutUChar(s, 0x50 as libc::c_int as u8);
-        bsPutUChar(s, 0x90 as libc::c_int as u8);
-        bsPutUInt32(s, (*s).combinedCRC);
-        if (*s).verbosity >= 2 as libc::c_int {
-            eprint!("    final combined CRC = 0x{:08x}\n   ", (*s).combinedCRC);
+        bsPutUChar(s, 0x17);
+        bsPutUChar(s, 0x72);
+        bsPutUChar(s, 0x45);
+        bsPutUChar(s, 0x38);
+        bsPutUChar(s, 0x50);
+        bsPutUChar(s, 0x90);
+        bsPutUInt32(s, s.combinedCRC);
+
+        if s.verbosity >= 2 {
+            eprint!("    final combined CRC = 0x{:08x}\n   ", s.combinedCRC);
         }
+
         bsFinishWrite(s);
     }
 }
