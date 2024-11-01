@@ -187,9 +187,12 @@ unsafe fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32)
 }
 
 unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock: i32, verb: i32) {
+    let fmap = core::slice::from_raw_parts_mut(fmap, nblock as usize);
+    // let eclass8 = core::slice::from_raw_parts_mut(eclass as *mut u8, 4 * (nblock + BZ_N_OVERSHOOT) as usize);
+
     // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
     core::ptr::write_bytes(bhtab, 0, FTAB_LEN);
-    let bhtab = (bhtab as *mut [u32; FTAB_LEN]).as_mut().unwrap();
+    let bhtab = bhtab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
 
     macro_rules! SET_BH {
         ($zz:expr) => {
@@ -256,7 +259,7 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
         j = *eclass8.add(i) as i32;
         k = ftab[j as usize] - 1;
         ftab[j as usize] = k;
-        *fmap.offset(k as isize) = i as u32;
+        fmap[k as usize] = i as u32;
     }
 
     bhtab[0..2 + nblock as usize / 32].fill(0);
@@ -289,7 +292,7 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
             if ISSET_BH!(i) {
                 j = i;
             }
-            k = (*fmap.offset(i as isize)).wrapping_sub(H as libc::c_uint) as i32;
+            k = fmap[i as usize].wrapping_sub(H as libc::c_uint) as i32;
             if k < 0 {
                 k += nblock;
             }
@@ -335,12 +338,12 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
             /*-- now [l, r] bracket current bucket --*/
             if r > l {
                 nNotDone += r - l + 1;
-                fallbackQSort3(fmap, eclass, l, r);
+                fallbackQSort3(fmap.as_mut_ptr(), eclass, l, r);
 
                 /*-- scan bucket and generate header bits-- */
                 cc = -1;
                 for i in l..=r {
-                    cc1 = *eclass.offset(*fmap.offset(i as isize) as isize) as i32;
+                    cc1 = *eclass.offset(fmap[i as usize] as isize) as i32;
                     if cc != cc1 {
                         SET_BH!(i);
                         cc = cc1;
@@ -367,7 +370,7 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
             j += 1;
         }
         ftabCopy[j] -= 1;
-        *eclass8.offset(*fmap.offset(i as isize) as isize) = j as u8;
+        *eclass8.offset(fmap[i as usize] as isize) = j as u8;
     }
 
     assert_h!(j < 256, 1005);
