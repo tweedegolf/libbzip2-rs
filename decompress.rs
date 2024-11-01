@@ -2,52 +2,53 @@ use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, Bool, DStat
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
 
-struct State;
-
-impl State {
-    const BZ_X_IDLE: libc::c_int = 1;
-    const BZ_X_OUTPUT: libc::c_int = 2;
-    const BZ_X_MAGIC_1: libc::c_int = 10;
-    const BZ_X_MAGIC_2: libc::c_int = 11;
-    const BZ_X_MAGIC_3: libc::c_int = 12;
-    const BZ_X_MAGIC_4: libc::c_int = 13;
-    const BZ_X_BLKHDR_1: libc::c_int = 14;
-    const BZ_X_BLKHDR_2: libc::c_int = 15;
-    const BZ_X_BLKHDR_3: libc::c_int = 16;
-    const BZ_X_BLKHDR_4: libc::c_int = 17;
-    const BZ_X_BLKHDR_5: libc::c_int = 18;
-    const BZ_X_BLKHDR_6: libc::c_int = 19;
-    const BZ_X_BCRC_1: libc::c_int = 20;
-    const BZ_X_BCRC_2: libc::c_int = 21;
-    const BZ_X_BCRC_3: libc::c_int = 22;
-    const BZ_X_BCRC_4: libc::c_int = 23;
-    const BZ_X_RANDBIT: libc::c_int = 24;
-    const BZ_X_ORIGPTR_1: libc::c_int = 25;
-    const BZ_X_ORIGPTR_2: libc::c_int = 26;
-    const BZ_X_ORIGPTR_3: libc::c_int = 27;
-    const BZ_X_MAPPING_1: libc::c_int = 28;
-    const BZ_X_MAPPING_2: libc::c_int = 29;
-    const BZ_X_SELECTOR_1: libc::c_int = 30;
-    const BZ_X_SELECTOR_2: libc::c_int = 31;
-    const BZ_X_SELECTOR_3: libc::c_int = 32;
-    const BZ_X_CODING_1: libc::c_int = 33;
-    const BZ_X_CODING_2: libc::c_int = 34;
-    const BZ_X_CODING_3: libc::c_int = 35;
-    const BZ_X_MTF_1: libc::c_int = 36;
-    const BZ_X_MTF_2: libc::c_int = 37;
-    const BZ_X_MTF_3: libc::c_int = 38;
-    const BZ_X_MTF_4: libc::c_int = 39;
-    const BZ_X_MTF_5: libc::c_int = 40;
-    const BZ_X_MTF_6: libc::c_int = 41;
-    const BZ_X_ENDHDR_2: libc::c_int = 42;
-    const BZ_X_ENDHDR_3: libc::c_int = 43;
-    const BZ_X_ENDHDR_4: libc::c_int = 44;
-    const BZ_X_ENDHDR_5: libc::c_int = 45;
-    const BZ_X_ENDHDR_6: libc::c_int = 46;
-    const BZ_X_CCRC_1: libc::c_int = 47;
-    const BZ_X_CCRC_2: libc::c_int = 48;
-    const BZ_X_CCRC_3: libc::c_int = 49;
-    const BZ_X_CCRC_4: libc::c_int = 50;
+#[repr(i32)]
+#[derive(Debug, Clone, Copy)]
+#[allow(non_camel_case_types)]
+pub enum State {
+    BZ_X_IDLE = 1,
+    BZ_X_OUTPUT = 2,
+    BZ_X_MAGIC_1 = 10,
+    BZ_X_MAGIC_2 = 11,
+    BZ_X_MAGIC_3 = 12,
+    BZ_X_MAGIC_4 = 13,
+    BZ_X_BLKHDR_1 = 14,
+    BZ_X_BLKHDR_2 = 15,
+    BZ_X_BLKHDR_3 = 16,
+    BZ_X_BLKHDR_4 = 17,
+    BZ_X_BLKHDR_5 = 18,
+    BZ_X_BLKHDR_6 = 19,
+    BZ_X_BCRC_1 = 20,
+    BZ_X_BCRC_2 = 21,
+    BZ_X_BCRC_3 = 22,
+    BZ_X_BCRC_4 = 23,
+    BZ_X_RANDBIT = 24,
+    BZ_X_ORIGPTR_1 = 25,
+    BZ_X_ORIGPTR_2 = 26,
+    BZ_X_ORIGPTR_3 = 27,
+    BZ_X_MAPPING_1 = 28,
+    BZ_X_MAPPING_2 = 29,
+    BZ_X_SELECTOR_1 = 30,
+    BZ_X_SELECTOR_2 = 31,
+    BZ_X_SELECTOR_3 = 32,
+    BZ_X_CODING_1 = 33,
+    BZ_X_CODING_2 = 34,
+    BZ_X_CODING_3 = 35,
+    BZ_X_MTF_1 = 36,
+    BZ_X_MTF_2 = 37,
+    BZ_X_MTF_3 = 38,
+    BZ_X_MTF_4 = 39,
+    BZ_X_MTF_5 = 40,
+    BZ_X_MTF_6 = 41,
+    BZ_X_ENDHDR_2 = 42,
+    BZ_X_ENDHDR_3 = 43,
+    BZ_X_ENDHDR_4 = 44,
+    BZ_X_ENDHDR_5 = 45,
+    BZ_X_ENDHDR_6 = 46,
+    BZ_X_CCRC_1 = 47,
+    BZ_X_CCRC_2 = 48,
+    BZ_X_CCRC_3 = 49,
+    BZ_X_CCRC_4 = 50,
 }
 
 fn makeMaps_d(s: &mut DState) {
@@ -93,7 +94,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     let mut gLimit: *mut i32;
     let mut gBase: *mut i32;
     let mut gPerm: *mut i32;
-    if s.state == State::BZ_X_MAGIC_1 {
+    if let State::BZ_X_MAGIC_1 = s.state {
         s.save_i = 0;
         s.save_j = 0;
         s.save_t = 0;
