@@ -7,7 +7,7 @@ use crate::{
 
 /// Fallback O(N log(N)^2) sorting algorithm, for repetitive blocks      
 #[inline]
-unsafe fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32) {
+unsafe fn fallbackSimpleSort(fmap: &mut [u32], eclass: *mut u32, lo: i32, hi: i32) {
     let mut j: i32;
     let mut tmp: i32;
     let mut ec_tmp: u32;
@@ -18,26 +18,26 @@ unsafe fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32)
 
     if hi - lo > 3 {
         for i in (lo..=hi - 4).rev() {
-            tmp = *fmap.offset(i as isize) as i32;
+            tmp = fmap[i as usize] as i32;
             ec_tmp = *eclass.offset(tmp as isize);
             j = i + 4;
-            while j <= hi && ec_tmp > *eclass.offset(*fmap.offset(j as isize) as isize) {
-                *fmap.offset((j - 4) as isize) = *fmap.offset(j as isize);
+            while j <= hi && ec_tmp > *eclass.offset(fmap[j as usize] as isize) {
+                fmap[(j - 4) as usize] = fmap[j as usize];
                 j += 4;
             }
-            *fmap.offset((j - 4) as isize) = tmp as u32;
+            fmap[(j - 4) as usize] = tmp as u32;
         }
     }
 
     for i in (lo..=hi - 1).rev() {
-        tmp = *fmap.offset(i as isize) as i32;
+        tmp = fmap[i as usize] as i32;
         ec_tmp = *eclass.offset(tmp as isize);
         j = i + 1;
-        while j <= hi && ec_tmp > *eclass.offset(*fmap.offset(j as isize) as isize) {
-            *fmap.offset((j - 1) as isize) = *fmap.offset(j as isize);
+        while j <= hi && ec_tmp > *eclass.offset(fmap[j as usize] as isize) {
+            fmap[(j - 1) as usize] = fmap[j as usize];
             j += 1;
         }
-        *fmap.offset((j - 1) as isize) = tmp as u32;
+        fmap[(j - 1) as usize] = tmp as u32;
     }
 }
 
@@ -94,7 +94,7 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
         hi = stackHi[sp as usize];
 
         if hi - lo < FALLBACK_QSORT_SMALL_THRESH {
-            fallbackSimpleSort(fmap.as_mut_ptr(), eclass, lo, hi);
+            fallbackSimpleSort(fmap, eclass, lo, hi);
             continue;
         }
 
