@@ -953,7 +953,7 @@ unsafe fn mainSort(
     ptr: *mut u32,
     block: *mut u8,
     quadrant: *mut u16,
-    ftab: *mut u32,
+    ftab: &mut [u32; FTAB_LEN],
     nblock: i32,
     verb: i32,
     budget: &mut i32,
@@ -973,100 +973,105 @@ unsafe fn mainSort(
     if verb >= 4 as libc::c_int {
         eprintln!("        main sort initialise ...");
     }
-    i = 65536 as libc::c_int;
-    while i >= 0 as libc::c_int {
-        *ftab.offset(i as isize) = 0 as libc::c_int as u32;
-        i -= 1;
-    }
+
+    // NOTE: the `ftab` has already been cleared in `BZ2_blockSort`.
+
     j = (*block.offset(0 as libc::c_int as isize) as libc::c_int) << 8 as libc::c_int;
     i = nblock - 1 as libc::c_int;
     while i >= 3 as libc::c_int {
         *quadrant.offset(i as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset(i as isize) as u16 as libc::c_int) << 8 as libc::c_int;
-        let fresh4 = &mut (*ftab.offset(j as isize));
-        *fresh4 = (*fresh4).wrapping_add(1);
+        ftab[j as usize] += 1;
+
         *quadrant.offset((i - 1 as libc::c_int) as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset((i - 1 as libc::c_int) as isize) as u16 as libc::c_int)
                 << 8 as libc::c_int;
-        let fresh5 = &mut (*ftab.offset(j as isize));
-        *fresh5 = (*fresh5).wrapping_add(1);
+        ftab[j as usize] += 1;
+
         *quadrant.offset((i - 2 as libc::c_int) as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset((i - 2 as libc::c_int) as isize) as u16 as libc::c_int)
                 << 8 as libc::c_int;
-        let fresh6 = &mut (*ftab.offset(j as isize));
-        *fresh6 = (*fresh6).wrapping_add(1);
+        ftab[j as usize] += 1;
+
         *quadrant.offset((i - 3 as libc::c_int) as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset((i - 3 as libc::c_int) as isize) as u16 as libc::c_int)
                 << 8 as libc::c_int;
-        let fresh7 = &mut (*ftab.offset(j as isize));
-        *fresh7 = (*fresh7).wrapping_add(1);
-        i -= 4 as libc::c_int;
+        ftab[j as usize] += 1;
+
+        i -= 4;
     }
+
     while i >= 0 as libc::c_int {
         *quadrant.offset(i as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset(i as isize) as u16 as libc::c_int) << 8 as libc::c_int;
-        let fresh8 = &mut (*ftab.offset(j as isize));
-        *fresh8 = (*fresh8).wrapping_add(1);
+        ftab[j as usize] += 1;
         i -= 1;
     }
+
     i = 0 as libc::c_int;
     while i < 2 as libc::c_int + 12 as libc::c_int + 18 as libc::c_int + 2 as libc::c_int {
         *block.offset((nblock + i) as isize) = *block.offset(i as isize);
         *quadrant.offset((nblock + i) as isize) = 0 as libc::c_int as u16;
         i += 1;
     }
+
     if verb >= 4 as libc::c_int {
         eprintln!("        bucket sorting ...");
     }
-    i = 1 as libc::c_int;
-    while i <= 65536 as libc::c_int {
-        let fresh9 = &mut (*ftab.offset(i as isize));
-        *fresh9 = (*fresh9 as libc::c_uint)
-            .wrapping_add(*ftab.offset((i - 1 as libc::c_int) as isize)) as u32
-            as u32;
-        i += 1;
+
+    /*-- Complete the initial radix sort --*/
+    for i in 1..=65536 {
+        ftab[i] += ftab[i - 1];
     }
+
     s = ((*block.offset(0 as libc::c_int as isize) as libc::c_int) << 8 as libc::c_int) as u16;
     i = nblock - 1 as libc::c_int;
     while i >= 3 as libc::c_int {
         s = (s as libc::c_int >> 8 as libc::c_int
             | (*block.offset(i as isize) as libc::c_int) << 8 as libc::c_int) as u16;
-        j = (*ftab.offset(s as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-        *ftab.offset(s as isize) = j as u32;
+        j = ftab[usize::from(s)] as i32 - 1;
+        ftab[usize::from(s)] = j as u32;
         *ptr.offset(j as isize) = i as u32;
+
         s = (s as libc::c_int >> 8 as libc::c_int
             | (*block.offset((i - 1 as libc::c_int) as isize) as libc::c_int) << 8 as libc::c_int)
             as u16;
-        j = (*ftab.offset(s as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-        *ftab.offset(s as isize) = j as u32;
+        j = ftab[usize::from(s)] as i32 - 1;
+        ftab[usize::from(s)] = j as u32;
         *ptr.offset(j as isize) = (i - 1 as libc::c_int) as u32;
+
         s = (s as libc::c_int >> 8 as libc::c_int
             | (*block.offset((i - 2 as libc::c_int) as isize) as libc::c_int) << 8 as libc::c_int)
             as u16;
-        j = (*ftab.offset(s as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-        *ftab.offset(s as isize) = j as u32;
+        j = ftab[usize::from(s)] as i32 - 1;
+        ftab[usize::from(s)] = j as u32;
         *ptr.offset(j as isize) = (i - 2 as libc::c_int) as u32;
+
         s = (s as libc::c_int >> 8 as libc::c_int
             | (*block.offset((i - 3 as libc::c_int) as isize) as libc::c_int) << 8 as libc::c_int)
             as u16;
-        j = (*ftab.offset(s as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-        *ftab.offset(s as isize) = j as u32;
+        j = ftab[usize::from(s)] as i32 - 1;
+        ftab[usize::from(s)] = j as u32;
         *ptr.offset(j as isize) = (i - 3 as libc::c_int) as u32;
+
         i -= 4 as libc::c_int;
     }
+
     while i >= 0 as libc::c_int {
         s = (s as libc::c_int >> 8 as libc::c_int
             | (*block.offset(i as isize) as libc::c_int) << 8 as libc::c_int) as u16;
-        j = (*ftab.offset(s as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-        *ftab.offset(s as isize) = j as u32;
+        j = ftab[usize::from(s)] as i32 - 1;
+        ftab[usize::from(s)] = j as u32;
         *ptr.offset(j as isize) = i as u32;
+
         i -= 1;
     }
+
     bigDone.fill(false);
     i = 0 as libc::c_int;
     while i <= 255 as libc::c_int {
@@ -1081,20 +1086,20 @@ unsafe fn mainSort(
             break;
         }
     }
+
+    macro_rules! BIGFREQ {
+        ($b:expr) => {
+            ftab[(($b) + 1) << 8] - ftab[($b) << 8]
+        };
+    }
+
     loop {
         h /= 3 as libc::c_int;
         i = h;
         while i <= 255 as libc::c_int {
             vv = runningOrder[i as usize];
             j = i;
-            while (*ftab.offset(
-                ((runningOrder[(j - h) as usize] + 1 as libc::c_int) << 8 as libc::c_int) as isize,
-            ))
-            .wrapping_sub(
-                *ftab.offset((runningOrder[(j - h) as usize] << 8 as libc::c_int) as isize),
-            ) > (*ftab.offset(((vv + 1 as libc::c_int) << 8 as libc::c_int) as isize))
-                .wrapping_sub(*ftab.offset((vv << 8 as libc::c_int) as isize))
-            {
+            while BIGFREQ!(runningOrder[(j - h) as usize] as usize) > BIGFREQ!(vv as usize) {
                 runningOrder[j as usize] = runningOrder[(j - h) as usize];
                 j -= h;
                 if j <= h - 1 as libc::c_int {
@@ -1108,25 +1113,40 @@ unsafe fn mainSort(
             break;
         }
     }
+
+    /*--
+       The main sorting loop.
+    --*/
+
     numQSorted = 0 as libc::c_int;
-    i = 0 as libc::c_int;
-    while i <= 255 as libc::c_int {
+
+    for i in 0..=255 {
+        /*--
+           Process big buckets, starting with the least full.
+           Basically this is a 3-step process in which we call
+           mainQSort3 to sort the small buckets [ss, j], but
+           also make a big effort to avoid the calls if we can.
+        --*/
         ss = runningOrder[i as usize];
-        j = 0 as libc::c_int;
-        while j <= 255 as libc::c_int {
+
+        const SETMASK: u32 = 1 << 21;
+        const CLEARMASK: u32 = !SETMASK;
+
+        /*--
+           Step 1:
+           Complete the big bucket [ss] by quicksorting
+           any unsorted small buckets [ss, j], for j != ss.
+           Hopefully previous pointer-scanning phases have already
+           completed many of the small buckets [ss, j], so
+           we don't have to sort them at all.
+        --*/
+        for j in 0..=255 {
             if j != ss {
                 sb = (ss << 8 as libc::c_int) + j;
-                if *ftab.offset(sb as isize)
-                    & ((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint
-                    == 0
-                {
-                    let lo: i32 = (*ftab.offset(sb as isize)
-                        & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
-                        as i32;
-                    let hi: i32 = (*ftab.offset((sb + 1 as libc::c_int) as isize)
-                        & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
-                        .wrapping_sub(1 as libc::c_int as libc::c_uint)
-                        as i32;
+                if (!(ftab[sb as usize] & SETMASK)) != 0 {
+                    let lo: i32 = (ftab[sb as usize] & CLEARMASK) as i32;
+                    let hi: i32 = ((ftab[sb as usize + 1] & CLEARMASK).wrapping_sub(1)) as i32;
+
                     if hi > lo {
                         if verb >= 4 as libc::c_int {
                             eprintln!(
@@ -1153,54 +1173,55 @@ unsafe fn mainSort(
                         }
                     }
                 }
-                let fresh10 = &mut (*ftab.offset(sb as isize));
-                *fresh10 |= ((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint;
+                ftab[sb as usize] |= SETMASK;
             }
-            j += 1;
         }
         assert_h!(!bigDone[ss as usize], 1006);
-        j = 0 as libc::c_int;
-        while j <= 255 as libc::c_int {
-            copyStart[j as usize] = (*ftab.offset(((j << 8 as libc::c_int) + ss) as isize)
-                & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
-                as i32;
-            copyEnd[j as usize] =
-                (*ftab.offset(((j << 8 as libc::c_int) + ss + 1 as libc::c_int) as isize)
-                    & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
-                    .wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-            j += 1;
+
+        /*--
+           Step 2:
+           Now scan this big bucket [ss] so as to synthesise the
+           sorted order for small buckets [t, ss] for all t,
+           including, magically, the bucket [ss,ss] too.
+           This will avoid doing Real Work in subsequent Step 1's.
+        --*/
+        {
+            for j in 0..=255 {
+                copyStart[j] = (ftab[(j << 8) + ss as usize] & CLEARMASK) as i32;
+                copyEnd[j] = (ftab[(j << 8) + ss as usize + 1] & CLEARMASK) as i32 - 1;
+            }
+
+            j = (ftab[(ss as usize) << 8] & CLEARMASK) as i32;
+            while j < copyStart[ss as usize] {
+                k = (*ptr.offset(j as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
+                if k < 0 as libc::c_int {
+                    k += nblock;
+                }
+                c1 = *block.offset(k as isize);
+                if !bigDone[c1 as usize] {
+                    let fresh11 = copyStart[c1 as usize];
+                    copyStart[c1 as usize] += 1;
+                    *ptr.offset(fresh11 as isize) = k as u32;
+                }
+                j += 1;
+            }
+
+            j = (ftab[(ss as usize + 1) << 8] & CLEARMASK) as i32 - 1;
+            while j > copyEnd[ss as usize] {
+                k = (*ptr.offset(j as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
+                if k < 0 as libc::c_int {
+                    k += nblock;
+                }
+                c1 = *block.offset(k as isize);
+                if !bigDone[c1 as usize] {
+                    let fresh12 = copyEnd[c1 as usize];
+                    copyEnd[c1 as usize] -= 1;
+                    *ptr.offset(fresh12 as isize) = k as u32;
+                }
+                j -= 1;
+            }
         }
-        j = (*ftab.offset((ss << 8 as libc::c_int) as isize)
-            & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint) as i32;
-        while j < copyStart[ss as usize] {
-            k = (*ptr.offset(j as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-            if k < 0 as libc::c_int {
-                k += nblock;
-            }
-            c1 = *block.offset(k as isize);
-            if !bigDone[c1 as usize] {
-                let fresh11 = copyStart[c1 as usize];
-                copyStart[c1 as usize] += 1;
-                *ptr.offset(fresh11 as isize) = k as u32;
-            }
-            j += 1;
-        }
-        j = (*ftab.offset(((ss + 1 as libc::c_int) << 8 as libc::c_int) as isize)
-            & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
-            .wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-        while j > copyEnd[ss as usize] {
-            k = (*ptr.offset(j as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
-            if k < 0 as libc::c_int {
-                k += nblock;
-            }
-            c1 = *block.offset(k as isize);
-            if !bigDone[c1 as usize] {
-                let fresh12 = copyEnd[c1 as usize];
-                copyEnd[c1 as usize] -= 1;
-                *ptr.offset(fresh12 as isize) = k as u32;
-            }
-            j -= 1;
-        }
+
         assert_h!(
             (copyStart[ss as usize]-1 == copyEnd[ss as usize])
                 ||
@@ -1211,39 +1232,74 @@ unsafe fn mainSort(
                 (copyStart[ss as usize] == 0 && copyEnd[ss as usize] == nblock-1),
             1007
         );
-        j = 0 as libc::c_int;
-        while j <= 255 as libc::c_int {
-            let fresh13 = &mut (*ftab.offset(((j << 8 as libc::c_int) + ss) as isize));
-            *fresh13 |= ((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint;
-            j += 1;
+
+        for j in 0..=255 {
+            ftab[(j << 8) + ss as usize] |= SETMASK
         }
+
+        /*--
+           Step 3:
+           The [ss] big bucket is now done.  Record this fact,
+           and update the quadrant descriptors.  Remember to
+           update quadrants in the overshoot area too, if
+           necessary.  The "if (i < 255)" test merely skips
+           this updating for the last bucket processed, since
+           updating for the last bucket is pointless.
+
+           The quadrant array provides a way to incrementally
+           cache sort orderings, as they appear, so as to
+           make subsequent comparisons in fullGtU() complete
+           faster.  For repetitive blocks this makes a big
+           difference (but not big enough to be able to avoid
+           the fallback sorting mechanism, exponential radix sort).
+
+           The precise meaning is: at all times:
+
+              for 0 <= i < nblock and 0 <= j <= nblock
+
+              if block[i] != block[j],
+
+                 then the relative values of quadrant[i] and
+                      quadrant[j] are meaningless.
+
+                 else {
+                    if quadrant[i] < quadrant[j]
+                       then the string starting at i lexicographically
+                       precedes the string starting at j
+
+                    else if quadrant[i] > quadrant[j]
+                       then the string starting at j lexicographically
+                       precedes the string starting at i
+
+                    else
+                       the relative ordering of the strings starting
+                       at i and j has not yet been determined.
+                 }
+        --*/
         bigDone[ss as usize] = true;
+
         if i < 255 as libc::c_int {
-            let bbStart: i32 = (*ftab.offset((ss << 8 as libc::c_int) as isize)
-                & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
-                as i32;
-            let bbSize: i32 = (*ftab.offset(((ss + 1 as libc::c_int) << 8 as libc::c_int) as isize)
-                & !((1 as libc::c_int) << 21 as libc::c_int) as libc::c_uint)
-                .wrapping_sub(bbStart as libc::c_uint) as i32;
+            let bbStart: i32 = (ftab[(ss as usize) << 8] & CLEARMASK) as i32;
+            let bbSize: i32 = (ftab[(ss as usize + 1) << 8] & CLEARMASK) as i32 - bbStart;
             let mut shifts: i32 = 0 as libc::c_int;
+
             while bbSize >> shifts > 65534 as libc::c_int {
                 shifts += 1;
             }
+
             j = bbSize - 1 as libc::c_int;
             while j >= 0 as libc::c_int {
                 let a2update: i32 = *ptr.offset((bbStart + j) as isize) as i32;
                 let qVal: u16 = (j >> shifts) as u16;
                 *quadrant.offset(a2update as isize) = qVal;
-                if a2update
-                    < 2 as libc::c_int + 12 as libc::c_int + 18 as libc::c_int + 2 as libc::c_int
-                {
+                if a2update < BZ_N_OVERSHOOT {
                     *quadrant.offset((a2update + nblock) as isize) = qVal;
                 }
                 j -= 1;
             }
+
             assert_h!(((bbSize - 1) >> shifts) <= 65535, 1002);
         }
-        i += 1;
     }
     if verb >= 4 as libc::c_int {
         eprintln!(
@@ -1309,15 +1365,7 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
         budgetInit = nblock * ((wfact - 1) / 3);
         budget = budgetInit;
 
-        mainSort(
-            ptr,
-            block,
-            quadrant,
-            ftab.as_mut_ptr().cast(),
-            nblock,
-            verb,
-            &mut budget,
-        );
+        mainSort(ptr, block, quadrant, ftab, nblock, verb, &mut budget);
 
         if verb >= 3 {
             eprintln!(
