@@ -518,77 +518,76 @@ macro_rules! BZ_UPDATE_CRC {
 
 macro_rules! ADD_CHAR_TO_BLOCK {
     ($zs:expr, $zchh0:expr) => {
-        let s = $zs;
         let zchh: u32 = $zchh0 as u32;
 
-        if zchh != (*s).state_in_ch && (*s).state_in_len == 1 {
+        if zchh != $zs.state_in_ch && $zs.state_in_len == 1 {
             /*-- fast track the common case --*/
 
-            let ch: u8 = (*s).state_in_ch as u8;
-            BZ_UPDATE_CRC!((*s).blockCRC, ch);
-            (*s).inUse[(*s).state_in_ch as usize] = true;
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-            (*s).nblock;
-            (*s).state_in_ch = zchh;
-        } else if zchh != (*s).state_in_ch || (*s).state_in_len == 255 {
+            let ch: u8 = $zs.state_in_ch as u8;
+            BZ_UPDATE_CRC!($zs.blockCRC, ch);
+            $zs.inUse[$zs.state_in_ch as usize] = true;
+            *($zs.block).offset($zs.nblock as isize) = ch;
+            $zs.nblock += 1;
+            $zs.nblock;
+            $zs.state_in_ch = zchh;
+        } else if zchh != $zs.state_in_ch || $zs.state_in_len == 255 {
             /*-- general, uncommon cases --*/
 
-            if (*s).state_in_ch < 256 {
-                add_pair_to_block(s);
+            if $zs.state_in_ch < 256 {
+                add_pair_to_block($zs);
             }
-            (*s).state_in_ch = zchh;
-            (*s).state_in_len = 1;
+            $zs.state_in_ch = zchh;
+            $zs.state_in_len = 1;
         } else {
-            (*s).state_in_len += 1;
+            $zs.state_in_len += 1;
         }
     };
 }
 
-unsafe fn copy_input_until_stop(strm: *mut bz_stream) -> bool {
-    let s: *mut EState = (*strm).state as *mut EState;
+unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
     let mut progress_in = false;
 
     match (*s).mode {
         Mode::Running => loop {
-            if (*s).nblock >= (*s).nblockMAX {
+            if s.nblock >= s.nblockMAX {
                 break;
             }
             if (*strm).avail_in == 0 {
                 break;
             }
             progress_in = true;
-            ADD_CHAR_TO_BLOCK!(s, *((*strm).next_in as *mut u8) as u32);
-            (*strm).next_in = ((*strm).next_in).offset(1);
-            (*strm).avail_in = ((*strm).avail_in).wrapping_sub(1);
-            (*strm).total_in_lo32 = ((*strm).total_in_lo32).wrapping_add(1);
-            if (*strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
-                (*strm).total_in_hi32 = ((*strm).total_in_hi32).wrapping_add(1);
+            ADD_CHAR_TO_BLOCK!(s, *(strm.next_in as *mut u8) as u32);
+            strm.next_in = (strm.next_in).offset(1);
+            strm.avail_in = (strm.avail_in).wrapping_sub(1);
+            strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+            if strm.total_in_lo32 == 0 as libc::c_int as libc::c_uint {
+                strm.total_in_hi32 = ((*strm).total_in_hi32).wrapping_add(1);
             }
         },
         _ => loop {
-            if (*s).nblock >= (*s).nblockMAX {
+            if s.nblock >= s.nblockMAX {
                 break;
             }
             if (*strm).avail_in == 0 {
                 break;
             }
-            if (*s).avail_in_expect == 0 {
+            if s.avail_in_expect == 0 {
                 break;
             }
             progress_in = true;
-            ADD_CHAR_TO_BLOCK!(s, *((*strm).next_in as *mut u8) as u32);
-            (*strm).next_in = ((*strm).next_in).offset(1);
-            (*strm).avail_in = ((*strm).avail_in).wrapping_sub(1);
-            (*strm).total_in_lo32 = ((*strm).total_in_lo32).wrapping_add(1);
-            if (*strm).total_in_lo32 == 0 {
-                (*strm).total_in_hi32 = ((*strm).total_in_hi32).wrapping_add(1);
+            ADD_CHAR_TO_BLOCK!(s, *(strm.next_in as *mut u8) as u32);
+            strm.next_in = (strm.next_in).offset(1);
+            strm.avail_in = (strm.avail_in).wrapping_sub(1);
+            strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+            if strm.total_in_lo32 == 0 {
+                strm.total_in_hi32 = ((*strm).total_in_hi32).wrapping_add(1);
             }
-            (*s).avail_in_expect = ((*s).avail_in_expect).wrapping_sub(1);
+            s.avail_in_expect = (s.avail_in_expect).wrapping_sub(1);
         },
     }
     progress_in
 }
+
 unsafe fn copy_output_until_stop(strm: *mut bz_stream) -> bool {
     let s: *mut EState = (*strm).state as *mut EState;
     let mut progress_out = false;
@@ -614,46 +613,38 @@ unsafe fn copy_output_until_stop(strm: *mut bz_stream) -> bool {
     progress_out
 }
 
-unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
+unsafe fn handle_compress(strm: &mut bz_stream, s: &mut EState) -> bool {
     let mut progress_in = false;
     let mut progress_out = false;
-    let s: *mut EState = (*strm).state as *mut EState;
+
     loop {
-        if let State::Input = (*s).state {
+        if let State::Input = s.state {
             progress_out |= copy_output_until_stop(strm);
-            if (*s).state_out_pos < (*s).writer.num_z as i32 {
+            if s.state_out_pos < s.writer.num_z as i32 {
                 break;
             }
-            if matches!((*s).mode, Mode::Finishing)
-                && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
-                && isempty_RL(&mut *s)
-            {
+            if matches!(s.mode, Mode::Finishing) && s.avail_in_expect == 0 && isempty_RL(&mut *s) {
                 break;
             }
             prepare_new_block(&mut *s);
-            (*s).state = State::Output;
-            if matches!((*s).mode, Mode::Flushing)
-                && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
-                && isempty_RL(&mut *s)
-            {
+            s.state = State::Output;
+            if matches!(s.mode, Mode::Flushing) && s.avail_in_expect == 0 && isempty_RL(&mut *s) {
                 break;
             }
         }
-        if let State::Input = (*s).state {
+        if let State::Input = s.state {
             continue;
         }
-        progress_in |= copy_input_until_stop(strm);
-        if !matches!((*s).mode, Mode::Running)
-            && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
-        {
-            flush_RL(&mut *s);
-            let is_last_block = matches!((*s).mode, Mode::Finishing);
-            BZ2_compressBlock(&mut *s, is_last_block);
-            (*s).state = State::Input;
-        } else if (*s).nblock >= (*s).nblockMAX {
-            BZ2_compressBlock(&mut *s, false);
-            (*s).state = State::Input;
-        } else if (*strm).avail_in == 0 as libc::c_int as libc::c_uint {
+        progress_in |= copy_input_until_stop(strm, s);
+        if !matches!(s.mode, Mode::Running) && s.avail_in_expect == 0 {
+            flush_RL(s);
+            let is_last_block = matches!(s.mode, Mode::Finishing);
+            BZ2_compressBlock(s, is_last_block);
+            s.state = State::Input;
+        } else if s.nblock >= s.nblockMAX {
+            BZ2_compressBlock(s, false);
+            s.state = State::Input;
+        } else if (*strm).avail_in == 0 {
             break;
         }
     }
@@ -682,33 +673,39 @@ impl TryFrom<i32> for Action {
 
 #[export_name = prefix!(BZ2_bzCompress)]
 pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_int) -> libc::c_int {
-    if strm.is_null() {
+    let Some(strm) = strm.as_mut() else {
+        return -2 as libc::c_int;
+    };
+
+    let Some(s) = ((*strm).state as *mut EState).as_mut() else {
+        return -2 as libc::c_int;
+    };
+
+    if s.strm != strm {
         return -2 as libc::c_int;
     }
 
-    let s = (*strm).state as *mut EState;
-    if s.is_null() {
-        return -2 as libc::c_int;
-    }
-    if (*s).strm != strm {
-        return -2 as libc::c_int;
-    }
+    BZ2_bzCompressHelp(strm, s, action)
+}
 
+type ReturnCode = i32;
+
+unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, s: &mut EState, action: i32) -> ReturnCode {
     loop {
-        match (*s).mode {
+        match s.mode {
             Mode::Idle => return -1 as libc::c_int,
             Mode::Running => match Action::try_from(action) {
                 Ok(Action::Run) => {
-                    let progress = handle_compress(strm);
+                    let progress = handle_compress(strm, s);
                     return if progress { 1 } else { -2 };
                 }
                 Ok(Action::Flush) => {
-                    (*s).avail_in_expect = (*strm).avail_in;
-                    (*s).mode = Mode::Flushing;
+                    s.avail_in_expect = strm.avail_in;
+                    s.mode = Mode::Flushing;
                 }
                 Ok(Action::Finish) => {
-                    (*s).avail_in_expect = (*strm).avail_in;
-                    (*s).mode = Mode::Finishing;
+                    s.avail_in_expect = strm.avail_in;
+                    s.mode = Mode::Finishing;
                 }
                 Err(()) => {
                     return -2;
@@ -718,37 +715,37 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                 let Ok(Action::Flush) = Action::try_from(action) else {
                     return -1;
                 };
-                if (*s).avail_in_expect != (*(*s).strm).avail_in {
+                if s.avail_in_expect != strm.avail_in {
                     return -1;
                 }
-                handle_compress(strm);
-                if (*s).avail_in_expect > 0
+                handle_compress(strm, s);
+                if s.avail_in_expect > 0
                     || !isempty_RL(&mut *s)
-                    || (*s).state_out_pos < (*s).writer.num_z as i32
+                    || s.state_out_pos < s.writer.num_z as i32
                 {
                     return 2;
                 }
-                (*s).mode = Mode::Running;
+                s.mode = Mode::Running;
                 return 1;
             }
             Mode::Finishing => {
                 let Ok(Action::Finish) = Action::try_from(action) else {
                     return -1;
                 };
-                if (*s).avail_in_expect != (*strm).avail_in {
+                if s.avail_in_expect != strm.avail_in {
                     return -1;
                 }
-                let progress = handle_compress(strm);
+                let progress = handle_compress(strm, s);
                 if !progress {
                     return -1;
                 }
-                if (*s).avail_in_expect > 0
-                    || !isempty_RL(&mut *s)
-                    || (*s).state_out_pos < (*s).writer.num_z as i32
+                if s.avail_in_expect > 0
+                    || !isempty_RL(s)
+                    || s.state_out_pos < s.writer.num_z as i32
                 {
                     return 3;
                 }
-                (*s).mode = Mode::Idle;
+                s.mode = Mode::Idle;
                 return 4;
             }
         }
