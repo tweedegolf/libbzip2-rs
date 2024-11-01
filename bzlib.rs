@@ -260,6 +260,7 @@ pub struct bzFile {
     pub lastErr: i32,
     pub initialisedOk: Bool,
 }
+
 pub fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
     eprint!(
         concat!(
@@ -753,39 +754,38 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
         }
     }
 }
+
 #[export_name = prefix!(BZ2_bzCompressEnd)]
 pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> libc::c_int {
-    let s: *mut EState;
-    if strm.is_null() {
+    let Some(strm) = strm.as_mut() else {
+        return -2 as libc::c_int;
+    };
+
+    let Some(s) = ((*strm).state as *mut EState).as_mut() else {
+        return -2 as libc::c_int;
+    };
+
+    if s.strm != strm {
         return -2 as libc::c_int;
     }
-    s = (*strm).state as *mut EState;
-    if s.is_null() {
+
+    let Some(bzfree) = (*strm).bzfree else {
         return -2 as libc::c_int;
+    };
+
+    if !(s.arr1).is_null() {
+        (bzfree)(strm.opaque, s.arr1.cast::<c_void>());
     }
-    if (*s).strm != strm {
-        return -2 as libc::c_int;
+    if !(s.arr2).is_null() {
+        (bzfree)(strm.opaque, s.arr2.cast::<c_void>());
     }
-    if !((*s).arr1).is_null() {
-        ((*strm).bzfree).expect("non-null function pointer")(
-            (*strm).opaque,
-            (*s).arr1 as *mut libc::c_void,
-        );
+    if !(s.ftab).is_null() {
+        (bzfree)(strm.opaque, s.ftab.cast::<c_void>());
     }
-    if !((*s).arr2).is_null() {
-        ((*strm).bzfree).expect("non-null function pointer")(
-            (*strm).opaque,
-            (*s).arr2 as *mut libc::c_void,
-        );
-    }
-    if !((*s).ftab).is_null() {
-        ((*strm).bzfree).expect("non-null function pointer")(
-            (*strm).opaque,
-            (*s).ftab as *mut libc::c_void,
-        );
-    }
-    ((*strm).bzfree).expect("non-null function pointer")((*strm).opaque, (*strm).state);
-    (*strm).state = std::ptr::null_mut::<libc::c_void>();
+
+    (bzfree)(strm.opaque, strm.state);
+    strm.state = std::ptr::null_mut::<libc::c_void>();
+
     0 as libc::c_int
 }
 
