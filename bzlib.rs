@@ -136,7 +136,7 @@ pub const BZ_N_QSORT: i32 = 12;
 pub const BZ_N_SHELL: i32 = 18;
 pub const BZ_N_OVERSHOOT: i32 = BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2;
 
-const FTAB_LEN: usize = (u16::MAX as usize + 2) * core::mem::size_of::<u32>();
+pub const FTAB_LEN: usize = u16::MAX as usize + 2;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -406,7 +406,11 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         ((n + (2 + 12 + 18 + 2)) as u64).wrapping_mul(::core::mem::size_of::<u32>() as u64) as i32,
         1,
     ) as *mut u32;
-    (*s).ftab = (bzalloc)((*strm).opaque, FTAB_LEN as i32, 1) as *mut u32;
+    (*s).ftab = (bzalloc)(
+        (*strm).opaque,
+        (FTAB_LEN * core::mem::size_of::<u32>()) as i32,
+        1,
+    ) as *mut u32;
 
     if ((*s).arr1).is_null() || ((*s).arr2).is_null() || ((*s).ftab).is_null() {
         if !((*s).arr1).is_null() {
