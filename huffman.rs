@@ -1,9 +1,9 @@
 #![forbid(unsafe_code)]
 
-use crate::assert_h;
-
-const BZ_MAX_ALPHA_SIZE: usize = 258;
-const BZ_MAX_CODE_LEN: usize = 23;
+use crate::{
+    assert_h,
+    bzlib::{BZ_MAX_ALPHA_SIZE, BZ_MAX_CODE_LEN},
+};
 
 #[inline]
 const fn weight_of(zz0: i32) -> i32 {
