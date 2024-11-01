@@ -2,49 +2,53 @@ use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, Bool, DStat
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
 
-const BZ_X_IDLE: libc::c_int = 1;
-const BZ_X_OUTPUT: libc::c_int = 2;
-const BZ_X_MAGIC_1: libc::c_int = 10;
-const BZ_X_MAGIC_2: libc::c_int = 11;
-const BZ_X_MAGIC_3: libc::c_int = 12;
-const BZ_X_MAGIC_4: libc::c_int = 13;
-const BZ_X_BLKHDR_1: libc::c_int = 14;
-const BZ_X_BLKHDR_2: libc::c_int = 15;
-const BZ_X_BLKHDR_3: libc::c_int = 16;
-const BZ_X_BLKHDR_4: libc::c_int = 17;
-const BZ_X_BLKHDR_5: libc::c_int = 18;
-const BZ_X_BLKHDR_6: libc::c_int = 19;
-const BZ_X_BCRC_1: libc::c_int = 20;
-const BZ_X_BCRC_2: libc::c_int = 21;
-const BZ_X_BCRC_3: libc::c_int = 22;
-const BZ_X_BCRC_4: libc::c_int = 23;
-const BZ_X_RANDBIT: libc::c_int = 24;
-const BZ_X_ORIGPTR_1: libc::c_int = 25;
-const BZ_X_ORIGPTR_2: libc::c_int = 26;
-const BZ_X_ORIGPTR_3: libc::c_int = 27;
-const BZ_X_MAPPING_1: libc::c_int = 28;
-const BZ_X_MAPPING_2: libc::c_int = 29;
-const BZ_X_SELECTOR_1: libc::c_int = 30;
-const BZ_X_SELECTOR_2: libc::c_int = 31;
-const BZ_X_SELECTOR_3: libc::c_int = 32;
-const BZ_X_CODING_1: libc::c_int = 33;
-const BZ_X_CODING_2: libc::c_int = 34;
-const BZ_X_CODING_3: libc::c_int = 35;
-const BZ_X_MTF_1: libc::c_int = 36;
-const BZ_X_MTF_2: libc::c_int = 37;
-const BZ_X_MTF_3: libc::c_int = 38;
-const BZ_X_MTF_4: libc::c_int = 39;
-const BZ_X_MTF_5: libc::c_int = 40;
-const BZ_X_MTF_6: libc::c_int = 41;
-const BZ_X_ENDHDR_2: libc::c_int = 42;
-const BZ_X_ENDHDR_3: libc::c_int = 43;
-const BZ_X_ENDHDR_4: libc::c_int = 44;
-const BZ_X_ENDHDR_5: libc::c_int = 45;
-const BZ_X_ENDHDR_6: libc::c_int = 46;
-const BZ_X_CCRC_1: libc::c_int = 47;
-const BZ_X_CCRC_2: libc::c_int = 48;
-const BZ_X_CCRC_3: libc::c_int = 49;
-const BZ_X_CCRC_4: libc::c_int = 50;
+struct State;
+
+impl State {
+    const BZ_X_IDLE: libc::c_int = 1;
+    const BZ_X_OUTPUT: libc::c_int = 2;
+    const BZ_X_MAGIC_1: libc::c_int = 10;
+    const BZ_X_MAGIC_2: libc::c_int = 11;
+    const BZ_X_MAGIC_3: libc::c_int = 12;
+    const BZ_X_MAGIC_4: libc::c_int = 13;
+    const BZ_X_BLKHDR_1: libc::c_int = 14;
+    const BZ_X_BLKHDR_2: libc::c_int = 15;
+    const BZ_X_BLKHDR_3: libc::c_int = 16;
+    const BZ_X_BLKHDR_4: libc::c_int = 17;
+    const BZ_X_BLKHDR_5: libc::c_int = 18;
+    const BZ_X_BLKHDR_6: libc::c_int = 19;
+    const BZ_X_BCRC_1: libc::c_int = 20;
+    const BZ_X_BCRC_2: libc::c_int = 21;
+    const BZ_X_BCRC_3: libc::c_int = 22;
+    const BZ_X_BCRC_4: libc::c_int = 23;
+    const BZ_X_RANDBIT: libc::c_int = 24;
+    const BZ_X_ORIGPTR_1: libc::c_int = 25;
+    const BZ_X_ORIGPTR_2: libc::c_int = 26;
+    const BZ_X_ORIGPTR_3: libc::c_int = 27;
+    const BZ_X_MAPPING_1: libc::c_int = 28;
+    const BZ_X_MAPPING_2: libc::c_int = 29;
+    const BZ_X_SELECTOR_1: libc::c_int = 30;
+    const BZ_X_SELECTOR_2: libc::c_int = 31;
+    const BZ_X_SELECTOR_3: libc::c_int = 32;
+    const BZ_X_CODING_1: libc::c_int = 33;
+    const BZ_X_CODING_2: libc::c_int = 34;
+    const BZ_X_CODING_3: libc::c_int = 35;
+    const BZ_X_MTF_1: libc::c_int = 36;
+    const BZ_X_MTF_2: libc::c_int = 37;
+    const BZ_X_MTF_3: libc::c_int = 38;
+    const BZ_X_MTF_4: libc::c_int = 39;
+    const BZ_X_MTF_5: libc::c_int = 40;
+    const BZ_X_MTF_6: libc::c_int = 41;
+    const BZ_X_ENDHDR_2: libc::c_int = 42;
+    const BZ_X_ENDHDR_3: libc::c_int = 43;
+    const BZ_X_ENDHDR_4: libc::c_int = 44;
+    const BZ_X_ENDHDR_5: libc::c_int = 45;
+    const BZ_X_ENDHDR_6: libc::c_int = 46;
+    const BZ_X_CCRC_1: libc::c_int = 47;
+    const BZ_X_CCRC_2: libc::c_int = 48;
+    const BZ_X_CCRC_3: libc::c_int = 49;
+    const BZ_X_CCRC_4: libc::c_int = 50;
+}
 
 fn makeMaps_d(s: &mut DState) {
     let mut i: i32;
@@ -89,7 +93,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     let mut gLimit: *mut i32;
     let mut gBase: *mut i32;
     let mut gPerm: *mut i32;
-    if s.state == BZ_X_MAGIC_1 {
+    if s.state == State::BZ_X_MAGIC_1 {
         s.save_i = 0;
         s.save_j = 0;
         s.save_t = 0;
@@ -141,8 +145,8 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     gPerm = s.save_gPerm;
     retVal = 0;
     match s.state {
-        BZ_X_MAGIC_1 => {
-            s.state = BZ_X_MAGIC_1;
+        State::BZ_X_MAGIC_1 => {
+            s.state = State::BZ_X_MAGIC_1;
             loop {
                 if s.bsLive >= 8 {
                     let v: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -177,124 +181,124 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 }
             }
         }
-        BZ_X_MAGIC_2 => {
+        State::BZ_X_MAGIC_2 => {
             current_block = 15360092558900836893;
         }
-        BZ_X_MAGIC_3 => {
+        State::BZ_X_MAGIC_3 => {
             current_block = 15953825877604003206;
         }
-        BZ_X_MAGIC_4 => {
+        State::BZ_X_MAGIC_4 => {
             current_block = 1137006006685247392;
         }
-        BZ_X_BLKHDR_1 => {
+        State::BZ_X_BLKHDR_1 => {
             current_block = 16838365919992687769;
         }
-        BZ_X_BLKHDR_2 => {
+        State::BZ_X_BLKHDR_2 => {
             current_block = 5889181040567946013;
         }
-        BZ_X_BLKHDR_3 => {
+        State::BZ_X_BLKHDR_3 => {
             current_block = 887841530443712878;
         }
-        BZ_X_BLKHDR_4 => {
+        State::BZ_X_BLKHDR_4 => {
             current_block = 17767742176799939193;
         }
-        BZ_X_BLKHDR_5 => {
+        State::BZ_X_BLKHDR_5 => {
             current_block = 16325921850189496668;
         }
-        BZ_X_BLKHDR_6 => {
+        State::BZ_X_BLKHDR_6 => {
             current_block = 3202472413399101603;
         }
-        BZ_X_BCRC_1 => {
+        State::BZ_X_BCRC_1 => {
             current_block = 5821827988509819404;
         }
-        BZ_X_BCRC_2 => {
+        State::BZ_X_BCRC_2 => {
             current_block = 5023088878038355716;
         }
-        BZ_X_BCRC_3 => {
+        State::BZ_X_BCRC_3 => {
             current_block = 8515868523999336537;
         }
-        BZ_X_BCRC_4 => {
+        State::BZ_X_BCRC_4 => {
             current_block = 18234918597811156654;
         }
-        BZ_X_RANDBIT => {
+        State::BZ_X_RANDBIT => {
             current_block = 12310871532727186508;
         }
-        BZ_X_ORIGPTR_1 => {
+        State::BZ_X_ORIGPTR_1 => {
             current_block = 3338455798814466984;
         }
-        BZ_X_ORIGPTR_2 => {
+        State::BZ_X_ORIGPTR_2 => {
             current_block = 10262367570716242252;
         }
-        BZ_X_ORIGPTR_3 => {
+        State::BZ_X_ORIGPTR_3 => {
             current_block = 17024493544560437554;
         }
-        BZ_X_MAPPING_1 => {
+        State::BZ_X_MAPPING_1 => {
             current_block = 1154520408629132897;
         }
-        BZ_X_MAPPING_2 => {
+        State::BZ_X_MAPPING_2 => {
             current_block = 15451013008180677144;
         }
-        BZ_X_SELECTOR_1 => {
+        State::BZ_X_SELECTOR_1 => {
             current_block = 9434444550647791986;
         }
-        BZ_X_SELECTOR_2 => {
+        State::BZ_X_SELECTOR_2 => {
             current_block = 14590825336193814119;
         }
-        BZ_X_SELECTOR_3 => {
+        State::BZ_X_SELECTOR_3 => {
             current_block = 15957329598978927534;
         }
-        BZ_X_CODING_1 => {
+        State::BZ_X_CODING_1 => {
             current_block = 11569294379105328467;
         }
-        BZ_X_CODING_2 => {
+        State::BZ_X_CODING_2 => {
             current_block = 17216244326479313607;
         }
-        BZ_X_CODING_3 => {
+        State::BZ_X_CODING_3 => {
             current_block = 7191958063352112897;
         }
-        BZ_X_MTF_1 => {
+        State::BZ_X_MTF_1 => {
             current_block = 13155828021133314705;
         }
-        BZ_X_MTF_2 => {
+        State::BZ_X_MTF_2 => {
             current_block = 1010107409739284736;
         }
-        BZ_X_MTF_3 => {
+        State::BZ_X_MTF_3 => {
             current_block = 9335356017384149594;
         }
-        BZ_X_MTF_4 => {
+        State::BZ_X_MTF_4 => {
             current_block = 12127014564286193091;
         }
-        BZ_X_MTF_5 => {
+        State::BZ_X_MTF_5 => {
             current_block = 9050093969003559074;
         }
-        BZ_X_MTF_6 => {
+        State::BZ_X_MTF_6 => {
             current_block = 10797958389266113496;
         }
-        BZ_X_ENDHDR_2 => {
+        State::BZ_X_ENDHDR_2 => {
             current_block = 14366592556287126287;
         }
-        BZ_X_ENDHDR_3 => {
+        State::BZ_X_ENDHDR_3 => {
             current_block = 7651522734817633728;
         }
-        BZ_X_ENDHDR_4 => {
+        State::BZ_X_ENDHDR_4 => {
             current_block = 15818849443713787272;
         }
-        BZ_X_ENDHDR_5 => {
+        State::BZ_X_ENDHDR_5 => {
             current_block = 15153555825877660840;
         }
-        BZ_X_ENDHDR_6 => {
+        State::BZ_X_ENDHDR_6 => {
             current_block = 1857046018890652364;
         }
-        BZ_X_CCRC_1 => {
+        State::BZ_X_CCRC_1 => {
             current_block = 10292318171587122742;
         }
-        BZ_X_CCRC_2 => {
+        State::BZ_X_CCRC_2 => {
             current_block = 14748314904637597825;
         }
-        BZ_X_CCRC_3 => {
+        State::BZ_X_CCRC_3 => {
             current_block = 4092966239614665407;
         }
-        BZ_X_CCRC_4 => {
+        State::BZ_X_CCRC_4 => {
             current_block = 18389040574536762539;
         }
         _ => {
@@ -308,7 +312,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         }
     }
     if current_block == 15360092558900836893 {
-        s.state = BZ_X_MAGIC_2;
+        s.state = State::BZ_X_MAGIC_2;
         loop {
             if s.bsLive >= 8 {
                 let v_0: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -344,7 +348,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         }
     }
     if current_block == 15953825877604003206 {
-        s.state = BZ_X_MAGIC_3;
+        s.state = State::BZ_X_MAGIC_3;
         loop {
             if s.bsLive >= 8 {
                 let v_1: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -380,7 +384,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         }
     }
     if current_block == 1137006006685247392 {
-        s.state = BZ_X_MAGIC_4;
+        s.state = State::BZ_X_MAGIC_4;
         loop {
             if s.bsLive >= 8 {
                 let v_2: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -452,7 +456,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         }
     }
     if current_block == 16838365919992687769 {
-        s.state = BZ_X_BLKHDR_1;
+        s.state = State::BZ_X_BLKHDR_1;
         loop {
             if s.bsLive >= 8 {
                 let v_3: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -491,7 +495,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     }
     match current_block {
         14366592556287126287 => {
-            s.state = BZ_X_ENDHDR_2;
+            s.state = State::BZ_X_ENDHDR_2;
             loop {
                 if s.bsLive >= 8 {
                     let v_32: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -527,7 +531,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             }
         }
         5889181040567946013 => {
-            s.state = BZ_X_BLKHDR_2;
+            s.state = State::BZ_X_BLKHDR_2;
             loop {
                 if s.bsLive >= 8 {
                     let v_4: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -566,7 +570,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     }
     match current_block {
         7651522734817633728 => {
-            s.state = BZ_X_ENDHDR_3;
+            s.state = State::BZ_X_ENDHDR_3;
             loop {
                 if s.bsLive >= 8 {
                     let v_33: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -602,7 +606,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             }
         }
         887841530443712878 => {
-            s.state = BZ_X_BLKHDR_3;
+            s.state = State::BZ_X_BLKHDR_3;
             loop {
                 if s.bsLive >= 8 {
                     let v_5: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -641,7 +645,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     }
     match current_block {
         15818849443713787272 => {
-            s.state = BZ_X_ENDHDR_4;
+            s.state = State::BZ_X_ENDHDR_4;
             loop {
                 if s.bsLive >= 8 {
                     let v_34: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -677,7 +681,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             }
         }
         17767742176799939193 => {
-            s.state = BZ_X_BLKHDR_4;
+            s.state = State::BZ_X_BLKHDR_4;
             loop {
                 if s.bsLive >= 8 {
                     let v_6: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -716,7 +720,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     }
     match current_block {
         15153555825877660840 => {
-            s.state = BZ_X_ENDHDR_5;
+            s.state = State::BZ_X_ENDHDR_5;
             loop {
                 if s.bsLive >= 8 {
                     let v_35: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -752,7 +756,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             }
         }
         16325921850189496668 => {
-            s.state = BZ_X_BLKHDR_5;
+            s.state = State::BZ_X_BLKHDR_5;
             loop {
                 if s.bsLive >= 8 {
                     let v_7: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -791,7 +795,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     }
     match current_block {
         1857046018890652364 => {
-            s.state = BZ_X_ENDHDR_6;
+            s.state = State::BZ_X_ENDHDR_6;
             loop {
                 if s.bsLive >= 8 {
                     let v_36: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -828,7 +832,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             }
         }
         3202472413399101603 => {
-            s.state = BZ_X_BLKHDR_6;
+            s.state = State::BZ_X_BLKHDR_6;
             loop {
                 if s.bsLive >= 8 {
                     let v_8: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -872,7 +876,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     }
     match current_block {
         10292318171587122742 => {
-            s.state = BZ_X_CCRC_1;
+            s.state = State::BZ_X_CCRC_1;
             loop {
                 if s.bsLive >= 8 {
                     let v_37: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -904,7 +908,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             }
         }
         5821827988509819404 => {
-            s.state = BZ_X_BCRC_1;
+            s.state = State::BZ_X_BCRC_1;
             loop {
                 if s.bsLive >= 8 {
                     let v_9: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -939,7 +943,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     }
     match current_block {
         14748314904637597825 => {
-            s.state = BZ_X_CCRC_2;
+            s.state = State::BZ_X_CCRC_2;
             loop {
                 if s.bsLive >= 8 {
                     let v_38: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -971,7 +975,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             }
         }
         5023088878038355716 => {
-            s.state = BZ_X_BCRC_2;
+            s.state = State::BZ_X_BCRC_2;
             loop {
                 if s.bsLive >= 8 {
                     let v_10: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -1006,7 +1010,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     }
     match current_block {
         4092966239614665407 => {
-            s.state = BZ_X_CCRC_3;
+            s.state = State::BZ_X_CCRC_3;
             loop {
                 if s.bsLive >= 8 {
                     let v_39: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -1038,7 +1042,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             }
         }
         8515868523999336537 => {
-            s.state = BZ_X_BCRC_3;
+            s.state = State::BZ_X_BCRC_3;
             loop {
                 if s.bsLive >= 8 {
                     let v_11: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -1073,7 +1077,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
     }
     match current_block {
         18234918597811156654 => {
-            s.state = BZ_X_BCRC_4;
+            s.state = State::BZ_X_BCRC_4;
             loop {
                 if s.bsLive >= 8 {
                     let v_12: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -1105,7 +1109,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
             }
         }
         18389040574536762539 => {
-            s.state = BZ_X_CCRC_4;
+            s.state = State::BZ_X_CCRC_4;
             loop {
                 if s.bsLive >= 8 {
                     let v_40: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -1132,7 +1136,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 3350591128142761507 => {}
                 _ => {
                     s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                    s.state = BZ_X_IDLE;
+                    s.state = State::BZ_X_IDLE;
                     retVal = 4;
                     current_block = 3350591128142761507;
                 }
@@ -1141,7 +1145,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         _ => {}
     }
     if current_block == 12310871532727186508 {
-        s.state = BZ_X_RANDBIT;
+        s.state = State::BZ_X_RANDBIT;
         loop {
             if s.bsLive >= 1 {
                 let v_13: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
@@ -1173,7 +1177,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         }
     }
     if current_block == 3338455798814466984 {
-        s.state = BZ_X_ORIGPTR_1;
+        s.state = State::BZ_X_ORIGPTR_1;
         loop {
             if s.bsLive >= 8 {
                 let v_14: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -1205,7 +1209,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         }
     }
     if current_block == 10262367570716242252 {
-        s.state = BZ_X_ORIGPTR_2;
+        s.state = State::BZ_X_ORIGPTR_2;
         loop {
             if s.bsLive >= 8 {
                 let v_15: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -1237,7 +1241,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
         }
     }
     if current_block == 17024493544560437554 {
-        s.state = BZ_X_ORIGPTR_3;
+        s.state = State::BZ_X_ORIGPTR_3;
         loop {
             if s.bsLive >= 8 {
                 let v_16: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
@@ -1284,7 +1288,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 break;
             }
             9050093969003559074 => {
-                s.state = BZ_X_MTF_5;
+                s.state = State::BZ_X_MTF_5;
                 loop {
                     if s.bsLive >= zn {
                         let v_30: u32 = s.bsBuff >> (s.bsLive - zn) & (((1) << zn) - 1);
@@ -1309,7 +1313,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 16348713635569416413;
             }
             12127014564286193091 => {
-                s.state = BZ_X_MTF_4;
+                s.state = State::BZ_X_MTF_4;
                 loop {
                     if s.bsLive >= 1 {
                         let v_29: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
@@ -1335,7 +1339,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 7923635230025172457;
             }
             9335356017384149594 => {
-                s.state = BZ_X_MTF_3;
+                s.state = State::BZ_X_MTF_3;
                 loop {
                     if s.bsLive >= zn {
                         let v_28: u32 = s.bsBuff >> (s.bsLive - zn) & (((1) << zn) - 1);
@@ -1360,7 +1364,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 7923635230025172457;
             }
             1010107409739284736 => {
-                s.state = BZ_X_MTF_2;
+                s.state = State::BZ_X_MTF_2;
                 loop {
                     if s.bsLive >= 1 {
                         let v_27: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
@@ -1386,7 +1390,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 9186389159759284570;
             }
             13155828021133314705 => {
-                s.state = BZ_X_MTF_1;
+                s.state = State::BZ_X_MTF_1;
                 loop {
                     if s.bsLive >= zn {
                         let v_26: u32 = s.bsBuff >> (s.bsLive - zn) & (((1) << zn) - 1);
@@ -1411,7 +1415,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 9186389159759284570;
             }
             7191958063352112897 => {
-                s.state = BZ_X_CODING_3;
+                s.state = State::BZ_X_CODING_3;
                 loop {
                     if s.bsLive >= 1 {
                         let v_25: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
@@ -1441,7 +1445,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 5533056661327372531;
             }
             17216244326479313607 => {
-                s.state = BZ_X_CODING_2;
+                s.state = State::BZ_X_CODING_2;
                 loop {
                     if s.bsLive >= 1 {
                         let v_24: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
@@ -1470,7 +1474,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 7746242308555130918;
             }
             11569294379105328467 => {
-                s.state = BZ_X_CODING_1;
+                s.state = State::BZ_X_CODING_1;
                 loop {
                     if s.bsLive >= 5 {
                         let v_23: u32 = s.bsBuff >> (s.bsLive - 5) & (((1) << 5) - 1);
@@ -1496,7 +1500,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 16642413284942005565;
             }
             15957329598978927534 => {
-                s.state = BZ_X_SELECTOR_3;
+                s.state = State::BZ_X_SELECTOR_3;
                 loop {
                     if s.bsLive >= 1 {
                         let v_21: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
@@ -1532,7 +1536,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 }
             }
             14590825336193814119 => {
-                s.state = BZ_X_SELECTOR_2;
+                s.state = State::BZ_X_SELECTOR_2;
                 loop {
                     if s.bsLive >= 15 {
                         let v_20: u32 = s.bsBuff >> (s.bsLive - 15) & (((1) << 15) - 1);
@@ -1564,7 +1568,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 3503188808869013853;
             }
             9434444550647791986 => {
-                s.state = BZ_X_SELECTOR_1;
+                s.state = State::BZ_X_SELECTOR_1;
                 loop {
                     if s.bsLive >= 3 {
                         let v_19: u32 = s.bsBuff >> (s.bsLive - 3) & (((1) << 3) - 1);
@@ -1595,7 +1599,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 continue;
             }
             15451013008180677144 => {
-                s.state = BZ_X_MAPPING_2;
+                s.state = State::BZ_X_MAPPING_2;
                 loop {
                     if s.bsLive >= 1 {
                         let v_18: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
@@ -1637,7 +1641,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 current_block = 15415362524153386998;
             }
             1154520408629132897 => {
-                s.state = BZ_X_MAPPING_1;
+                s.state = State::BZ_X_MAPPING_1;
                 loop {
                     if s.bsLive >= 1 {
                         let v_17: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
@@ -1669,7 +1673,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 continue;
             }
             _ => {
-                s.state = BZ_X_MTF_6;
+                s.state = State::BZ_X_MTF_6;
                 loop {
                     if s.bsLive >= 1 {
                         let v_31: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
@@ -1966,7 +1970,7 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.state_out_len = 0;
                         s.state_out_ch = 0 as u8;
                         s.calculatedBlockCRC = 0xffffffff as libc::c_long as u32;
-                        s.state = BZ_X_OUTPUT;
+                        s.state = State::BZ_X_OUTPUT;
                         if s.verbosity >= 2 {
                             eprint!("rt+rld");
                         }
