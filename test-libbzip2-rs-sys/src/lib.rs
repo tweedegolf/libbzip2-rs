@@ -93,6 +93,32 @@ fn version() {
 }
 
 #[test]
+fn buff_to_buff_compress_small() {
+    let verbosity = 0;
+    let blockSize100k = 9;
+    let workFactor = 30;
+
+    let input = b"lang is it ompaad";
+
+    let mut dest = vec![0u8; 1024];
+    let mut dest_len = dest.len() as core::ffi::c_uint;
+
+    let err = unsafe {
+        libbzip2_rs_sys::bzlib::BZ2_bzBuffToBuffCompress(
+            dest.as_mut_ptr().cast::<core::ffi::c_char>(),
+            &mut dest_len,
+            input.as_ptr() as *mut _,
+            input.len() as _,
+            blockSize100k,
+            verbosity,
+            workFactor,
+        )
+    };
+
+    assert_eq!(err, 0);
+}
+
+#[test]
 fn buff_to_buff_compress() {
     let verbosity = 0;
     let blockSize100k = 9;
