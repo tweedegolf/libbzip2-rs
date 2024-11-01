@@ -183,7 +183,7 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: &[u32], loSt: i32, hiSt: i32)
 
 unsafe fn fallbackSort(
     fmap: &mut [u32],
-    eclass: *mut u32,
+    eclass: &mut [u32],
     bhtab: &mut [u32; FTAB_LEN],
     nblock: i32,
     verb: i32,
@@ -238,10 +238,16 @@ unsafe fn fallbackSort(
         eprintln!("        bucket sorting ...");
     }
 
-    {
-        let eclass8 = core::slice::from_raw_parts(eclass as *mut u8, nblock as usize);
+    fn to_eclass8(slice: &mut [u32]) -> &mut [u8] {
+        // Safety: we're using a shorter piece of this slice with a type of a lower alignment and
+        // the same initialization and validity behavior
+        unsafe { core::slice::from_raw_parts_mut(slice.as_mut_ptr() as *mut u8, slice.len()) }
+    }
 
-        for e in eclass8 {
+    {
+        let eclass8 = &*to_eclass8(eclass);
+
+        for e in eclass8.iter() {
             ftab[usize::from(*e)] += 1;
         }
 
@@ -293,7 +299,7 @@ unsafe fn fallbackSort(
             if k < 0 {
                 k += nblock;
             }
-            *eclass.offset(k as isize) = j as u32;
+            eclass[k as usize] = j as u32;
             i += 1;
         }
         nNotDone = 0;
@@ -335,7 +341,6 @@ unsafe fn fallbackSort(
             /*-- now [l, r] bracket current bucket --*/
             if r > l {
                 nNotDone += r - l + 1;
-                let eclass = core::slice::from_raw_parts_mut(eclass, nblock as usize);
                 fallbackQSort3(fmap, eclass, l, r);
 
                 /*-- scan bucket and generate header bits-- */
@@ -363,7 +368,7 @@ unsafe fn fallbackSort(
     }
 
     {
-        let eclass8 = core::slice::from_raw_parts_mut(eclass as *mut u8, nblock as usize);
+        let eclass8 = to_eclass8(eclass);
 
         let mut j = 0;
         for i in 0..nblock {
@@ -1274,11 +1279,13 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     if nblock < 10000 {
         let fmap = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
 
+        let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
+
         // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
         core::ptr::write_bytes(ftab, 0, FTAB_LEN);
         let bhtab = ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
 
-        fallbackSort(fmap, s.arr2, bhtab, nblock, verb);
+        fallbackSort(fmap, eclass, bhtab, nblock, verb);
     } else {
         /* Calculate the location for quadrant, remembering to get
            the alignment right.  Assumes that &(block[0]) is at least
@@ -1322,11 +1329,13 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
 
             let fmap = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
 
+            let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
+
             // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
             core::ptr::write_bytes(ftab, 0, FTAB_LEN);
             let bhtab = ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
 
-            fallbackSort(fmap, s.arr2, bhtab, nblock, verb);
+            fallbackSort(fmap, eclass, bhtab, nblock, verb);
         }
     }
 
