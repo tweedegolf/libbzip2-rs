@@ -8,7 +8,7 @@ use libc::{
 
 use crate::compress::BZ2_compressBlock;
 use crate::crctable::BZ2_CRC32TABLE;
-use crate::decompress::BZ2_decompress;
+use crate::decompress::{self, BZ2_decompress};
 use crate::randtable::BZ2_RNUMS;
 
 extern "C" {
@@ -184,7 +184,7 @@ pub type Bool = libc::c_uchar;
 #[repr(C)]
 pub struct DState {
     pub strm: *mut bz_stream,
-    pub state: i32,
+    pub state: decompress::State,
     pub state_out_ch: u8,
     pub state_out_len: i32,
     pub blockRandomised: Bool,
@@ -829,7 +829,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     }
     (*s).strm = strm;
     (*strm).state = s as *mut libc::c_void;
-    (*s).state = 10 as libc::c_int;
+    (*s).state = decompress::State::BZ_X_MAGIC_1;
     (*s).bsLive = 0 as libc::c_int;
     (*s).bsBuff = 0 as libc::c_int as u32;
     (*s).calculatedCombinedCRC = 0 as libc::c_int as u32;
@@ -1528,10 +1528,10 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
         return -2 as libc::c_int;
     }
     loop {
-        if (*s).state == 1 as libc::c_int {
+        if let decompress::State::BZ_X_IDLE = (*s).state {
             return -1 as libc::c_int;
         }
-        if (*s).state == 2 as libc::c_int {
+        if let decompress::State::BZ_X_OUTPUT = (*s).state {
             if (*s).smallDecompress != 0 {
                 corrupt = unRLE_obuf_to_output_SMALL(s);
             } else {
@@ -1560,12 +1560,15 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
                 (*s).calculatedCombinedCRC = (*s).calculatedCombinedCRC << 1 as libc::c_int
                     | (*s).calculatedCombinedCRC >> 31 as libc::c_int;
                 (*s).calculatedCombinedCRC ^= (*s).calculatedBlockCRC;
-                (*s).state = 14 as libc::c_int;
+                (*s).state = decompress::State::BZ_X_BLKHDR_1;
             } else {
                 return 0 as libc::c_int;
             }
         }
-        if (*s).state >= 10 as libc::c_int {
+        if !matches!(
+            (*s).state,
+            decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT
+        ) {
             let r: i32 = BZ2_decompress(&mut *s);
             if r == 4 as libc::c_int {
                 if (*s).verbosity >= 3 as libc::c_int {
@@ -1580,7 +1583,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
                 }
                 return r;
             }
-            if (*s).state != 2 as libc::c_int {
+            if !matches!((*s).state, decompress::State::BZ_X_OUTPUT) {
                 return r;
             }
         }
