@@ -1,42 +1,41 @@
 use crate::{
     assert_h,
-    bzlib::{EState, BZ_N_QSORT, BZ_N_RADIX},
+    bzlib::{EState, BZ_N_OVERSHOOT, BZ_N_QSORT, BZ_N_RADIX},
 };
 
+/// Fallback O(N log(N)^2) sorting algorithm, for repetitive blocks      
 #[inline]
 unsafe fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32) {
-    let mut i: i32;
     let mut j: i32;
     let mut tmp: i32;
     let mut ec_tmp: u32;
+
     if lo == hi {
         return;
     }
-    if hi - lo > 3 as libc::c_int {
-        i = hi - 4 as libc::c_int;
-        while i >= lo {
+
+    if hi - lo > 3 {
+        for i in (lo..=hi - 4).rev() {
             tmp = *fmap.offset(i as isize) as i32;
             ec_tmp = *eclass.offset(tmp as isize);
-            j = i + 4 as libc::c_int;
+            j = i + 4;
             while j <= hi && ec_tmp > *eclass.offset(*fmap.offset(j as isize) as isize) {
-                *fmap.offset((j - 4 as libc::c_int) as isize) = *fmap.offset(j as isize);
-                j += 4 as libc::c_int;
+                *fmap.offset((j - 4) as isize) = *fmap.offset(j as isize);
+                j += 4;
             }
-            *fmap.offset((j - 4 as libc::c_int) as isize) = tmp as u32;
-            i -= 1;
+            *fmap.offset((j - 4) as isize) = tmp as u32;
         }
     }
-    i = hi - 1 as libc::c_int;
-    while i >= lo {
+
+    for i in (lo..=hi - 1).rev() {
         tmp = *fmap.offset(i as isize) as i32;
         ec_tmp = *eclass.offset(tmp as isize);
-        j = i + 1 as libc::c_int;
+        j = i + 1;
         while j <= hi && ec_tmp > *eclass.offset(*fmap.offset(j as isize) as isize) {
-            *fmap.offset((j - 1 as libc::c_int) as isize) = *fmap.offset(j as isize);
+            *fmap.offset((j - 1) as isize) = *fmap.offset(j as isize);
             j += 1;
         }
-        *fmap.offset((j - 1 as libc::c_int) as isize) = tmp as u32;
-        i -= 1;
+        *fmap.offset((j - 1) as isize) = tmp as u32;
     }
 }
 
@@ -1247,6 +1246,18 @@ unsafe fn mainSort(
         );
     }
 }
+
+/// Pre:
+///    nblock > 0
+///    arr2 exists for [0 .. nblock-1 +N_OVERSHOOT]
+///    ((UChar*)arr2)  [0 .. nblock-1] holds block
+///    arr1 exists for [0 .. nblock-1]
+///
+/// Post:
+///    ((UChar*)arr2) [0 .. nblock-1] holds block
+///    All other areas of block destroyed
+///    ftab [ 0 .. 65536 ] destroyed
+///    arr1 [0 .. nblock-1] holds sorted order
 pub unsafe fn BZ2_blockSort(s: &mut EState) {
     let ptr: *mut u32 = s.ptr;
     let block: *mut u8 = s.block;
@@ -1257,11 +1268,16 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     let mut budget: i32;
     let budgetInit: i32;
     let mut i: i32;
-    if nblock < 10000 as libc::c_int {
+    if nblock < 10000 {
         fallbackSort(s.arr1, s.arr2, ftab, nblock, verb);
     } else {
-        i = nblock + (2 as libc::c_int + 12 as libc::c_int + 18 as libc::c_int + 2 as libc::c_int);
-        if i & 1 as libc::c_int != 0 {
+        /* Calculate the location for quadrant, remembering to get
+           the alignment right.  Assumes that &(block[0]) is at least
+           2-byte aligned -- this should be ok since block is really
+           the first section of arr2.
+        */
+        i = nblock + BZ_N_OVERSHOOT;
+        if i & 1 != 0 {
             i += 1;
         }
         quadrant = block.offset(i as isize) as *mut u8 as *mut u16;
@@ -1276,20 +1292,20 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
         let wfact = s.workFactor.clamp(1, 100);
         budgetInit = nblock * ((wfact - 1) / 3);
         budget = budgetInit;
+
         mainSort(ptr, block, quadrant, ftab, nblock, verb, &mut budget);
-        if verb >= 3 as libc::c_int {
+
+        if verb >= 3 {
             eprintln!(
                 "      {} work, {} block, ratio {:5.2}",
                 budgetInit - budget,
                 nblock,
                 ((budgetInit - budget) as libc::c_float
-                    / (if nblock == 0 as libc::c_int {
-                        1 as libc::c_int
-                    } else {
-                        nblock
-                    }) as libc::c_float) as libc::c_double,
+                    / (if nblock == 0 { 1 } else { nblock }) as libc::c_float)
+                    as libc::c_double,
             );
         }
+
         if budget < 0 as libc::c_int {
             if verb >= 2 as libc::c_int {
                 eprintln!("    too repetitive; using fallback sorting algorithm");
@@ -1297,15 +1313,14 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
             fallbackSort(s.arr1, s.arr2, ftab, nblock, verb);
         }
     }
+
     s.origPtr = -1 as libc::c_int;
-    i = 0 as libc::c_int;
-    while i < s.nblock {
-        if *ptr.offset(i as isize) == 0 as libc::c_int as libc::c_uint {
+    for i in 0..s.nblock {
+        if *ptr.offset(i as isize) == 0 {
             s.origPtr = i;
             break;
-        } else {
-            i += 1;
         }
     }
+
     assert_h!(s.origPtr != -1, 1003);
 }
