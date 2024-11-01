@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::{
     assert_h,
     bzlib::{EState, BZ_N_OVERSHOOT, BZ_N_QSORT, BZ_N_RADIX, FTAB_LEN},
@@ -40,148 +42,143 @@ unsafe fn fallbackSimpleSort(fmap: *mut u32, eclass: *mut u32, lo: i32, hi: i32)
 }
 
 const FALLBACK_QSORT_SMALL_THRESH: i32 = 10;
-const FALLBACK_QSORT_STACK_SIZE: i32 = 100;
+const FALLBACK_QSORT_STACK_SIZE: usize = 100;
 
-unsafe fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32) {
+unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i32) {
     let mut unLo: i32;
     let mut unHi: i32;
     let mut ltLo: i32;
     let mut gtHi: i32;
     let mut n: i32;
     let mut m: i32;
-    let mut sp: i32;
+    let mut sp: usize;
     let mut lo: i32;
     let mut hi: i32;
-    let mut med: u32;
-    let mut r: u32;
     let mut r3: u32;
-    let mut stackLo: [i32; 100] = [0; 100];
-    let mut stackHi: [i32; 100] = [0; 100];
-    r = 0 as libc::c_int as u32;
-    sp = 0 as libc::c_int;
-    stackLo[sp as usize] = loSt;
-    stackHi[sp as usize] = hiSt;
-    sp += 1;
-    while sp > 0 as libc::c_int {
-        assert_h!(sp < FALLBACK_QSORT_STACK_SIZE - 1, 1004);
-        sp -= 1;
-        lo = stackLo[sp as usize];
-        hi = stackHi[sp as usize];
-        if hi - lo < 10 as libc::c_int {
-            fallbackSimpleSort(fmap, eclass, lo, hi);
-        } else {
-            r = r
-                .wrapping_mul(7621 as libc::c_int as libc::c_uint)
-                .wrapping_add(1 as libc::c_int as libc::c_uint)
-                .wrapping_rem(32768 as libc::c_int as libc::c_uint);
-            r3 = r.wrapping_rem(3 as libc::c_int as libc::c_uint);
-            if r3 == 0 as libc::c_int as libc::c_uint {
-                med = *eclass.offset(*fmap.offset(lo as isize) as isize);
-            } else if r3 == 1 as libc::c_int as libc::c_uint {
-                med =
-                    *eclass.offset(*fmap.offset(((lo + hi) >> 1 as libc::c_int) as isize) as isize);
-            } else {
-                med = *eclass.offset(*fmap.offset(hi as isize) as isize);
-            }
-            ltLo = lo;
-            unLo = ltLo;
-            gtHi = hi;
-            unHi = gtHi;
-            loop {
-                while unLo <= unHi {
-                    n = *eclass.offset(*fmap.offset(unLo as isize) as isize) as i32 - med as i32;
-                    if n == 0 as libc::c_int {
-                        let zztmp: i32 = *fmap.offset(unLo as isize) as i32;
-                        *fmap.offset(unLo as isize) = *fmap.offset(ltLo as isize);
-                        *fmap.offset(ltLo as isize) = zztmp as u32;
-                        ltLo += 1;
-                        unLo += 1;
-                    } else {
-                        if n > 0 as libc::c_int {
-                            break;
-                        }
-                        unLo += 1;
-                    }
-                }
-                while unLo <= unHi {
-                    n = *eclass.offset(*fmap.offset(unHi as isize) as isize) as i32 - med as i32;
-                    if n == 0 as libc::c_int {
-                        let zztmp_0: i32 = *fmap.offset(unHi as isize) as i32;
-                        *fmap.offset(unHi as isize) = *fmap.offset(gtHi as isize);
-                        *fmap.offset(gtHi as isize) = zztmp_0 as u32;
-                        gtHi -= 1;
-                        unHi -= 1;
-                    } else {
-                        if n < 0 as libc::c_int {
-                            break;
-                        }
-                        unHi -= 1;
-                    }
-                }
-                if unLo > unHi {
-                    break;
-                }
-                let zztmp_1: i32 = *fmap.offset(unLo as isize) as i32;
-                *fmap.offset(unLo as isize) = *fmap.offset(unHi as isize);
-                *fmap.offset(unHi as isize) = zztmp_1 as u32;
-                unLo += 1;
-                unHi -= 1;
-            }
+    let mut stackLo: [i32; FALLBACK_QSORT_STACK_SIZE] = [0; FALLBACK_QSORT_STACK_SIZE];
+    let mut stackHi: [i32; FALLBACK_QSORT_STACK_SIZE] = [0; FALLBACK_QSORT_STACK_SIZE];
 
-            debug_assert_eq!(unHi, unLo - 1, "fallbackQSort3(2)");
+    macro_rules! fpush {
+        ($lz:expr, $hz:expr) => {
+            stackLo[sp] = $lz;
+            stackHi[sp] = $hz;
+            sp += 1;
+        };
+    }
 
-            if gtHi < ltLo {
-                continue;
-            }
-            n = if ltLo - lo < unLo - ltLo {
-                ltLo - lo
-            } else {
-                unLo - ltLo
-            };
-            let mut yyp1: i32 = lo;
-            let mut yyp2: i32 = unLo - n;
-            let mut yyn: i32 = n;
-            while yyn > 0 as libc::c_int {
-                let zztmp_2: i32 = *fmap.offset(yyp1 as isize) as i32;
-                *fmap.offset(yyp1 as isize) = *fmap.offset(yyp2 as isize);
-                *fmap.offset(yyp2 as isize) = zztmp_2 as u32;
+    macro_rules! fvswap {
+        ($zzp1:expr, $zzp2:expr, $zzn:expr) => {
+            let mut yyp1: i32 = $zzp1;
+            let mut yyp2: i32 = $zzp2;
+            let mut yyn: i32 = $zzn;
+
+            while (yyn > 0) {
+                fmap.swap(yyp1 as usize, yyp2 as usize);
                 yyp1 += 1;
                 yyp2 += 1;
                 yyn -= 1;
             }
-            m = if hi - gtHi < gtHi - unHi {
-                hi - gtHi
-            } else {
-                gtHi - unHi
-            };
-            let mut yyp1_0: i32 = unLo;
-            let mut yyp2_0: i32 = hi - m + 1 as libc::c_int;
-            let mut yyn_0: i32 = m;
-            while yyn_0 > 0 as libc::c_int {
-                let zztmp_3: i32 = *fmap.offset(yyp1_0 as isize) as i32;
-                *fmap.offset(yyp1_0 as isize) = *fmap.offset(yyp2_0 as isize);
-                *fmap.offset(yyp2_0 as isize) = zztmp_3 as u32;
-                yyp1_0 += 1;
-                yyp2_0 += 1;
-                yyn_0 -= 1;
+        };
+    }
+
+    let mut r = 0u32;
+
+    sp = 0;
+    fpush!(loSt, hiSt);
+
+    while sp > 0 {
+        assert_h!(sp < FALLBACK_QSORT_STACK_SIZE - 1, 1004);
+
+        // the `fpop` macro has one occurence, so it was inlined here
+        sp -= 1;
+        lo = stackLo[sp as usize];
+        hi = stackHi[sp as usize];
+
+        if hi - lo < FALLBACK_QSORT_SMALL_THRESH {
+            fallbackSimpleSort(fmap.as_mut_ptr(), eclass, lo, hi);
+            continue;
+        }
+
+        /* Random partitioning.  Median of 3 sometimes fails to
+            avoid bad cases.  Median of 9 seems to help but
+            looks rather expensive.  This too seems to work but
+            is cheaper.  Guidance for the magic constants
+            7621 and 32768 is taken from Sedgewick's algorithms
+            book, chapter 35.
+        */
+        r = r.wrapping_mul(7621).wrapping_add(1).wrapping_rem(32768);
+        let med = match r.wrapping_rem(3) {
+            0 => *eclass.offset(fmap[lo as usize] as isize),
+            1 => *eclass.offset(fmap[((lo + hi) >> 1) as usize] as isize),
+            _ => *eclass.offset(fmap[hi as usize] as isize),
+        };
+
+        ltLo = lo;
+        unLo = lo;
+
+        gtHi = hi;
+        unHi = hi;
+
+        loop {
+            while unLo <= unHi {
+                n = *eclass.offset(fmap[unLo as usize] as isize) as i32 - med as i32;
+                match n.cmp(&0) {
+                    Ordering::Greater => break,
+                    Ordering::Equal => {
+                        fmap.swap(unLo as usize, ltLo as usize);
+                        ltLo += 1;
+                        unLo += 1;
+                    }
+                    Ordering::Less => {
+                        unLo += 1;
+                    }
+                }
             }
-            n = lo + unLo - ltLo - 1 as libc::c_int;
-            m = hi - (gtHi - unHi) + 1 as libc::c_int;
-            if n - lo > hi - m {
-                stackLo[sp as usize] = lo;
-                stackHi[sp as usize] = n;
-                sp += 1;
-                stackLo[sp as usize] = m;
-                stackHi[sp as usize] = hi;
-                sp += 1;
-            } else {
-                stackLo[sp as usize] = m;
-                stackHi[sp as usize] = hi;
-                sp += 1;
-                stackLo[sp as usize] = lo;
-                stackHi[sp as usize] = n;
-                sp += 1;
+
+            while unLo <= unHi {
+                n = *eclass.offset(fmap[unHi as usize] as isize) as i32 - med as i32;
+                match n.cmp(&0) {
+                    Ordering::Less => break,
+                    Ordering::Equal => {
+                        fmap.swap(unHi as usize, gtHi as usize);
+                        gtHi -= 1;
+                        unHi -= 1;
+                    }
+                    Ordering::Greater => {
+                        unHi -= 1;
+                    }
+                }
             }
+
+            if unLo > unHi {
+                break;
+            }
+
+            fmap.swap(unLo as usize, unHi as usize);
+            unLo += 1;
+            unHi -= 1;
+        }
+
+        debug_assert_eq!(unHi, unLo - 1, "fallbackQSort3(2)");
+
+        if gtHi < ltLo {
+            continue;
+        }
+
+        n = Ord::min(ltLo - lo, unLo - ltLo);
+        fvswap!(lo, unLo - n, n);
+        m = Ord::min(hi - gtHi, gtHi - unHi);
+        fvswap!(unLo, hi - m + 1, m);
+
+        n = lo + unLo - ltLo - 1 as libc::c_int;
+        m = hi - (gtHi - unHi) + 1 as libc::c_int;
+
+        if n - lo > hi - m {
+            fpush!(lo, n);
+            fpush!(m, hi);
+        } else {
+            fpush!(m, hi);
+            fpush!(lo, n);
         }
     }
 }
@@ -338,7 +335,7 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
             /*-- now [l, r] bracket current bucket --*/
             if r > l {
                 nNotDone += r - l + 1;
-                fallbackQSort3(fmap.as_mut_ptr(), eclass, l, r);
+                fallbackQSort3(fmap, eclass, l, r);
 
                 /*-- scan bucket and generate header bits-- */
                 cc = -1;
