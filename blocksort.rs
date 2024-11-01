@@ -181,13 +181,13 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: &[u32], loSt: i32, hiSt: i32)
     }
 }
 
-unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock: i32, verb: i32) {
-    let fmap = core::slice::from_raw_parts_mut(fmap, nblock as usize);
-
-    // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
-    core::ptr::write_bytes(bhtab, 0, FTAB_LEN);
-    let bhtab = bhtab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
-
+unsafe fn fallbackSort(
+    fmap: &mut [u32],
+    eclass: *mut u32,
+    bhtab: &mut [u32; FTAB_LEN],
+    nblock: i32,
+    verb: i32,
+) {
     macro_rules! SET_BH {
         ($zz:expr) => {
             bhtab[$zz as usize >> 5] |= 1 << ($zz & 31);
@@ -1272,7 +1272,13 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     let budgetInit: i32;
     let mut i: i32;
     if nblock < 10000 {
-        fallbackSort(s.arr1, s.arr2, ftab, nblock, verb);
+        let fmap = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
+
+        // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
+        core::ptr::write_bytes(ftab, 0, FTAB_LEN);
+        let bhtab = ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
+
+        fallbackSort(fmap, s.arr2, bhtab, nblock, verb);
     } else {
         /* Calculate the location for quadrant, remembering to get
            the alignment right.  Assumes that &(block[0]) is at least
@@ -1313,7 +1319,14 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
             if verb >= 2 as libc::c_int {
                 eprintln!("    too repetitive; using fallback sorting algorithm");
             }
-            fallbackSort(s.arr1, s.arr2, ftab, nblock, verb);
+
+            let fmap = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
+
+            // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
+            core::ptr::write_bytes(ftab, 0, FTAB_LEN);
+            let bhtab = ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
+
+            fallbackSort(fmap, s.arr2, bhtab, nblock, verb);
         }
     }
 
