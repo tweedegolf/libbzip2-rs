@@ -181,7 +181,7 @@ fn fallbackQSort3(fmap: &mut [u32], eclass: &[u32], loSt: i32, hiSt: i32) {
     }
 }
 
-unsafe fn fallbackSort(
+fn fallbackSort(
     fmap: &mut [u32],
     eclass: &mut [u32],
     bhtab: &mut [u32; FTAB_LEN],
