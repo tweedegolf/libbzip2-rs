@@ -27,11 +27,11 @@ fn upheap(
     mut z: usize,
 ) {
     let tmp = heap[z];
-    while weight[tmp as usize] < weight[heap[(z >> 1) as usize] as usize] {
+    while weight[tmp as usize] < weight[heap[z >> 1] as usize] {
         heap[z] = heap[z >> 1];
         z >>= 1;
     }
-    heap[z as usize] = tmp;
+    heap[z] = tmp;
 }
 
 #[inline]
@@ -71,7 +71,7 @@ pub fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: usize, max
     let mut weight = [0i32; BZ_MAX_ALPHA_SIZE * 2];
     let mut parent = [0i32; BZ_MAX_ALPHA_SIZE * 2];
 
-    for i in 0..alphaSize as usize {
+    for i in 0..alphaSize {
         weight[i + 1] = (if freq[i] == 0 { 1 } else { freq[i] }) << 8;
     }
 
@@ -83,8 +83,9 @@ pub fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: usize, max
         weight[0] = 0;
         parent[0] = -2;
 
+        parent[1..=alphaSize].fill(-1);
+
         for i in 1..=alphaSize {
-            parent[i] = -1;
             nHeap += 1;
             heap[nHeap] = i as i32;
             upheap(&mut heap, &mut weight, nHeap);
@@ -121,7 +122,7 @@ pub fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: usize, max
                 k = parent[k] as usize;
                 j += 1;
             }
-            len[i as usize - 1] = j as u8;
+            len[i - 1] = j as u8;
             if j > maxLen {
                 tooLong = true;
             }
@@ -148,10 +149,8 @@ pub fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: usize, max
         produced by versions pre-1.0.3, the decompressor must still
         handle lengths of up to 20. */
 
-        for i in 1..=alphaSize {
-            j = weight[i as usize] >> 8;
-            j = 1 + j / 2;
-            weight[i as usize] = j << 8;
+        for weight in weight[1..=alphaSize].iter_mut() {
+            *weight = (1 + (*weight >> 8) / 2) << 8;
         }
     }
 }
@@ -188,8 +187,8 @@ pub fn BZ2_hbCreateDecodeTables(
 
     let mut pp: i32 = 0;
     for i in minLen..=maxLen {
-        for j in 0..alphaSize {
-            if length[j] as i32 == i {
+        for (j, e) in length[0..alphaSize].iter().enumerate() {
+            if *e as i32 == i {
                 perm[pp as usize] = j as i32;
                 pp += 1;
             }
