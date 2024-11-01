@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use crate::{
     assert_h,
-    bzlib::{EState, BZ_N_OVERSHOOT, BZ_N_QSORT, BZ_N_RADIX, FTAB_LEN},
+    bzlib::{EState, BZ_N_OVERSHOOT, BZ_N_OVERSHOOT2, BZ_N_QSORT, BZ_N_RADIX, FTAB_LEN},
 };
 
 /// Fallback O(N log(N)^2) sorting algorithm, for repetitive blocks      
@@ -1296,38 +1296,39 @@ fn mainSort(
 ///    ftab [ 0 .. 65536 ] destroyed
 ///    arr1 [0 .. nblock-1] holds sorted order
 pub unsafe fn BZ2_blockSort(s: &mut EState) {
-    let nblock: i32 = s.nblock;
+    let nblock = usize::try_from(s.nblock).unwrap();
 
-    let ptr = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
+    let ptr = core::slice::from_raw_parts_mut(s.arr1, nblock);
 
     // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
     core::ptr::write_bytes(s.ftab, 0, FTAB_LEN);
     let ftab = s.ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
 
-    BZ2_blockSortHelp(s, ptr, ftab)
+    BZ2_blockSortHelp(s, ptr, ftab, nblock)
 }
 
-unsafe fn BZ2_blockSortHelp(s: &mut EState, ptr: &mut [u32], ftab: &mut [u32; FTAB_LEN]) {
-    let nblock: i32 = s.nblock;
-
+unsafe fn BZ2_blockSortHelp(
+    s: &mut EState,
+    ptr: &mut [u32],
+    ftab: &mut [u32; FTAB_LEN],
+    nblock: usize,
+) {
     if nblock < 10000 {
         let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
 
-        fallbackSort(ptr, eclass, ftab, nblock, s.verbosity);
+        fallbackSort(ptr, eclass, ftab, nblock as i32, s.verbosity);
     } else {
         /* Calculate the location for quadrant, remembering to get
            the alignment right.  Assumes that &(block[0]) is at least
            2-byte aligned -- this should be ok since block is really
            the first section of arr2.
         */
-        let i = ((nblock + BZ_N_OVERSHOOT) as usize).next_multiple_of(2);
+        let i = (nblock + BZ_N_OVERSHOOT2).next_multiple_of(2);
         let quadrant: *mut u16 = s.arr2.cast::<u8>().wrapping_add(i) as *mut u16;
-        core::ptr::write_bytes(quadrant, 0, (nblock + BZ_N_OVERSHOOT) as usize);
-        let quadrant =
-            core::slice::from_raw_parts_mut(quadrant, (nblock + BZ_N_OVERSHOOT) as usize);
+        core::ptr::write_bytes(quadrant, 0, nblock + BZ_N_OVERSHOOT2);
+        let quadrant = core::slice::from_raw_parts_mut(quadrant, nblock + BZ_N_OVERSHOOT2);
 
-        let block =
-            core::slice::from_raw_parts_mut(s.arr2 as *mut u8, (nblock + BZ_N_OVERSHOOT) as usize);
+        let block = core::slice::from_raw_parts_mut(s.arr2 as *mut u8, nblock + BZ_N_OVERSHOOT2);
 
         /* (wfact-1) / 3 puts the default-factor-30
            transition point at very roughly the same place as
@@ -1337,10 +1338,18 @@ unsafe fn BZ2_blockSortHelp(s: &mut EState, ptr: &mut [u32], ftab: &mut [u32; FT
            of whether or not we use the main sort or fallback sort.
         */
         let wfact = s.workFactor.clamp(1, 100);
-        let budgetInit = nblock * ((wfact - 1) / 3);
+        let budgetInit = nblock as i32 * ((wfact - 1) / 3);
         let mut budget = budgetInit;
 
-        mainSort(ptr, block, quadrant, ftab, nblock, s.verbosity, &mut budget);
+        mainSort(
+            ptr,
+            block,
+            quadrant,
+            ftab,
+            nblock as i32,
+            s.verbosity,
+            &mut budget,
+        );
 
         if s.verbosity >= 3 {
             eprintln!(
@@ -1353,14 +1362,14 @@ unsafe fn BZ2_blockSortHelp(s: &mut EState, ptr: &mut [u32], ftab: &mut [u32; FT
             );
         }
 
-        if budget < 0 as libc::c_int {
+        if budget < 0 {
             if s.verbosity >= 2 as libc::c_int {
                 eprintln!("    too repetitive; using fallback sorting algorithm");
             }
 
             let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
 
-            fallbackSort(ptr, eclass, ftab, nblock, s.verbosity);
+            fallbackSort(ptr, eclass, ftab, nblock as i32, s.verbosity);
         }
     }
 
