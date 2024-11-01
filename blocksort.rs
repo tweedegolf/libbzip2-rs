@@ -952,7 +952,7 @@ unsafe fn mainQSort3(
 unsafe fn mainSort(
     ptr: *mut u32,
     block: *mut u8,
-    quadrant: *mut u16,
+    quadrant: &mut [u16],
     ftab: &mut [u32; FTAB_LEN],
     nblock: i32,
     verb: i32,
@@ -979,24 +979,20 @@ unsafe fn mainSort(
     j = (*block.offset(0 as libc::c_int as isize) as libc::c_int) << 8 as libc::c_int;
     i = nblock - 1 as libc::c_int;
     while i >= 3 as libc::c_int {
-        *quadrant.offset(i as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset(i as isize) as u16 as libc::c_int) << 8 as libc::c_int;
         ftab[j as usize] += 1;
 
-        *quadrant.offset((i - 1 as libc::c_int) as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset((i - 1 as libc::c_int) as isize) as u16 as libc::c_int)
                 << 8 as libc::c_int;
         ftab[j as usize] += 1;
 
-        *quadrant.offset((i - 2 as libc::c_int) as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset((i - 2 as libc::c_int) as isize) as u16 as libc::c_int)
                 << 8 as libc::c_int;
         ftab[j as usize] += 1;
 
-        *quadrant.offset((i - 3 as libc::c_int) as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset((i - 3 as libc::c_int) as isize) as u16 as libc::c_int)
                 << 8 as libc::c_int;
@@ -1006,18 +1002,14 @@ unsafe fn mainSort(
     }
 
     while i >= 0 as libc::c_int {
-        *quadrant.offset(i as isize) = 0 as libc::c_int as u16;
         j = j >> 8 as libc::c_int
             | (*block.offset(i as isize) as u16 as libc::c_int) << 8 as libc::c_int;
         ftab[j as usize] += 1;
         i -= 1;
     }
 
-    i = 0 as libc::c_int;
-    while i < 2 as libc::c_int + 12 as libc::c_int + 18 as libc::c_int + 2 as libc::c_int {
+    for i in 0..BZ_N_OVERSHOOT {
         *block.offset((nblock + i) as isize) = *block.offset(i as isize);
-        *quadrant.offset((nblock + i) as isize) = 0 as libc::c_int as u16;
-        i += 1;
     }
 
     if verb >= 4 as libc::c_int {
@@ -1160,7 +1152,7 @@ unsafe fn mainSort(
                         mainQSort3(
                             ptr,
                             block,
-                            quadrant,
+                            quadrant.as_mut_ptr(),
                             nblock,
                             lo,
                             hi,
@@ -1291,9 +1283,9 @@ unsafe fn mainSort(
             while j >= 0 as libc::c_int {
                 let a2update: i32 = *ptr.offset((bbStart + j) as isize) as i32;
                 let qVal: u16 = (j >> shifts) as u16;
-                *quadrant.offset(a2update as isize) = qVal;
+                quadrant[a2update as usize] = qVal;
                 if a2update < BZ_N_OVERSHOOT {
-                    *quadrant.offset((a2update + nblock) as isize) = qVal;
+                    quadrant[(a2update + nblock) as usize] = qVal;
                 }
                 j -= 1;
             }
@@ -1327,7 +1319,6 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     let block: *mut u8 = s.block; // aka s.arr2
     let nblock: i32 = s.nblock;
     let verb: i32 = s.verbosity;
-    let quadrant: *mut u16;
     let mut budget: i32;
     let budgetInit: i32;
     let mut i: i32;
@@ -1352,7 +1343,10 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
         if i & 1 != 0 {
             i += 1;
         }
-        quadrant = block.offset(i as isize) as *mut u8 as *mut u16;
+        let quadrant: *mut u16 = block.offset(i as isize) as *mut u8 as *mut u16;
+        core::ptr::write_bytes(quadrant, 0, (nblock + BZ_N_OVERSHOOT) as usize);
+        let quadrant =
+            core::slice::from_raw_parts_mut(quadrant, (nblock + BZ_N_OVERSHOOT) as usize);
 
         /* (wfact-1) / 3 puts the default-factor-30
            transition point at very roughly the same place as
