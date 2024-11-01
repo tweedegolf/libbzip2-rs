@@ -1,6 +1,6 @@
 use crate::{
     assert_h,
-    bzlib::{EState, BZ_N_OVERSHOOT, BZ_N_QSORT, BZ_N_RADIX},
+    bzlib::{EState, BZ_N_OVERSHOOT, BZ_N_QSORT, BZ_N_RADIX, FTAB_LEN},
 };
 
 /// Fallback O(N log(N)^2) sorting algorithm, for repetitive blocks      
@@ -187,23 +187,25 @@ unsafe fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32)
 }
 
 unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock: i32, verb: i32) {
+    // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
+    core::ptr::write_bytes(bhtab, 0, FTAB_LEN);
+    let bhtab = (bhtab as *mut [u32; FTAB_LEN]).as_mut().unwrap();
+
     macro_rules! SET_BH {
         ($zz:expr) => {
-            let fresh0 = &mut *bhtab.offset(($zz >> 5) as isize);
-            *fresh0 |= 1 << ($zz & 31);
+            bhtab[$zz as usize >> 5] |= 1 << ($zz & 31);
         };
     }
 
     macro_rules! CLEAR_BH {
         ($zz:expr) => {
-            let fresh0 = &mut *bhtab.offset(($zz >> 5) as isize);
-            *fresh0 &= !(1 << ($zz & 31));
+            bhtab[$zz as usize >> 5] &= !(1 << ($zz & 31));
         };
     }
 
     macro_rules! ISSET_BH {
         ($zz:expr) => {
-            *bhtab.offset(($zz >> 5) as isize) & 1u32 << ($zz & 31) != 0
+            bhtab[$zz as usize >> 5] & 1u32 << ($zz & 31) != 0
         };
     }
 
@@ -215,7 +217,7 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
 
     macro_rules! WORD_BH {
         ($zz:expr) => {
-            *bhtab.offset(($zz >> 5) as isize)
+            bhtab[$zz as usize >> 5]
         };
     }
 
@@ -240,8 +242,6 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
         eprintln!("        bucket sorting ...");
     }
 
-    ftab[0..257].fill(0);
-
     for i in 0..nblock {
         ftab[*eclass8.offset(i as isize) as usize] += 1;
     }
@@ -259,9 +259,7 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
         *fmap.offset(k as isize) = i as u32;
     }
 
-    for i in 0..2 + nblock / 32 {
-        *bhtab.offset(i as isize) = 0;
-    }
+    bhtab[0..2 + nblock as usize / 32].fill(0);
 
     for i in 0..256 {
         SET_BH!(ftab[i]);
