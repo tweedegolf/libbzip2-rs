@@ -384,7 +384,7 @@ fn fallbackSort(
 }
 
 #[inline]
-unsafe fn mainGtU(
+fn mainGtU(
     mut i1: u32,
     mut i2: u32,
     block: &[u8],
@@ -611,7 +611,7 @@ static INCS: [i32; 14] = [
     797161 as libc::c_int,
     2391484 as libc::c_int,
 ];
-unsafe fn mainSimpleSort(
+fn mainSimpleSort(
     ptr: &mut [u32],
     block: &[u8],
     quadrant: &mut [u16],
@@ -732,7 +732,7 @@ const MAIN_QSORT_SMALL_THRESH: i32 = 20;
 const MAIN_QSORT_DEPTH_THRESH: i32 = BZ_N_RADIX + BZ_N_QSORT;
 const MAIN_QSORT_STACK_SIZE: i32 = 100;
 
-unsafe fn mainQSort3(
+fn mainQSort3(
     ptr: &mut [u32],
     block: &[u8],
     quadrant: &mut [u16],
@@ -942,7 +942,7 @@ unsafe fn mainQSort3(
         }
     }
 }
-unsafe fn mainSort(
+fn mainSort(
     ptr: &mut [u32],
     block: &mut [u8],
     quadrant: &mut [u16],
@@ -1296,12 +1296,7 @@ unsafe fn mainSort(
 ///    ftab [ 0 .. 65536 ] destroyed
 ///    arr1 [0 .. nblock-1] holds sorted order
 pub unsafe fn BZ2_blockSort(s: &mut EState) {
-    let block: *mut u8 = s.block; // aka s.arr2
     let nblock: i32 = s.nblock;
-    let verb: i32 = s.verbosity;
-    let mut budget: i32;
-    let budgetInit: i32;
-    let mut i: i32;
 
     let ptr = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
 
@@ -1309,26 +1304,30 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     core::ptr::write_bytes(s.ftab, 0, FTAB_LEN);
     let ftab = s.ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
 
+    BZ2_blockSortHelp(s, ptr, ftab)
+}
+
+unsafe fn BZ2_blockSortHelp(s: &mut EState, ptr: &mut [u32], ftab: &mut [u32; FTAB_LEN]) {
+    let nblock: i32 = s.nblock;
+
     if nblock < 10000 {
         let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
 
-        fallbackSort(ptr, eclass, ftab, nblock, verb);
+        fallbackSort(ptr, eclass, ftab, nblock, s.verbosity);
     } else {
         /* Calculate the location for quadrant, remembering to get
            the alignment right.  Assumes that &(block[0]) is at least
            2-byte aligned -- this should be ok since block is really
            the first section of arr2.
         */
-        i = nblock + BZ_N_OVERSHOOT;
-        if i & 1 != 0 {
-            i += 1;
-        }
-        let quadrant: *mut u16 = block.offset(i as isize) as *mut u8 as *mut u16;
+        let i = ((nblock + BZ_N_OVERSHOOT) as usize).next_multiple_of(2);
+        let quadrant: *mut u16 = s.arr2.wrapping_add(i) as *mut u8 as *mut u16;
         core::ptr::write_bytes(quadrant, 0, (nblock + BZ_N_OVERSHOOT) as usize);
         let quadrant =
             core::slice::from_raw_parts_mut(quadrant, (nblock + BZ_N_OVERSHOOT) as usize);
 
-        let block = core::slice::from_raw_parts_mut(block, (nblock + BZ_N_OVERSHOOT) as usize);
+        let block =
+            core::slice::from_raw_parts_mut(s.arr2 as *mut u8, (nblock + BZ_N_OVERSHOOT) as usize);
 
         /* (wfact-1) / 3 puts the default-factor-30
            transition point at very roughly the same place as
@@ -1338,12 +1337,12 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
            of whether or not we use the main sort or fallback sort.
         */
         let wfact = s.workFactor.clamp(1, 100);
-        budgetInit = nblock * ((wfact - 1) / 3);
-        budget = budgetInit;
+        let budgetInit = nblock * ((wfact - 1) / 3);
+        let mut budget = budgetInit;
 
-        mainSort(ptr, block, quadrant, ftab, nblock, verb, &mut budget);
+        mainSort(ptr, block, quadrant, ftab, nblock, s.verbosity, &mut budget);
 
-        if verb >= 3 {
+        if s.verbosity >= 3 {
             eprintln!(
                 "      {} work, {} block, ratio {:5.2}",
                 budgetInit - budget,
@@ -1355,15 +1354,13 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
         }
 
         if budget < 0 as libc::c_int {
-            if verb >= 2 as libc::c_int {
+            if s.verbosity >= 2 as libc::c_int {
                 eprintln!("    too repetitive; using fallback sorting algorithm");
             }
 
-            let fmap = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
-
             let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
 
-            fallbackSort(fmap, eclass, ftab, nblock, verb);
+            fallbackSort(ptr, eclass, ftab, nblock, s.verbosity);
         }
     }
 
