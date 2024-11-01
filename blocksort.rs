@@ -944,7 +944,7 @@ unsafe fn mainQSort3(
     }
 }
 unsafe fn mainSort(
-    ptr: *mut u32,
+    ptr: &mut [u32],
     block: &mut [u8],
     quadrant: &mut [u16],
     ftab: &mut [u32; FTAB_LEN],
@@ -1010,32 +1010,28 @@ unsafe fn mainSort(
     s = ((block[0 as libc::c_int as usize] as libc::c_int) << 8 as libc::c_int) as u16;
     i = nblock - 1 as libc::c_int;
     while i >= 3 as libc::c_int {
-        s = (s as libc::c_int >> 8 as libc::c_int
-            | (block[i as usize] as libc::c_int) << 8 as libc::c_int) as u16;
+        s = (s as libc::c_int >> 8 | (block[i as usize] as libc::c_int) << 8) as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
-        *ptr.offset(j as isize) = i as u32;
+        ptr[j as usize] = i as u32;
 
-        s = (s as libc::c_int >> 8 as libc::c_int
-            | (block[(i - 1 as libc::c_int) as usize] as libc::c_int) << 8 as libc::c_int)
+        s = (s as libc::c_int >> 8 | (block[(i - 1 as libc::c_int) as usize] as libc::c_int) << 8)
             as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
-        *ptr.offset(j as isize) = (i - 1 as libc::c_int) as u32;
+        ptr[j as usize] = i as u32 - 1;
 
-        s = (s as libc::c_int >> 8 as libc::c_int
-            | (block[(i - 2 as libc::c_int) as usize] as libc::c_int) << 8 as libc::c_int)
+        s = (s as libc::c_int >> 8 | (block[(i - 2 as libc::c_int) as usize] as libc::c_int) << 8)
             as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
-        *ptr.offset(j as isize) = (i - 2 as libc::c_int) as u32;
+        ptr[j as usize] = i as u32 - 2;
 
-        s = (s as libc::c_int >> 8 as libc::c_int
-            | (block[(i - 3 as libc::c_int) as usize] as libc::c_int) << 8 as libc::c_int)
+        s = (s as libc::c_int >> 8 | (block[(i - 3 as libc::c_int) as usize] as libc::c_int) << 8)
             as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
-        *ptr.offset(j as isize) = (i - 3 as libc::c_int) as u32;
+        ptr[j as usize] = i as u32 - 3;
 
         i -= 4 as libc::c_int;
     }
@@ -1045,7 +1041,7 @@ unsafe fn mainSort(
             | (block[i as usize] as libc::c_int) << 8 as libc::c_int) as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
-        *ptr.offset(j as isize) = i as u32;
+        ptr[j as usize] = i as u32;
 
         i -= 1;
     }
@@ -1136,7 +1132,7 @@ unsafe fn mainSort(
                             );
                         }
                         mainQSort3(
-                            ptr,
+                            ptr.as_mut_ptr(),
                             block,
                             quadrant,
                             nblock,
@@ -1171,7 +1167,7 @@ unsafe fn mainSort(
 
             j = (ftab[(ss as usize) << 8] & CLEARMASK) as i32;
             while j < copyStart[ss as usize] {
-                k = (*ptr.offset(j as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
+                k = (ptr[j as usize]).wrapping_sub(1) as i32;
                 if k < 0 as libc::c_int {
                     k += nblock;
                 }
@@ -1179,14 +1175,14 @@ unsafe fn mainSort(
                 if !bigDone[c1 as usize] {
                     let fresh11 = copyStart[c1 as usize];
                     copyStart[c1 as usize] += 1;
-                    *ptr.offset(fresh11 as isize) = k as u32;
+                    ptr[fresh11 as usize] = k as u32;
                 }
                 j += 1;
             }
 
             j = (ftab[(ss as usize + 1) << 8] & CLEARMASK) as i32 - 1;
             while j > copyEnd[ss as usize] {
-                k = (*ptr.offset(j as isize)).wrapping_sub(1 as libc::c_int as libc::c_uint) as i32;
+                k = (ptr[j as usize]).wrapping_sub(1) as i32;
                 if k < 0 as libc::c_int {
                     k += nblock;
                 }
@@ -1194,7 +1190,7 @@ unsafe fn mainSort(
                 if !bigDone[c1 as usize] {
                     let fresh12 = copyEnd[c1 as usize];
                     copyEnd[c1 as usize] -= 1;
-                    *ptr.offset(fresh12 as isize) = k as u32;
+                    ptr[fresh12 as usize] = k as u32;
                 }
                 j -= 1;
             }
@@ -1267,7 +1263,7 @@ unsafe fn mainSort(
 
             j = bbSize - 1 as libc::c_int;
             while j >= 0 as libc::c_int {
-                let a2update: i32 = *ptr.offset((bbStart + j) as isize) as i32;
+                let a2update: i32 = ptr[(bbStart + j) as usize] as i32;
                 let qVal: u16 = (j >> shifts) as u16;
                 quadrant[a2update as usize] = qVal;
                 if a2update < BZ_N_OVERSHOOT {
@@ -1301,7 +1297,6 @@ unsafe fn mainSort(
 ///    ftab [ 0 .. 65536 ] destroyed
 ///    arr1 [0 .. nblock-1] holds sorted order
 pub unsafe fn BZ2_blockSort(s: &mut EState) {
-    let ptr: *mut u32 = s.ptr; // aka s.arr1
     let block: *mut u8 = s.block; // aka s.arr2
     let nblock: i32 = s.nblock;
     let verb: i32 = s.verbosity;
@@ -1309,16 +1304,16 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     let budgetInit: i32;
     let mut i: i32;
 
+    let ptr = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
+
     // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
     core::ptr::write_bytes(s.ftab, 0, FTAB_LEN);
     let ftab = s.ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
 
     if nblock < 10000 {
-        let fmap = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
-
         let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
 
-        fallbackSort(fmap, eclass, ftab, nblock, verb);
+        fallbackSort(ptr, eclass, ftab, nblock, verb);
     } else {
         /* Calculate the location for quadrant, remembering to get
            the alignment right.  Assumes that &(block[0]) is at least
@@ -1375,7 +1370,7 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
 
     s.origPtr = -1 as libc::c_int;
     for i in 0..s.nblock {
-        if *ptr.offset(i as isize) == 0 {
+        if ptr[i as usize] == 0 {
             s.origPtr = i;
             break;
         }
