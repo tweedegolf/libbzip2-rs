@@ -7,7 +7,7 @@ use crate::{
 
 /// Fallback O(N log(N)^2) sorting algorithm, for repetitive blocks      
 #[inline]
-unsafe fn fallbackSimpleSort(fmap: &mut [u32], eclass: *mut u32, lo: i32, hi: i32) {
+unsafe fn fallbackSimpleSort(fmap: &mut [u32], eclass: &[u32], lo: i32, hi: i32) {
     let mut j: i32;
     let mut tmp: i32;
     let mut ec_tmp: u32;
@@ -19,9 +19,9 @@ unsafe fn fallbackSimpleSort(fmap: &mut [u32], eclass: *mut u32, lo: i32, hi: i3
     if hi - lo > 3 {
         for i in (lo..=hi - 4).rev() {
             tmp = fmap[i as usize] as i32;
-            ec_tmp = *eclass.offset(tmp as isize);
+            ec_tmp = eclass[tmp as usize];
             j = i + 4;
-            while j <= hi && ec_tmp > *eclass.offset(fmap[j as usize] as isize) {
+            while j <= hi && ec_tmp > eclass[fmap[j as usize] as usize] {
                 fmap[(j - 4) as usize] = fmap[j as usize];
                 j += 4;
             }
@@ -31,9 +31,9 @@ unsafe fn fallbackSimpleSort(fmap: &mut [u32], eclass: *mut u32, lo: i32, hi: i3
 
     for i in (lo..=hi - 1).rev() {
         tmp = fmap[i as usize] as i32;
-        ec_tmp = *eclass.offset(tmp as isize);
+        ec_tmp = eclass[tmp as usize];
         j = i + 1;
-        while j <= hi && ec_tmp > *eclass.offset(fmap[j as usize] as isize) {
+        while j <= hi && ec_tmp > eclass[fmap[j as usize] as usize] {
             fmap[(j - 1) as usize] = fmap[j as usize];
             j += 1;
         }
@@ -44,7 +44,7 @@ unsafe fn fallbackSimpleSort(fmap: &mut [u32], eclass: *mut u32, lo: i32, hi: i3
 const FALLBACK_QSORT_SMALL_THRESH: i32 = 10;
 const FALLBACK_QSORT_STACK_SIZE: usize = 100;
 
-unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i32) {
+unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: &[u32], loSt: i32, hiSt: i32) {
     let mut unLo: i32;
     let mut unHi: i32;
     let mut ltLo: i32;
@@ -111,7 +111,7 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
             1 => fmap[((lo + hi) >> 1) as usize],
             _ => fmap[hi as usize],
         };
-        let med = *eclass.add(index as usize);
+        let med = eclass[index as usize];
 
         ltLo = lo;
         unLo = lo;
@@ -121,7 +121,7 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
 
         loop {
             while unLo <= unHi {
-                match (*eclass.offset(fmap[unLo as usize] as isize)).cmp(&med) {
+                match eclass[fmap[unLo as usize] as usize].cmp(&med) {
                     Ordering::Greater => break,
                     Ordering::Equal => {
                         fmap.swap(unLo as usize, ltLo as usize);
@@ -135,7 +135,7 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
             }
 
             while unLo <= unHi {
-                match (*eclass.offset(fmap[unLo as usize] as isize)).cmp(&med) {
+                match eclass[fmap[unLo as usize] as usize].cmp(&med) {
                     Ordering::Greater => break,
                     Ordering::Equal => {
                         fmap.swap(unHi as usize, gtHi as usize);
@@ -335,13 +335,13 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
             /*-- now [l, r] bracket current bucket --*/
             if r > l {
                 nNotDone += r - l + 1;
-                // let eclass8 = core::slice::from_raw_parts_mut(eclass as *mut u8, 4 * (nblock + BZ_N_OVERSHOOT) as usize);
+                let eclass = core::slice::from_raw_parts_mut(eclass, nblock as usize);
                 fallbackQSort3(fmap, eclass, l, r);
 
                 /*-- scan bucket and generate header bits-- */
                 cc = -1;
                 for i in l..=r {
-                    cc1 = *eclass.offset(fmap[i as usize] as isize) as i32;
+                    cc1 = eclass[fmap[i as usize] as usize] as i32;
                     if cc != cc1 {
                         SET_BH!(i);
                         cc = cc1;
