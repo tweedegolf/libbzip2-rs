@@ -1267,25 +1267,25 @@ unsafe fn mainSort(
 ///    ftab [ 0 .. 65536 ] destroyed
 ///    arr1 [0 .. nblock-1] holds sorted order
 pub unsafe fn BZ2_blockSort(s: &mut EState) {
-    let ptr: *mut u32 = s.ptr;
-    let block: *mut u8 = s.block;
-    let ftab: *mut u32 = s.ftab;
+    let ptr: *mut u32 = s.ptr; // aka s.arr1
+    let block: *mut u8 = s.block; // aka s.arr2
     let nblock: i32 = s.nblock;
     let verb: i32 = s.verbosity;
     let quadrant: *mut u16;
     let mut budget: i32;
     let budgetInit: i32;
     let mut i: i32;
+
+    // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
+    core::ptr::write_bytes(s.ftab, 0, FTAB_LEN);
+    let ftab = s.ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
+
     if nblock < 10000 {
         let fmap = core::slice::from_raw_parts_mut(s.arr1, nblock as usize);
 
         let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
 
-        // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
-        core::ptr::write_bytes(ftab, 0, FTAB_LEN);
-        let bhtab = ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
-
-        fallbackSort(fmap, eclass, bhtab, nblock, verb);
+        fallbackSort(fmap, eclass, ftab, nblock, verb);
     } else {
         /* Calculate the location for quadrant, remembering to get
            the alignment right.  Assumes that &(block[0]) is at least
@@ -1309,7 +1309,15 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
         budgetInit = nblock * ((wfact - 1) / 3);
         budget = budgetInit;
 
-        mainSort(ptr, block, quadrant, ftab, nblock, verb, &mut budget);
+        mainSort(
+            ptr,
+            block,
+            quadrant,
+            ftab.as_mut_ptr().cast(),
+            nblock,
+            verb,
+            &mut budget,
+        );
 
         if verb >= 3 {
             eprintln!(
@@ -1331,11 +1339,7 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
 
             let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
 
-            // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
-            core::ptr::write_bytes(ftab, 0, FTAB_LEN);
-            let bhtab = ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
-
-            fallbackSort(fmap, eclass, bhtab, nblock, verb);
+            fallbackSort(fmap, eclass, ftab, nblock, verb);
         }
     }
 
