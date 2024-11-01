@@ -7,7 +7,7 @@ use crate::{
 
 /// Fallback O(N log(N)^2) sorting algorithm, for repetitive blocks      
 #[inline]
-unsafe fn fallbackSimpleSort(fmap: &mut [u32], eclass: &[u32], lo: i32, hi: i32) {
+fn fallbackSimpleSort(fmap: &mut [u32], eclass: &[u32], lo: i32, hi: i32) {
     let mut j: i32;
     let mut tmp: i32;
     let mut ec_tmp: u32;
@@ -44,7 +44,7 @@ unsafe fn fallbackSimpleSort(fmap: &mut [u32], eclass: &[u32], lo: i32, hi: i32)
 const FALLBACK_QSORT_SMALL_THRESH: i32 = 10;
 const FALLBACK_QSORT_STACK_SIZE: usize = 100;
 
-unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: &[u32], loSt: i32, hiSt: i32) {
+fn fallbackQSort3(fmap: &mut [u32], eclass: &[u32], loSt: i32, hiSt: i32) {
     let mut unLo: i32;
     let mut unHi: i32;
     let mut ltLo: i32;
