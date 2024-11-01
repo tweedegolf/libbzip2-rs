@@ -185,7 +185,40 @@ unsafe fn fallbackQSort3(fmap: *mut u32, eclass: *mut u32, loSt: i32, hiSt: i32)
         }
     }
 }
+
 unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock: i32, verb: i32) {
+    macro_rules! SET_BH {
+        ($zz:expr) => {
+            let fresh0 = &mut *bhtab.offset(($zz >> 5) as isize);
+            *fresh0 |= 1 << ($zz & 31);
+        };
+    }
+
+    macro_rules! CLEAR_BH {
+        ($zz:expr) => {
+            let fresh0 = &mut *bhtab.offset(($zz >> 5) as isize);
+            *fresh0 &= !(1 << ($zz & 31));
+        };
+    }
+
+    macro_rules! ISSET_BH {
+        ($zz:expr) => {
+            *bhtab.offset(($zz >> 5) as isize) & 1u32 << ($zz & 31) != 0
+        };
+    }
+
+    macro_rules! UNALIGNED_BH {
+        ($zz:expr) => {
+            ($zz & 0x01f) != 0
+        };
+    }
+
+    macro_rules! WORD_BH {
+        ($zz:expr) => {
+            *bhtab.offset(($zz >> 5) as isize)
+        };
+    }
+
     let mut ftab: [i32; 257] = [0; 257];
     let mut ftabCopy: [i32; 256] = [0; 256];
     let mut H: i32;
@@ -197,184 +230,151 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
     let mut cc: i32;
     let mut cc1: i32;
     let mut nNotDone: i32;
-    let nBhtab: i32;
     let eclass8: *mut u8 = eclass as *mut u8;
-    if verb >= 4 as libc::c_int {
+
+    /*--
+       Initial 1-char radix sort to generate
+       initial fmap and initial BH bits.
+    --*/
+    if verb >= 4 {
         eprintln!("        bucket sorting ...");
     }
-    i = 0 as libc::c_int;
-    while i < 257 as libc::c_int {
-        ftab[i as usize] = 0 as libc::c_int;
-        i += 1;
-    }
-    i = 0 as libc::c_int;
-    while i < nblock {
+
+    ftab[0..257].fill(0);
+
+    for i in 0..nblock {
         ftab[*eclass8.offset(i as isize) as usize] += 1;
-        ftab[*eclass8.offset(i as isize) as usize];
-        i += 1;
     }
-    i = 0 as libc::c_int;
-    while i < 256 as libc::c_int {
-        ftabCopy[i as usize] = ftab[i as usize];
-        i += 1;
+
+    ftabCopy[0..256].copy_from_slice(&ftab[0..256]);
+
+    for i in 1..257 {
+        ftab[i] += ftab[i - 1];
     }
-    i = 1 as libc::c_int;
-    while i < 257 as libc::c_int {
-        ftab[i as usize] += ftab[(i - 1 as libc::c_int) as usize];
-        i += 1;
-    }
-    i = 0 as libc::c_int;
-    while i < nblock {
-        j = *eclass8.offset(i as isize) as i32;
-        k = ftab[j as usize] - 1 as libc::c_int;
+
+    for i in 0..nblock as usize {
+        j = *eclass8.add(i) as i32;
+        k = ftab[j as usize] - 1;
         ftab[j as usize] = k;
         *fmap.offset(k as isize) = i as u32;
-        i += 1;
     }
-    nBhtab = 2 as libc::c_int + nblock / 32 as libc::c_int;
-    i = 0 as libc::c_int;
-    while i < nBhtab {
-        *bhtab.offset(i as isize) = 0 as libc::c_int as u32;
-        i += 1;
+
+    for i in 0..2 + nblock / 32 {
+        *bhtab.offset(i as isize) = 0;
     }
-    i = 0 as libc::c_int;
-    while i < 256 as libc::c_int {
-        let fresh0 = &mut (*bhtab.offset((ftab[i as usize] >> 5 as libc::c_int) as isize));
-        *fresh0 |= (1 as libc::c_int as u32) << (ftab[i as usize] & 31 as libc::c_int);
-        i += 1;
+
+    for i in 0..256 {
+        SET_BH!(ftab[i]);
     }
-    i = 0 as libc::c_int;
-    while i < 32 as libc::c_int {
-        let fresh1 =
-            &mut (*bhtab.offset(((nblock + 2 as libc::c_int * i) >> 5 as libc::c_int) as isize));
-        *fresh1 |=
-            (1 as libc::c_int as u32) << ((nblock + 2 as libc::c_int * i) & 31 as libc::c_int);
-        let fresh2 = &mut (*bhtab.offset(
-            ((nblock + 2 as libc::c_int * i + 1 as libc::c_int) >> 5 as libc::c_int) as isize,
-        ));
-        *fresh2 &= !((1 as libc::c_int as u32)
-            << ((nblock + 2 as libc::c_int * i + 1 as libc::c_int) & 31 as libc::c_int));
-        i += 1;
+
+    /*--
+       Inductively refine the buckets.  Kind-of an
+       "exponential radix sort" (!), inspired by the
+       Manber-Myers suffix array construction algorithm.
+    --*/
+
+    /*-- set sentinel bits for block-end detection --*/
+    for i in 0..32 {
+        SET_BH!(nblock + 2 * i);
+        CLEAR_BH!(nblock + 2 * i + 1);
     }
-    H = 1 as libc::c_int;
+
+    /*-- the log(N) loop --*/
+    H = 1;
     loop {
-        if verb >= 4 as libc::c_int {
+        if verb >= 4 {
             eprint!("        depth {:>6} has ", H);
         }
-        j = 0 as libc::c_int;
-        i = 0 as libc::c_int;
+        j = 0;
+        i = 0;
         while i < nblock {
-            if *bhtab.offset((i >> 5 as libc::c_int) as isize)
-                & (1 as libc::c_int as u32) << (i & 31 as libc::c_int)
-                != 0
-            {
+            if ISSET_BH!(i) {
                 j = i;
             }
             k = (*fmap.offset(i as isize)).wrapping_sub(H as libc::c_uint) as i32;
-            if k < 0 as libc::c_int {
+            if k < 0 {
                 k += nblock;
             }
             *eclass.offset(k as isize) = j as u32;
             i += 1;
         }
-        nNotDone = 0 as libc::c_int;
-        r = -1 as libc::c_int;
+        nNotDone = 0;
+        r = -1;
         loop {
-            k = r + 1 as libc::c_int;
-            while *bhtab.offset((k >> 5 as libc::c_int) as isize)
-                & (1 as libc::c_int as u32) << (k & 31 as libc::c_int)
-                != 0
-                && k & 0x1f as libc::c_int != 0
-            {
+            /*-- find the next non-singleton bucket --*/
+            k = r + 1;
+            while ISSET_BH!(k) && UNALIGNED_BH!(k) {
                 k += 1;
             }
-            if *bhtab.offset((k >> 5 as libc::c_int) as isize)
-                & (1 as libc::c_int as u32) << (k & 31 as libc::c_int)
-                != 0
-            {
-                while *bhtab.offset((k >> 5 as libc::c_int) as isize) == 0xffffffff as libc::c_uint
-                {
-                    k += 32 as libc::c_int;
+            if ISSET_BH!(k) {
+                while WORD_BH!(k) == 0xffffffff {
+                    k += 32;
                 }
-                while *bhtab.offset((k >> 5 as libc::c_int) as isize)
-                    & (1 as libc::c_int as u32) << (k & 31 as libc::c_int)
-                    != 0
-                {
+                while ISSET_BH!(k) {
                     k += 1;
                 }
             }
-            l = k - 1 as libc::c_int;
+            l = k - 1;
             if l >= nblock {
                 break;
             }
-            while *bhtab.offset((k >> 5 as libc::c_int) as isize)
-                & (1 as libc::c_int as u32) << (k & 31 as libc::c_int)
-                == 0
-                && k & 0x1f as libc::c_int != 0
-            {
+            while !ISSET_BH!(k) && UNALIGNED_BH!(k) {
                 k += 1;
             }
-            if *bhtab.offset((k >> 5 as libc::c_int) as isize)
-                & (1 as libc::c_int as u32) << (k & 31 as libc::c_int)
-                == 0
-            {
-                while *bhtab.offset((k >> 5 as libc::c_int) as isize)
-                    == 0 as libc::c_int as libc::c_uint
-                {
-                    k += 32 as libc::c_int;
+            if !ISSET_BH!(k) {
+                while WORD_BH!(k) == 0x00000000 {
+                    k += 32;
                 }
-                while *bhtab.offset((k >> 5 as libc::c_int) as isize)
-                    & (1 as libc::c_int as u32) << (k & 31 as libc::c_int)
-                    == 0
-                {
+                while !ISSET_BH!(k) {
                     k += 1;
                 }
             }
-            r = k - 1 as libc::c_int;
+            r = k - 1;
             if r >= nblock {
                 break;
             }
+
+            /*-- now [l, r] bracket current bucket --*/
             if r > l {
-                nNotDone += r - l + 1 as libc::c_int;
+                nNotDone += r - l + 1;
                 fallbackQSort3(fmap, eclass, l, r);
-                cc = -1 as libc::c_int;
-                i = l;
-                while i <= r {
+
+                /*-- scan bucket and generate header bits-- */
+                cc = -1;
+                for i in l..=r {
                     cc1 = *eclass.offset(*fmap.offset(i as isize) as isize) as i32;
                     if cc != cc1 {
-                        let fresh3 = &mut (*bhtab.offset((i >> 5 as libc::c_int) as isize));
-                        *fresh3 |= (1 as libc::c_int as u32) << (i & 31 as libc::c_int);
+                        SET_BH!(i);
                         cc = cc1;
                     }
-                    i += 1;
                 }
             }
         }
-        if verb >= 4 as libc::c_int {
+        if verb >= 4 {
             eprintln!("{:>6} unresolved strings", nNotDone);
         }
-        H *= 2 as libc::c_int;
-        if H > nblock || nNotDone == 0 as libc::c_int {
+        H *= 2;
+        if H > nblock || nNotDone == 0 {
             break;
         }
     }
-    if verb >= 4 as libc::c_int {
+
+    if verb >= 4 {
         eprintln!("        reconstructing block ...");
     }
-    j = 0 as libc::c_int;
-    i = 0 as libc::c_int;
-    while i < nblock {
-        while ftabCopy[j as usize] == 0 as libc::c_int {
+
+    let mut j = 0;
+    for i in 0..nblock {
+        while ftabCopy[j] == 0 {
             j += 1;
         }
-        ftabCopy[j as usize] -= 1;
-        ftabCopy[j as usize];
+        ftabCopy[j] -= 1;
         *eclass8.offset(*fmap.offset(i as isize) as isize) = j as u8;
-        i += 1;
     }
 
     assert_h!(j < 256, 1005);
 }
+
 #[inline]
 unsafe fn mainGtU(
     mut i1: u32,
