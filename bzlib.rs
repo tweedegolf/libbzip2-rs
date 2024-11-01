@@ -457,63 +457,61 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     0
 }
 
-unsafe fn add_pair_to_block(s: *mut EState) {
-    let mut i: i32;
-    let ch: u8 = (*s).state_in_ch as u8;
-    i = 0 as libc::c_int;
-    while i < (*s).state_in_len {
-        (*s).blockCRC = (*s).blockCRC << 8 as libc::c_int
-            ^ BZ2_CRC32TABLE[((*s).blockCRC >> 24 as libc::c_int ^ ch as libc::c_uint) as usize];
-        i += 1;
-    }
-    (*s).inUse[(*s).state_in_ch as usize] = true;
-    match (*s).state_in_len {
-        1 => {
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-        }
-        2 => {
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-        }
-        3 => {
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-        }
-        _ => {
-            (*s).inUse[((*s).state_in_len - 4 as libc::c_int) as usize] = true;
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-            *((*s).block).offset((*s).nblock as isize) = ch;
-            (*s).nblock += 1;
-            *((*s).block).offset((*s).nblock as isize) =
-                ((*s).state_in_len - 4 as libc::c_int) as u8;
-            (*s).nblock += 1;
-        }
-    };
-}
-unsafe fn flush_RL(s: &mut EState) {
-    if s.state_in_ch < 256 {
-        add_pair_to_block(s);
-    }
-    init_RL(s);
-}
-
 macro_rules! BZ_UPDATE_CRC {
     ($crcVar:expr, $cha:expr) => {
         let index = ($crcVar >> 24) ^ ($cha as core::ffi::c_uint);
         $crcVar = ($crcVar << 8) ^ BZ2_CRC32TABLE[index as usize];
     };
+}
+
+unsafe fn add_pair_to_block(s: &mut EState) {
+    let ch: u8 = s.state_in_ch as u8;
+
+    for _ in 0..s.state_in_len {
+        BZ_UPDATE_CRC!(s.blockCRC, ch);
+    }
+
+    s.inUse[s.state_in_ch as usize] = true;
+    match s.state_in_len {
+        1 => {
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+        }
+        2 => {
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+        }
+        3 => {
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+        }
+        _ => {
+            s.inUse[(s.state_in_len - 4) as usize] = true;
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+            *(s.block).offset(s.nblock as isize) = ch;
+            s.nblock += 1;
+            *(s.block).offset(s.nblock as isize) = (s.state_in_len - 4) as u8;
+            s.nblock += 1;
+        }
+    };
+}
+
+unsafe fn flush_RL(s: &mut EState) {
+    if s.state_in_ch < 256 {
+        add_pair_to_block(s);
+    }
+    init_RL(s);
 }
 
 macro_rules! ADD_CHAR_TO_BLOCK {
