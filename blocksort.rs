@@ -388,7 +388,7 @@ unsafe fn mainGtU(
     mut i1: u32,
     mut i2: u32,
     block: *mut u8,
-    quadrant: *mut u16,
+    quadrant: &mut [u16],
     nblock: u32,
     budget: &mut i32,
 ) -> bool {
@@ -491,8 +491,8 @@ unsafe fn mainGtU(
         if c1 != c2 {
             return c1 > c2;
         }
-        s1 = *quadrant.offset(i1 as isize);
-        s2 = *quadrant.offset(i2 as isize);
+        s1 = quadrant[i1 as usize];
+        s2 = quadrant[i2 as usize];
         if s1 != s2 {
             return s1 > s2;
         }
@@ -503,8 +503,8 @@ unsafe fn mainGtU(
         if c1 != c2 {
             return c1 > c2;
         }
-        s1 = *quadrant.offset(i1 as isize);
-        s2 = *quadrant.offset(i2 as isize);
+        s1 = quadrant[i1 as usize];
+        s2 = quadrant[i2 as usize];
         if s1 != s2 {
             return s1 > s2;
         }
@@ -515,8 +515,8 @@ unsafe fn mainGtU(
         if c1 != c2 {
             return c1 > c2;
         }
-        s1 = *quadrant.offset(i1 as isize);
-        s2 = *quadrant.offset(i2 as isize);
+        s1 = quadrant[i1 as usize];
+        s2 = quadrant[i2 as usize];
         if s1 != s2 {
             return s1 > s2;
         }
@@ -527,8 +527,8 @@ unsafe fn mainGtU(
         if c1 != c2 {
             return c1 > c2;
         }
-        s1 = *quadrant.offset(i1 as isize);
-        s2 = *quadrant.offset(i2 as isize);
+        s1 = quadrant[i1 as usize];
+        s2 = quadrant[i2 as usize];
         if s1 != s2 {
             return s1 > s2;
         }
@@ -539,8 +539,8 @@ unsafe fn mainGtU(
         if c1 != c2 {
             return c1 > c2;
         }
-        s1 = *quadrant.offset(i1 as isize);
-        s2 = *quadrant.offset(i2 as isize);
+        s1 = quadrant[i1 as usize];
+        s2 = quadrant[i2 as usize];
         if s1 != s2 {
             return s1 > s2;
         }
@@ -551,8 +551,8 @@ unsafe fn mainGtU(
         if c1 != c2 {
             return c1 > c2;
         }
-        s1 = *quadrant.offset(i1 as isize);
-        s2 = *quadrant.offset(i2 as isize);
+        s1 = quadrant[i1 as usize];
+        s2 = quadrant[i2 as usize];
         if s1 != s2 {
             return s1 > s2;
         }
@@ -563,8 +563,8 @@ unsafe fn mainGtU(
         if c1 != c2 {
             return c1 > c2;
         }
-        s1 = *quadrant.offset(i1 as isize);
-        s2 = *quadrant.offset(i2 as isize);
+        s1 = quadrant[i1 as usize];
+        s2 = quadrant[i2 as usize];
         if s1 != s2 {
             return s1 > s2;
         }
@@ -575,8 +575,8 @@ unsafe fn mainGtU(
         if c1 != c2 {
             return c1 > c2;
         }
-        s1 = *quadrant.offset(i1 as isize);
-        s2 = *quadrant.offset(i2 as isize);
+        s1 = quadrant[i1 as usize];
+        s2 = quadrant[i2 as usize];
         if s1 != s2 {
             return s1 > s2;
         }
@@ -614,7 +614,7 @@ static INCS: [i32; 14] = [
 unsafe fn mainSimpleSort(
     ptr: *mut u32,
     block: *mut u8,
-    quadrant: *mut u16,
+    quadrant: &mut [u16],
     nblock: i32,
     lo: i32,
     hi: i32,
@@ -734,7 +734,7 @@ const MAIN_QSORT_STACK_SIZE: i32 = 100;
 unsafe fn mainQSort3(
     ptr: *mut u32,
     block: *mut u8,
-    quadrant: *mut u16,
+    quadrant: &mut [u16],
     nblock: i32,
     loSt: i32,
     hiSt: i32,
@@ -1152,7 +1152,7 @@ unsafe fn mainSort(
                         mainQSort3(
                             ptr,
                             block,
-                            quadrant.as_mut_ptr(),
+                            quadrant,
                             nblock,
                             lo,
                             hi,
