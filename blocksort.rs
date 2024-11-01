@@ -1253,7 +1253,6 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     let ftab: *mut u32 = s.ftab;
     let nblock: i32 = s.nblock;
     let verb: i32 = s.verbosity;
-    let mut wfact: i32 = s.workFactor;
     let quadrant: *mut u16;
     let mut budget: i32;
     let budgetInit: i32;
@@ -1265,14 +1264,17 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
         if i & 1 as libc::c_int != 0 {
             i += 1;
         }
-        quadrant = &mut *block.offset(i as isize) as *mut u8 as *mut u16;
-        if wfact < 1 as libc::c_int {
-            wfact = 1 as libc::c_int;
-        }
-        if wfact > 100 as libc::c_int {
-            wfact = 100 as libc::c_int;
-        }
-        budgetInit = nblock * ((wfact - 1 as libc::c_int) / 3 as libc::c_int);
+        quadrant = block.offset(i as isize) as *mut u8 as *mut u16;
+
+        /* (wfact-1) / 3 puts the default-factor-30
+           transition point at very roughly the same place as
+           with v0.1 and v0.9.0.
+           Not that it particularly matters any more, since the
+           resulting compressed stream is now the same regardless
+           of whether or not we use the main sort or fallback sort.
+        */
+        let wfact = s.workFactor.clamp(1, 100);
+        budgetInit = nblock * ((wfact - 1) / 3);
         budget = budgetInit;
         mainSort(ptr, block, quadrant, ftab, nblock, verb, &mut budget);
         if verb >= 3 as libc::c_int {

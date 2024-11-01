@@ -150,7 +150,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
                 let rll_i: u8;
                 rtmp = yy[1];
                 yy[1] = yy[0];
-                ryy_j = &mut *yy.as_mut_ptr().offset(1) as *mut u8;
+                ryy_j = yy.as_mut_ptr().offset(1) as *mut u8;
                 rll_i = ll_i;
                 while rll_i != rtmp {
                     let rtmp2: u8;
@@ -160,7 +160,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
                     *ryy_j = rtmp2;
                 }
                 yy[0] = rtmp;
-                j = ryy_j.offset_from(&mut *yy.as_mut_ptr().offset(0) as *mut u8) as i32;
+                j = ryy_j.offset_from(yy.as_mut_ptr().offset(0) as *mut u8) as i32;
                 *mtfv.offset(wr as isize) = (j + 1) as u16;
                 wr += 1;
                 s.mtfFreq[(j + 1) as usize] += 1;
@@ -646,7 +646,7 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
         BZ2_blockSort(&mut *s);
     }
 
-    s.writer.zbits = &mut *(s.arr2 as *mut u8).offset(s.nblock as isize) as *mut u8;
+    s.writer.zbits = (s.arr2 as *mut u8).offset(s.nblock as isize) as *mut u8;
 
     /*-- If this is the first block, create the stream header. --*/
     if s.blockNo == 1 {
