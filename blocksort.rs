@@ -106,11 +106,12 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
             book, chapter 35.
         */
         r = r.wrapping_mul(7621).wrapping_add(1).wrapping_rem(32768);
-        let med = match r.wrapping_rem(3) {
-            0 => *eclass.offset(fmap[lo as usize] as isize),
-            1 => *eclass.offset(fmap[((lo + hi) >> 1) as usize] as isize),
-            _ => *eclass.offset(fmap[hi as usize] as isize),
+        let index = match r.wrapping_rem(3) {
+            0 => fmap[lo as usize],
+            1 => fmap[((lo + hi) >> 1) as usize],
+            _ => fmap[hi as usize],
         };
+        let med = *eclass.add(index as usize);
 
         ltLo = lo;
         unLo = lo;
@@ -182,7 +183,6 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
 
 unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock: i32, verb: i32) {
     let fmap = core::slice::from_raw_parts_mut(fmap, nblock as usize);
-    // let eclass8 = core::slice::from_raw_parts_mut(eclass as *mut u8, 4 * (nblock + BZ_N_OVERSHOOT) as usize);
 
     // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
     core::ptr::write_bytes(bhtab, 0, FTAB_LEN);
@@ -229,7 +229,6 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
     let mut cc: i32;
     let mut cc1: i32;
     let mut nNotDone: i32;
-    let eclass8: *mut u8 = eclass as *mut u8;
 
     /*--
        Initial 1-char radix sort to generate
@@ -239,21 +238,25 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
         eprintln!("        bucket sorting ...");
     }
 
-    for i in 0..nblock {
-        ftab[*eclass8.offset(i as isize) as usize] += 1;
-    }
+    {
+        let eclass8 = core::slice::from_raw_parts(eclass as *mut u8, nblock as usize);
 
-    ftabCopy[0..256].copy_from_slice(&ftab[0..256]);
+        for e in eclass8 {
+            ftab[usize::from(*e)] += 1;
+        }
 
-    for i in 1..257 {
-        ftab[i] += ftab[i - 1];
-    }
+        ftabCopy[0..256].copy_from_slice(&ftab[0..256]);
 
-    for i in 0..nblock as usize {
-        j = *eclass8.add(i) as i32;
-        k = ftab[j as usize] - 1;
-        ftab[j as usize] = k;
-        fmap[k as usize] = i as u32;
+        for i in 1..257 {
+            ftab[i] += ftab[i - 1];
+        }
+
+        for (i, e) in eclass8.iter().enumerate() {
+            let j = usize::from(*e);
+            k = ftab[j] - 1;
+            ftab[j] = k;
+            fmap[k as usize] = i as u32;
+        }
     }
 
     bhtab[0..2 + nblock as usize / 32].fill(0);
@@ -332,6 +335,7 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
             /*-- now [l, r] bracket current bucket --*/
             if r > l {
                 nNotDone += r - l + 1;
+                // let eclass8 = core::slice::from_raw_parts_mut(eclass as *mut u8, 4 * (nblock + BZ_N_OVERSHOOT) as usize);
                 fallbackQSort3(fmap, eclass, l, r);
 
                 /*-- scan bucket and generate header bits-- */
@@ -358,13 +362,17 @@ unsafe fn fallbackSort(fmap: *mut u32, eclass: *mut u32, bhtab: *mut u32, nblock
         eprintln!("        reconstructing block ...");
     }
 
-    let mut j = 0;
-    for i in 0..nblock {
-        while ftabCopy[j] == 0 {
-            j += 1;
+    {
+        let eclass8 = core::slice::from_raw_parts_mut(eclass as *mut u8, nblock as usize);
+
+        let mut j = 0;
+        for i in 0..nblock {
+            while ftabCopy[j] == 0 {
+                j += 1;
+            }
+            ftabCopy[j] -= 1;
+            eclass8[fmap[i as usize] as usize] = j as u8;
         }
-        ftabCopy[j] -= 1;
-        *eclass8.offset(fmap[i as usize] as isize) = j as u8;
     }
 
     assert_h!(j < 256, 1005);
