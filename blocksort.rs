@@ -387,7 +387,7 @@ fn fallbackSort(
 unsafe fn mainGtU(
     mut i1: u32,
     mut i2: u32,
-    block: *mut u8,
+    block: &[u8],
     quadrant: &mut [u16],
     nblock: u32,
     budget: &mut i32,
@@ -400,85 +400,85 @@ unsafe fn mainGtU(
 
     debug_assert_ne!(i1, i2, "mainGtU");
 
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    c1 = *block.offset(i1 as isize);
-    c2 = *block.offset(i2 as isize);
+    c1 = block[i1 as usize];
+    c2 = block[i2 as usize];
     if c1 != c2 {
         return c1 > c2;
     }
@@ -486,8 +486,8 @@ unsafe fn mainGtU(
     i2 = i2.wrapping_add(1);
     k = nblock.wrapping_add(8 as libc::c_int as libc::c_uint) as i32;
     loop {
-        c1 = *block.offset(i1 as isize);
-        c2 = *block.offset(i2 as isize);
+        c1 = block[i1 as usize];
+        c2 = block[i2 as usize];
         if c1 != c2 {
             return c1 > c2;
         }
@@ -498,8 +498,8 @@ unsafe fn mainGtU(
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
-        c1 = *block.offset(i1 as isize);
-        c2 = *block.offset(i2 as isize);
+        c1 = block[i1 as usize];
+        c2 = block[i2 as usize];
         if c1 != c2 {
             return c1 > c2;
         }
@@ -510,8 +510,8 @@ unsafe fn mainGtU(
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
-        c1 = *block.offset(i1 as isize);
-        c2 = *block.offset(i2 as isize);
+        c1 = block[i1 as usize];
+        c2 = block[i2 as usize];
         if c1 != c2 {
             return c1 > c2;
         }
@@ -522,8 +522,8 @@ unsafe fn mainGtU(
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
-        c1 = *block.offset(i1 as isize);
-        c2 = *block.offset(i2 as isize);
+        c1 = block[i1 as usize];
+        c2 = block[i2 as usize];
         if c1 != c2 {
             return c1 > c2;
         }
@@ -534,8 +534,8 @@ unsafe fn mainGtU(
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
-        c1 = *block.offset(i1 as isize);
-        c2 = *block.offset(i2 as isize);
+        c1 = block[i1 as usize];
+        c2 = block[i2 as usize];
         if c1 != c2 {
             return c1 > c2;
         }
@@ -546,8 +546,8 @@ unsafe fn mainGtU(
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
-        c1 = *block.offset(i1 as isize);
-        c2 = *block.offset(i2 as isize);
+        c1 = block[i1 as usize];
+        c2 = block[i2 as usize];
         if c1 != c2 {
             return c1 > c2;
         }
@@ -558,8 +558,8 @@ unsafe fn mainGtU(
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
-        c1 = *block.offset(i1 as isize);
-        c2 = *block.offset(i2 as isize);
+        c1 = block[i1 as usize];
+        c2 = block[i2 as usize];
         if c1 != c2 {
             return c1 > c2;
         }
@@ -570,8 +570,8 @@ unsafe fn mainGtU(
         }
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
-        c1 = *block.offset(i1 as isize);
-        c2 = *block.offset(i2 as isize);
+        c1 = block[i1 as usize];
+        c2 = block[i2 as usize];
         if c1 != c2 {
             return c1 > c2;
         }
@@ -613,7 +613,7 @@ static INCS: [i32; 14] = [
 ];
 unsafe fn mainSimpleSort(
     ptr: *mut u32,
-    block: *mut u8,
+    block: &[u8],
     quadrant: &mut [u16],
     nblock: i32,
     lo: i32,
@@ -733,7 +733,7 @@ const MAIN_QSORT_STACK_SIZE: i32 = 100;
 
 unsafe fn mainQSort3(
     ptr: *mut u32,
-    block: *mut u8,
+    block: &[u8],
     quadrant: &mut [u16],
     nblock: i32,
     loSt: i32,
@@ -777,12 +777,10 @@ unsafe fn mainQSort3(
             }
         } else {
             med = mmed3(
-                *block.offset((*ptr.offset(lo as isize)).wrapping_add(d as libc::c_uint) as isize),
-                *block.offset((*ptr.offset(hi as isize)).wrapping_add(d as libc::c_uint) as isize),
-                *block.offset(
-                    (*ptr.offset(((lo + hi) >> 1 as libc::c_int) as isize))
-                        .wrapping_add(d as libc::c_uint) as isize,
-                ),
+                block[(*ptr.offset(lo as isize)).wrapping_add(d as libc::c_uint) as usize],
+                block[(*ptr.offset(hi as isize)).wrapping_add(d as libc::c_uint) as usize],
+                block[((*ptr.offset(((lo + hi) >> 1 as libc::c_int) as isize))
+                    .wrapping_add(d as libc::c_uint) as isize) as usize],
             ) as i32;
             ltLo = lo;
             unLo = ltLo;
@@ -793,11 +791,9 @@ unsafe fn mainQSort3(
                     if unLo > unHi {
                         break;
                     }
-                    n =
-                        *block
-                            .offset((*ptr.offset(unLo as isize)).wrapping_add(d as libc::c_uint)
-                                as isize) as i32
-                            - med;
+                    n = block[(*ptr.offset(unLo as isize)).wrapping_add(d as libc::c_uint) as usize]
+                        as i32
+                        - med;
                     if n == 0 as libc::c_int {
                         let zztmp: i32 = *ptr.offset(unLo as isize) as i32;
                         *ptr.offset(unLo as isize) = *ptr.offset(ltLo as isize);
@@ -815,11 +811,9 @@ unsafe fn mainQSort3(
                     if unLo > unHi {
                         break;
                     }
-                    n =
-                        *block
-                            .offset((*ptr.offset(unHi as isize)).wrapping_add(d as libc::c_uint)
-                                as isize) as i32
-                            - med;
+                    n = block[(*ptr.offset(unHi as isize)).wrapping_add(d as libc::c_uint) as usize]
+                        as i32
+                        - med;
                     if n == 0 as libc::c_int {
                         let zztmp_0: i32 = *ptr.offset(unHi as isize) as i32;
                         *ptr.offset(unHi as isize) = *ptr.offset(gtHi as isize);
@@ -1143,7 +1137,7 @@ unsafe fn mainSort(
                         }
                         mainQSort3(
                             ptr,
-                            block.as_mut_ptr(), // TODO
+                            block,
                             quadrant,
                             nblock,
                             lo,
