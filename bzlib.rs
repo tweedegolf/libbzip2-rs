@@ -560,7 +560,7 @@ unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
             strm.next_in = (strm.next_in).offset(1);
             strm.avail_in = (strm.avail_in).wrapping_sub(1);
             strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-            if strm.total_in_lo32 == 0 as libc::c_int as libc::c_uint {
+            if strm.total_in_lo32 == 0 {
                 strm.total_in_hi32 = ((*strm).total_in_hi32).wrapping_add(1);
             }
         },
@@ -588,26 +588,24 @@ unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
     progress_in
 }
 
-unsafe fn copy_output_until_stop(strm: *mut bz_stream) -> bool {
-    let s: *mut EState = (*strm).state as *mut EState;
+unsafe fn copy_output_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
     let mut progress_out = false;
 
     loop {
-        if (*strm).avail_out == 0 as libc::c_int as libc::c_uint {
+        if strm.avail_out == 0 {
             break;
         }
-        if (*s).state_out_pos >= (*s).writer.num_z as i32 {
+        if s.state_out_pos >= s.writer.num_z as i32 {
             break;
         }
         progress_out = true;
-        *(*strm).next_out =
-            *((*s).writer.zbits).offset((*s).state_out_pos as isize) as libc::c_char;
-        (*s).state_out_pos += 1;
-        (*strm).avail_out = ((*strm).avail_out).wrapping_sub(1);
-        (*strm).next_out = ((*strm).next_out).offset(1);
-        (*strm).total_out_lo32 = ((*strm).total_out_lo32).wrapping_add(1);
-        if (*strm).total_out_lo32 == 0 as libc::c_int as libc::c_uint {
-            (*strm).total_out_hi32 = ((*strm).total_out_hi32).wrapping_add(1);
+        *strm.next_out = *(s.writer.zbits).offset(s.state_out_pos as isize) as libc::c_char;
+        s.state_out_pos += 1;
+        strm.avail_out = (strm.avail_out).wrapping_sub(1);
+        strm.next_out = (strm.next_out).offset(1);
+        strm.total_out_lo32 = (strm.total_out_lo32).wrapping_add(1);
+        if strm.total_out_lo32 == 0 {
+            strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
         }
     }
     progress_out
@@ -619,7 +617,7 @@ unsafe fn handle_compress(strm: &mut bz_stream, s: &mut EState) -> bool {
 
     loop {
         if let State::Input = s.state {
-            progress_out |= copy_output_until_stop(strm);
+            progress_out |= copy_output_until_stop(strm, s);
             if s.state_out_pos < s.writer.num_z as i32 {
                 break;
             }
