@@ -771,7 +771,7 @@ fn mainQSort3(
         lo = stackLo[sp as usize];
         hi = stackHi[sp as usize];
         d = stackD[sp as usize];
-        if hi - lo < 20 as libc::c_int || d > 2 as libc::c_int + 12 as libc::c_int {
+        if hi - lo < MAIN_QSORT_SMALL_THRESH || d > MAIN_QSORT_DEPTH_THRESH {
             mainSimpleSort(ptr, block, quadrant, nblock, lo, hi, d, budget);
             if *budget < 0 as libc::c_int {
                 return;
