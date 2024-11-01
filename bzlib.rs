@@ -136,7 +136,7 @@ pub const BZ_N_QSORT: i32 = 12;
 const BZ_N_SHELL: i32 = 18;
 const BZ_N_OVERSHOOT: i32 = BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2;
 
-const FTAB_LEN: usize = (u16::MAX as usize + 1) * core::mem::size_of::<u32>();
+const FTAB_LEN: usize = (u16::MAX as usize + 2) * core::mem::size_of::<u32>();
 
 #[derive(Copy, Clone)]
 #[repr(C)]
