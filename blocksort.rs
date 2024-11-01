@@ -612,7 +612,7 @@ static INCS: [i32; 14] = [
     2391484 as libc::c_int,
 ];
 unsafe fn mainSimpleSort(
-    ptr: *mut u32,
+    ptr: &mut [u32],
     block: &[u8],
     quadrant: &mut [u16],
     nblock: i32,
@@ -643,65 +643,65 @@ unsafe fn mainSimpleSort(
             if i > hi {
                 break;
             }
-            v = *ptr.offset(i as isize);
+            v = ptr[i as usize];
             j = i;
             while mainGtU(
-                (*ptr.offset((j - h) as isize)).wrapping_add(d as libc::c_uint),
+                (ptr[(j - h) as usize]).wrapping_add(d as libc::c_uint),
                 v.wrapping_add(d as libc::c_uint),
                 block,
                 quadrant,
                 nblock as u32,
                 budget,
             ) {
-                *ptr.offset(j as isize) = *ptr.offset((j - h) as isize);
+                ptr[j as usize] = ptr[(j - h) as usize];
                 j -= h;
                 if j <= lo + h - 1 as libc::c_int {
                     break;
                 }
             }
-            *ptr.offset(j as isize) = v;
+            ptr[j as usize] = v;
             i += 1;
             if i > hi {
                 break;
             }
-            v = *ptr.offset(i as isize);
+            v = ptr[i as usize];
             j = i;
             while mainGtU(
-                (*ptr.offset((j - h) as isize)).wrapping_add(d as libc::c_uint),
+                (ptr[(j - h) as usize]).wrapping_add(d as libc::c_uint),
                 v.wrapping_add(d as libc::c_uint),
                 block,
                 quadrant,
                 nblock as u32,
                 budget,
             ) {
-                *ptr.offset(j as isize) = *ptr.offset((j - h) as isize);
+                ptr[j as usize] = ptr[(j - h) as usize];
                 j -= h;
                 if j <= lo + h - 1 as libc::c_int {
                     break;
                 }
             }
-            *ptr.offset(j as isize) = v;
+            ptr[j as usize] = v;
             i += 1;
             if i > hi {
                 break;
             }
-            v = *ptr.offset(i as isize);
+            v = ptr[i as usize];
             j = i;
             while mainGtU(
-                (*ptr.offset((j - h) as isize)).wrapping_add(d as libc::c_uint),
+                (ptr[(j - h) as usize]).wrapping_add(d as libc::c_uint),
                 v.wrapping_add(d as libc::c_uint),
                 block,
                 quadrant,
                 nblock as u32,
                 budget,
             ) {
-                *ptr.offset(j as isize) = *ptr.offset((j - h) as isize);
+                ptr[j as usize] = ptr[(j - h) as usize];
                 j -= h;
                 if j <= lo + h - 1 as libc::c_int {
                     break;
                 }
             }
-            *ptr.offset(j as isize) = v;
+            ptr[j as usize] = v;
             i += 1;
             if *budget < 0 as libc::c_int {
                 return;
@@ -710,17 +710,18 @@ unsafe fn mainSimpleSort(
         hp -= 1;
     }
 }
+
 #[inline]
-unsafe fn mmed3(mut a: u8, mut b: u8, c: u8) -> u8 {
+fn mmed3(mut a: u8, mut b: u8, c: u8) -> u8 {
     let t: u8;
-    if a as libc::c_int > b as libc::c_int {
+    if a > b {
         t = a;
         a = b;
         b = t;
     }
-    if b as libc::c_int > c as libc::c_int {
+    if b > c {
         b = c;
-        if a as libc::c_int > b as libc::c_int {
+        if a > b {
             b = a;
         }
     }
@@ -732,7 +733,7 @@ const MAIN_QSORT_DEPTH_THRESH: i32 = BZ_N_RADIX + BZ_N_QSORT;
 const MAIN_QSORT_STACK_SIZE: i32 = 100;
 
 unsafe fn mainQSort3(
-    ptr: *mut u32,
+    ptr: &mut [u32],
     block: &[u8],
     quadrant: &mut [u16],
     nblock: i32,
@@ -777,9 +778,9 @@ unsafe fn mainQSort3(
             }
         } else {
             med = mmed3(
-                block[(*ptr.offset(lo as isize)).wrapping_add(d as libc::c_uint) as usize],
-                block[(*ptr.offset(hi as isize)).wrapping_add(d as libc::c_uint) as usize],
-                block[((*ptr.offset(((lo + hi) >> 1 as libc::c_int) as isize))
+                block[(ptr[lo as usize]).wrapping_add(d as libc::c_uint) as usize],
+                block[(ptr[hi as usize]).wrapping_add(d as libc::c_uint) as usize],
+                block[((ptr[((lo + hi) >> 1 as libc::c_int) as usize])
                     .wrapping_add(d as libc::c_uint) as isize) as usize],
             ) as i32;
             ltLo = lo;
@@ -791,13 +792,12 @@ unsafe fn mainQSort3(
                     if unLo > unHi {
                         break;
                     }
-                    n = block[(*ptr.offset(unLo as isize)).wrapping_add(d as libc::c_uint) as usize]
-                        as i32
+                    n = block[(ptr[unLo as usize]).wrapping_add(d as libc::c_uint) as usize] as i32
                         - med;
                     if n == 0 as libc::c_int {
-                        let zztmp: i32 = *ptr.offset(unLo as isize) as i32;
-                        *ptr.offset(unLo as isize) = *ptr.offset(ltLo as isize);
-                        *ptr.offset(ltLo as isize) = zztmp as u32;
+                        let zztmp: i32 = ptr[unLo as usize] as i32;
+                        ptr[unLo as usize] = ptr[ltLo as usize];
+                        ptr[ltLo as usize] = zztmp as u32;
                         ltLo += 1;
                         unLo += 1;
                     } else {
@@ -811,13 +811,12 @@ unsafe fn mainQSort3(
                     if unLo > unHi {
                         break;
                     }
-                    n = block[(*ptr.offset(unHi as isize)).wrapping_add(d as libc::c_uint) as usize]
-                        as i32
+                    n = block[(ptr[unHi as usize]).wrapping_add(d as libc::c_uint) as usize] as i32
                         - med;
                     if n == 0 as libc::c_int {
-                        let zztmp_0: i32 = *ptr.offset(unHi as isize) as i32;
-                        *ptr.offset(unHi as isize) = *ptr.offset(gtHi as isize);
-                        *ptr.offset(gtHi as isize) = zztmp_0 as u32;
+                        let zztmp_0: i32 = ptr[unHi as usize] as i32;
+                        ptr[unHi as usize] = ptr[gtHi as usize];
+                        ptr[gtHi as usize] = zztmp_0 as u32;
                         gtHi -= 1;
                         unHi -= 1;
                     } else {
@@ -830,9 +829,9 @@ unsafe fn mainQSort3(
                 if unLo > unHi {
                     break;
                 }
-                let zztmp_1: i32 = *ptr.offset(unLo as isize) as i32;
-                *ptr.offset(unLo as isize) = *ptr.offset(unHi as isize);
-                *ptr.offset(unHi as isize) = zztmp_1 as u32;
+                let zztmp_1: i32 = ptr[unLo as usize] as i32;
+                ptr[unLo as usize] = ptr[unHi as usize];
+                ptr[unHi as usize] = zztmp_1 as u32;
                 unLo += 1;
                 unHi -= 1;
             }
@@ -851,9 +850,9 @@ unsafe fn mainQSort3(
                 let mut yyp2: i32 = unLo - n;
                 let mut yyn: i32 = n;
                 while yyn > 0 as libc::c_int {
-                    let zztmp_2: i32 = *ptr.offset(yyp1 as isize) as i32;
-                    *ptr.offset(yyp1 as isize) = *ptr.offset(yyp2 as isize);
-                    *ptr.offset(yyp2 as isize) = zztmp_2 as u32;
+                    let zztmp_2: i32 = ptr[yyp1 as usize] as i32;
+                    ptr[yyp1 as usize] = ptr[yyp2 as usize];
+                    ptr[yyp2 as usize] = zztmp_2 as u32;
                     yyp1 += 1;
                     yyp2 += 1;
                     yyn -= 1;
@@ -867,9 +866,9 @@ unsafe fn mainQSort3(
                 let mut yyp2_0: i32 = hi - m + 1 as libc::c_int;
                 let mut yyn_0: i32 = m;
                 while yyn_0 > 0 as libc::c_int {
-                    let zztmp_3: i32 = *ptr.offset(yyp1_0 as isize) as i32;
-                    *ptr.offset(yyp1_0 as isize) = *ptr.offset(yyp2_0 as isize);
-                    *ptr.offset(yyp2_0 as isize) = zztmp_3 as u32;
+                    let zztmp_3: i32 = ptr[yyp1_0 as usize] as i32;
+                    ptr[yyp1_0 as usize] = ptr[yyp2_0 as usize];
+                    ptr[yyp2_0 as usize] = zztmp_3 as u32;
                     yyp1_0 += 1;
                     yyp2_0 += 1;
                     yyn_0 -= 1;
@@ -1132,7 +1131,7 @@ unsafe fn mainSort(
                             );
                         }
                         mainQSort3(
-                            ptr.as_mut_ptr(),
+                            ptr,
                             block,
                             quadrant,
                             nblock,
