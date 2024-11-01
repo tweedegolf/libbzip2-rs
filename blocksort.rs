@@ -121,8 +121,7 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
 
         loop {
             while unLo <= unHi {
-                n = *eclass.offset(fmap[unLo as usize] as isize) as i32 - med as i32;
-                match n.cmp(&0) {
+                match (*eclass.offset(fmap[unLo as usize] as isize)).cmp(&med) {
                     Ordering::Greater => break,
                     Ordering::Equal => {
                         fmap.swap(unLo as usize, ltLo as usize);
@@ -136,8 +135,7 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
             }
 
             while unLo <= unHi {
-                n = *eclass.offset(fmap[unHi as usize] as isize) as i32 - med as i32;
-                match n.cmp(&0) {
+                match (*eclass.offset(fmap[unLo as usize] as isize)).cmp(&med) {
                     Ordering::Greater => break,
                     Ordering::Equal => {
                         fmap.swap(unHi as usize, gtHi as usize);
