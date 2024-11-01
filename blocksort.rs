@@ -1304,19 +1304,31 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     core::ptr::write_bytes(s.ftab, 0, FTAB_LEN);
     let ftab = s.ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
 
-    BZ2_blockSortHelp(s, ptr, ftab, nblock)
+    BZ2_blockSortHelp(ptr, s.arr2, ftab, nblock, s.workFactor, s.verbosity);
+
+    s.origPtr = -1 as libc::c_int;
+    for i in 0..s.nblock {
+        if ptr[i as usize] == 0 {
+            s.origPtr = i;
+            break;
+        }
+    }
+
+    assert_h!(s.origPtr != -1, 1003);
 }
 
 unsafe fn BZ2_blockSortHelp(
-    s: &mut EState,
     ptr: &mut [u32],
+    arr2: *mut u32,
     ftab: &mut [u32; FTAB_LEN],
     nblock: usize,
+    workFactor: i32,
+    verbosity: i32,
 ) {
     if nblock < 10000 {
-        let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
+        let eclass = core::slice::from_raw_parts_mut(arr2, nblock as usize);
 
-        fallbackSort(ptr, eclass, ftab, nblock as i32, s.verbosity);
+        fallbackSort(ptr, eclass, ftab, nblock as i32, verbosity);
     } else {
         /* Calculate the location for quadrant, remembering to get
            the alignment right.  Assumes that &(block[0]) is at least
@@ -1324,11 +1336,11 @@ unsafe fn BZ2_blockSortHelp(
            the first section of arr2.
         */
         let i = (nblock + BZ_N_OVERSHOOT2).next_multiple_of(2);
-        let quadrant: *mut u16 = s.arr2.wrapping_add(i) as *mut u8 as *mut u16;
+        let quadrant: *mut u16 = arr2.wrapping_add(i) as *mut u8 as *mut u16;
         core::ptr::write_bytes(quadrant, 0, nblock + BZ_N_OVERSHOOT2);
         let quadrant = core::slice::from_raw_parts_mut(quadrant, nblock + BZ_N_OVERSHOOT2);
 
-        let block = core::slice::from_raw_parts_mut(s.arr2 as *mut u8, nblock + BZ_N_OVERSHOOT2);
+        let block = core::slice::from_raw_parts_mut(arr2 as *mut u8, nblock + BZ_N_OVERSHOOT2);
 
         /* (wfact-1) / 3 puts the default-factor-30
            transition point at very roughly the same place as
@@ -1337,7 +1349,7 @@ unsafe fn BZ2_blockSortHelp(
            resulting compressed stream is now the same regardless
            of whether or not we use the main sort or fallback sort.
         */
-        let wfact = s.workFactor.clamp(1, 100);
+        let wfact = workFactor.clamp(1, 100);
         let budgetInit = nblock as i32 * ((wfact - 1) / 3);
         let mut budget = budgetInit;
 
@@ -1347,11 +1359,11 @@ unsafe fn BZ2_blockSortHelp(
             quadrant,
             ftab,
             nblock as i32,
-            s.verbosity,
+            verbosity,
             &mut budget,
         );
 
-        if s.verbosity >= 3 {
+        if verbosity >= 3 {
             eprintln!(
                 "      {} work, {} block, ratio {:5.2}",
                 budgetInit - budget,
@@ -1363,23 +1375,13 @@ unsafe fn BZ2_blockSortHelp(
         }
 
         if budget < 0 {
-            if s.verbosity >= 2 as libc::c_int {
+            if verbosity >= 2 as libc::c_int {
                 eprintln!("    too repetitive; using fallback sorting algorithm");
             }
 
-            let eclass = core::slice::from_raw_parts_mut(s.arr2, nblock as usize);
+            let eclass = core::slice::from_raw_parts_mut(arr2, nblock as usize);
 
-            fallbackSort(ptr, eclass, ftab, nblock as i32, s.verbosity);
+            fallbackSort(ptr, eclass, ftab, nblock as i32, verbosity);
         }
     }
-
-    s.origPtr = -1 as libc::c_int;
-    for i in 0..s.nblock {
-        if ptr[i as usize] == 0 {
-            s.origPtr = i;
-            break;
-        }
-    }
-
-    assert_h!(s.origPtr != -1, 1003);
 }
