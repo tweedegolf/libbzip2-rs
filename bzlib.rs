@@ -587,35 +587,38 @@ unsafe fn copy_input_until_stop(strm: *mut bz_stream) -> bool {
     }
     progress_in
 }
-unsafe fn copy_output_until_stop(s: *mut EState) -> bool {
+unsafe fn copy_output_until_stop(strm: *mut bz_stream) -> bool {
+    let s: *mut EState = (*strm).state as *mut EState;
     let mut progress_out = false;
+
     loop {
-        if (*(*s).strm).avail_out == 0 as libc::c_int as libc::c_uint {
+        if (*strm).avail_out == 0 as libc::c_int as libc::c_uint {
             break;
         }
         if (*s).state_out_pos >= (*s).writer.num_z as i32 {
             break;
         }
         progress_out = true;
-        *(*(*s).strm).next_out =
+        *(*strm).next_out =
             *((*s).writer.zbits).offset((*s).state_out_pos as isize) as libc::c_char;
         (*s).state_out_pos += 1;
-        (*(*s).strm).avail_out = ((*(*s).strm).avail_out).wrapping_sub(1);
-        (*(*s).strm).next_out = ((*(*s).strm).next_out).offset(1);
-        (*(*s).strm).total_out_lo32 = ((*(*s).strm).total_out_lo32).wrapping_add(1);
-        if (*(*s).strm).total_out_lo32 == 0 as libc::c_int as libc::c_uint {
-            (*(*s).strm).total_out_hi32 = ((*(*s).strm).total_out_hi32).wrapping_add(1);
+        (*strm).avail_out = ((*strm).avail_out).wrapping_sub(1);
+        (*strm).next_out = ((*strm).next_out).offset(1);
+        (*strm).total_out_lo32 = ((*strm).total_out_lo32).wrapping_add(1);
+        if (*strm).total_out_lo32 == 0 as libc::c_int as libc::c_uint {
+            (*strm).total_out_hi32 = ((*strm).total_out_hi32).wrapping_add(1);
         }
     }
     progress_out
 }
+
 unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
     let mut progress_in = false;
     let mut progress_out = false;
     let s: *mut EState = (*strm).state as *mut EState;
     loop {
         if let State::Input = (*s).state {
-            progress_out |= copy_output_until_stop(s);
+            progress_out |= copy_output_until_stop(strm);
             if (*s).state_out_pos < (*s).writer.num_z as i32 {
                 break;
             }
