@@ -101,7 +101,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
     makeMaps_e(s);
     let EOB = s.nInUse + 1;
 
-    s.mtfFreq[..EOB as usize].fill(0);
+    s.mtfFreq[..=EOB as usize].fill(0);
 
     let mut wr = 0;
     let mut zPend = 0;
