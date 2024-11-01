@@ -951,7 +951,7 @@ unsafe fn mainQSort3(
 }
 unsafe fn mainSort(
     ptr: *mut u32,
-    block: *mut u8,
+    block: &mut [u8],
     quadrant: &mut [u16],
     ftab: &mut [u32; FTAB_LEN],
     nblock: i32,
@@ -976,40 +976,32 @@ unsafe fn mainSort(
 
     // NOTE: the `ftab` has already been cleared in `BZ2_blockSort`.
 
-    j = (*block.offset(0 as libc::c_int as isize) as libc::c_int) << 8 as libc::c_int;
+    j = (block[0] as i32) << 8;
     i = nblock - 1 as libc::c_int;
     while i >= 3 as libc::c_int {
-        j = j >> 8 as libc::c_int
-            | (*block.offset(i as isize) as u16 as libc::c_int) << 8 as libc::c_int;
+        j = j >> 8 | (block[i as usize] as u16 as libc::c_int) << 8;
         ftab[j as usize] += 1;
 
-        j = j >> 8 as libc::c_int
-            | (*block.offset((i - 1 as libc::c_int) as isize) as u16 as libc::c_int)
-                << 8 as libc::c_int;
+        j = j >> 8 | (block[(i - 1 as libc::c_int) as usize] as u16 as libc::c_int) << 8;
         ftab[j as usize] += 1;
 
-        j = j >> 8 as libc::c_int
-            | (*block.offset((i - 2 as libc::c_int) as isize) as u16 as libc::c_int)
-                << 8 as libc::c_int;
+        j = j >> 8 | (block[(i - 2 as libc::c_int) as usize] as u16 as libc::c_int) << 8;
         ftab[j as usize] += 1;
 
-        j = j >> 8 as libc::c_int
-            | (*block.offset((i - 3 as libc::c_int) as isize) as u16 as libc::c_int)
-                << 8 as libc::c_int;
+        j = j >> 8 | (block[(i - 3 as libc::c_int) as usize] as u16 as libc::c_int) << 8;
         ftab[j as usize] += 1;
 
         i -= 4;
     }
 
     while i >= 0 as libc::c_int {
-        j = j >> 8 as libc::c_int
-            | (*block.offset(i as isize) as u16 as libc::c_int) << 8 as libc::c_int;
+        j = j >> 8 as libc::c_int | (block[i as usize] as u16 as libc::c_int) << 8 as libc::c_int;
         ftab[j as usize] += 1;
         i -= 1;
     }
 
     for i in 0..BZ_N_OVERSHOOT {
-        *block.offset((nblock + i) as isize) = *block.offset(i as isize);
+        block[(nblock + i) as usize] = block[i as usize];
     }
 
     if verb >= 4 as libc::c_int {
@@ -1021,31 +1013,31 @@ unsafe fn mainSort(
         ftab[i] += ftab[i - 1];
     }
 
-    s = ((*block.offset(0 as libc::c_int as isize) as libc::c_int) << 8 as libc::c_int) as u16;
+    s = ((block[0 as libc::c_int as usize] as libc::c_int) << 8 as libc::c_int) as u16;
     i = nblock - 1 as libc::c_int;
     while i >= 3 as libc::c_int {
         s = (s as libc::c_int >> 8 as libc::c_int
-            | (*block.offset(i as isize) as libc::c_int) << 8 as libc::c_int) as u16;
+            | (block[i as usize] as libc::c_int) << 8 as libc::c_int) as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
         *ptr.offset(j as isize) = i as u32;
 
         s = (s as libc::c_int >> 8 as libc::c_int
-            | (*block.offset((i - 1 as libc::c_int) as isize) as libc::c_int) << 8 as libc::c_int)
+            | (block[(i - 1 as libc::c_int) as usize] as libc::c_int) << 8 as libc::c_int)
             as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
         *ptr.offset(j as isize) = (i - 1 as libc::c_int) as u32;
 
         s = (s as libc::c_int >> 8 as libc::c_int
-            | (*block.offset((i - 2 as libc::c_int) as isize) as libc::c_int) << 8 as libc::c_int)
+            | (block[(i - 2 as libc::c_int) as usize] as libc::c_int) << 8 as libc::c_int)
             as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
         *ptr.offset(j as isize) = (i - 2 as libc::c_int) as u32;
 
         s = (s as libc::c_int >> 8 as libc::c_int
-            | (*block.offset((i - 3 as libc::c_int) as isize) as libc::c_int) << 8 as libc::c_int)
+            | (block[(i - 3 as libc::c_int) as usize] as libc::c_int) << 8 as libc::c_int)
             as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
@@ -1056,7 +1048,7 @@ unsafe fn mainSort(
 
     while i >= 0 as libc::c_int {
         s = (s as libc::c_int >> 8 as libc::c_int
-            | (*block.offset(i as isize) as libc::c_int) << 8 as libc::c_int) as u16;
+            | (block[i as usize] as libc::c_int) << 8 as libc::c_int) as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
         *ptr.offset(j as isize) = i as u32;
@@ -1151,7 +1143,7 @@ unsafe fn mainSort(
                         }
                         mainQSort3(
                             ptr,
-                            block,
+                            block.as_mut_ptr(), // TODO
                             quadrant,
                             nblock,
                             lo,
@@ -1189,7 +1181,7 @@ unsafe fn mainSort(
                 if k < 0 as libc::c_int {
                     k += nblock;
                 }
-                c1 = *block.offset(k as isize);
+                c1 = block[k as usize];
                 if !bigDone[c1 as usize] {
                     let fresh11 = copyStart[c1 as usize];
                     copyStart[c1 as usize] += 1;
@@ -1204,7 +1196,7 @@ unsafe fn mainSort(
                 if k < 0 as libc::c_int {
                     k += nblock;
                 }
-                c1 = *block.offset(k as isize);
+                c1 = block[k as usize];
                 if !bigDone[c1 as usize] {
                     let fresh12 = copyEnd[c1 as usize];
                     copyEnd[c1 as usize] -= 1;
@@ -1347,6 +1339,8 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
         core::ptr::write_bytes(quadrant, 0, (nblock + BZ_N_OVERSHOOT) as usize);
         let quadrant =
             core::slice::from_raw_parts_mut(quadrant, (nblock + BZ_N_OVERSHOOT) as usize);
+
+        let block = core::slice::from_raw_parts_mut(block, (nblock + BZ_N_OVERSHOOT) as usize);
 
         /* (wfact-1) / 3 puts the default-factor-30
            transition point at very roughly the same place as
