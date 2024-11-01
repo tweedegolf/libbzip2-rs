@@ -539,42 +539,44 @@ macro_rules! ADD_CHAR_TO_BLOCK {
     };
 }
 
-unsafe fn copy_input_until_stop(s: *mut EState) -> bool {
+unsafe fn copy_input_until_stop(strm: *mut bz_stream) -> bool {
+    let s: *mut EState = (*strm).state as *mut EState;
     let mut progress_in = false;
+
     match (*s).mode {
         Mode::Running => loop {
             if (*s).nblock >= (*s).nblockMAX {
                 break;
             }
-            if (*(*s).strm).avail_in == 0 {
+            if (*strm).avail_in == 0 {
                 break;
             }
             progress_in = true;
-            ADD_CHAR_TO_BLOCK!(s, *((*(*s).strm).next_in as *mut u8) as u32);
-            (*(*s).strm).next_in = ((*(*s).strm).next_in).offset(1);
-            (*(*s).strm).avail_in = ((*(*s).strm).avail_in).wrapping_sub(1);
-            (*(*s).strm).total_in_lo32 = ((*(*s).strm).total_in_lo32).wrapping_add(1);
-            if (*(*s).strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
-                (*(*s).strm).total_in_hi32 = ((*(*s).strm).total_in_hi32).wrapping_add(1);
+            ADD_CHAR_TO_BLOCK!(s, *((*strm).next_in as *mut u8) as u32);
+            (*strm).next_in = ((*strm).next_in).offset(1);
+            (*strm).avail_in = ((*strm).avail_in).wrapping_sub(1);
+            (*strm).total_in_lo32 = ((*strm).total_in_lo32).wrapping_add(1);
+            if (*strm).total_in_lo32 == 0 as libc::c_int as libc::c_uint {
+                (*strm).total_in_hi32 = ((*strm).total_in_hi32).wrapping_add(1);
             }
         },
         _ => loop {
             if (*s).nblock >= (*s).nblockMAX {
                 break;
             }
-            if (*(*s).strm).avail_in == 0 {
+            if (*strm).avail_in == 0 {
                 break;
             }
             if (*s).avail_in_expect == 0 {
                 break;
             }
             progress_in = true;
-            ADD_CHAR_TO_BLOCK!(s, *((*(*s).strm).next_in as *mut u8) as u32);
-            (*(*s).strm).next_in = ((*(*s).strm).next_in).offset(1);
-            (*(*s).strm).avail_in = ((*(*s).strm).avail_in).wrapping_sub(1);
-            (*(*s).strm).total_in_lo32 = ((*(*s).strm).total_in_lo32).wrapping_add(1);
-            if (*(*s).strm).total_in_lo32 == 0 {
-                (*(*s).strm).total_in_hi32 = ((*(*s).strm).total_in_hi32).wrapping_add(1);
+            ADD_CHAR_TO_BLOCK!(s, *((*strm).next_in as *mut u8) as u32);
+            (*strm).next_in = ((*strm).next_in).offset(1);
+            (*strm).avail_in = ((*strm).avail_in).wrapping_sub(1);
+            (*strm).total_in_lo32 = ((*strm).total_in_lo32).wrapping_add(1);
+            if (*strm).total_in_lo32 == 0 {
+                (*strm).total_in_hi32 = ((*strm).total_in_hi32).wrapping_add(1);
             }
             (*s).avail_in_expect = ((*s).avail_in_expect).wrapping_sub(1);
         },
@@ -631,7 +633,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
         if let State::Input = (*s).state {
             continue;
         }
-        progress_in |= copy_input_until_stop(s);
+        progress_in |= copy_input_until_stop(strm);
         if !matches!((*s).mode, Mode::Running)
             && (*s).avail_in_expect == 0 as libc::c_int as libc::c_uint
         {
@@ -642,7 +644,7 @@ unsafe fn handle_compress(strm: *mut bz_stream) -> bool {
         } else if (*s).nblock >= (*s).nblockMAX {
             BZ2_compressBlock(&mut *s, false);
             (*s).state = State::Input;
-        } else if (*(*s).strm).avail_in == 0 as libc::c_int as libc::c_uint {
+        } else if (*strm).avail_in == 0 as libc::c_int as libc::c_uint {
             break;
         }
     }
@@ -724,7 +726,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_in
                 let Ok(Action::Finish) = Action::try_from(action) else {
                     return -1;
                 };
-                if (*s).avail_in_expect != (*(*s).strm).avail_in {
+                if (*s).avail_in_expect != (*strm).avail_in {
                     return -1;
                 }
                 let progress = handle_compress(strm);
