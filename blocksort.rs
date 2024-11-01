@@ -54,7 +54,6 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
     let mut sp: usize;
     let mut lo: i32;
     let mut hi: i32;
-    let mut r3: u32;
     let mut stackLo: [i32; FALLBACK_QSORT_STACK_SIZE] = [0; FALLBACK_QSORT_STACK_SIZE];
     let mut stackHi: [i32; FALLBACK_QSORT_STACK_SIZE] = [0; FALLBACK_QSORT_STACK_SIZE];
 
@@ -168,8 +167,8 @@ unsafe fn fallbackQSort3(fmap: &mut [u32], eclass: *mut u32, loSt: i32, hiSt: i3
         m = Ord::min(hi - gtHi, gtHi - unHi);
         fvswap!(unLo, hi - m + 1, m);
 
-        n = lo + unLo - ltLo - 1 as libc::c_int;
-        m = hi - (gtHi - unHi) + 1 as libc::c_int;
+        n = lo + unLo - ltLo - 1;
+        m = hi - (gtHi - unHi) + 1;
 
         if n - lo > hi - m {
             fpush!(lo, n);
