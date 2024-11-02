@@ -795,49 +795,39 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     if strm.is_null() {
         return -2 as libc::c_int;
     }
-    if small != 0 as libc::c_int && small != 1 as libc::c_int {
+    if small != 0 && small != 1 {
         return -2 as libc::c_int;
     }
-    if verbosity < 0 as libc::c_int || verbosity > 4 as libc::c_int {
+    if verbosity < 0 || verbosity > 4 {
         return -2 as libc::c_int;
     }
-    if ((*strm).bzalloc).is_none() {
-        (*strm).bzalloc = Some(
-            default_bzalloc
-                as unsafe extern "C" fn(*mut libc::c_void, i32, i32) -> *mut libc::c_void,
-        );
-    }
-    if ((*strm).bzfree).is_none() {
-        (*strm).bzfree = Some(
-            default_bzfree as unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> (),
-        );
-    }
-    s = ((*strm).bzalloc).expect("non-null function pointer")(
-        (*strm).opaque,
-        core::mem::size_of::<DState>() as libc::c_ulong as libc::c_int,
-        1 as libc::c_int,
-    ) as *mut DState;
+    let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
+    let _bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
+
+    s = (bzalloc)((*strm).opaque, core::mem::size_of::<DState>() as i32, 1) as *mut DState;
     if s.is_null() {
         return -3 as libc::c_int;
     }
     (*s).strm = strm;
     (*strm).state = s as *mut libc::c_void;
     (*s).state = decompress::State::BZ_X_MAGIC_1;
-    (*s).bsLive = 0 as libc::c_int;
-    (*s).bsBuff = 0 as libc::c_int as u32;
-    (*s).calculatedCombinedCRC = 0 as libc::c_int as u32;
-    (*strm).total_in_lo32 = 0 as libc::c_int as libc::c_uint;
-    (*strm).total_in_hi32 = 0 as libc::c_int as libc::c_uint;
-    (*strm).total_out_lo32 = 0 as libc::c_int as libc::c_uint;
-    (*strm).total_out_hi32 = 0 as libc::c_int as libc::c_uint;
+    (*s).bsLive = 0;
+    (*s).bsBuff = 0;
+    (*s).calculatedCombinedCRC = 0;
+    (*strm).total_in_lo32 = 0;
+    (*strm).total_in_hi32 = 0;
+    (*strm).total_out_lo32 = 0;
+    (*strm).total_out_hi32 = 0;
     (*s).smallDecompress = small as Bool;
     (*s).ll4 = std::ptr::null_mut::<u8>();
     (*s).ll16 = std::ptr::null_mut::<u16>();
     (*s).tt = std::ptr::null_mut::<u32>();
     (*s).currBlockNo = 0 as libc::c_int;
     (*s).verbosity = verbosity;
+
     0 as libc::c_int
 }
+
 unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
     let mut current_block: u64;
     let mut k1: u8;
