@@ -982,6 +982,18 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
         let s_save_nblockPP: i32 = s.save_nblock + 1 as libc::c_int;
         let total_out_lo32_old: libc::c_uint;
 
+        macro_rules! BZ_GET_FAST_C {
+            ( $cccc:expr) => {
+                /* c_tPos is unsigned, hence test < 0 is pointless. */
+                if c_tPos >= 100000u32.wrapping_mul(ro_blockSize100k as u32) {
+                    return true;
+                }
+                c_tPos = *c_tt.offset(c_tPos as isize);
+                $cccc = (c_tPos & 0xff) as _;
+                c_tPos >>= 8;
+            };
+        }
+
         'return_notr: while 1 as Bool != 0 {
             if c_state_out_len > 0 as libc::c_int {
                 loop {
@@ -1027,16 +1039,9 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                             break 'return_notr;
                         } else {
                             c_state_out_ch = c_k0 as u8;
-                            if c_tPos
-                                >= (100000 as libc::c_int as u32)
-                                    .wrapping_mul(ro_blockSize100k as u32)
-                            {
-                                return true;
-                            }
-                            c_tPos = *c_tt.offset(c_tPos as isize);
-                            k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8;
-                            c_tPos >>= 8 as libc::c_int;
+                            BZ_GET_FAST_C!(k1);
                             c_nblock_used += 1;
+
                             if k1 as libc::c_int != c_k0 {
                                 c_k0 = k1 as i32;
                                 current_block = 1417769144978639029;
@@ -1045,17 +1050,11 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                                     current_block = 1417769144978639029;
                                     continue;
                                 }
-                                c_state_out_len = 2 as libc::c_int;
-                                if c_tPos
-                                    >= (100000 as libc::c_int as u32)
-                                        .wrapping_mul(ro_blockSize100k as u32)
-                                {
-                                    return true;
-                                }
-                                c_tPos = *c_tt.offset(c_tPos as isize);
-                                k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8;
-                                c_tPos >>= 8 as libc::c_int;
+
+                                c_state_out_len = 2;
+                                BZ_GET_FAST_C!(k1);
                                 c_nblock_used += 1;
+
                                 if c_nblock_used == s_save_nblockPP {
                                     continue 'return_notr;
                                 }
@@ -1076,40 +1075,20 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                     c_k0 = k1 as i32;
                 }
                 _ => {
-                    c_state_out_len = 3 as libc::c_int;
-                    if c_tPos
-                        >= (100000 as libc::c_int as u32).wrapping_mul(ro_blockSize100k as u32)
-                    {
-                        return true;
-                    }
-                    c_tPos = *c_tt.offset(c_tPos as isize);
-                    k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8;
-                    c_tPos >>= 8 as libc::c_int;
+                    c_state_out_len = 3;
+                    BZ_GET_FAST_C!(k1);
                     c_nblock_used += 1;
+
                     if c_nblock_used == s_save_nblockPP {
                         continue;
                     }
                     if k1 as libc::c_int != c_k0 {
                         c_k0 = k1 as i32;
                     } else {
-                        if c_tPos
-                            >= (100000 as libc::c_int as u32).wrapping_mul(ro_blockSize100k as u32)
-                        {
-                            return true;
-                        }
-                        c_tPos = *c_tt.offset(c_tPos as isize);
-                        k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8;
-                        c_tPos >>= 8 as libc::c_int;
+                        BZ_GET_FAST_C!(k1);
                         c_nblock_used += 1;
-                        c_state_out_len = k1 as i32 + 4 as libc::c_int;
-                        if c_tPos
-                            >= (100000 as libc::c_int as u32).wrapping_mul(ro_blockSize100k as u32)
-                        {
-                            return true;
-                        }
-                        c_tPos = *c_tt.offset(c_tPos as isize);
-                        c_k0 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8 as i32;
-                        c_tPos >>= 8 as libc::c_int;
+                        c_state_out_len = (k1 as i32) + 4;
+                        BZ_GET_FAST_C!(c_k0);
                         c_nblock_used += 1;
                     }
                 }
