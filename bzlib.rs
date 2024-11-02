@@ -1554,39 +1554,40 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
 
 #[export_name = prefix!(BZ2_bzDecompressEnd)]
 pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_int {
-    let s: *mut DState;
-    if strm.is_null() {
+    let Some(strm) = strm.as_mut() else {
+        return -2 as libc::c_int;
+    };
+
+    let Some(s) = ((*strm).state as *mut DState).as_mut() else {
+        return -2 as libc::c_int;
+    };
+
+    if s.strm != strm {
         return -2 as libc::c_int;
     }
-    s = (*strm).state as *mut DState;
-    if s.is_null() {
+
+    let Some(bzfree) = (*strm).bzfree else {
         return -2 as libc::c_int;
+    };
+
+    if !(s.tt).is_null() {
+        (bzfree)(strm.opaque, s.tt.cast::<c_void>());
     }
-    if (*s).strm != strm {
-        return -2 as libc::c_int;
+
+    if !(s.ll16).is_null() {
+        (bzfree)(strm.opaque, s.ll16.cast::<c_void>());
     }
-    if !((*s).tt).is_null() {
-        ((*strm).bzfree).expect("non-null function pointer")(
-            (*strm).opaque,
-            (*s).tt as *mut libc::c_void,
-        );
+
+    if !(s.ll4).is_null() {
+        (bzfree)(strm.opaque, s.ll4.cast::<c_void>());
     }
-    if !((*s).ll16).is_null() {
-        ((*strm).bzfree).expect("non-null function pointer")(
-            (*strm).opaque,
-            (*s).ll16 as *mut libc::c_void,
-        );
-    }
-    if !((*s).ll4).is_null() {
-        ((*strm).bzfree).expect("non-null function pointer")(
-            (*strm).opaque,
-            (*s).ll4 as *mut libc::c_void,
-        );
-    }
-    ((*strm).bzfree).expect("non-null function pointer")((*strm).opaque, (*strm).state);
-    (*strm).state = std::ptr::null_mut::<libc::c_void>();
+
+    (bzfree)(strm.opaque, strm.state.cast::<c_void>());
+    strm.state = std::ptr::null_mut::<libc::c_void>();
+
     0 as libc::c_int
 }
+
 unsafe fn myfeof(f: *mut FILE) -> bool {
     let c = fgetc(f);
     if c == -1 {
