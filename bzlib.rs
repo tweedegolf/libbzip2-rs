@@ -193,7 +193,7 @@ pub struct DState {
     pub bsBuff: u32,
     pub bsLive: i32,
     pub blockSize100k: i32,
-    pub smallDecompress: Bool,
+    pub smallDecompress: bool,
     pub currBlockNo: i32,
     pub verbosity: i32,
     pub origPtr: i32,
@@ -818,7 +818,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     (*strm).total_in_hi32 = 0;
     (*strm).total_out_lo32 = 0;
     (*strm).total_out_hi32 = 0;
-    (*s).smallDecompress = small as Bool;
+    (*s).smallDecompress = small != 0;
     (*s).ll4 = std::ptr::null_mut::<u8>();
     (*s).ll16 = std::ptr::null_mut::<u16>();
     (*s).tt = std::ptr::null_mut::<u32>();
@@ -1509,7 +1509,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
             return -1 as libc::c_int;
         }
         if let decompress::State::BZ_X_OUTPUT = s.state {
-            let corrupt = if s.smallDecompress != 0 {
+            let corrupt = if s.smallDecompress {
                 unRLE_obuf_to_output_SMALL(s)
             } else {
                 unRLE_obuf_to_output_FAST(strm, s)

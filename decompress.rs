@@ -415,7 +415,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 3350591128142761507;
                 } else {
                     s.blockSize100k -= 0x30;
-                    if s.smallDecompress != 0 {
+                    if s.smallDecompress {
                         s.ll16 = ((*strm).bzalloc).expect("non-null function pointer")(
                             (*strm).opaque,
                             ((s.blockSize100k * 100000) as libc::c_ulong)
@@ -1742,7 +1742,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             es += 1;
                             uc = s.seqToUnseq[s.mtfa[s.mtfbase[0 as usize] as usize] as usize];
                             s.unzftab[uc as usize] += es;
-                            if s.smallDecompress != 0 {
+                            if s.smallDecompress {
                                 while es > 0 {
                                     if nblock >= nblockMAX {
                                         retVal = -4;
@@ -1878,7 +1878,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         }
                         s.unzftab[s.seqToUnseq[uc as usize] as usize] += 1;
                         s.unzftab[s.seqToUnseq[uc as usize] as usize];
-                        if s.smallDecompress != 0 {
+                        if s.smallDecompress {
                             *(s.ll16).offset(nblock as isize) = s.seqToUnseq[uc as usize] as u16;
                         } else {
                             *(s.tt).offset(nblock as isize) = s.seqToUnseq[uc as usize] as u32;
@@ -1974,7 +1974,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         if s.verbosity >= 2 {
                             eprint!("rt+rld");
                         }
-                        if s.smallDecompress != 0 {
+                        if s.smallDecompress {
                             i = 0;
                             while i <= 256 {
                                 s.cftabCopy[i as usize] = s.cftab[i as usize];
