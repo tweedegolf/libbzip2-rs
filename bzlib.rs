@@ -1063,32 +1063,28 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                                     c_k0 = k1 as i32;
 
                                     continue 'return_notr;
-                                } else {
-                                    current_block = 13256895345714485905;
-                                    break;
                                 }
+
+                                c_state_out_len = 3;
+                                BZ_GET_FAST_C!(k1);
+                                c_nblock_used += 1;
+
+                                if c_nblock_used == s_save_nblockPP {
+                                    continue;
+                                }
+                                if k1 as libc::c_int != c_k0 {
+                                    c_k0 = k1 as i32;
+                                } else {
+                                    BZ_GET_FAST_C!(k1);
+                                    c_nblock_used += 1;
+                                    c_state_out_len = (k1 as i32) + 4;
+                                    BZ_GET_FAST_C!(c_k0);
+                                    c_nblock_used += 1;
+                                }
+
+                                break;
                             }
                         }
-                    }
-                }
-            }
-            match current_block {
-                _ => {
-                    c_state_out_len = 3;
-                    BZ_GET_FAST_C!(k1);
-                    c_nblock_used += 1;
-
-                    if c_nblock_used == s_save_nblockPP {
-                        continue;
-                    }
-                    if k1 as libc::c_int != c_k0 {
-                        c_k0 = k1 as i32;
-                    } else {
-                        BZ_GET_FAST_C!(k1);
-                        c_nblock_used += 1;
-                        c_state_out_len = (k1 as i32) + 4;
-                        BZ_GET_FAST_C!(c_k0);
-                        c_nblock_used += 1;
                     }
                 }
             }
