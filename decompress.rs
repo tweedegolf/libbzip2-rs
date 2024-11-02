@@ -416,24 +416,32 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 } else {
                     s.blockSize100k -= 0x30;
                     if s.smallDecompress {
+                        let ll16_len = s.blockSize100k as usize * 100000;
                         s.ll16 = ((*strm).bzalloc).expect("non-null function pointer")(
                             (*strm).opaque,
-                            ((s.blockSize100k * 100000) as libc::c_ulong)
+                            (ll16_len as libc::c_ulong)
                                 .wrapping_mul(::core::mem::size_of::<u16>() as libc::c_ulong)
                                 as libc::c_int,
                             1,
                         ) as *mut u16;
+
+                        let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
                         s.ll4 = ((*strm).bzalloc).expect("non-null function pointer")(
                             (*strm).opaque,
-                            (((1 + s.blockSize100k * 100000) >> 1) as libc::c_ulong)
+                            (ll4_len as libc::c_ulong)
                                 .wrapping_mul(::core::mem::size_of::<u8>() as libc::c_ulong)
                                 as libc::c_int,
                             1,
                         ) as *mut u8;
+
                         if (s.ll16).is_null() || (s.ll4).is_null() {
                             retVal = -3;
                             current_block = 3350591128142761507;
                         } else {
+                            // NOTE: bzip2 does not initialize this memory
+                            core::ptr::write_bytes(s.ll16, 0, ll16_len);
+                            core::ptr::write_bytes(s.ll4, 0, ll4_len);
+
                             current_block = 16838365919992687769;
                         }
                     } else {
