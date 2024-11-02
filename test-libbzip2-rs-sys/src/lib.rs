@@ -700,3 +700,83 @@ fn high_level_read() {
 
     assert_eq!(&expected[..expected_len as usize], output);
 }
+
+#[test]
+fn high_level_write() {
+    use libbzip2_rs_sys::bzlib::*;
+
+    let block_size = 9; // Maximum compression level (1-9)
+    let verbosity = 0; // Quiet operation
+    let work_factor = 30; // Recommended default value
+
+    let p = std::env::temp_dir().join("high_level_write.bz2");
+
+    let _ = std::fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(&p)
+        .unwrap();
+
+    let output_file = unsafe {
+        let p = p.with_extension("bz2\0");
+        libc::fopen(
+            p.display().to_string().as_mut_ptr().cast::<c_char>(),
+            b"wb\0".as_ptr().cast::<c_char>(),
+        )
+    };
+
+    assert!(!output_file.is_null());
+
+    let mut bzerror = 0;
+    let bz_file = unsafe {
+        BZ2_bzWriteOpen(
+            &mut bzerror,
+            output_file,
+            block_size,
+            verbosity,
+            work_factor,
+        )
+    };
+
+    for chunk in SAMPLE1_BZ2.chunks(1024) {
+        unsafe {
+            BZ2_bzWrite(
+                &mut bzerror,
+                bz_file,
+                chunk.as_ptr().cast_mut().cast(),
+                chunk.len() as _,
+            )
+        };
+        assert_eq!(bzerror, 0);
+    }
+
+    unsafe {
+        BZ2_bzWriteClose(
+            &mut bzerror,
+            bz_file,
+            0,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+        )
+    };
+
+    unsafe { libc::fclose(output_file) };
+
+    assert_eq!(bzerror, bzip2_sys::BZ_OK);
+
+    let mut expected = vec![0u8; 256 * 1024];
+    let mut expected_len = expected.len() as _;
+    let err = compress_c(
+        expected.as_mut_ptr(),
+        &mut expected_len,
+        SAMPLE1_BZ2.as_ptr(),
+        SAMPLE1_BZ2.len() as _,
+    );
+    assert_eq!(err, 0);
+
+    assert_eq!(
+        std::fs::read(p).unwrap(),
+        &expected[..expected_len as usize]
+    );
+}
