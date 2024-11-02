@@ -1505,17 +1505,15 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
             if corrupt {
                 return -4 as libc::c_int;
             }
-            if s.nblock_used == s.save_nblock + 1 as libc::c_int
-                && s.state_out_len == 0 as libc::c_int
-            {
+            if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
                 s.calculatedBlockCRC = !s.calculatedBlockCRC;
-                if s.verbosity >= 3 as libc::c_int {
+                if s.verbosity >= 3 {
                     eprint!(
                         " {{{:#08x}, {:#08x}}}",
                         s.storedBlockCRC, s.calculatedBlockCRC,
                     );
                 }
-                if s.verbosity >= 2 as libc::c_int {
+                if s.verbosity >= 2 {
                     eprint!("]");
                 }
                 if s.calculatedBlockCRC != s.storedBlockCRC {
@@ -1535,7 +1533,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
         ) {
             let r: i32 = BZ2_decompress(strm, s);
             if r == 4 as libc::c_int {
-                if (*s).verbosity >= 3 as libc::c_int {
+                if (*s).verbosity >= 3 {
                     eprint!(
                         "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
                         (*s).storedCombinedCRC,
@@ -1553,6 +1551,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
         }
     }
 }
+
 #[export_name = prefix!(BZ2_bzDecompressEnd)]
 pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_int {
     let s: *mut DState;
