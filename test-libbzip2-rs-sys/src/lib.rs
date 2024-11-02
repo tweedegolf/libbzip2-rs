@@ -161,7 +161,7 @@ fn buff_to_buff_decompress() {
     assert_eq!(err, 0);
 }
 
-fn miri_buff_to_buff_decompress_helper(input: &[u8], buffer_size: usize, is_small: bool) {
+fn buff_to_buff_decompress_helper(input: &[u8], buffer_size: usize, is_small: bool) {
     let mut dest = vec![0; buffer_size];
     let mut dest_len = dest.len() as core::ffi::c_uint;
 
@@ -187,7 +187,7 @@ fn miri_buff_to_buff_decompress_fast() {
         11, 185, 34, 156, 40, 72, 82, 19, 98, 87, 0,
     ];
 
-    miri_buff_to_buff_decompress_helper(input, 1024, false)
+    buff_to_buff_decompress_helper(input, 1024, false)
 }
 
 #[test]
@@ -198,21 +198,21 @@ fn miri_buff_to_buff_decompress_small() {
         39, 11, 185, 34, 156, 40, 72, 82, 19, 98, 87, 0,
     ];
 
-    miri_buff_to_buff_decompress_helper(input, 1024, true)
+    buff_to_buff_decompress_helper(input, 1024, true)
 }
 
 #[test]
-fn miri_buff_to_buff_decompress_fast_randomized() {
+fn buff_to_buff_decompress_fast_randomized() {
     let input = include_bytes!("../../tests/input/randomized-blocks.bin");
 
-    miri_buff_to_buff_decompress_helper(input, 256 * 1024, false)
+    buff_to_buff_decompress_helper(input, 256 * 1024, false)
 }
 
 #[test]
-fn miri_buff_to_buff_decompress_small_randomized() {
+fn buff_to_buff_decompress_small_randomized() {
     let input = include_bytes!("../../tests/input/randomized-blocks.bin");
 
-    miri_buff_to_buff_decompress_helper(input, 256 * 1024, true)
+    buff_to_buff_decompress_helper(input, 256 * 1024, true)
 }
 
 #[test]
