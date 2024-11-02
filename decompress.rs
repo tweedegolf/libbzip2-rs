@@ -1158,7 +1158,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
             if s.bsLive >= 1 {
                 let v_13: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
                 s.bsLive -= 1;
-                s.blockRandomised = v_13 as Bool;
+                s.blockRandomised = v_13 != 0;
                 current_block = 7926734633677835471;
                 break;
             } else if strm.avail_in == 0 {
@@ -2039,7 +2039,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             }
                             s.tPos = s.origPtr as u32;
                             s.nblock_used = 0;
-                            if s.blockRandomised != 0 {
+                            if s.blockRandomised {
                                 s.rNToGo = 0;
                                 s.rTPos = 0;
                                 if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
@@ -2085,7 +2085,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             }
                             s.tPos = *(s.tt).offset(s.origPtr as isize) >> 8;
                             s.nblock_used = 0;
-                            if s.blockRandomised != 0 {
+                            if s.blockRandomised {
                                 s.rNToGo = 0;
                                 s.rTPos = 0;
                                 if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
