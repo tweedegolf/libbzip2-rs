@@ -1043,53 +1043,56 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                         if c_nblock_used == s_save_nblockPP {
                             c_state_out_len = 0 as libc::c_int;
                             break 'return_notr;
-                        } else {
-                            c_state_out_ch = c_k0 as u8;
-                            BZ_GET_FAST_C!(k1);
-                            c_nblock_used += 1;
-
-                            if k1 as libc::c_int != c_k0 {
-                                c_k0 = k1 as i32;
-                                current_block = NextState::OutLenEqOne;
-                            } else {
-                                if c_nblock_used == s_save_nblockPP {
-                                    current_block = NextState::OutLenEqOne;
-                                    continue;
-                                }
-
-                                c_state_out_len = 2;
-                                BZ_GET_FAST_C!(k1);
-                                c_nblock_used += 1;
-
-                                if c_nblock_used == s_save_nblockPP {
-                                    continue 'return_notr;
-                                }
-                                if k1 as libc::c_int != c_k0 {
-                                    c_k0 = k1 as i32;
-
-                                    continue 'return_notr;
-                                }
-
-                                c_state_out_len = 3;
-                                BZ_GET_FAST_C!(k1);
-                                c_nblock_used += 1;
-
-                                if c_nblock_used == s_save_nblockPP {
-                                    continue;
-                                }
-                                if k1 as libc::c_int != c_k0 {
-                                    c_k0 = k1 as i32;
-                                } else {
-                                    BZ_GET_FAST_C!(k1);
-                                    c_nblock_used += 1;
-                                    c_state_out_len = (k1 as i32) + 4;
-                                    BZ_GET_FAST_C!(c_k0);
-                                    c_nblock_used += 1;
-                                }
-
-                                break;
-                            }
                         }
+
+                        c_state_out_ch = c_k0 as u8;
+                        BZ_GET_FAST_C!(k1);
+                        c_nblock_used += 1;
+
+                        if k1 as libc::c_int != c_k0 {
+                            c_k0 = k1 as i32;
+                            current_block = NextState::OutLenEqOne;
+                            continue;
+                        }
+
+                        if c_nblock_used == s_save_nblockPP {
+                            current_block = NextState::OutLenEqOne;
+                            continue;
+                        }
+
+                        c_state_out_len = 2;
+                        BZ_GET_FAST_C!(k1);
+                        c_nblock_used += 1;
+
+                        if c_nblock_used == s_save_nblockPP {
+                            continue 'return_notr;
+                        }
+                        if k1 as libc::c_int != c_k0 {
+                            c_k0 = k1 as i32;
+
+                            continue 'return_notr;
+                        }
+
+                        c_state_out_len = 3;
+                        BZ_GET_FAST_C!(k1);
+                        c_nblock_used += 1;
+
+                        if c_nblock_used == s_save_nblockPP {
+                            continue 'return_notr;
+                        }
+
+                        if k1 as libc::c_int != c_k0 {
+                            c_k0 = k1 as i32;
+                            continue 'return_notr;
+                        }
+
+                        BZ_GET_FAST_C!(k1);
+                        c_nblock_used += 1;
+                        c_state_out_len = (k1 as i32) + 4;
+                        BZ_GET_FAST_C!(c_k0);
+                        c_nblock_used += 1;
+
+                        break;
                     }
                 }
             }
