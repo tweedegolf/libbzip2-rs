@@ -1141,9 +1141,7 @@ pub fn BZ2_indexIntoF(indx: i32, cftab: &mut [i32]) -> i32 {
 
 macro_rules! GET_LL4 {
     ($s:expr, $i:expr) => {
-        (*($s.ll4).offset(($s.tPos >> 1 as libc::c_int) as isize) as u32
-            >> ($s.tPos << 2 as libc::c_int & 0x4 as libc::c_int as libc::c_uint)
-            & 0xf as libc::c_int as libc::c_uint)
+        (*($s.ll4).offset(($s.tPos >> 1) as isize) as u32 >> ($s.tPos << 2 & 0x4) & 0xf)
     };
 }
 
@@ -1170,10 +1168,10 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
         loop {
             /* try to finish existing run */
             loop {
-                if strm.avail_out == 0 as libc::c_int as libc::c_uint {
+                if strm.avail_out == 0 {
                     return false;
                 }
-                if s.state_out_len == 0 as libc::c_int {
+                if s.state_out_len == 0 {
                     break;
                 }
                 *(strm.next_out as *mut u8) = s.state_out_ch;
@@ -1182,18 +1180,18 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
                 strm.next_out = (strm.next_out).offset(1);
                 strm.avail_out = (strm.avail_out).wrapping_sub(1);
                 strm.total_out_lo32 = (strm.total_out_lo32).wrapping_add(1);
-                if strm.total_out_lo32 == 0 as libc::c_int as libc::c_uint {
+                if strm.total_out_lo32 == 0 {
                     strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
                 }
             }
 
             /* can a new run be started? */
-            if s.nblock_used == s.save_nblock + 1 as libc::c_int {
+            if s.nblock_used == s.save_nblock + 1 {
                 return false;
             }
 
             /* Only caused by corrupt data stream? */
-            if s.nblock_used > s.save_nblock + 1 as libc::c_int {
+            if s.nblock_used > s.save_nblock + 1 {
                 return true;
             }
 
@@ -1251,10 +1249,10 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
     } else {
         loop {
             loop {
-                if strm.avail_out == 0 as libc::c_int as libc::c_uint {
+                if strm.avail_out == 0 {
                     return false;
                 }
-                if s.state_out_len == 0 as libc::c_int {
+                if s.state_out_len == 0 {
                     break;
                 }
                 *(strm.next_out as *mut u8) = s.state_out_ch;
@@ -1263,14 +1261,14 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
                 strm.next_out = (strm.next_out).offset(1);
                 strm.avail_out = (strm.avail_out).wrapping_sub(1);
                 strm.total_out_lo32 = (strm.total_out_lo32).wrapping_add(1);
-                if strm.total_out_lo32 == 0 as libc::c_int as libc::c_uint {
+                if strm.total_out_lo32 == 0 {
                     strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
                 }
             }
-            if s.nblock_used == s.save_nblock + 1 as libc::c_int {
+            if s.nblock_used == s.save_nblock + 1 {
                 return false;
             }
-            if s.nblock_used > s.save_nblock + 1 as libc::c_int {
+            if s.nblock_used > s.save_nblock + 1 {
                 return true;
             }
 
