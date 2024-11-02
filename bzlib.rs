@@ -1141,13 +1141,13 @@ pub fn BZ2_indexIntoF(indx: i32, cftab: &mut [i32]) -> i32 {
 
 macro_rules! GET_LL4 {
     ($s:expr, $i:expr) => {
-        (*($s.ll4).offset(($s.tPos >> 1) as isize) as u32 >> ($s.tPos << 2 & 0x4) & 0xf)
+        (*($s.ll4).add(($s.tPos >> 1) as usize) as u32 >> ($s.tPos << 2 & 0x4) & 0xf)
     };
 }
 
 macro_rules! GET_LL {
     ($s:expr, $i:expr) => {
-        *($s.ll16).offset($s.tPos as isize) as u32 | GET_LL4!($s, i) << 16
+        *($s.ll16).add($s.tPos as usize) as u32 | GET_LL4!($s, i) << 16
     };
 }
 
