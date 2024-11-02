@@ -994,7 +994,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
             };
         }
 
-        'return_notr: while 1 as Bool != 0 {
+        'return_notr: loop {
             if c_state_out_len > 0 as libc::c_int {
                 loop {
                     if cs_avail_out == 0 as libc::c_int as libc::c_uint {
@@ -1013,6 +1013,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
             } else {
                 current_block = 14483658890531361756;
             }
+
             loop {
                 match current_block {
                     1417769144978639029 => {
@@ -1059,8 +1060,9 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                                     continue 'return_notr;
                                 }
                                 if k1 as libc::c_int != c_k0 {
-                                    current_block = 6897179874198677617;
-                                    break;
+                                    c_k0 = k1 as i32;
+
+                                    continue 'return_notr;
                                 } else {
                                     current_block = 13256895345714485905;
                                     break;
@@ -1071,9 +1073,6 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                 }
             }
             match current_block {
-                6897179874198677617 => {
-                    c_k0 = k1 as i32;
-                }
                 _ => {
                     c_state_out_len = 3;
                     BZ_GET_FAST_C!(k1);
