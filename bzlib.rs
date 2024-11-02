@@ -828,14 +828,14 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     0 as libc::c_int
 }
 
-unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
+unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> bool {
     let mut current_block: u64;
     let mut k1: u8;
     if (*s).blockRandomised != 0 {
         loop {
             loop {
                 if (*(*s).strm).avail_out == 0 as libc::c_int as libc::c_uint {
-                    return 0 as Bool;
+                    return false;
                 }
                 if (*s).state_out_len == 0 as libc::c_int {
                     break;
@@ -854,15 +854,15 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                 }
             }
             if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
-                return 0 as Bool;
+                return false;
             }
             if (*s).nblock_used > (*s).save_nblock + 1 as libc::c_int {
-                return 1 as Bool;
+                return true;
             }
             (*s).state_out_len = 1 as libc::c_int;
             (*s).state_out_ch = (*s).k0 as u8;
             if (*s).tPos >= (100000 as libc::c_int as u32).wrapping_mul((*s).blockSize100k as u32) {
-                return 1 as Bool;
+                return true;
             }
             (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
             k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
@@ -892,7 +892,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                 if (*s).tPos
                     >= (100000 as libc::c_int as u32).wrapping_mul((*s).blockSize100k as u32)
                 {
-                    return 1 as Bool;
+                    return true;
                 }
                 (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
                 k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
@@ -922,7 +922,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                     if (*s).tPos
                         >= (100000 as libc::c_int as u32).wrapping_mul((*s).blockSize100k as u32)
                     {
-                        return 1 as Bool;
+                        return true;
                     }
                     (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
                     k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
@@ -952,7 +952,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                             >= (100000 as libc::c_int as u32)
                                 .wrapping_mul((*s).blockSize100k as u32)
                         {
-                            return 1 as Bool;
+                            return true;
                         }
                         (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
                         k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
@@ -977,7 +977,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                             >= (100000 as libc::c_int as u32)
                                 .wrapping_mul((*s).blockSize100k as u32)
                         {
-                            return 1 as Bool;
+                            return true;
                         }
                         (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
                         (*s).k0 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8 as i32;
@@ -1055,7 +1055,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                     }
                     _ => {
                         if c_nblock_used > s_save_nblockPP {
-                            return 1 as Bool;
+                            return true;
                         }
                         if c_nblock_used == s_save_nblockPP {
                             c_state_out_len = 0 as libc::c_int;
@@ -1066,7 +1066,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                                 >= (100000 as libc::c_int as u32)
                                     .wrapping_mul(ro_blockSize100k as u32)
                             {
-                                return 1 as Bool;
+                                return true;
                             }
                             c_tPos = *c_tt.offset(c_tPos as isize);
                             k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8;
@@ -1085,7 +1085,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                                     >= (100000 as libc::c_int as u32)
                                         .wrapping_mul(ro_blockSize100k as u32)
                                 {
-                                    return 1 as Bool;
+                                    return true;
                                 }
                                 c_tPos = *c_tt.offset(c_tPos as isize);
                                 k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8;
@@ -1115,7 +1115,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                     if c_tPos
                         >= (100000 as libc::c_int as u32).wrapping_mul(ro_blockSize100k as u32)
                     {
-                        return 1 as Bool;
+                        return true;
                     }
                     c_tPos = *c_tt.offset(c_tPos as isize);
                     k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8;
@@ -1130,7 +1130,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                         if c_tPos
                             >= (100000 as libc::c_int as u32).wrapping_mul(ro_blockSize100k as u32)
                         {
-                            return 1 as Bool;
+                            return true;
                         }
                         c_tPos = *c_tt.offset(c_tPos as isize);
                         k1 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8;
@@ -1140,7 +1140,7 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
                         if c_tPos
                             >= (100000 as libc::c_int as u32).wrapping_mul(ro_blockSize100k as u32)
                         {
-                            return 1 as Bool;
+                            return true;
                         }
                         c_tPos = *c_tt.offset(c_tPos as isize);
                         c_k0 = (c_tPos & 0xff as libc::c_int as libc::c_uint) as u8 as i32;
@@ -1166,7 +1166,8 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> Bool {
         (*(*s).strm).next_out = cs_next_out;
         (*(*s).strm).avail_out = cs_avail_out;
     }
-    0 as Bool
+
+    false
 }
 
 #[inline]
@@ -1499,8 +1500,6 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> bool {
 
 #[export_name = prefix!(BZ2_bzDecompress)]
 pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
-    let mut corrupt: Bool;
-
     let Some(strm) = strm.as_mut() else {
         return -2 as libc::c_int;
     };
@@ -1518,12 +1517,12 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
             return -1 as libc::c_int;
         }
         if let decompress::State::BZ_X_OUTPUT = s.state {
-            if s.smallDecompress != 0 {
-                corrupt = unRLE_obuf_to_output_SMALL(s) as Bool;
+            let corrupt = if s.smallDecompress != 0 {
+                unRLE_obuf_to_output_SMALL(s)
             } else {
-                corrupt = unRLE_obuf_to_output_FAST(s);
-            }
-            if corrupt != 0 {
+                unRLE_obuf_to_output_FAST(s)
+            };
+            if corrupt {
                 return -4 as libc::c_int;
             }
             if s.nblock_used == s.save_nblock + 1 as libc::c_int
