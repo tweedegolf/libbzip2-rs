@@ -209,7 +209,7 @@ pub struct DState {
     pub state: decompress::State,
     pub state_out_ch: u8,
     pub state_out_len: i32,
-    pub blockRandomised: Bool,
+    pub blockRandomised: bool,
     pub rNToGo: i32,
     pub rTPos: i32,
     pub bsBuff: u32,
@@ -851,7 +851,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
 unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> bool {
     let mut current_block: u64;
     let mut k1: u8;
-    if s.blockRandomised != 0 {
+    if s.blockRandomised {
         loop {
             loop {
                 if strm.avail_out == 0 as libc::c_int as libc::c_uint {
@@ -1202,7 +1202,7 @@ pub fn BZ2_indexIntoF(indx: i32, cftab: &mut [i32]) -> i32 {
 
 unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bool {
     let mut k1: u8;
-    if s.blockRandomised != 0 {
+    if s.blockRandomised {
         loop {
             loop {
                 if strm.avail_out == 0 as libc::c_int as libc::c_uint {
