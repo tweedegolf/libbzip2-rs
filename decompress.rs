@@ -2336,13 +2336,13 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         groupPos = 50;
                         gSel = s.selector[groupNo as usize] as i32;
                         gMinlen = s.minLens[gSel as usize];
-                        gLimit = &mut *(*(s.limit).as_mut_ptr().offset(gSel as isize))
+                        gLimit = (*(s.limit).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
                             .offset(0 as isize) as *mut i32;
-                        gPerm = &mut *(*(s.perm).as_mut_ptr().offset(gSel as isize))
+                        gPerm = (*(s.perm).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
                             .offset(0 as isize) as *mut i32;
-                        gBase = &mut *(*(s.base).as_mut_ptr().offset(gSel as isize))
+                        gBase = (*(s.base).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
                             .offset(0 as isize) as *mut i32;
                     }
