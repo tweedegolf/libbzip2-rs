@@ -63,13 +63,12 @@ fn makeMaps_d(s: &mut DState) {
         i += 1;
     }
 }
-pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
+pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
     let mut current_block: u64;
     let mut uc: u8 = 0;
     let mut retVal: i32;
     let mut minLen: i32;
     let mut maxLen: i32;
-    let strm: *mut bz_stream = s.strm;
     let mut i: i32;
     let mut j: i32;
     let mut t: i32;
@@ -155,18 +154,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v as u8;
                     current_block = 5235537862154438448;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -321,18 +320,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 uc = v_0 as u8;
                 current_block = 2168227384378665163;
                 break;
-            } else if (*s.strm).avail_in == 0 {
+            } else if strm.avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
             } else {
-                s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                 s.bsLive += 8;
-                (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 {
-                    (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                strm.next_in = (strm.next_in).offset(1);
+                strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                if strm.total_in_lo32 == 0 {
+                    strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                 }
             }
         }
@@ -357,18 +356,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 uc = v_1 as u8;
                 current_block = 178030534879405462;
                 break;
-            } else if (*s.strm).avail_in == 0 {
+            } else if strm.avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
             } else {
-                s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                 s.bsLive += 8;
-                (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 {
-                    (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                strm.next_in = (strm.next_in).offset(1);
+                strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                if strm.total_in_lo32 == 0 {
+                    strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                 }
             }
         }
@@ -393,18 +392,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.blockSize100k = v_2 as i32;
                 current_block = 7639320476250304355;
                 break;
-            } else if (*s.strm).avail_in == 0 {
+            } else if strm.avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
             } else {
-                s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                 s.bsLive += 8;
-                (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 {
-                    (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                strm.next_in = (strm.next_in).offset(1);
+                strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                if strm.total_in_lo32 == 0 {
+                    strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                 }
             }
         }
@@ -465,18 +464,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 uc = v_3 as u8;
                 current_block = 16937825661756021828;
                 break;
-            } else if (*s.strm).avail_in == 0 {
+            } else if strm.avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
             } else {
-                s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                 s.bsLive += 8;
-                (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 {
-                    (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                strm.next_in = (strm.next_in).offset(1);
+                strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                if strm.total_in_lo32 == 0 {
+                    strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                 }
             }
         }
@@ -504,18 +503,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_32 as u8;
                     current_block = 13733404100380861831;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -540,18 +539,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_4 as u8;
                     current_block = 1228639923084383292;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -579,18 +578,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_33 as u8;
                     current_block = 12721425419429475574;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -615,18 +614,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_5 as u8;
                     current_block = 9235179519944561532;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -654,18 +653,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_34 as u8;
                     current_block = 13813414375753095368;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -690,18 +689,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_6 as u8;
                     current_block = 12467039471581323981;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -729,18 +728,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_35 as u8;
                     current_block = 1472103348880861285;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -765,18 +764,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_7 as u8;
                     current_block = 13164310931121142693;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -804,18 +803,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_36 as u8;
                     current_block = 8232347840743503282;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -841,18 +840,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_8 as u8;
                     current_block = 14723615986260991866;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -885,18 +884,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_37 as u8;
                     current_block = 5465979950226085365;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -917,18 +916,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_9 as u8;
                     current_block = 15627786036016112248;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -952,18 +951,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_38 as u8;
                     current_block = 3854366583354019639;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -984,18 +983,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_10 as u8;
                     current_block = 13493279574219925475;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -1019,18 +1018,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_39 as u8;
                     current_block = 12082794684616777938;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -1051,18 +1050,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_11 as u8;
                     current_block = 4839309778395429725;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -1086,18 +1085,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_12 as u8;
                     current_block = 17937968408868551711;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -1118,18 +1117,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                     uc = v_40 as u8;
                     current_block = 6276941480907995842;
                     break;
-                } else if (*s.strm).avail_in == 0 {
+                } else if strm.avail_in == 0 {
                     retVal = 0;
                     current_block = 3350591128142761507;
                     break;
                 } else {
-                    s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                     s.bsLive += 8;
-                    (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                    (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                    (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                    if (*s.strm).total_in_lo32 == 0 {
-                        (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                    strm.next_in = (strm.next_in).offset(1);
+                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                    if strm.total_in_lo32 == 0 {
+                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                     }
                 }
             }
@@ -1154,18 +1153,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 s.blockRandomised = v_13 as Bool;
                 current_block = 7926734633677835471;
                 break;
-            } else if (*s.strm).avail_in == 0 {
+            } else if strm.avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
             } else {
-                s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                 s.bsLive += 8;
-                (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 {
-                    (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                strm.next_in = (strm.next_in).offset(1);
+                strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                if strm.total_in_lo32 == 0 {
+                    strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                 }
             }
         }
@@ -1186,18 +1185,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 uc = v_14 as u8;
                 current_block = 5948065351908552372;
                 break;
-            } else if (*s.strm).avail_in == 0 {
+            } else if strm.avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
             } else {
-                s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                 s.bsLive += 8;
-                (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 {
-                    (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                strm.next_in = (strm.next_in).offset(1);
+                strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                if strm.total_in_lo32 == 0 {
+                    strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                 }
             }
         }
@@ -1218,18 +1217,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 uc = v_15 as u8;
                 current_block = 8940662058537996670;
                 break;
-            } else if (*s.strm).avail_in == 0 {
+            } else if strm.avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
             } else {
-                s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                 s.bsLive += 8;
-                (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 {
-                    (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                strm.next_in = (strm.next_in).offset(1);
+                strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                if strm.total_in_lo32 == 0 {
+                    strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                 }
             }
         }
@@ -1250,18 +1249,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                 uc = v_16 as u8;
                 current_block = 13366002463409402866;
                 break;
-            } else if (*s.strm).avail_in == 0 {
+            } else if strm.avail_in == 0 {
                 retVal = 0;
                 current_block = 3350591128142761507;
                 break;
             } else {
-                s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                 s.bsLive += 8;
-                (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                if (*s.strm).total_in_lo32 == 0 {
-                    (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                strm.next_in = (strm.next_in).offset(1);
+                strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                if strm.total_in_lo32 == 0 {
+                    strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                 }
             }
         }
@@ -1296,18 +1295,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= zn;
                         zvec = v_30 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1321,18 +1320,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 1;
                         zj = v_29 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1347,18 +1346,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= zn;
                         zvec = v_28 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1372,18 +1371,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 1;
                         zj = v_27 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1398,18 +1397,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= zn;
                         zvec = v_26 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1423,18 +1422,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 1;
                         uc = v_25 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1453,18 +1452,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 1;
                         uc = v_24 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1482,18 +1481,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 5;
                         curr = v_23 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1508,18 +1507,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 1;
                         uc = v_21 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1544,18 +1543,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 15;
                         nSelectors = v_20 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1576,18 +1575,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 3;
                         nGroups = v_19 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1607,18 +1606,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 1;
                         uc = v_18 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1649,18 +1648,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 1;
                         uc = v_17 as u8;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }
@@ -1681,18 +1680,18 @@ pub unsafe fn BZ2_decompress(s: &mut DState) -> i32 {
                         s.bsLive -= 1;
                         zj = v_31 as i32;
                         break;
-                    } else if (*s.strm).avail_in == 0 {
+                    } else if strm.avail_in == 0 {
                         retVal = 0;
                         current_block = 3350591128142761507;
                         continue 'c_10064;
                     } else {
-                        s.bsBuff = s.bsBuff << 8 | *((*s.strm).next_in as *mut u8) as u32;
+                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
-                        (*s.strm).next_in = ((*s.strm).next_in).offset(1);
-                        (*s.strm).avail_in = ((*s.strm).avail_in).wrapping_sub(1);
-                        (*s.strm).total_in_lo32 = ((*s.strm).total_in_lo32).wrapping_add(1);
-                        if (*s.strm).total_in_lo32 == 0 {
-                            (*s.strm).total_in_hi32 = ((*s.strm).total_in_hi32).wrapping_add(1);
+                        strm.next_in = (strm.next_in).offset(1);
+                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
+                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
+                        if strm.total_in_lo32 == 0 {
+                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
                         }
                     }
                 }

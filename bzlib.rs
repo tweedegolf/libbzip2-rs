@@ -1553,7 +1553,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
             (*s).state,
             decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT
         ) {
-            let r: i32 = BZ2_decompress(&mut *s);
+            let r: i32 = BZ2_decompress(strm, s);
             if r == 4 as libc::c_int {
                 if (*s).verbosity >= 3 as libc::c_int {
                     eprint!(
