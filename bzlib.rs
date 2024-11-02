@@ -116,6 +116,28 @@ impl bz_stream {
 }
 
 #[repr(i32)]
+#[derive(Debug, Clone, Copy)]
+#[allow(non_camel_case_types)]
+enum ReturnCode {
+    BZ_OK = 0,
+    BZ_RUN_OK = 1,
+    BZ_FLUSH_OK = 2,
+    BZ_FINISH_OK = 3,
+    BZ_STREAM_END = 4,
+    BZ_SEQUENCE_ERROR = -1,
+    BZ_PARAM_ERROR = -2,
+    BZ_MEM_ERROR = -3,
+    BZ_DATA_ERROR = -4,
+    BZ_DATA_ERROR_MAGIC = -5,
+    BZ_IO_ERROR = -6,
+    BZ_UNEXPECTED_EOF = -7,
+    BZ_OUTBUFF_FULL = -8,
+    BZ_CONFIG_ERROR = -9,
+}
+
+use ReturnCode::*;
+
+#[repr(i32)]
 #[derive(Copy, Clone)]
 pub enum Mode {
     Idle = 1,
@@ -366,7 +388,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     mut workFactor: libc::c_int,
 ) -> libc::c_int {
     if !bz_config_ok() {
-        return -9 as libc::c_int;
+        return BZ_CONFIG_ERROR as libc::c_int;
     }
 
     if strm.is_null()
@@ -375,7 +397,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         || workFactor < 0
         || workFactor > 250
     {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
 
     if workFactor == 0 {
@@ -387,7 +409,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
 
     let s = (bzalloc)((*strm).opaque, core::mem::size_of::<EState>() as i32, 1) as *mut EState;
     if s.is_null() {
-        return -3 as libc::c_int;
+        return BZ_MEM_ERROR as c_int;
     }
 
     (*s).strm = strm;
@@ -427,7 +449,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         if !s.is_null() {
             (bzfree)((*strm).opaque, s as *mut libc::c_void);
         }
-        return -3 as libc::c_int;
+        return BZ_MEM_ERROR as c_int;
     }
 
     (*s).blockNo = 0;
@@ -668,32 +690,30 @@ impl TryFrom<i32> for Action {
 }
 
 #[export_name = prefix!(BZ2_bzCompress)]
-pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: libc::c_int) -> libc::c_int {
+pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: c_int) -> c_int {
     let Some(strm) = strm.as_mut() else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     let Some(s) = ((*strm).state as *mut EState).as_mut() else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     if s.strm != strm {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
 
-    BZ2_bzCompressHelp(strm, s, action)
+    BZ2_bzCompressHelp(strm, s, action) as c_int
 }
-
-type ReturnCode = i32;
 
 unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, s: &mut EState, action: i32) -> ReturnCode {
     loop {
         match s.mode {
-            Mode::Idle => return -1 as libc::c_int,
+            Mode::Idle => return BZ_SEQUENCE_ERROR,
             Mode::Running => match Action::try_from(action) {
                 Ok(Action::Run) => {
                     let progress = handle_compress(strm, s);
-                    return if progress { 1 } else { -2 };
+                    return if progress { BZ_RUN_OK } else { BZ_PARAM_ERROR };
                 }
                 Ok(Action::Flush) => {
                     s.avail_in_expect = strm.avail_in;
@@ -704,66 +724,66 @@ unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, s: &mut EState, action: i32) 
                     s.mode = Mode::Finishing;
                 }
                 Err(()) => {
-                    return -2;
+                    return BZ_PARAM_ERROR;
                 }
             },
             Mode::Flushing => {
                 let Ok(Action::Flush) = Action::try_from(action) else {
-                    return -1;
+                    return BZ_SEQUENCE_ERROR;
                 };
                 if s.avail_in_expect != strm.avail_in {
-                    return -1;
+                    return BZ_SEQUENCE_ERROR;
                 }
                 handle_compress(strm, s);
                 if s.avail_in_expect > 0
                     || !isempty_RL(&mut *s)
                     || s.state_out_pos < s.writer.num_z as i32
                 {
-                    return 2;
+                    return BZ_FLUSH_OK;
                 }
                 s.mode = Mode::Running;
-                return 1;
+                return BZ_RUN_OK;
             }
             Mode::Finishing => {
                 let Ok(Action::Finish) = Action::try_from(action) else {
-                    return -1;
+                    return BZ_SEQUENCE_ERROR;
                 };
                 if s.avail_in_expect != strm.avail_in {
-                    return -1;
+                    return BZ_SEQUENCE_ERROR;
                 }
                 let progress = handle_compress(strm, s);
                 if !progress {
-                    return -1;
+                    return BZ_SEQUENCE_ERROR;
                 }
                 if s.avail_in_expect > 0
                     || !isempty_RL(s)
                     || s.state_out_pos < s.writer.num_z as i32
                 {
-                    return 3;
+                    return BZ_FINISH_OK;
                 }
                 s.mode = Mode::Idle;
-                return 4;
+                return BZ_STREAM_END;
             }
         }
     }
 }
 
 #[export_name = prefix!(BZ2_bzCompressEnd)]
-pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> libc::c_int {
+pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     let Some(s) = ((*strm).state as *mut EState).as_mut() else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     if s.strm != strm {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
 
     let Some(bzfree) = (*strm).bzfree else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     if !(s.arr1).is_null() {
@@ -785,28 +805,28 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> libc::c_int 
 #[export_name = prefix!(BZ2_bzDecompressInit)]
 pub unsafe extern "C" fn BZ2_bzDecompressInit(
     strm: *mut bz_stream,
-    verbosity: libc::c_int,
-    small: libc::c_int,
+    verbosity: c_int,
+    small: c_int,
 ) -> libc::c_int {
     let s: *mut DState;
     if !bz_config_ok() {
-        return -9 as libc::c_int;
+        return BZ_CONFIG_ERROR as libc::c_int;
     }
     if strm.is_null() {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
     if small != 0 && small != 1 {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
     if verbosity < 0 || verbosity > 4 {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
     let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
     let _bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
 
     s = (bzalloc)((*strm).opaque, core::mem::size_of::<DState>() as i32, 1) as *mut DState;
     if s.is_null() {
-        return -3 as libc::c_int;
+        return BZ_MEM_ERROR as c_int;
     }
     (*s).strm = strm;
     (*strm).state = s as *mut libc::c_void;
@@ -822,10 +842,10 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     (*s).ll4 = std::ptr::null_mut::<u8>();
     (*s).ll16 = std::ptr::null_mut::<u16>();
     (*s).tt = std::ptr::null_mut::<u32>();
-    (*s).currBlockNo = 0 as libc::c_int;
+    (*s).currBlockNo = 0;
     (*s).verbosity = verbosity;
 
-    0 as libc::c_int
+    BZ_OK as libc::c_int
 }
 
 unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> bool {
@@ -1479,17 +1499,17 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
 }
 
 #[export_name = prefix!(BZ2_bzDecompress)]
-pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
+pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     let Some(s) = ((*strm).state as *mut DState).as_mut() else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     if s.strm != strm {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
 
     loop {
@@ -1503,7 +1523,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
                 unRLE_obuf_to_output_FAST(strm, s)
             };
             if corrupt {
-                return -4 as libc::c_int;
+                return BZ_DATA_ERROR as c_int;
             }
             if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
                 s.calculatedBlockCRC = !s.calculatedBlockCRC;
@@ -1517,14 +1537,14 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
                     eprint!("]");
                 }
                 if s.calculatedBlockCRC != s.storedBlockCRC {
-                    return -4 as libc::c_int;
+                    return BZ_DATA_ERROR as c_int;
                 }
                 s.calculatedCombinedCRC =
                     s.calculatedCombinedCRC << 1 | s.calculatedCombinedCRC >> 31;
                 s.calculatedCombinedCRC ^= s.calculatedBlockCRC;
                 s.state = decompress::State::BZ_X_BLKHDR_1;
             } else {
-                return 0 as libc::c_int;
+                return BZ_OK as libc::c_int;
             }
         }
         if !matches!(
@@ -1541,7 +1561,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
                     );
                 }
                 if (*s).calculatedCombinedCRC != (*s).storedCombinedCRC {
-                    return -4 as libc::c_int;
+                    return BZ_DATA_ERROR as c_int;
                 }
                 return r;
             }
@@ -1555,19 +1575,19 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
 #[export_name = prefix!(BZ2_bzDecompressEnd)]
 pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_int {
     let Some(strm) = strm.as_mut() else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     let Some(s) = ((*strm).state as *mut DState).as_mut() else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     if s.strm != strm {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
 
     let Some(bzfree) = (*strm).bzfree else {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     };
 
     if !(s.tt).is_null() {
@@ -1585,7 +1605,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
     (bzfree)(strm.opaque, strm.state.cast::<c_void>());
     strm.state = std::ptr::null_mut::<libc::c_void>();
 
-    0 as libc::c_int
+    BZ_OK as libc::c_int
 }
 
 unsafe fn myfeof(f: *mut FILE) -> bool {
@@ -2218,7 +2238,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
         || workFactor < 0 as libc::c_int
         || workFactor > 250 as libc::c_int
     {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
     if workFactor == 0 as libc::c_int {
         workFactor = 30 as libc::c_int;
@@ -2265,7 +2285,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
         || verbosity < 0 as libc::c_int
         || verbosity > 4 as libc::c_int
     {
-        return -2 as libc::c_int;
+        return BZ_PARAM_ERROR as c_int;
     }
     strm.bzalloc = None;
     strm.bzfree = None;
