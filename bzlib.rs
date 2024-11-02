@@ -2349,9 +2349,14 @@ const BZERRORSTRINGS: [&str; 16] = [
 ];
 
 #[export_name = prefix!(BZ2_bzerror)]
-pub unsafe extern "C" fn BZ2_bzerror(b: *mut c_void, errnum: *mut c_int) -> *const c_char {
-    let err = Ord::max(0, (*(b as *mut bzFile)).lastErr);
-    *errnum = err;
-    let msg = BZERRORSTRINGS[(err * -1) as usize];
+pub unsafe extern "C" fn BZ2_bzerror(b: *const c_void, errnum: *mut c_int) -> *const c_char {
+    let err = Ord::min(0, (*(b as *const bzFile)).lastErr);
+    if !errnum.is_null() {
+        *errnum = err;
+    }
+    let msg = match BZERRORSTRINGS.get((err * -1) as usize) {
+        Some(msg) => msg,
+        None => "???\0",
+    };
     msg.as_ptr().cast::<c_char>()
 }
