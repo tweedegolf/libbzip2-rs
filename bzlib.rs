@@ -1499,23 +1499,25 @@ unsafe fn unRLE_obuf_to_output_SMALL(s: *mut DState) -> Bool {
 #[export_name = prefix!(BZ2_bzDecompress)]
 pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
     let mut corrupt: Bool;
-    let s: *mut DState;
-    if strm.is_null() {
+
+    let Some(strm) = strm.as_mut() else {
+        return -2 as libc::c_int;
+    };
+
+    let Some(s) = ((*strm).state as *mut DState).as_mut() else {
+        return -2 as libc::c_int;
+    };
+
+    if s.strm != strm {
         return -2 as libc::c_int;
     }
-    s = (*strm).state as *mut DState;
-    if s.is_null() {
-        return -2 as libc::c_int;
-    }
-    if (*s).strm != strm {
-        return -2 as libc::c_int;
-    }
+
     loop {
-        if let decompress::State::BZ_X_IDLE = (*s).state {
+        if let decompress::State::BZ_X_IDLE = s.state {
             return -1 as libc::c_int;
         }
-        if let decompress::State::BZ_X_OUTPUT = (*s).state {
-            if (*s).smallDecompress != 0 {
+        if let decompress::State::BZ_X_OUTPUT = s.state {
+            if s.smallDecompress != 0 {
                 corrupt = unRLE_obuf_to_output_SMALL(s);
             } else {
                 corrupt = unRLE_obuf_to_output_FAST(s);
@@ -1523,27 +1525,26 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
             if corrupt != 0 {
                 return -4 as libc::c_int;
             }
-            if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int
-                && (*s).state_out_len == 0 as libc::c_int
+            if s.nblock_used == s.save_nblock + 1 as libc::c_int
+                && s.state_out_len == 0 as libc::c_int
             {
-                (*s).calculatedBlockCRC = !(*s).calculatedBlockCRC;
-                if (*s).verbosity >= 3 as libc::c_int {
+                s.calculatedBlockCRC = !s.calculatedBlockCRC;
+                if s.verbosity >= 3 as libc::c_int {
                     eprint!(
                         " {{{:#08x}, {:#08x}}}",
-                        (*s).storedBlockCRC,
-                        (*s).calculatedBlockCRC,
+                        s.storedBlockCRC, s.calculatedBlockCRC,
                     );
                 }
-                if (*s).verbosity >= 2 as libc::c_int {
+                if s.verbosity >= 2 as libc::c_int {
                     eprint!("]");
                 }
-                if (*s).calculatedBlockCRC != (*s).storedBlockCRC {
+                if s.calculatedBlockCRC != s.storedBlockCRC {
                     return -4 as libc::c_int;
                 }
-                (*s).calculatedCombinedCRC = (*s).calculatedCombinedCRC << 1 as libc::c_int
-                    | (*s).calculatedCombinedCRC >> 31 as libc::c_int;
-                (*s).calculatedCombinedCRC ^= (*s).calculatedBlockCRC;
-                (*s).state = decompress::State::BZ_X_BLKHDR_1;
+                s.calculatedCombinedCRC =
+                    s.calculatedCombinedCRC << 1 | s.calculatedCombinedCRC >> 31;
+                s.calculatedCombinedCRC ^= s.calculatedBlockCRC;
+                s.state = decompress::State::BZ_X_BLKHDR_1;
             } else {
                 return 0 as libc::c_int;
             }
