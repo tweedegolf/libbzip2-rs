@@ -1754,6 +1754,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
     BZ2_bzCompressEnd(&mut (*bzf).strm);
     free(bzf as *mut libc::c_void);
 }
+
 #[export_name = prefix!(BZ2_bzReadOpen)]
 pub unsafe extern "C" fn BZ2_bzReadOpen(
     bzerror: *mut libc::c_int,
@@ -1839,6 +1840,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     (*bzf).initialisedOk = 1 as Bool;
     bzf as *mut libc::c_void
 }
+
 #[export_name = prefix!(BZ2_bzReadClose)]
 pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut libc::c_int, b: *mut libc::c_void) {
     let bzf: *mut bzFile = b as *mut bzFile;
@@ -2235,20 +2237,25 @@ unsafe fn bzopen_or_bzdopen(
     }
     bzfp
 }
+
+/// Opens a `.bz2` file for reading or writing using its name. Analogous to fopen.
 #[export_name = prefix!(BZ2_bzopen)]
 pub unsafe extern "C" fn BZ2_bzopen(
     path: *const libc::c_char,
     mode: *const libc::c_char,
 ) -> *mut libc::c_void {
-    bzopen_or_bzdopen(path, -1 as libc::c_int, mode, 0 as libc::c_int)
+    bzopen_or_bzdopen(path, -1 as libc::c_int, mode, 0)
 }
+
+/// Opens a `.bz2` file for reading or writing using a pre-existing file descriptor. Analogous to fdopen.
 #[export_name = prefix!(BZ2_bzdopen)]
 pub unsafe extern "C" fn BZ2_bzdopen(
     fd: libc::c_int,
     mode: *const libc::c_char,
 ) -> *mut libc::c_void {
-    bzopen_or_bzdopen(std::ptr::null::<libc::c_char>(), fd, mode, 1 as libc::c_int)
+    bzopen_or_bzdopen(std::ptr::null::<libc::c_char>(), fd, mode, 1)
 }
+
 #[export_name = prefix!(BZ2_bzread)]
 pub unsafe extern "C" fn BZ2_bzread(
     b: *mut libc::c_void,
