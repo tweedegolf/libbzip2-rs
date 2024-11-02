@@ -146,21 +146,14 @@ unsafe fn generateMTFValues(s: &mut EState) {
 
             {
                 let mut rtmp: u8;
-                let mut ryy_j: *mut u8;
-                let rll_i: u8;
                 rtmp = yy[1];
                 yy[1] = yy[0];
-                ryy_j = yy.as_mut_ptr().offset(1) as *mut u8;
-                rll_i = ll_i;
-                while rll_i != rtmp {
-                    let rtmp2: u8;
-                    ryy_j = ryy_j.offset(1);
-                    rtmp2 = rtmp;
-                    rtmp = *ryy_j;
-                    *ryy_j = rtmp2;
+                j = 1;
+                while ll_i != rtmp {
+                    j += 1;
+                    core::mem::swap(&mut rtmp, &mut yy[j as usize]);
                 }
                 yy[0] = rtmp;
-                j = ryy_j.offset_from(yy.as_mut_ptr().offset(0) as *mut u8) as i32;
                 *mtfv.offset(wr as isize) = (j + 1) as u16;
                 wr += 1;
                 s.mtfFreq[(j + 1) as usize] += 1;
