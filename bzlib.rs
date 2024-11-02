@@ -880,7 +880,6 @@ macro_rules! BZ_GET_FAST {
 }
 
 unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> bool {
-    let mut current_block: u64;
     let mut k1: u8;
     if s.blockRandomised {
         loop {
@@ -965,6 +964,12 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
             s.nblock_used += 1;
         }
     } else {
+        enum NextState {
+            OutLenEqOne,
+            Remainder,
+        }
+        let mut current_block: NextState;
+
         /* restore */
         let mut c_calculatedBlockCRC: u32 = s.calculatedBlockCRC;
         let mut c_state_out_ch: u8 = s.state_out_ch;
@@ -1009,14 +1014,14 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                     cs_next_out = cs_next_out.offset(1);
                     cs_avail_out = cs_avail_out.wrapping_sub(1);
                 }
-                current_block = 1417769144978639029;
+                current_block = NextState::OutLenEqOne;
             } else {
-                current_block = 14483658890531361756;
+                current_block = NextState::Remainder;
             }
 
             loop {
                 match current_block {
-                    1417769144978639029 => {
+                    NextState::OutLenEqOne => {
                         if cs_avail_out == 0 as libc::c_int as libc::c_uint {
                             c_state_out_len = 1 as libc::c_int;
                             break 'return_notr;
@@ -1025,7 +1030,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                             BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
                             cs_next_out = cs_next_out.offset(1);
                             cs_avail_out = cs_avail_out.wrapping_sub(1);
-                            current_block = 14483658890531361756;
+                            current_block = NextState::Remainder;
                         }
                     }
                     _ => {
@@ -1045,10 +1050,10 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
 
                             if k1 as libc::c_int != c_k0 {
                                 c_k0 = k1 as i32;
-                                current_block = 1417769144978639029;
+                                current_block = NextState::OutLenEqOne;
                             } else {
                                 if c_nblock_used == s_save_nblockPP {
-                                    current_block = 1417769144978639029;
+                                    current_block = NextState::OutLenEqOne;
                                     continue;
                                 }
 
