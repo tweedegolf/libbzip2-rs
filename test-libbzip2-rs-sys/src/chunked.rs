@@ -91,7 +91,7 @@ fn compress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<&'
 
         ret = unsafe { BZ2_bzCompress(&mut strm, 0) };
 
-        match dbg!(ret) {
+        match ret {
             0 => {
                 continue;
             }

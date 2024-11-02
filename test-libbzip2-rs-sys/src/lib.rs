@@ -161,15 +161,8 @@ fn buff_to_buff_decompress() {
     assert_eq!(err, 0);
 }
 
-#[test]
-fn miri_buff_to_buff_decompress_fast() {
-    let input = &[
-        66u8, 90, 104, 57, 49, 65, 89, 38, 83, 89, 164, 38, 196, 174, 0, 0, 5, 17, 128, 64, 0, 36,
-        167, 204, 0, 32, 0, 49, 3, 64, 208, 34, 105, 128, 122, 141, 161, 22, 187, 73, 99, 176, 39,
-        11, 185, 34, 156, 40, 72, 82, 19, 98, 87, 0,
-    ];
-
-    let mut dest = vec![0; 1024];
+fn miri_buff_to_buff_decompress_helper(input: &[u8], buffer_size: usize, is_small: bool) {
+    let mut dest = vec![0; buffer_size];
     let mut dest_len = dest.len() as core::ffi::c_uint;
 
     let err = unsafe {
@@ -178,7 +171,7 @@ fn miri_buff_to_buff_decompress_fast() {
             &mut dest_len,
             input.as_ptr() as *mut _,
             input.len() as _,
-            false as _,
+            is_small as _,
             0,
         )
     };
@@ -187,28 +180,39 @@ fn miri_buff_to_buff_decompress_fast() {
 }
 
 #[test]
-fn miri_buff_to_buff_decompress_small() {
-    let input = &[
+fn miri_buff_to_buff_decompress_fast() {
+    let input: &[u8] = &[
         66u8, 90, 104, 57, 49, 65, 89, 38, 83, 89, 164, 38, 196, 174, 0, 0, 5, 17, 128, 64, 0, 36,
         167, 204, 0, 32, 0, 49, 3, 64, 208, 34, 105, 128, 122, 141, 161, 22, 187, 73, 99, 176, 39,
         11, 185, 34, 156, 40, 72, 82, 19, 98, 87, 0,
     ];
 
-    let mut dest = vec![0; 1024];
-    let mut dest_len = dest.len() as core::ffi::c_uint;
+    miri_buff_to_buff_decompress_helper(input, 1024, false)
+}
 
-    let err = unsafe {
-        libbzip2_rs_sys::bzlib::BZ2_bzBuffToBuffDecompress(
-            dest.as_mut_ptr().cast::<core::ffi::c_char>(),
-            &mut dest_len,
-            input.as_ptr() as *mut _,
-            input.len() as _,
-            true as _,
-            0,
-        )
-    };
+#[test]
+fn miri_buff_to_buff_decompress_small() {
+    let input: &[u8] = &[
+        66u8, 90, 104, 0x39, 49, 65, 89, 38, 83, 89, 164, 38, 196, 174, 0, 0, 5, 17, 128, 64, 0,
+        36, 167, 204, 0, 32, 0, 49, 3, 64, 208, 34, 105, 128, 122, 141, 161, 22, 187, 73, 99, 176,
+        39, 11, 185, 34, 156, 40, 72, 82, 19, 98, 87, 0,
+    ];
 
-    assert_eq!(err, 0);
+    miri_buff_to_buff_decompress_helper(input, 1024, true)
+}
+
+#[test]
+fn miri_buff_to_buff_decompress_fast_randomized() {
+    let input = include_bytes!("../../tests/input/randomized-blocks.bin");
+
+    miri_buff_to_buff_decompress_helper(input, 256 * 1024, false)
+}
+
+#[test]
+fn miri_buff_to_buff_decompress_small_randomized() {
+    let input = include_bytes!("../../tests/input/randomized-blocks.bin");
+
+    miri_buff_to_buff_decompress_helper(input, 256 * 1024, true)
 }
 
 #[test]
