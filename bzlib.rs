@@ -885,10 +885,10 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
         loop {
             /* try to finish existing run */
             loop {
-                if strm.avail_out == 0 as libc::c_int as libc::c_uint {
+                if strm.avail_out == 0 {
                     return false;
                 }
-                if s.state_out_len == 0 as libc::c_int {
+                if s.state_out_len == 0 {
                     break;
                 }
                 *(strm.next_out as *mut u8) = s.state_out_ch;
@@ -897,7 +897,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                 strm.next_out = (strm.next_out).offset(1);
                 strm.avail_out = (strm.avail_out).wrapping_sub(1);
                 strm.total_out_lo32 = (strm.total_out_lo32).wrapping_add(1);
-                if strm.total_out_lo32 == 0 as libc::c_int as libc::c_uint {
+                if strm.total_out_lo32 == 0 {
                     strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
                 }
             }
@@ -984,7 +984,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
         /* end restore */
 
         let avail_out_INIT: u32 = cs_avail_out;
-        let s_save_nblockPP: i32 = s.save_nblock + 1 as libc::c_int;
+        let s_save_nblockPP: i32 = s.save_nblock + 1;
         let total_out_lo32_old: libc::c_uint;
 
         macro_rules! BZ_GET_FAST_C {
@@ -1000,12 +1000,12 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
         }
 
         'return_notr: loop {
-            if c_state_out_len > 0 as libc::c_int {
+            if c_state_out_len > 0 {
                 loop {
-                    if cs_avail_out == 0 as libc::c_int as libc::c_uint {
+                    if cs_avail_out == 0 {
                         break 'return_notr;
                     }
-                    if c_state_out_len == 1 as libc::c_int {
+                    if c_state_out_len == 1 {
                         break;
                     }
                     *(cs_next_out as *mut u8) = c_state_out_ch;
@@ -1022,8 +1022,8 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
             loop {
                 match current_block {
                     NextState::OutLenEqOne => {
-                        if cs_avail_out == 0 as libc::c_int as libc::c_uint {
-                            c_state_out_len = 1 as libc::c_int;
+                        if cs_avail_out == 0 {
+                            c_state_out_len = 1;
                             break 'return_notr;
                         } else {
                             *(cs_next_out as *mut u8) = c_state_out_ch;
@@ -1033,7 +1033,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                             current_block = NextState::Remainder;
                         }
                     }
-                    _ => {
+                    NextState::Remainder => {
                         /* Only caused by corrupt data stream? */
                         if c_nblock_used > s_save_nblockPP {
                             return true;
@@ -1041,7 +1041,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
 
                         /* can a new run be started? */
                         if c_nblock_used == s_save_nblockPP {
-                            c_state_out_len = 0 as libc::c_int;
+                            c_state_out_len = 0;
                             break 'return_notr;
                         }
 
@@ -1049,7 +1049,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                         BZ_GET_FAST_C!(k1);
                         c_nblock_used += 1;
 
-                        if k1 as libc::c_int != c_k0 {
+                        if k1 as i32 != c_k0 {
                             c_k0 = k1 as i32;
                             current_block = NextState::OutLenEqOne;
                             continue;
@@ -1067,7 +1067,8 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                         if c_nblock_used == s_save_nblockPP {
                             continue 'return_notr;
                         }
-                        if k1 as libc::c_int != c_k0 {
+
+                        if k1 as i32 != c_k0 {
                             c_k0 = k1 as i32;
 
                             continue 'return_notr;
@@ -1081,14 +1082,14 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                             continue 'return_notr;
                         }
 
-                        if k1 as libc::c_int != c_k0 {
+                        if k1 as i32 != c_k0 {
                             c_k0 = k1 as i32;
                             continue 'return_notr;
                         }
 
                         BZ_GET_FAST_C!(k1);
                         c_nblock_used += 1;
-                        c_state_out_len = (k1 as i32) + 4;
+                        c_state_out_len = k1 as i32 + 4;
                         BZ_GET_FAST_C!(c_k0);
                         c_nblock_used += 1;
 
