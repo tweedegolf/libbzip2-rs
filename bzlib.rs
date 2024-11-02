@@ -828,191 +828,183 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     0 as libc::c_int
 }
 
-unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> bool {
+unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> bool {
     let mut current_block: u64;
     let mut k1: u8;
-    if (*s).blockRandomised != 0 {
+    if s.blockRandomised != 0 {
         loop {
             loop {
-                if (*(*s).strm).avail_out == 0 as libc::c_int as libc::c_uint {
+                if strm.avail_out == 0 as libc::c_int as libc::c_uint {
                     return false;
                 }
-                if (*s).state_out_len == 0 as libc::c_int {
+                if s.state_out_len == 0 as libc::c_int {
                     break;
                 }
-                *((*(*s).strm).next_out as *mut u8) = (*s).state_out_ch;
-                (*s).calculatedBlockCRC = (*s).calculatedBlockCRC << 8 as libc::c_int
-                    ^ BZ2_CRC32TABLE[((*s).calculatedBlockCRC >> 24 as libc::c_int
-                        ^ (*s).state_out_ch as libc::c_uint)
-                        as usize];
-                (*s).state_out_len -= 1;
-                (*(*s).strm).next_out = ((*(*s).strm).next_out).offset(1);
-                (*(*s).strm).avail_out = ((*(*s).strm).avail_out).wrapping_sub(1);
-                (*(*s).strm).total_out_lo32 = ((*(*s).strm).total_out_lo32).wrapping_add(1);
-                if (*(*s).strm).total_out_lo32 == 0 as libc::c_int as libc::c_uint {
-                    (*(*s).strm).total_out_hi32 = ((*(*s).strm).total_out_hi32).wrapping_add(1);
+                *(strm.next_out as *mut u8) = s.state_out_ch;
+                BZ_UPDATE_CRC!(s.calculatedBlockCRC, s.state_out_ch);
+                s.state_out_len -= 1;
+                strm.next_out = (strm.next_out).offset(1);
+                strm.avail_out = (strm.avail_out).wrapping_sub(1);
+                strm.total_out_lo32 = (strm.total_out_lo32).wrapping_add(1);
+                if strm.total_out_lo32 == 0 as libc::c_int as libc::c_uint {
+                    strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
                 }
             }
-            if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
+            if s.nblock_used == s.save_nblock + 1 as libc::c_int {
                 return false;
             }
-            if (*s).nblock_used > (*s).save_nblock + 1 as libc::c_int {
+            if s.nblock_used > s.save_nblock + 1 as libc::c_int {
                 return true;
             }
-            (*s).state_out_len = 1 as libc::c_int;
-            (*s).state_out_ch = (*s).k0 as u8;
-            if (*s).tPos >= (100000 as libc::c_int as u32).wrapping_mul((*s).blockSize100k as u32) {
+            s.state_out_len = 1 as libc::c_int;
+            s.state_out_ch = s.k0 as u8;
+            if s.tPos >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32) {
                 return true;
             }
-            (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
-            k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
-            (*s).tPos >>= 8 as libc::c_int;
-            if (*s).rNToGo == 0 as libc::c_int {
-                (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
-                (*s).rTPos += 1;
-                if (*s).rTPos == 512 as libc::c_int {
-                    (*s).rTPos = 0 as libc::c_int;
+            s.tPos = *(s.tt).offset(s.tPos as isize);
+            k1 = (s.tPos & 0xff as libc::c_int as libc::c_uint) as u8;
+            s.tPos >>= 8 as libc::c_int;
+            if s.rNToGo == 0 as libc::c_int {
+                s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
+                s.rTPos += 1;
+                if s.rTPos == 512 as libc::c_int {
+                    s.rTPos = 0 as libc::c_int;
                 }
             }
-            (*s).rNToGo -= 1;
+            s.rNToGo -= 1;
             k1 = (k1 as libc::c_int
-                ^ if (*s).rNToGo == 1 as libc::c_int {
+                ^ if s.rNToGo == 1 as libc::c_int {
                     1 as libc::c_int
                 } else {
                     0 as libc::c_int
                 }) as u8;
-            (*s).nblock_used += 1;
-            if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
+            s.nblock_used += 1;
+            if s.nblock_used == s.save_nblock + 1 as libc::c_int {
                 continue;
             }
-            if k1 as libc::c_int != (*s).k0 {
-                (*s).k0 = k1 as i32;
+            if k1 as libc::c_int != s.k0 {
+                s.k0 = k1 as i32;
             } else {
-                (*s).state_out_len = 2 as libc::c_int;
-                if (*s).tPos
-                    >= (100000 as libc::c_int as u32).wrapping_mul((*s).blockSize100k as u32)
-                {
+                s.state_out_len = 2 as libc::c_int;
+                if s.tPos >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32) {
                     return true;
                 }
-                (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
-                k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
-                (*s).tPos >>= 8 as libc::c_int;
-                if (*s).rNToGo == 0 as libc::c_int {
-                    (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
-                    (*s).rTPos += 1;
-                    if (*s).rTPos == 512 as libc::c_int {
-                        (*s).rTPos = 0 as libc::c_int;
+                s.tPos = *(s.tt).offset(s.tPos as isize);
+                k1 = (s.tPos & 0xff as libc::c_int as libc::c_uint) as u8;
+                s.tPos >>= 8 as libc::c_int;
+                if s.rNToGo == 0 as libc::c_int {
+                    s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
+                    s.rTPos += 1;
+                    if s.rTPos == 512 as libc::c_int {
+                        s.rTPos = 0 as libc::c_int;
                     }
                 }
-                (*s).rNToGo -= 1;
+                s.rNToGo -= 1;
                 k1 = (k1 as libc::c_int
-                    ^ if (*s).rNToGo == 1 as libc::c_int {
+                    ^ if s.rNToGo == 1 as libc::c_int {
                         1 as libc::c_int
                     } else {
                         0 as libc::c_int
                     }) as u8;
-                (*s).nblock_used += 1;
-                if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
+                s.nblock_used += 1;
+                if s.nblock_used == s.save_nblock + 1 as libc::c_int {
                     continue;
                 }
-                if k1 as libc::c_int != (*s).k0 {
-                    (*s).k0 = k1 as i32;
+                if k1 as libc::c_int != s.k0 {
+                    s.k0 = k1 as i32;
                 } else {
-                    (*s).state_out_len = 3 as libc::c_int;
-                    if (*s).tPos
-                        >= (100000 as libc::c_int as u32).wrapping_mul((*s).blockSize100k as u32)
+                    s.state_out_len = 3 as libc::c_int;
+                    if s.tPos >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32)
                     {
                         return true;
                     }
-                    (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
-                    k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
-                    (*s).tPos >>= 8 as libc::c_int;
-                    if (*s).rNToGo == 0 as libc::c_int {
-                        (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
-                        (*s).rTPos += 1;
-                        if (*s).rTPos == 512 as libc::c_int {
-                            (*s).rTPos = 0 as libc::c_int;
+                    s.tPos = *(s.tt).offset(s.tPos as isize);
+                    k1 = (s.tPos & 0xff as libc::c_int as libc::c_uint) as u8;
+                    s.tPos >>= 8 as libc::c_int;
+                    if s.rNToGo == 0 as libc::c_int {
+                        s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
+                        s.rTPos += 1;
+                        if s.rTPos == 512 as libc::c_int {
+                            s.rTPos = 0 as libc::c_int;
                         }
                     }
-                    (*s).rNToGo -= 1;
+                    s.rNToGo -= 1;
                     k1 = (k1 as libc::c_int
-                        ^ if (*s).rNToGo == 1 as libc::c_int {
+                        ^ if s.rNToGo == 1 as libc::c_int {
                             1 as libc::c_int
                         } else {
                             0 as libc::c_int
                         }) as u8;
-                    (*s).nblock_used += 1;
-                    if (*s).nblock_used == (*s).save_nblock + 1 as libc::c_int {
+                    s.nblock_used += 1;
+                    if s.nblock_used == s.save_nblock + 1 as libc::c_int {
                         continue;
                     }
-                    if k1 as libc::c_int != (*s).k0 {
-                        (*s).k0 = k1 as i32;
+                    if k1 as libc::c_int != s.k0 {
+                        s.k0 = k1 as i32;
                     } else {
-                        if (*s).tPos
-                            >= (100000 as libc::c_int as u32)
-                                .wrapping_mul((*s).blockSize100k as u32)
+                        if s.tPos
+                            >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32)
                         {
                             return true;
                         }
-                        (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
-                        k1 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8;
-                        (*s).tPos >>= 8 as libc::c_int;
-                        if (*s).rNToGo == 0 as libc::c_int {
-                            (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
-                            (*s).rTPos += 1;
-                            if (*s).rTPos == 512 as libc::c_int {
-                                (*s).rTPos = 0 as libc::c_int;
+                        s.tPos = *(s.tt).offset(s.tPos as isize);
+                        k1 = (s.tPos & 0xff as libc::c_int as libc::c_uint) as u8;
+                        s.tPos >>= 8 as libc::c_int;
+                        if s.rNToGo == 0 as libc::c_int {
+                            s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
+                            s.rTPos += 1;
+                            if s.rTPos == 512 as libc::c_int {
+                                s.rTPos = 0 as libc::c_int;
                             }
                         }
-                        (*s).rNToGo -= 1;
+                        s.rNToGo -= 1;
                         k1 = (k1 as libc::c_int
-                            ^ if (*s).rNToGo == 1 as libc::c_int {
+                            ^ if s.rNToGo == 1 as libc::c_int {
                                 1 as libc::c_int
                             } else {
                                 0 as libc::c_int
                             }) as u8;
-                        (*s).nblock_used += 1;
-                        (*s).state_out_len = k1 as i32 + 4 as libc::c_int;
-                        if (*s).tPos
-                            >= (100000 as libc::c_int as u32)
-                                .wrapping_mul((*s).blockSize100k as u32)
+                        s.nblock_used += 1;
+                        s.state_out_len = k1 as i32 + 4 as libc::c_int;
+                        if s.tPos
+                            >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32)
                         {
                             return true;
                         }
-                        (*s).tPos = *((*s).tt).offset((*s).tPos as isize);
-                        (*s).k0 = ((*s).tPos & 0xff as libc::c_int as libc::c_uint) as u8 as i32;
-                        (*s).tPos >>= 8 as libc::c_int;
-                        if (*s).rNToGo == 0 as libc::c_int {
-                            (*s).rNToGo = BZ2_RNUMS[(*s).rTPos as usize];
-                            (*s).rTPos += 1;
-                            if (*s).rTPos == 512 as libc::c_int {
-                                (*s).rTPos = 0 as libc::c_int;
+                        s.tPos = *(s.tt).offset(s.tPos as isize);
+                        s.k0 = (s.tPos & 0xff as libc::c_int as libc::c_uint) as u8 as i32;
+                        s.tPos >>= 8 as libc::c_int;
+                        if s.rNToGo == 0 as libc::c_int {
+                            s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
+                            s.rTPos += 1;
+                            if s.rTPos == 512 as libc::c_int {
+                                s.rTPos = 0 as libc::c_int;
                             }
                         }
-                        (*s).rNToGo -= 1;
-                        (*s).k0 ^= if (*s).rNToGo == 1 as libc::c_int {
+                        s.rNToGo -= 1;
+                        s.k0 ^= if s.rNToGo == 1 as libc::c_int {
                             1 as libc::c_int
                         } else {
                             0 as libc::c_int
                         };
-                        (*s).nblock_used += 1;
+                        s.nblock_used += 1;
                     }
                 }
             }
         }
     } else {
-        let mut c_calculatedBlockCRC: u32 = (*s).calculatedBlockCRC;
-        let mut c_state_out_ch: u8 = (*s).state_out_ch;
-        let mut c_state_out_len: i32 = (*s).state_out_len;
-        let mut c_nblock_used: i32 = (*s).nblock_used;
-        let mut c_k0: i32 = (*s).k0;
-        let c_tt: *mut u32 = (*s).tt;
-        let mut c_tPos: u32 = (*s).tPos;
-        let mut cs_next_out: *mut libc::c_char = (*(*s).strm).next_out;
-        let mut cs_avail_out: libc::c_uint = (*(*s).strm).avail_out;
-        let ro_blockSize100k: i32 = (*s).blockSize100k;
+        let mut c_calculatedBlockCRC: u32 = s.calculatedBlockCRC;
+        let mut c_state_out_ch: u8 = s.state_out_ch;
+        let mut c_state_out_len: i32 = s.state_out_len;
+        let mut c_nblock_used: i32 = s.nblock_used;
+        let mut c_k0: i32 = s.k0;
+        let c_tt: *mut u32 = s.tt;
+        let mut c_tPos: u32 = s.tPos;
+        let mut cs_next_out: *mut libc::c_char = strm.next_out;
+        let mut cs_avail_out: libc::c_uint = strm.avail_out;
+        let ro_blockSize100k: i32 = s.blockSize100k;
         let avail_out_INIT: u32 = cs_avail_out;
-        let s_save_nblockPP: i32 = (*s).save_nblock + 1 as libc::c_int;
+        let s_save_nblockPP: i32 = s.save_nblock + 1 as libc::c_int;
         let total_out_lo32_old: libc::c_uint;
         's_453: while 1 as Bool != 0 {
             if c_state_out_len > 0 as libc::c_int {
@@ -1150,21 +1142,21 @@ unsafe fn unRLE_obuf_to_output_FAST(s: *mut DState) -> bool {
                 }
             }
         }
-        total_out_lo32_old = (*(*s).strm).total_out_lo32;
-        (*(*s).strm).total_out_lo32 =
-            ((*(*s).strm).total_out_lo32).wrapping_add(avail_out_INIT.wrapping_sub(cs_avail_out));
-        if (*(*s).strm).total_out_lo32 < total_out_lo32_old {
-            (*(*s).strm).total_out_hi32 = ((*(*s).strm).total_out_hi32).wrapping_add(1);
+        total_out_lo32_old = strm.total_out_lo32;
+        strm.total_out_lo32 =
+            (strm.total_out_lo32).wrapping_add(avail_out_INIT.wrapping_sub(cs_avail_out));
+        if strm.total_out_lo32 < total_out_lo32_old {
+            strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
         }
-        (*s).calculatedBlockCRC = c_calculatedBlockCRC;
-        (*s).state_out_ch = c_state_out_ch;
-        (*s).state_out_len = c_state_out_len;
-        (*s).nblock_used = c_nblock_used;
-        (*s).k0 = c_k0;
-        (*s).tt = c_tt;
-        (*s).tPos = c_tPos;
-        (*(*s).strm).next_out = cs_next_out;
-        (*(*s).strm).avail_out = cs_avail_out;
+        s.calculatedBlockCRC = c_calculatedBlockCRC;
+        s.state_out_ch = c_state_out_ch;
+        s.state_out_len = c_state_out_len;
+        s.nblock_used = c_nblock_used;
+        s.k0 = c_k0;
+        s.tt = c_tt;
+        s.tPos = c_tPos;
+        strm.next_out = cs_next_out;
+        strm.avail_out = cs_avail_out;
     }
 
     false
@@ -1520,7 +1512,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> libc::c_int {
             let corrupt = if s.smallDecompress != 0 {
                 unRLE_obuf_to_output_SMALL(s)
             } else {
-                unRLE_obuf_to_output_FAST(s)
+                unRLE_obuf_to_output_FAST(strm, s)
             };
             if corrupt {
                 return -4 as libc::c_int;
