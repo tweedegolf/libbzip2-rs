@@ -1139,10 +1139,36 @@ pub fn BZ2_indexIntoF(indx: i32, cftab: &mut [i32]) -> i32 {
     nb
 }
 
+macro_rules! GET_LL4 {
+    ($s:expr, $i:expr) => {
+        (*($s.ll4).offset(($s.tPos >> 1 as libc::c_int) as isize) as u32
+            >> ($s.tPos << 2 as libc::c_int & 0x4 as libc::c_int as libc::c_uint)
+            & 0xf as libc::c_int as libc::c_uint)
+    };
+}
+
+macro_rules! GET_LL {
+    ($s:expr, $i:expr) => {
+        *($s.ll16).offset($s.tPos as isize) as u32 | GET_LL4!($s, i) << 16
+    };
+}
+
+macro_rules! BZ_GET_SMALL {
+    ($s:expr, $cccc:expr) => {
+        /* c_tPos is unsigned, hence test < 0 is pointless. */
+        if $s.tPos >= 100000u32.wrapping_mul($s.blockSize100k as u32) {
+            return true;
+        }
+        $cccc = BZ2_indexIntoF($s.tPos as i32, &mut $s.cftab) as _;
+        $s.tPos = GET_LL!($s, $s.tPos);
+    };
+}
+
 unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bool {
     let mut k1: u8;
     if s.blockRandomised {
         loop {
+            /* try to finish existing run */
             loop {
                 if strm.avail_out == 0 as libc::c_int as libc::c_uint {
                     return false;
@@ -1151,10 +1177,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
                     break;
                 }
                 *(strm.next_out as *mut u8) = s.state_out_ch;
-                s.calculatedBlockCRC = s.calculatedBlockCRC << 8 as libc::c_int
-                    ^ BZ2_CRC32TABLE[(s.calculatedBlockCRC >> 24 as libc::c_int
-                        ^ s.state_out_ch as libc::c_uint)
-                        as usize];
+                BZ_UPDATE_CRC!(s.calculatedBlockCRC, s.state_out_ch);
                 s.state_out_len -= 1;
                 strm.next_out = (strm.next_out).offset(1);
                 strm.avail_out = (strm.avail_out).wrapping_sub(1);
@@ -1163,164 +1186,67 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
                     strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
                 }
             }
+
+            /* can a new run be started? */
             if s.nblock_used == s.save_nblock + 1 as libc::c_int {
                 return false;
             }
+
+            /* Only caused by corrupt data stream? */
             if s.nblock_used > s.save_nblock + 1 as libc::c_int {
                 return true;
             }
-            s.state_out_len = 1 as libc::c_int;
+
             s.state_out_ch = s.k0 as u8;
-            if s.tPos >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32) {
-                return true;
-            }
-            k1 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab) as u8;
-            s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
-                | (*(s.ll4).offset((s.tPos >> 1 as libc::c_int) as isize) as u32
-                    >> (s.tPos << 2 as libc::c_int & 0x4 as libc::c_int as libc::c_uint)
-                    & 0xf as libc::c_int as libc::c_uint)
-                    << 16 as libc::c_int;
-            if s.rNToGo == 0 as libc::c_int {
-                s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
-                s.rTPos += 1;
-                if s.rTPos == 512 as libc::c_int {
-                    s.rTPos = 0 as libc::c_int;
-                }
-            }
-            s.rNToGo -= 1;
-            k1 = (k1 as libc::c_int
-                ^ if s.rNToGo == 1 as libc::c_int {
-                    1 as libc::c_int
-                } else {
-                    0 as libc::c_int
-                }) as u8;
+
+            s.state_out_len = 1;
+            BZ_GET_SMALL!(s, k1);
+            BZ_RAND_UPD_MASK!(s);
+            k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 as libc::c_int {
+            if s.nblock_used == s.save_nblock + 1 {
+                continue;
+            };
+            if k1 as i32 != s.k0 {
+                s.k0 = k1 as i32;
+                continue;
+            };
+
+            s.state_out_len = 2;
+            BZ_GET_SMALL!(s, k1);
+            BZ_RAND_UPD_MASK!(s);
+            k1 ^= BZ_RAND_MASK!(s);
+            s.nblock_used += 1;
+            if s.nblock_used == s.save_nblock + 1 {
                 continue;
             }
-            if k1 as libc::c_int != s.k0 {
+            if k1 as i32 != s.k0 {
                 s.k0 = k1 as i32;
-            } else {
-                s.state_out_len = 2 as libc::c_int;
-                if s.tPos >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32) {
-                    return true;
-                }
-                k1 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab) as u8;
-                s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
-                    | (*(s.ll4).offset((s.tPos >> 1 as libc::c_int) as isize) as u32
-                        >> (s.tPos << 2 as libc::c_int & 0x4 as libc::c_int as libc::c_uint)
-                        & 0xf as libc::c_int as libc::c_uint)
-                        << 16 as libc::c_int;
-                if s.rNToGo == 0 as libc::c_int {
-                    s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
-                    s.rTPos += 1;
-                    if s.rTPos == 512 as libc::c_int {
-                        s.rTPos = 0 as libc::c_int;
-                    }
-                }
-                s.rNToGo -= 1;
-                k1 = (k1 as libc::c_int
-                    ^ if s.rNToGo == 1 as libc::c_int {
-                        1 as libc::c_int
-                    } else {
-                        0 as libc::c_int
-                    }) as u8;
-                s.nblock_used += 1;
-                if s.nblock_used == s.save_nblock + 1 as libc::c_int {
-                    continue;
-                }
-                if k1 as libc::c_int != s.k0 {
-                    s.k0 = k1 as i32;
-                } else {
-                    s.state_out_len = 3 as libc::c_int;
-                    if s.tPos >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32)
-                    {
-                        return true;
-                    }
-                    k1 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab) as u8;
-                    s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
-                        | (*(s.ll4).offset((s.tPos >> 1 as libc::c_int) as isize) as u32
-                            >> (s.tPos << 2 as libc::c_int & 0x4 as libc::c_int as libc::c_uint)
-                            & 0xf as libc::c_int as libc::c_uint)
-                            << 16 as libc::c_int;
-                    if s.rNToGo == 0 as libc::c_int {
-                        s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
-                        s.rTPos += 1;
-                        if s.rTPos == 512 as libc::c_int {
-                            s.rTPos = 0 as libc::c_int;
-                        }
-                    }
-                    s.rNToGo -= 1;
-                    k1 = (k1 as libc::c_int
-                        ^ if s.rNToGo == 1 as libc::c_int {
-                            1 as libc::c_int
-                        } else {
-                            0 as libc::c_int
-                        }) as u8;
-                    s.nblock_used += 1;
-                    if s.nblock_used == s.save_nblock + 1 as libc::c_int {
-                        continue;
-                    }
-                    if k1 as libc::c_int != s.k0 {
-                        s.k0 = k1 as i32;
-                    } else {
-                        if s.tPos
-                            >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32)
-                        {
-                            return true;
-                        }
-                        k1 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab) as u8;
-                        s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
-                            | (*(s.ll4).offset((s.tPos >> 1 as libc::c_int) as isize) as u32
-                                >> (s.tPos << 2 as libc::c_int
-                                    & 0x4 as libc::c_int as libc::c_uint)
-                                & 0xf as libc::c_int as libc::c_uint)
-                                << 16 as libc::c_int;
-                        if s.rNToGo == 0 as libc::c_int {
-                            s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
-                            s.rTPos += 1;
-                            if s.rTPos == 512 as libc::c_int {
-                                s.rTPos = 0 as libc::c_int;
-                            }
-                        }
-                        s.rNToGo -= 1;
-                        k1 = (k1 as libc::c_int
-                            ^ if s.rNToGo == 1 as libc::c_int {
-                                1 as libc::c_int
-                            } else {
-                                0 as libc::c_int
-                            }) as u8;
-                        s.nblock_used += 1;
-                        s.state_out_len = k1 as i32 + 4 as libc::c_int;
-                        if s.tPos
-                            >= (100000 as libc::c_int as u32).wrapping_mul(s.blockSize100k as u32)
-                        {
-                            return true;
-                        }
-                        s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
-                        s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
-                            | (*(s.ll4).offset((s.tPos >> 1 as libc::c_int) as isize) as u32
-                                >> (s.tPos << 2 as libc::c_int
-                                    & 0x4 as libc::c_int as libc::c_uint)
-                                & 0xf as libc::c_int as libc::c_uint)
-                                << 16 as libc::c_int;
-                        if s.rNToGo == 0 as libc::c_int {
-                            s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
-                            s.rTPos += 1;
-                            if s.rTPos == 512 as libc::c_int {
-                                s.rTPos = 0 as libc::c_int;
-                            }
-                        }
-                        s.rNToGo -= 1;
-                        s.k0 ^= if s.rNToGo == 1 as libc::c_int {
-                            1 as libc::c_int
-                        } else {
-                            0 as libc::c_int
-                        };
-                        s.nblock_used += 1;
-                    }
-                }
+                continue;
+            };
+
+            s.state_out_len = 3;
+            BZ_GET_SMALL!(s, k1);
+            BZ_RAND_UPD_MASK!(s);
+            k1 ^= BZ_RAND_MASK!(s);
+            s.nblock_used += 1;
+            if s.nblock_used == s.save_nblock + 1 {
+                continue;
             }
+            if k1 as i32 != s.k0 {
+                s.k0 = k1 as i32;
+                continue;
+            };
+
+            BZ_GET_SMALL!(s, k1);
+            BZ_RAND_UPD_MASK!(s);
+            k1 ^= BZ_RAND_MASK!(s);
+            s.nblock_used += 1;
+            s.state_out_len = k1 as i32 + 4;
+            BZ_GET_SMALL!(s, s.k0);
+            BZ_RAND_UPD_MASK!(s);
+            s.k0 ^= BZ_RAND_MASK!(s) as i32;
+            s.nblock_used += 1;
         }
     } else {
         loop {
