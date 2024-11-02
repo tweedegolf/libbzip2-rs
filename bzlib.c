@@ -529,7 +529,6 @@ int BZ_API(BZ2_bzDecompressInit)
    return BZ_OK;
 }
 
-
 /*---------------------------------------------------*/
 /* Return  True iff data corruption is discovered.
    Returns False if there is no problem.
@@ -538,6 +537,7 @@ static
 Bool unRLE_obuf_to_output_FAST ( DState* s )
 {
    UChar k1;
+
 
    if (s->blockRandomised) {
 
