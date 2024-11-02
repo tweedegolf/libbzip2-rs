@@ -2276,8 +2276,6 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     small: libc::c_int,
     verbosity: libc::c_int,
 ) -> libc::c_int {
-    let mut strm: bz_stream = bz_stream::zeroed();
-    let mut ret: libc::c_int;
     if dest.is_null()
         || destLen.is_null()
         || source.is_null()
@@ -2287,33 +2285,39 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     {
         return BZ_PARAM_ERROR as c_int;
     }
-    strm.bzalloc = None;
-    strm.bzfree = None;
-    strm.opaque = std::ptr::null_mut::<libc::c_void>();
-    ret = BZ2_bzDecompressInit(&mut strm, verbosity, small);
-    if ret != 0 as libc::c_int {
-        return ret;
+
+    let mut strm: bz_stream = bz_stream::zeroed();
+
+    match BZ2_bzDecompressInit(&mut strm, verbosity, small) {
+        0 => {}
+        ret => return ret,
     }
+
     strm.next_in = source;
     strm.next_out = dest;
     strm.avail_in = sourceLen;
     strm.avail_out = *destLen;
-    ret = BZ2_bzDecompress(&mut strm);
-    if ret == 0 as libc::c_int {
-        if strm.avail_out > 0 as libc::c_int as libc::c_uint {
+
+    match BZ2_bzDecompress(&mut strm) {
+        0 => {
             BZ2_bzDecompressEnd(&mut strm);
-            -7 as libc::c_int
-        } else {
-            BZ2_bzDecompressEnd(&mut strm);
-            -8 as libc::c_int
+
+            match strm.avail_out {
+                0 => BZ_OUTBUFF_FULL as c_int,
+                _ => BZ_UNEXPECTED_EOF as c_int,
+            }
         }
-    } else if ret != 4 as libc::c_int {
-        BZ2_bzDecompressEnd(&mut strm);
-        return ret;
-    } else {
-        *destLen = (*destLen).wrapping_sub(strm.avail_out);
-        BZ2_bzDecompressEnd(&mut strm);
-        return 0 as libc::c_int;
+        4 => {
+            *destLen = (*destLen).wrapping_sub(strm.avail_out);
+            BZ2_bzDecompressEnd(&mut strm);
+
+            BZ_OK as c_int
+        }
+        ret => {
+            BZ2_bzDecompressEnd(&mut strm);
+
+            ret
+        }
     }
 }
 
