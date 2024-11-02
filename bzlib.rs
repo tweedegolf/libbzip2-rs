@@ -965,6 +965,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
             s.nblock_used += 1;
         }
     } else {
+        /* restore */
         let mut c_calculatedBlockCRC: u32 = s.calculatedBlockCRC;
         let mut c_state_out_ch: u8 = s.state_out_ch;
         let mut c_state_out_len: i32 = s.state_out_len;
@@ -975,23 +976,23 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
         let mut cs_next_out: *mut libc::c_char = strm.next_out;
         let mut cs_avail_out: libc::c_uint = strm.avail_out;
         let ro_blockSize100k: i32 = s.blockSize100k;
+        /* end restore */
+
         let avail_out_INIT: u32 = cs_avail_out;
         let s_save_nblockPP: i32 = s.save_nblock + 1 as libc::c_int;
         let total_out_lo32_old: libc::c_uint;
-        's_453: while 1 as Bool != 0 {
+
+        'return_notr: while 1 as Bool != 0 {
             if c_state_out_len > 0 as libc::c_int {
                 loop {
                     if cs_avail_out == 0 as libc::c_int as libc::c_uint {
-                        break 's_453;
+                        break 'return_notr;
                     }
                     if c_state_out_len == 1 as libc::c_int {
                         break;
                     }
                     *(cs_next_out as *mut u8) = c_state_out_ch;
-                    c_calculatedBlockCRC = c_calculatedBlockCRC << 8 as libc::c_int
-                        ^ BZ2_CRC32TABLE[(c_calculatedBlockCRC >> 24 as libc::c_int
-                            ^ c_state_out_ch as libc::c_uint)
-                            as usize];
+                    BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
                     c_state_out_len -= 1;
                     cs_next_out = cs_next_out.offset(1);
                     cs_avail_out = cs_avail_out.wrapping_sub(1);
@@ -1005,25 +1006,25 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                     1417769144978639029 => {
                         if cs_avail_out == 0 as libc::c_int as libc::c_uint {
                             c_state_out_len = 1 as libc::c_int;
-                            break 's_453;
+                            break 'return_notr;
                         } else {
                             *(cs_next_out as *mut u8) = c_state_out_ch;
-                            c_calculatedBlockCRC = c_calculatedBlockCRC << 8 as libc::c_int
-                                ^ BZ2_CRC32TABLE[(c_calculatedBlockCRC >> 24 as libc::c_int
-                                    ^ c_state_out_ch as libc::c_uint)
-                                    as usize];
+                            BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
                             cs_next_out = cs_next_out.offset(1);
                             cs_avail_out = cs_avail_out.wrapping_sub(1);
                             current_block = 14483658890531361756;
                         }
                     }
                     _ => {
+                        /* Only caused by corrupt data stream? */
                         if c_nblock_used > s_save_nblockPP {
                             return true;
                         }
+
+                        /* can a new run be started? */
                         if c_nblock_used == s_save_nblockPP {
                             c_state_out_len = 0 as libc::c_int;
-                            break 's_453;
+                            break 'return_notr;
                         } else {
                             c_state_out_ch = c_k0 as u8;
                             if c_tPos
@@ -1056,7 +1057,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                                 c_tPos >>= 8 as libc::c_int;
                                 c_nblock_used += 1;
                                 if c_nblock_used == s_save_nblockPP {
-                                    continue 's_453;
+                                    continue 'return_notr;
                                 }
                                 if k1 as libc::c_int != c_k0 {
                                     current_block = 6897179874198677617;
@@ -1114,6 +1115,8 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                 }
             }
         }
+
+        /* save */
         total_out_lo32_old = strm.total_out_lo32;
         strm.total_out_lo32 =
             (strm.total_out_lo32).wrapping_add(avail_out_INIT.wrapping_sub(cs_avail_out));
@@ -1129,6 +1132,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
         s.tPos = c_tPos;
         strm.next_out = cs_next_out;
         strm.avail_out = cs_avail_out;
+        /* end save */
     }
 
     false
