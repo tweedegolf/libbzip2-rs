@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
 use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS, BZ_RUNA, BZ_RUNB};
@@ -633,7 +635,7 @@ fn sendMTFValues(s: &mut EState) {
     }
 }
 
-pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
+pub fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
     if s.nblock > 0 {
         s.blockCRC = !s.blockCRC;
         s.combinedCRC = s.combinedCRC.rotate_left(1);
