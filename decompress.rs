@@ -84,7 +84,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
     let mut es: i32;
     let mut N: i32;
     let mut curr: i32;
-    let zt: i32;
+
     let mut zn: i32;
     let mut zvec: i32;
     let mut zj: i32;
@@ -134,7 +134,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
     es = s.save_es;
     N = s.save_N;
     curr = s.save_curr;
-    zt = s.save_zt;
+    let zt: i32 = s.save_zt;
     zn = s.save_zn;
     zvec = s.save_zvec;
     zj = s.save_zj;
@@ -417,8 +417,8 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     s.blockSize100k -= 0x30;
                     if s.smallDecompress {
                         let ll16_len = s.blockSize100k as usize * 100000;
-                        s.ll16 = ((*strm).bzalloc).expect("non-null function pointer")(
-                            (*strm).opaque,
+                        s.ll16 = (strm.bzalloc).expect("non-null function pointer")(
+                            strm.opaque,
                             (ll16_len as libc::c_ulong)
                                 .wrapping_mul(::core::mem::size_of::<u16>() as libc::c_ulong)
                                 as libc::c_int,
@@ -426,8 +426,8 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         ) as *mut u16;
 
                         let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
-                        s.ll4 = ((*strm).bzalloc).expect("non-null function pointer")(
-                            (*strm).opaque,
+                        s.ll4 = (strm.bzalloc).expect("non-null function pointer")(
+                            strm.opaque,
                             (ll4_len as libc::c_ulong)
                                 .wrapping_mul(::core::mem::size_of::<u8>() as libc::c_ulong)
                                 as libc::c_int,
@@ -445,8 +445,8 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             current_block = 16838365919992687769;
                         }
                     } else {
-                        s.tt = ((*strm).bzalloc).expect("non-null function pointer")(
-                            (*strm).opaque,
+                        s.tt = (strm.bzalloc).expect("non-null function pointer")(
+                            strm.opaque,
                             ((s.blockSize100k * 100000) as libc::c_ulong)
                                 .wrapping_mul(::core::mem::size_of::<i32>() as libc::c_ulong)
                                 as libc::c_int,
@@ -833,7 +833,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         retVal = -4;
                         current_block = 3350591128142761507;
                     } else {
-                        s.storedCombinedCRC = 0 as u32;
+                        s.storedCombinedCRC = 0_u32;
                         current_block = 10292318171587122742;
                     }
                 }
@@ -874,7 +874,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         if s.verbosity >= 2 {
                             eprint!("\n    [{}: huff+mtf ", s.currBlockNo);
                         }
-                        s.storedBlockCRC = 0 as u32;
+                        s.storedBlockCRC = 0_u32;
                         current_block = 5821827988509819404;
                     }
                 }
@@ -1598,7 +1598,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         }
                     }
                 }
-                if !(nGroups < 2 || nGroups > 6) {
+                if !!(2..=6).contains(&nGroups) {
                     current_block = 14590825336193814119;
                     continue;
                 }
@@ -1671,11 +1671,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         }
                     }
                 }
-                if uc == 1 {
-                    s.inUse16[i as usize] = true;
-                } else {
-                    s.inUse16[i as usize] = false;
-                }
+                s.inUse16[i as usize] = uc == 1;
                 i += 1;
                 current_block = 454873545234741267;
                 continue;
@@ -1748,7 +1744,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             current_block = 5649595406143318745;
                         } else {
                             es += 1;
-                            uc = s.seqToUnseq[s.mtfa[s.mtfbase[0 as usize] as usize] as usize];
+                            uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
                             s.unzftab[uc as usize] += es;
                             if s.smallDecompress {
                                 while es > 0 {
@@ -1830,7 +1826,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         let mut nn: u32;
                         nn = (nextSym - 1) as u32;
                         if nn < 16 {
-                            pp = s.mtfbase[0 as usize];
+                            pp = s.mtfbase[0_usize];
                             uc = s.mtfa[(pp as libc::c_uint).wrapping_add(nn) as usize];
                             while nn > 3 {
                                 let z: i32 = (pp as libc::c_uint).wrapping_add(nn) as i32;
@@ -1838,7 +1834,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 s.mtfa[(z - 1) as usize] = s.mtfa[(z - 2) as usize];
                                 s.mtfa[(z - 2) as usize] = s.mtfa[(z - 3) as usize];
                                 s.mtfa[(z - 3) as usize] = s.mtfa[(z - 4) as usize];
-                                nn = (nn).wrapping_sub(4) as u32 as u32;
+                                nn = (nn).wrapping_sub(4);
                             }
                             while nn > 0 {
                                 s.mtfa[(pp as libc::c_uint).wrapping_add(nn) as usize] =
@@ -1865,10 +1861,10 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                     s.mtfa[(s.mtfbase[(lno - 1) as usize] + 16 - 1) as usize];
                                 lno -= 1;
                             }
-                            s.mtfbase[0 as usize] -= 1;
-                            s.mtfbase[0 as usize];
-                            s.mtfa[s.mtfbase[0 as usize] as usize] = uc;
-                            if s.mtfbase[0 as usize] == 0 {
+                            s.mtfbase[0_usize] -= 1;
+                            s.mtfbase[0_usize];
+                            s.mtfa[s.mtfbase[0_usize] as usize] = uc;
+                            if s.mtfbase[0_usize] == 0 {
                                 kk_0 = 4096 - 1;
                                 ii_0 = 256 / 16 - 1;
                                 while ii_0 >= 0 {
@@ -1904,15 +1900,15 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 gMinlen = s.minLens[gSel as usize];
                                 gLimit = (*(s.limit).as_mut_ptr().offset(gSel as isize))
                                     .as_mut_ptr()
-                                    .offset(0 as isize)
+                                    .offset(0_isize)
                                     as *mut i32;
                                 gPerm = (*(s.perm).as_mut_ptr().offset(gSel as isize))
                                     .as_mut_ptr()
-                                    .offset(0 as isize)
+                                    .offset(0_isize)
                                     as *mut i32;
                                 gBase = (*(s.base).as_mut_ptr().offset(gSel as isize))
                                     .as_mut_ptr()
-                                    .offset(0 as isize)
+                                    .offset(0_isize)
                                     as *mut i32;
                             }
                         }
@@ -1944,7 +1940,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 i += 1;
                             }
                         }
-                        s.cftab[0 as usize] = 0;
+                        s.cftab[0_usize] = 0;
                         i = 1;
                         while i <= 256 {
                             s.cftab[i as usize] = s.unzftab[(i - 1) as usize];
@@ -1976,7 +1972,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             }
                         }
                         s.state_out_len = 0;
-                        s.state_out_ch = 0 as u8;
+                        s.state_out_ch = 0_u8;
                         s.calculatedBlockCRC = 0xffffffff as libc::c_long as u32;
                         s.state = State::BZ_X_OUTPUT;
                         if s.verbosity >= 2 {
@@ -2042,7 +2038,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             if s.blockRandomised {
                                 s.rNToGo = 0;
                                 s.rTPos = 0;
-                                if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
+                                if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
                                     return true as i32;
                                 }
                                 s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
@@ -2062,7 +2058,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 s.rNToGo -= 1;
                                 s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
                             } else {
-                                if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
+                                if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
                                     return true as i32;
                                 }
                                 s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
@@ -2088,7 +2084,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             if s.blockRandomised {
                                 s.rNToGo = 0;
                                 s.rTPos = 0;
-                                if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
+                                if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
                                     return true as i32;
                                 }
                                 s.tPos = *(s.tt).offset(s.tPos as isize);
@@ -2105,7 +2101,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 s.rNToGo -= 1;
                                 s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
                             } else {
-                                if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
+                                if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
                                     return true as i32;
                                 }
                                 s.tPos = *(s.tt).offset(s.tPos as isize);
@@ -2128,7 +2124,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 continue;
             } else {
                 if nextSym == 0 {
-                    es += (0 + 1) * N;
+                    es += N;
                 } else if nextSym == 1 {
                     es += (1 + 1) * N;
                 }
@@ -2145,13 +2141,13 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         gMinlen = s.minLens[gSel as usize];
                         gLimit = (*(s.limit).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
-                            .offset(0 as isize) as *mut i32;
+                            .offset(0_isize) as *mut i32;
                         gPerm = (*(s.perm).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
-                            .offset(0 as isize) as *mut i32;
+                            .offset(0_isize) as *mut i32;
                         gBase = (*(s.base).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
-                            .offset(0 as isize) as *mut i32;
+                            .offset(0_isize) as *mut i32;
                     }
                 }
                 groupPos -= 1;
@@ -2180,7 +2176,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         let mut pos: [u8; 6] = [0; 6];
                         let mut tmp: u8;
                         let mut v_22: u8;
-                        v_22 = 0 as u8;
+                        v_22 = 0_u8;
                         while (v_22 as libc::c_int) < nGroups {
                             pos[v_22 as usize] = v_22;
                             v_22 = v_22.wrapping_add(1);
@@ -2193,7 +2189,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 pos[v_22 as usize] = pos[(v_22 - 1) as usize];
                                 v_22 = v_22.wrapping_sub(1);
                             }
-                            pos[0 as usize] = tmp;
+                            pos[0_usize] = tmp;
                             s.selector[i as usize] = tmp;
                             i += 1;
                         }
@@ -2257,7 +2253,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 7746242308555130918;
                         continue;
                     }
-                    if !(curr < 1 || curr > 20) {
+                    if !!(1..=20).contains(&curr) {
                         current_block = 17216244326479313607;
                         continue 'c_10064;
                     }
@@ -2298,10 +2294,10 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         i += 1;
                     }
                     BZ2_hbCreateDecodeTables(
-                        &mut (*s).limit[t as usize],
-                        &mut (*s).base[t as usize],
-                        &mut (*s).perm[t as usize],
-                        &mut (*s).len[t as usize],
+                        &mut s.limit[t as usize],
+                        &mut s.base[t as usize],
+                        &mut s.perm[t as usize],
+                        &mut s.len[t as usize],
                         minLen,
                         maxLen,
                         alphaSize,
@@ -2346,13 +2342,13 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         gMinlen = s.minLens[gSel as usize];
                         gLimit = (*(s.limit).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
-                            .offset(0 as isize) as *mut i32;
+                            .offset(0_isize) as *mut i32;
                         gPerm = (*(s.perm).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
-                            .offset(0 as isize) as *mut i32;
+                            .offset(0_isize) as *mut i32;
                         gBase = (*(s.base).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
-                            .offset(0 as isize) as *mut i32;
+                            .offset(0_isize) as *mut i32;
                     }
                 }
                 groupPos -= 1;
