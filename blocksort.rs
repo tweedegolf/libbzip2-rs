@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use std::cmp::Ordering;
 
 use crate::{
@@ -183,7 +185,7 @@ fn fallbackQSort3(fmap: &mut [u32], eclass: &[u32], loSt: i32, hiSt: i32) {
 
 fn fallbackSort(
     fmap: &mut [u32],
-    eclass: &mut [u32],
+    arr2: &mut Arr2,
     bhtab: &mut [u32; FTAB_LEN],
     nblock: i32,
     verb: i32,
@@ -238,14 +240,8 @@ fn fallbackSort(
         eprintln!("        bucket sorting ...");
     }
 
-    fn to_eclass8(slice: &mut [u32]) -> &mut [u8] {
-        // Safety: we're using a shorter piece of this slice with a type of a lower alignment and
-        // the same initialization and validity behavior
-        unsafe { core::slice::from_raw_parts_mut(slice.as_mut_ptr() as *mut u8, slice.len()) }
-    }
-
     {
-        let eclass8 = &*to_eclass8(eclass);
+        let eclass8 = arr2.block(nblock as usize);
 
         for e in eclass8.iter() {
             ftab[usize::from(*e)] += 1;
@@ -299,7 +295,7 @@ fn fallbackSort(
             if k < 0 {
                 k += nblock;
             }
-            eclass[k as usize] = j as u32;
+            arr2.eclass()[k as usize] = j as u32;
             i += 1;
         }
         nNotDone = 0;
@@ -341,12 +337,12 @@ fn fallbackSort(
             /*-- now [l, r] bracket current bucket --*/
             if r > l {
                 nNotDone += r - l + 1;
-                fallbackQSort3(fmap, eclass, l, r);
+                fallbackQSort3(fmap, arr2.eclass(), l, r);
 
                 /*-- scan bucket and generate header bits-- */
                 cc = -1;
                 for i in l..=r {
-                    cc1 = eclass[fmap[i as usize] as usize] as i32;
+                    cc1 = arr2.eclass()[fmap[i as usize] as usize] as i32;
                     if cc != cc1 {
                         SET_BH!(i);
                         cc = cc1;
@@ -368,7 +364,7 @@ fn fallbackSort(
     }
 
     {
-        let eclass8 = to_eclass8(eclass);
+        let eclass8 = arr2.block(nblock as usize);
 
         let mut j = 0;
         for i in 0..nblock {
@@ -1296,7 +1292,7 @@ fn mainSort(
 ///    All other areas of block destroyed
 ///    ftab [ 0 .. 65536 ] destroyed
 ///    arr1 [0 .. nblock-1] holds sorted order
-pub unsafe fn BZ2_blockSort(s: &mut EState) {
+pub fn BZ2_blockSort(s: &mut EState) {
     let nblock = usize::try_from(s.nblock).unwrap();
 
     let ptr = s.arr1.ptr();
@@ -1324,8 +1320,7 @@ fn BZ2_blockSortHelp(
     verbosity: i32,
 ) {
     if nblock < 10000 {
-        let eclass = &mut arr2.arr2()[..nblock as usize];
-        fallbackSort(ptr, eclass, ftab, nblock as i32, verbosity);
+        fallbackSort(ptr, arr2, ftab, nblock as i32, verbosity);
     } else {
         let (block, quadrant) = arr2.block_and_quadrant(nblock as usize);
 
@@ -1366,8 +1361,7 @@ fn BZ2_blockSortHelp(
                 eprintln!("    too repetitive; using fallback sorting algorithm");
             }
 
-            let eclass = &mut arr2.arr2()[..nblock as usize];
-            fallbackSort(ptr, eclass, ftab, nblock as i32, verbosity);
+            fallbackSort(ptr, arr2, ftab, nblock as i32, verbosity);
         }
     }
 }

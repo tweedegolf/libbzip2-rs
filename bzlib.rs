@@ -262,7 +262,7 @@ impl Arr2 {
         self.len == 0
     }
 
-    pub(crate) fn arr2(&mut self) -> &mut [u32] {
+    pub(crate) fn eclass(&mut self) -> &mut [u32] {
         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 
