@@ -639,150 +639,6 @@ mod bzip2_testfiles {
 }
 
 #[test]
-fn high_level_read() {
-    use libbzip2_rs_sys::bzlib::*;
-
-    let p = std::env::current_dir().unwrap();
-
-    let input = std::fs::read(p.join("../tests/input/quick/sample1.bz2")).unwrap();
-    let mut expected = vec![0u8; 256 * 1024];
-    let mut expected_len = expected.len() as _;
-    let err = decompress_c(
-        expected.as_mut_ptr(),
-        &mut expected_len,
-        input.as_ptr(),
-        input.len() as _,
-    );
-    assert_eq!(err, 0);
-
-    let p = p.join("../tests/input/quick/sample1.bz2\0");
-    let input_file = unsafe {
-        libc::fopen(
-            p.display().to_string().as_mut_ptr().cast::<c_char>(),
-            b"rb\0".as_ptr().cast::<c_char>(),
-        )
-    };
-
-    assert!(!input_file.is_null());
-
-    let mut bzerror = 0;
-    let bz_file =
-        unsafe { BZ2_bzReadOpen(&mut bzerror, input_file, 0, 0, core::ptr::null_mut(), 0) };
-
-    let mut output = Vec::<u8>::with_capacity(1024);
-
-    const BUFFER_SIZE: usize = 1024;
-    let mut buffer = [0u8; BUFFER_SIZE];
-    while bzerror == 0 {
-        let bytes_read = unsafe {
-            BZ2_bzRead(
-                &mut bzerror,
-                bz_file,
-                buffer.as_mut_ptr().cast(),
-                BUFFER_SIZE as i32,
-            )
-        };
-
-        if bzerror == bzip2_sys::BZ_OK || bzerror == bzip2_sys::BZ_STREAM_END {
-            output.extend(&buffer[..bytes_read as usize]);
-        }
-    }
-
-    // make sure to clean up resources even if there was an error
-    let after_read = bzerror;
-
-    unsafe { BZ2_bzReadClose(&mut bzerror, bz_file) };
-
-    unsafe { libc::fclose(input_file) };
-
-    assert_eq!(after_read, bzip2_sys::BZ_STREAM_END);
-
-    assert_eq!(bzerror, bzip2_sys::BZ_OK);
-
-    assert_eq!(&expected[..expected_len as usize], output);
-}
-
-#[test]
-fn high_level_write() {
-    use libbzip2_rs_sys::bzlib::*;
-
-    let block_size = 9; // Maximum compression level (1-9)
-    let verbosity = 0; // Quiet operation
-    let work_factor = 30; // Recommended default value
-
-    let p = std::env::temp_dir().join("high_level_write.bz2");
-
-    let _ = std::fs::OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .create(true)
-        .open(&p)
-        .unwrap();
-
-    let output_file = unsafe {
-        let p = p.with_extension("bz2\0");
-        libc::fopen(
-            p.display().to_string().as_mut_ptr().cast::<c_char>(),
-            b"wb\0".as_ptr().cast::<c_char>(),
-        )
-    };
-
-    assert!(!output_file.is_null());
-
-    let mut bzerror = 0;
-    let bz_file = unsafe {
-        BZ2_bzWriteOpen(
-            &mut bzerror,
-            output_file,
-            block_size,
-            verbosity,
-            work_factor,
-        )
-    };
-
-    for chunk in SAMPLE1_BZ2.chunks(1024) {
-        unsafe {
-            BZ2_bzWrite(
-                &mut bzerror,
-                bz_file,
-                chunk.as_ptr().cast_mut().cast(),
-                chunk.len() as _,
-            )
-        };
-        assert_eq!(bzerror, 0);
-    }
-
-    unsafe {
-        BZ2_bzWriteClose(
-            &mut bzerror,
-            bz_file,
-            0,
-            core::ptr::null_mut(),
-            core::ptr::null_mut(),
-        )
-    };
-
-    unsafe { libc::fclose(output_file) };
-
-    assert_eq!(bzerror, bzip2_sys::BZ_OK);
-
-    let mut expected = vec![0u8; 256 * 1024];
-    let mut expected_len = expected.len() as _;
-    let err = compress_c(
-        expected.as_mut_ptr(),
-        &mut expected_len,
-        SAMPLE1_BZ2.as_ptr(),
-        SAMPLE1_BZ2.len() as _,
-    );
-    assert_eq!(err, 0);
-
-    assert_eq!(
-        std::fs::read(p).unwrap(),
-        &expected[..expected_len as usize]
-    );
-}
-
-#[test]
 fn error_messages() {
     use libbzip2_rs_sys::bzlib::{bzFile, bz_stream, BZ2_bzerror};
 
@@ -823,74 +679,223 @@ fn error_messages() {
     }
 }
 
-#[test]
-fn test_bzflush() {
-    assert_eq!(
-        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzflush(core::ptr::null_mut()) },
-        0
-    );
-}
+#[cfg(not(miri))]
+mod high_level_interface {
+    use super::*;
 
-#[test]
-fn open_and_close() {
-    let p = std::env::temp_dir().join("open_and_close.bz2");
+    #[test]
+    fn high_level_read() {
+        use libbzip2_rs_sys::bzlib::*;
 
-    const RB: *const c_char = b"rb\0".as_ptr().cast::<c_char>();
-    const WB: *const c_char = b"wb\0".as_ptr().cast::<c_char>();
+        let p = std::env::current_dir().unwrap();
 
-    // make sure this branch is hit
-    unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(core::ptr::null_mut()) };
+        let input = std::fs::read(p.join("../tests/input/quick/sample1.bz2")).unwrap();
+        let mut expected = vec![0u8; 256 * 1024];
+        let mut expected_len = expected.len() as _;
+        let err = decompress_c(
+            expected.as_mut_ptr(),
+            &mut expected_len,
+            input.as_ptr(),
+            input.len() as _,
+        );
+        assert_eq!(err, 0);
 
-    let open_file = || {
-        std::fs::OpenOptions::new()
-            .read(true)
+        let p = p.join("../tests/input/quick/sample1.bz2\0");
+        let input_file = unsafe {
+            libc::fopen(
+                p.display().to_string().as_mut_ptr().cast::<c_char>(),
+                b"rb\0".as_ptr().cast::<c_char>(),
+            )
+        };
+
+        assert!(!input_file.is_null());
+
+        let mut bzerror = 0;
+        let bz_file =
+            unsafe { BZ2_bzReadOpen(&mut bzerror, input_file, 0, 0, core::ptr::null_mut(), 0) };
+
+        let mut output = Vec::<u8>::with_capacity(1024);
+
+        const BUFFER_SIZE: usize = 1024;
+        let mut buffer = [0u8; BUFFER_SIZE];
+        while bzerror == 0 {
+            let bytes_read = unsafe {
+                BZ2_bzRead(
+                    &mut bzerror,
+                    bz_file,
+                    buffer.as_mut_ptr().cast(),
+                    BUFFER_SIZE as i32,
+                )
+            };
+
+            if bzerror == bzip2_sys::BZ_OK || bzerror == bzip2_sys::BZ_STREAM_END {
+                output.extend(&buffer[..bytes_read as usize]);
+            }
+        }
+
+        // make sure to clean up resources even if there was an error
+        let after_read = bzerror;
+
+        unsafe { BZ2_bzReadClose(&mut bzerror, bz_file) };
+
+        unsafe { libc::fclose(input_file) };
+
+        assert_eq!(after_read, bzip2_sys::BZ_STREAM_END);
+
+        assert_eq!(bzerror, bzip2_sys::BZ_OK);
+
+        assert_eq!(&expected[..expected_len as usize], output);
+    }
+
+    #[test]
+    fn high_level_write() {
+        use libbzip2_rs_sys::bzlib::*;
+
+        let block_size = 9; // Maximum compression level (1-9)
+        let verbosity = 0; // Quiet operation
+        let work_factor = 30; // Recommended default value
+
+        let p = std::env::temp_dir().join("high_level_write.bz2");
+
+        let _ = std::fs::OpenOptions::new()
             .write(true)
             .truncate(true)
             .create(true)
             .open(&p)
-            .unwrap()
-    };
+            .unwrap();
 
-    {
-        let file = open_file();
+        let output_file = unsafe {
+            let p = p.with_extension("bz2\0");
+            libc::fopen(
+                p.display().to_string().as_mut_ptr().cast::<c_char>(),
+                b"wb\0".as_ptr().cast::<c_char>(),
+            )
+        };
 
-        let ptr =
-            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.as_raw_fd(), core::ptr::null()) };
-        assert!(ptr.is_null());
+        assert!(!output_file.is_null());
+
+        let mut bzerror = 0;
+        let bz_file = unsafe {
+            BZ2_bzWriteOpen(
+                &mut bzerror,
+                output_file,
+                block_size,
+                verbosity,
+                work_factor,
+            )
+        };
+
+        for chunk in SAMPLE1_BZ2.chunks(1024) {
+            unsafe {
+                BZ2_bzWrite(
+                    &mut bzerror,
+                    bz_file,
+                    chunk.as_ptr().cast_mut().cast(),
+                    chunk.len() as _,
+                )
+            };
+            assert_eq!(bzerror, 0);
+        }
+
+        unsafe {
+            BZ2_bzWriteClose(
+                &mut bzerror,
+                bz_file,
+                0,
+                core::ptr::null_mut(),
+                core::ptr::null_mut(),
+            )
+        };
+
+        unsafe { libc::fclose(output_file) };
+
+        assert_eq!(bzerror, bzip2_sys::BZ_OK);
+
+        let mut expected = vec![0u8; 256 * 1024];
+        let mut expected_len = expected.len() as _;
+        let err = compress_c(
+            expected.as_mut_ptr(),
+            &mut expected_len,
+            SAMPLE1_BZ2.as_ptr(),
+            SAMPLE1_BZ2.len() as _,
+        );
+        assert_eq!(err, 0);
+
+        assert_eq!(
+            std::fs::read(p).unwrap(),
+            &expected[..expected_len as usize]
+        );
     }
 
-    {
-        let file = open_file();
-
-        let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.into_raw_fd(), RB) };
-        assert!(!ptr.is_null());
-        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+    #[test]
+    fn test_bzflush() {
+        assert_eq!(
+            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzflush(core::ptr::null_mut()) },
+            0
+        );
     }
 
-    {
-        let file = open_file();
+    #[test]
+    fn open_and_close() {
+        let p = std::env::temp_dir().join("open_and_close.bz2");
 
-        let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.into_raw_fd(), WB) };
-        assert!(!ptr.is_null());
-        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+        const RB: *const c_char = b"rb\0".as_ptr().cast::<c_char>();
+        const WB: *const c_char = b"wb\0".as_ptr().cast::<c_char>();
+
+        // make sure this branch is hit
+        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(core::ptr::null_mut()) };
+
+        let open_file = || {
+            std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .truncate(true)
+                .create(true)
+                .open(&p)
+                .unwrap()
+        };
+
+        {
+            let file = open_file();
+
+            let ptr =
+                unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.as_raw_fd(), core::ptr::null()) };
+            assert!(ptr.is_null());
+        }
+
+        {
+            let file = open_file();
+
+            let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.into_raw_fd(), RB) };
+            assert!(!ptr.is_null());
+            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+        }
+
+        {
+            let file = open_file();
+
+            let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.into_raw_fd(), WB) };
+            assert!(!ptr.is_null());
+            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+        }
+
+        let path_as_cstring = p.with_extension("bz2\0").display().to_string();
+
+        {
+            let path = path_as_cstring.as_ptr().cast();
+            let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzopen(path, RB) };
+            assert!(!ptr.is_null());
+            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+        }
+
+        {
+            let path = path_as_cstring.as_ptr().cast();
+            let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzopen(path, WB) };
+            assert!(!ptr.is_null());
+            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+        }
+
+        // so it does not get dropped prematurely
+        drop(path_as_cstring);
     }
-
-    let path_as_cstring = p.with_extension("bz2\0").display().to_string();
-
-    {
-        let path = path_as_cstring.as_ptr().cast();
-        let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzopen(path, RB) };
-        assert!(!ptr.is_null());
-        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
-    }
-
-    {
-        let path = path_as_cstring.as_ptr().cast();
-        let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzopen(path, WB) };
-        assert!(!ptr.is_null());
-        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
-    }
-
-    // so it does not get dropped prematurely
-    drop(path_as_cstring);
 }
