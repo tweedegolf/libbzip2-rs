@@ -167,7 +167,7 @@ pub struct EState {
     pub avail_in_expect: u32,
     pub arr1: Arr1,
     pub arr2: Arr2,
-    pub ftab: *mut u32,
+    pub ftab: Ftab,
     pub origPtr: i32,
     pub writer: crate::compress::EWriter,
     pub workFactor: i32,
@@ -196,6 +196,11 @@ pub struct EState {
     pub len_pack: [[u32; 4]; 258],
 }
 
+/// Creates a new pointer that is dangling, but well-aligned.
+fn dangling<T>() -> *mut T {
+    core::ptr::null_mut::<T>().wrapping_add(4)
+}
+
 pub struct Arr1 {
     ptr: *mut u32,
     len: usize,
@@ -204,11 +209,12 @@ pub struct Arr1 {
 impl Arr1 {
     fn new() -> Self {
         Self {
-            ptr: core::ptr::null_mut(),
+            ptr: dangling(),
             len: 0,
         }
     }
 
+    /// Safety: ptr must satisfy the requirements of [`core::slice::from_raw_parts_mut`].
     unsafe fn from_raw_parts_mut(ptr: *mut u32, len: usize) -> Self {
         Self { ptr, len }
     }
@@ -217,8 +223,8 @@ impl Arr1 {
         (self.ptr, self.len)
     }
 
-    fn is_null(&self) -> bool {
-        self.ptr.is_null()
+    fn is_empty(&self) -> bool {
+        self.len == 0
     }
 
     pub(crate) fn mtfv(&mut self) -> &mut [u16] {
@@ -238,11 +244,12 @@ pub struct Arr2 {
 impl Arr2 {
     fn new() -> Self {
         Self {
-            ptr: core::ptr::null_mut(),
+            ptr: dangling(),
             len: 0,
         }
     }
 
+    /// Safety: ptr must satisfy the requirements of [`core::slice::from_raw_parts_mut`].
     unsafe fn from_raw_parts_mut(ptr: *mut u32, len: usize) -> Self {
         Self { ptr, len }
     }
@@ -251,8 +258,8 @@ impl Arr2 {
         (self.ptr, self.len)
     }
 
-    fn is_null(&self) -> bool {
-        self.ptr.is_null()
+    fn is_empty(&self) -> bool {
+        self.len == 0
     }
 
     pub(crate) fn arr2(&mut self) -> &mut [u32] {
@@ -289,6 +296,30 @@ impl Arr2 {
         let quadrant = unsafe { core::slice::from_raw_parts_mut(quadrant, len) };
 
         (block, quadrant)
+    }
+}
+
+pub struct Ftab {
+    ptr: *mut u32,
+}
+
+impl Ftab {
+    /// Safety: ptr must satisfy the requirements of `Option<&mut [u32; FTAB_LEN]>`.
+    unsafe fn from_ptr(ptr: *mut u32) -> Self {
+        Self { ptr }
+    }
+
+    fn is_null(&self) -> bool {
+        self.ptr.is_null()
+    }
+
+    pub fn ftab(&mut self) -> &mut [u32; FTAB_LEN] {
+        // NOTE: this panics if the pointer is NULL, that is important!
+        unsafe { self.ptr.cast::<[u32; FTAB_LEN]>().as_mut().unwrap() }
+    }
+
+    fn into_ptr(self) -> *mut u32 {
+        self.ptr
     }
 }
 
@@ -530,40 +561,43 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     let n = 100000 * blockSize100k;
 
     let arr1_len = n as usize;
-    let arr1 = bzalloc_array(*bzalloc, (*strm).opaque, arr1_len).unwrap_or(core::ptr::null_mut());
-    core::ptr::write_bytes(arr1, 0, arr1_len);
-    unsafe { (*s).arr1 = Arr1::from_raw_parts_mut(arr1, arr1_len) };
+    let arr1_alloc = bzalloc_array(*bzalloc, (*strm).opaque, arr1_len);
 
     let arr2_len = n as usize + (2 + 12 + 18 + 2);
-    let arr2 = bzalloc_array(*bzalloc, (*strm).opaque, arr2_len).unwrap_or(core::ptr::null_mut());
-    core::ptr::write_bytes(arr2, 0, arr2_len);
-    unsafe { (*s).arr2 = Arr2::from_raw_parts_mut(arr2, arr2_len) };
+    let arr2_alloc = bzalloc_array(*bzalloc, (*strm).opaque, arr2_len);
 
-    (*s).ftab = (bzalloc)(
-        (*strm).opaque,
-        (FTAB_LEN * core::mem::size_of::<u32>()) as i32,
-        1,
-    ) as *mut u32;
+    let ftab_alloc = bzalloc_array(*bzalloc, (*strm).opaque, FTAB_LEN);
 
-    if ((*s).arr1).is_null() || ((*s).arr2).is_null() || ((*s).ftab).is_null() {
-        if !((*s).arr1).is_null() {
-            let arr1 = core::ptr::replace(core::ptr::addr_of_mut!((*s).arr1), Arr1::new());
-            let (ptr, _len) = arr1.into_raw_parts();
+    let (Some(arr1_alloc), Some(arr2_alloc), Some(ftab_alloc)) =
+        (arr1_alloc, arr2_alloc, ftab_alloc)
+    else {
+        if let Some(ptr) = arr1_alloc {
             (bzfree)((*strm).opaque, ptr as *mut libc::c_void);
         }
-        if !((*s).arr2).is_null() {
-            let arr2 = core::ptr::replace(core::ptr::addr_of_mut!((*s).arr2), Arr2::new());
-            let (ptr, _len) = arr2.into_raw_parts();
+
+        if let Some(ptr) = arr2_alloc {
             (bzfree)((*strm).opaque, ptr as *mut libc::c_void);
         }
-        if !((*s).ftab).is_null() {
-            (bzfree)((*strm).opaque, (*s).ftab as *mut libc::c_void);
+
+        if let Some(ptr) = ftab_alloc {
+            (bzfree)((*strm).opaque, ptr as *mut libc::c_void);
         }
+
         if !s.is_null() {
             (bzfree)((*strm).opaque, s as *mut libc::c_void);
         }
+
         return BZ_MEM_ERROR as c_int;
-    }
+    };
+
+    core::ptr::write_bytes(arr1_alloc, 0, arr1_len);
+    unsafe { (*s).arr1 = Arr1::from_raw_parts_mut(arr1_alloc, arr1_len) };
+
+    core::ptr::write_bytes(arr2_alloc, 0, arr2_len);
+    unsafe { (*s).arr2 = Arr2::from_raw_parts_mut(arr2_alloc, arr2_len) };
+
+    core::ptr::write_bytes(ftab_alloc, 0, FTAB_LEN);
+    unsafe { (*s).ftab = Ftab::from_ptr(ftab_alloc) };
 
     (*s).blockNo = 0;
     (*s).state = State::Output;
@@ -897,18 +931,20 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
         return BZ_PARAM_ERROR as c_int;
     };
 
-    if !(s.arr1).is_null() {
+    if !(s.arr1).is_empty() {
         let arr1 = core::mem::replace(&mut s.arr1, Arr1::new());
         let (ptr, _len) = arr1.into_raw_parts();
         (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
-    if !(s.arr2).is_null() {
+    if !(s.arr2).is_empty() {
         let arr2 = core::mem::replace(&mut s.arr2, Arr2::new());
         let (ptr, _len) = arr2.into_raw_parts();
         (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
     if !(s.ftab).is_null() {
-        (bzfree)(strm.opaque, s.ftab.cast::<c_void>());
+        let ftab = core::mem::replace(&mut s.ftab, Ftab::from_ptr(core::ptr::null_mut()));
+        let ptr = ftab.into_ptr();
+        (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
 
     (bzfree)(strm.opaque, strm.state);

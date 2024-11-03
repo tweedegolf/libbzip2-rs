@@ -967,7 +967,8 @@ fn mainSort(
         eprintln!("        main sort initialise ...");
     }
 
-    // NOTE: the `ftab` has already been cleared in `BZ2_blockSort`.
+    /*-- set up the 2-byte frequency table --*/
+    ftab.fill(0);
 
     j = (block[0] as i32) << 8;
     i = nblock - 1 as libc::c_int;
@@ -1299,10 +1300,7 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     let nblock = usize::try_from(s.nblock).unwrap();
 
     let ptr = s.arr1.ptr();
-
-    // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
-    core::ptr::write_bytes(s.ftab, 0, FTAB_LEN);
-    let ftab = s.ftab.cast::<[u32; FTAB_LEN]>().as_mut().unwrap();
+    let ftab = s.ftab.ftab();
 
     BZ2_blockSortHelp(ptr, &mut s.arr2, ftab, nblock, s.workFactor, s.verbosity);
 
