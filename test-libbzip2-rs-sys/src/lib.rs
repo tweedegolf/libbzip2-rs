@@ -790,10 +790,10 @@ fn error_messages() {
         handle: std::ptr::null_mut(),
         buf: [0; 5000],
         bufN: 0,
-        writing: 0,
         strm: bz_stream::zeroed(),
         lastErr: 0,
-        initialisedOk: 0,
+        writing: false,
+        initialisedOk: false,
     };
 
     for i in -17..1 {
