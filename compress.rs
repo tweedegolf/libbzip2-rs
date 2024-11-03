@@ -4,13 +4,38 @@ use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS, BZ_RUNA, B
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 
 pub struct EWriter {
-    pub zbits: *mut u8,
     pub num_z: u32,
-    pub bs_live: i32,
-    pub bs_buff: u32,
+    bs_live: i32,
+    bs_buff: u32,
 }
 
-impl EWriter {
+pub struct LiveWriter<'a> {
+    zbits: &'a mut [u8],
+    writer: &'a mut EWriter,
+    num_z: u32,
+    bs_live: i32,
+    bs_buff: u32,
+}
+
+impl<'a> Drop for LiveWriter<'a> {
+    fn drop(&mut self) {
+        self.writer.num_z = self.num_z;
+        self.writer.bs_buff = self.bs_buff;
+        self.writer.bs_live = self.bs_live;
+    }
+}
+
+impl<'a> LiveWriter<'a> {
+    fn new(writer: &'a mut EWriter, zbits: &'a mut [u8]) -> Self {
+        Self {
+            num_z: writer.num_z,
+            bs_live: writer.bs_live,
+            bs_buff: writer.bs_buff,
+            zbits,
+            writer,
+        }
+    }
+
     fn initialize(&mut self) {
         self.bs_live = 0;
         self.bs_buff = 0;
@@ -18,7 +43,7 @@ impl EWriter {
 
     fn finish(&mut self) {
         while self.bs_live > 0 {
-            unsafe { *(self.zbits).add(self.num_z as usize) = (self.bs_buff >> 24) as u8 };
+            self.zbits[self.num_z as usize] = (self.bs_buff >> 24) as u8;
             self.num_z += 1;
             self.bs_buff <<= 8;
             self.bs_live -= 8;
@@ -27,7 +52,7 @@ impl EWriter {
 
     fn write(&mut self, n: i32, v: u32) {
         while self.bs_live >= 8 {
-            unsafe { *(self.zbits).add(self.num_z as usize) = (self.bs_buff >> 24) as u8 };
+            self.zbits[self.num_z as usize] = (self.bs_buff >> 24) as u8;
             self.num_z += 1;
             self.bs_buff <<= 8;
             self.bs_live -= 8;
@@ -174,7 +199,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
     s.nMTF = wr;
 }
 
-unsafe fn sendMTFValues(s: &mut EState, writer: &mut EWriter) {
+unsafe fn sendMTFValues(s: &mut EState) {
     const BZ_LESSER_ICOST: u8 = 0;
     const BZ_GREATER_ICOST: u8 = 15;
 
@@ -487,6 +512,8 @@ unsafe fn sendMTFValues(s: &mut EState, writer: &mut EWriter) {
     }
 
     /*--- Transmit the mapping table. ---*/
+    let mut writer = LiveWriter::new(&mut s.writer, s.arr2.zbits(s.nblock as usize));
+
     {
         let inUse16: [bool; 16] =
             core::array::from_fn(|i| s.inUse[i * 16..][..16].iter().any(|x| *x));
@@ -625,54 +652,56 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
         BZ2_blockSort(s);
     }
 
-    // s.writer.zbits = (s.arr2 as *mut u8).offset(s.nblock as isize) as *mut u8;
+    {
+        /*-- If this is the first block, create the stream header. --*/
+        if s.blockNo == 1 {
+            let mut writer = LiveWriter::new(&mut s.writer, s.arr2.zbits(s.nblock as usize));
 
-    let mut writer = EWriter {
-        zbits: s.arr2.zbits(s.nblock as usize).as_mut_ptr(),
-        num_z: s.writer.num_z,
-        bs_live: 0,
-        bs_buff: 0,
-    };
+            writer.initialize();
+            writer.write_u8(b'B');
+            writer.write_u8(b'Z');
+            writer.write_u8(b'h');
+            writer.write_u8(b'0' + s.blockSize100k as u8);
+        }
 
-    /*-- If this is the first block, create the stream header. --*/
-    if s.blockNo == 1 {
-        writer.initialize();
-        writer.write_u8(b'B');
-        writer.write_u8(b'Z');
-        writer.write_u8(b'h');
-        writer.write_u8(b'0' + s.blockSize100k as u8);
-    }
+        if s.nblock > 0 {
+            let mut writer = LiveWriter::new(&mut s.writer, s.arr2.zbits(s.nblock as usize));
 
-    if s.nblock > 0 {
-        writer.write_u8(0x31);
-        writer.write_u8(0x41);
-        writer.write_u8(0x59);
-        writer.write_u8(0x26);
-        writer.write_u8(0x53);
-        writer.write_u8(0x59);
+            writer.write_u8(0x31);
+            writer.write_u8(0x41);
+            writer.write_u8(0x59);
+            writer.write_u8(0x26);
+            writer.write_u8(0x53);
+            writer.write_u8(0x59);
 
-        /*-- Now the block's CRC, so it is in a known place. --*/
-        writer.write_u32(s.blockCRC);
+            /*-- Now the block's CRC, so it is in a known place. --*/
+            writer.write_u32(s.blockCRC);
 
-        /*--
-           Now a single bit indicating (non-)randomisation.
-           As of version 0.9.5, we use a better sorting algorithm
-           which makes randomisation unnecessary.  So always set
-           the randomised bit to 'no'.  Of course, the decoder
-           still needs to be able to handle randomised blocks
-           so as to maintain backwards compatibility with
-           older versions of bzip2.
-        --*/
-        writer.write(1, 0);
+            /*--
+               Now a single bit indicating (non-)randomisation.
+               As of version 0.9.5, we use a better sorting algorithm
+               which makes randomisation unnecessary.  So always set
+               the randomised bit to 'no'.  Of course, the decoder
+               still needs to be able to handle randomised blocks
+               so as to maintain backwards compatibility with
+               older versions of bzip2.
+            --*/
+            writer.write(1, 0);
 
-        writer.write(24, s.origPtr as u32);
-        generateMTFValues(s);
+            writer.write(24, s.origPtr as u32);
 
-        sendMTFValues(s, &mut writer);
+            drop(writer);
+
+            generateMTFValues(s);
+
+            sendMTFValues(s);
+        }
     }
 
     /*-- If this is the last block, add the stream trailer. --*/
     if is_last_block {
+        let mut writer = LiveWriter::new(&mut s.writer, s.arr2.zbits(s.nblock as usize));
+
         writer.write_u8(0x17);
         writer.write_u8(0x72);
         writer.write_u8(0x45);
@@ -687,9 +716,4 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
 
         writer.finish();
     }
-
-    s.writer.zbits = writer.zbits;
-    s.writer.num_z = writer.num_z;
-    s.writer.bs_live = writer.bs_live;
-    s.writer.bs_buff = writer.bs_buff;
 }
