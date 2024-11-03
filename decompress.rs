@@ -52,15 +52,12 @@ pub enum State {
 }
 
 fn makeMaps_d(s: &mut DState) {
-    let mut i: i32;
     s.nInUse = 0;
-    i = 0;
-    while i < 256 {
-        if s.inUse[i as usize] {
+    for (i, in_use) in s.inUse.iter().enumerate() {
+        if *in_use {
             s.seqToUnseq[s.nInUse as usize] = i as u8;
             s.nInUse += 1;
         }
-        i += 1;
     }
 }
 pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
