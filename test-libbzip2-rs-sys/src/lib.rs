@@ -99,7 +99,7 @@ fn version() {
 }
 
 #[test]
-fn buff_to_buff_compress_small() {
+fn miri_buff_to_buff_compress_small() {
     let verbosity = 0;
     let blockSize100k = 9;
     let workFactor = 30;

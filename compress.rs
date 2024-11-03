@@ -94,8 +94,6 @@ unsafe fn generateMTFValues(s: &mut EState) {
        compressBlock().
     */
 
-    let block: *mut u8 = s.block;
-
     makeMaps_e(s);
     let EOB = s.nInUse + 1;
 
@@ -116,7 +114,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
         if j < 0 {
             j += s.nblock;
         }
-        ll_i = s.unseqToSeq[*block.offset(j as isize) as usize];
+        ll_i = s.unseqToSeq[s.arr2.block()[j as usize] as usize];
         debug_assert!((ll_i as i32) < s.nInUse, "generateMTFValues(2a)");
 
         if yy[0] == ll_i {
@@ -636,7 +634,8 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
         BZ2_blockSort(&mut *s);
     }
 
-    s.writer.zbits = (s.arr2 as *mut u8).offset(s.nblock as isize) as *mut u8;
+    // s.writer.zbits = (s.arr2 as *mut u8).offset(s.nblock as isize) as *mut u8;
+    s.writer.zbits = s.arr2.block()[s.nblock as usize..].as_mut_ptr();
 
     /*-- If this is the first block, create the stream header. --*/
     if s.blockNo == 1 {
