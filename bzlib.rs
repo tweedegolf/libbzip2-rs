@@ -259,13 +259,28 @@ impl Arr2 {
         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 
-    pub(crate) fn block(&mut self) -> &mut [u8] {
+    pub(crate) fn zbits(&mut self, nblock: usize) -> &mut [u8] {
+        assert!(nblock <= 4 * self.len as usize);
+        unsafe {
+            core::slice::from_raw_parts_mut(
+                self.ptr.cast::<u8>().add(nblock),
+                self.len * 4 - nblock,
+            )
+        }
+    }
+
+    pub(crate) fn raw_block(&mut self) -> &mut [u8] {
         unsafe { core::slice::from_raw_parts_mut(self.ptr.cast(), self.len * 4) }
+    }
+
+    pub(crate) fn block(&mut self, nblock: usize) -> &mut [u8] {
+        assert!(nblock <= 4 * self.len as usize);
+        unsafe { core::slice::from_raw_parts_mut(self.ptr.cast(), nblock) }
     }
 
     pub(crate) fn block_and_quadrant(&mut self, nblock: usize) -> (&mut [u8], &mut [u16]) {
         let len = nblock + BZ_N_OVERSHOOT;
-        assert!(3 * len.next_multiple_of(2) <= self.len as usize);
+        assert!(3 * len.next_multiple_of(2) <= 4 * self.len as usize);
 
         let block = unsafe { core::slice::from_raw_parts_mut(self.ptr.cast(), len) };
 
@@ -556,8 +571,6 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     (*s).verbosity = verbosity;
     (*s).workFactor = workFactor;
 
-    (*s).writer.zbits = std::ptr::null_mut::<u8>();
-
     (*strm).state = s as *mut libc::c_void;
 
     (*strm).total_in_lo32 = 0;
@@ -585,7 +598,7 @@ unsafe fn add_pair_to_block(s: &mut EState) {
         BZ_UPDATE_CRC!(s.blockCRC, ch);
     }
 
-    let block = s.arr2.block();
+    let block = s.arr2.raw_block();
     s.inUse[s.state_in_ch as usize] = true;
     match s.state_in_len {
         1 => {
@@ -639,7 +652,7 @@ macro_rules! ADD_CHAR_TO_BLOCK {
             let ch: u8 = $zs.state_in_ch as u8;
             BZ_UPDATE_CRC!($zs.blockCRC, ch);
             $zs.inUse[$zs.state_in_ch as usize] = true;
-            $zs.arr2.block()[$zs.nblock as usize] = ch;
+            $zs.arr2.raw_block()[$zs.nblock as usize] = ch;
             $zs.nblock += 1;
             $zs.nblock;
             $zs.state_in_ch = zchh;
@@ -704,6 +717,8 @@ unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
 unsafe fn copy_output_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
     let mut progress_out = false;
 
+    let zbits = &mut s.arr2.raw_block()[s.nblock as usize..];
+
     loop {
         if strm.avail_out == 0 {
             break;
@@ -712,7 +727,7 @@ unsafe fn copy_output_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
             break;
         }
         progress_out = true;
-        *strm.next_out = *(s.writer.zbits).offset(s.state_out_pos as isize) as libc::c_char;
+        *strm.next_out = zbits[s.state_out_pos as usize] as libc::c_char;
         s.state_out_pos += 1;
         strm.avail_out = (strm.avail_out).wrapping_sub(1);
         strm.next_out = (strm.next_out).offset(1);

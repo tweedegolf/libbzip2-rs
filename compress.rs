@@ -3,7 +3,6 @@ use crate::blocksort::BZ2_blockSort;
 use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS, BZ_RUNA, BZ_RUNB};
 use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
 
-#[derive(Copy, Clone)]
 pub struct EWriter {
     pub zbits: *mut u8,
     pub num_z: u32,
@@ -50,14 +49,6 @@ impl EWriter {
         self.write(8, b as u32);
         self.write(8, a as u32);
     }
-}
-
-pub fn BZ2_bsInitWrite(s: &mut EState) {
-    s.writer.initialize();
-}
-
-unsafe fn bsFinishWrite(s: &mut EState) {
-    s.writer.finish();
 }
 
 fn makeMaps_e(s: &mut EState) {
@@ -114,7 +105,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
         if j < 0 {
             j += s.nblock;
         }
-        ll_i = s.unseqToSeq[s.arr2.block()[j as usize] as usize];
+        ll_i = s.unseqToSeq[s.arr2.block(s.nblock as usize)[j as usize] as usize];
         debug_assert!((ll_i as i32) < s.nInUse, "generateMTFValues(2a)");
 
         if yy[0] == ll_i {
@@ -183,7 +174,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
     s.nMTF = wr;
 }
 
-unsafe fn sendMTFValues(s: &mut EState) {
+unsafe fn sendMTFValues(s: &mut EState, writer: &mut EWriter) {
     const BZ_LESSER_ICOST: u8 = 0;
     const BZ_GREATER_ICOST: u8 = 15;
 
@@ -500,61 +491,61 @@ unsafe fn sendMTFValues(s: &mut EState) {
         let inUse16: [bool; 16] =
             core::array::from_fn(|i| s.inUse[i * 16..][..16].iter().any(|x| *x));
 
-        nBytes = s.writer.num_z as i32;
+        nBytes = writer.num_z as i32;
         for in_use in inUse16 {
-            s.writer.write(1, in_use as u32);
+            writer.write(1, in_use as u32);
         }
         for (i, any_in_use) in inUse16.iter().enumerate() {
             if *any_in_use {
                 for j in 0..16 {
-                    s.writer.write(1, s.inUse[i * 16 + j] as u32);
+                    writer.write(1, s.inUse[i * 16 + j] as u32);
                 }
             }
         }
         if s.verbosity >= 3 {
-            eprint!("      bytes: mapping {}, ", s.writer.num_z as i32 - nBytes,);
+            eprint!("      bytes: mapping {}, ", writer.num_z as i32 - nBytes,);
         }
     }
 
     /*--- Now the selectors. ---*/
-    nBytes = s.writer.num_z as i32;
-    s.writer.write(3, nGroups as u32);
-    s.writer.write(15, nSelectors as u32);
+    nBytes = writer.num_z as i32;
+    writer.write(3, nGroups as u32);
+    writer.write(15, nSelectors as u32);
 
     for i in 0..nSelectors {
         for _ in 0..s.selectorMtf[i as usize] {
-            s.writer.write(1, 1);
+            writer.write(1, 1);
         }
-        s.writer.write(1, 0);
+        writer.write(1, 0);
     }
     if s.verbosity >= 3 {
-        eprint!("selectors {}, ", s.writer.num_z as i32 - nBytes);
+        eprint!("selectors {}, ", writer.num_z as i32 - nBytes);
     }
 
     /*--- Now the coding tables. ---*/
-    nBytes = s.writer.num_z as i32;
+    nBytes = writer.num_z as i32;
 
     for t in 0..nGroups {
         let mut curr = s.len[t as usize][0];
-        s.writer.write(5, curr as u32);
+        writer.write(5, curr as u32);
         for i in 0..alphaSize {
             while curr < s.len[t as usize][i as usize] {
-                s.writer.write(2, 2);
+                writer.write(2, 2);
                 curr += 1;
             }
             while curr > s.len[t as usize][i as usize] {
-                s.writer.write(2, 3);
+                writer.write(2, 3);
                 curr -= 1;
             }
-            s.writer.write(1, 0);
+            writer.write(1, 0);
         }
     }
     if s.verbosity >= 3 {
-        eprint!("code lengths {}, ", s.writer.num_z as i32 - nBytes);
+        eprint!("code lengths {}, ", writer.num_z as i32 - nBytes);
     }
 
     /*--- And finally, the block data proper ---*/
-    nBytes = s.writer.num_z as i32;
+    nBytes = writer.num_z as i32;
     selCtr = 0;
     gs = 0;
     loop {
@@ -576,7 +567,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
             macro_rules! BZ_ITAH {
                 ($nn:expr) => {
                     mtfv_i = mtfv[(gs + $nn) as usize];
-                    s.writer.write(
+                    writer.write(
                         s_len_sel_selCtr[mtfv_i as usize] as i32,
                         s_code_sel_selCtr[mtfv_i as usize] as u32,
                     );
@@ -599,7 +590,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
         } else {
             /*--- slow version which correctly handles all situations ---*/
             for i in gs..=ge {
-                s.writer.write(
+                writer.write(
                     s.len[s.selector[selCtr] as usize][mtfv[i as usize] as usize] as i32,
                     s.code[s.selector[selCtr] as usize][mtfv[i as usize] as usize] as u32,
                 );
@@ -611,7 +602,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
     assert_h!(selCtr == nSelectors, 3007);
 
     if s.verbosity >= 3 {
-        eprintln!("codes {}", s.writer.num_z as i32 - nBytes);
+        eprintln!("codes {}", writer.num_z as i32 - nBytes);
     }
 }
 
@@ -631,31 +622,37 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
             );
         }
 
-        BZ2_blockSort(&mut *s);
+        BZ2_blockSort(s);
     }
 
     // s.writer.zbits = (s.arr2 as *mut u8).offset(s.nblock as isize) as *mut u8;
-    s.writer.zbits = s.arr2.block()[s.nblock as usize..].as_mut_ptr();
+
+    let mut writer = EWriter {
+        zbits: s.arr2.zbits(s.nblock as usize).as_mut_ptr(),
+        num_z: s.writer.num_z,
+        bs_live: 0,
+        bs_buff: 0,
+    };
 
     /*-- If this is the first block, create the stream header. --*/
     if s.blockNo == 1 {
-        BZ2_bsInitWrite(s);
-        s.writer.write_u8(b'B');
-        s.writer.write_u8(b'Z');
-        s.writer.write_u8(b'h');
-        s.writer.write_u8(b'0' + s.blockSize100k as u8);
+        writer.initialize();
+        writer.write_u8(b'B');
+        writer.write_u8(b'Z');
+        writer.write_u8(b'h');
+        writer.write_u8(b'0' + s.blockSize100k as u8);
     }
 
     if s.nblock > 0 {
-        s.writer.write_u8(0x31);
-        s.writer.write_u8(0x41);
-        s.writer.write_u8(0x59);
-        s.writer.write_u8(0x26);
-        s.writer.write_u8(0x53);
-        s.writer.write_u8(0x59);
+        writer.write_u8(0x31);
+        writer.write_u8(0x41);
+        writer.write_u8(0x59);
+        writer.write_u8(0x26);
+        writer.write_u8(0x53);
+        writer.write_u8(0x59);
 
         /*-- Now the block's CRC, so it is in a known place. --*/
-        s.writer.write_u32(s.blockCRC);
+        writer.write_u32(s.blockCRC);
 
         /*--
            Now a single bit indicating (non-)randomisation.
@@ -666,27 +663,33 @@ pub unsafe fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
            so as to maintain backwards compatibility with
            older versions of bzip2.
         --*/
-        s.writer.write(1, 0);
+        writer.write(1, 0);
 
-        s.writer.write(24, s.origPtr as u32);
-        generateMTFValues(&mut *s);
-        sendMTFValues(s);
+        writer.write(24, s.origPtr as u32);
+        generateMTFValues(s);
+
+        sendMTFValues(s, &mut writer);
     }
 
     /*-- If this is the last block, add the stream trailer. --*/
     if is_last_block {
-        s.writer.write_u8(0x17);
-        s.writer.write_u8(0x72);
-        s.writer.write_u8(0x45);
-        s.writer.write_u8(0x38);
-        s.writer.write_u8(0x50);
-        s.writer.write_u8(0x90);
-        s.writer.write_u32(s.combinedCRC);
+        writer.write_u8(0x17);
+        writer.write_u8(0x72);
+        writer.write_u8(0x45);
+        writer.write_u8(0x38);
+        writer.write_u8(0x50);
+        writer.write_u8(0x90);
+        writer.write_u32(s.combinedCRC);
 
         if s.verbosity >= 2 {
             eprint!("    final combined CRC = 0x{:08x}\n   ", s.combinedCRC);
         }
 
-        bsFinishWrite(s);
+        writer.finish();
     }
+
+    s.writer.zbits = writer.zbits;
+    s.writer.num_z = writer.num_z;
+    s.writer.bs_live = writer.bs_live;
+    s.writer.bs_buff = writer.bs_buff;
 }
