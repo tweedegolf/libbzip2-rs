@@ -82,7 +82,7 @@ fn makeMaps_e(s: &mut EState) {
     s.nInUse = 0;
     for (i, in_use) in s.inUse.iter().enumerate() {
         if *in_use {
-            s.unseqToSeq[i as usize] = s.nInUse as u8;
+            s.unseqToSeq[i] = s.nInUse as u8;
             s.nInUse += 1;
         }
     }
@@ -126,13 +126,12 @@ fn generateMTFValues(s: &mut EState) {
     }
 
     for i in 0..s.nblock {
-        let ll_i: u8;
         debug_assert!(wr <= i, "generateMTFValues(1)");
         let mut j = s.arr1.ptr()[i as usize].wrapping_sub(1) as i32;
         if j < 0 {
             j += s.nblock;
         }
-        ll_i = s.unseqToSeq[s.arr2.block(s.nblock as usize)[j as usize] as usize];
+        let ll_i: u8 = s.unseqToSeq[s.arr2.block(s.nblock as usize)[j as usize] as usize];
         debug_assert!((ll_i as i32) < s.nInUse, "generateMTFValues(2a)");
 
         if yy[0] == ll_i {
@@ -295,7 +294,7 @@ fn sendMTFValues(s: &mut EState) {
             }
 
             for v in 0..alphaSize {
-                s.len[(nPart - 1) as usize][v] = if (gs..=ge).contains(&(v as i32)) {
+                s.len[nPart - 1][v] = if (gs..=ge).contains(&(v as i32)) {
                     BZ_LESSER_ICOST
                 } else {
                     BZ_GREATER_ICOST
@@ -368,7 +367,7 @@ fn sendMTFValues(s: &mut EState) {
                 }
 
                 #[rustfmt::skip]
-                let _ = {
+                {
                     BZ_ITER!(0);  BZ_ITER!(1);  BZ_ITER!(2);  BZ_ITER!(3);  BZ_ITER!(4);
                     BZ_ITER!(5);  BZ_ITER!(6);  BZ_ITER!(7);  BZ_ITER!(8);  BZ_ITER!(9);
                     BZ_ITER!(10); BZ_ITER!(11); BZ_ITER!(12); BZ_ITER!(13); BZ_ITER!(14);
@@ -393,8 +392,7 @@ fn sendMTFValues(s: &mut EState) {
                     let icv_0: u16 = mtfv[i as usize];
 
                     for t in 0..nGroups {
-                        cost[t as usize] =
-                            (cost[t] as i32 + s.len[t][icv_0 as usize] as i32) as u16;
+                        cost[t] = (cost[t] as i32 + s.len[t][icv_0 as usize] as i32) as u16;
                     }
                 }
             }
@@ -406,8 +404,8 @@ fn sendMTFValues(s: &mut EState) {
             bc = 999999999;
             bt = -1;
             for t in 0..nGroups {
-                if (cost[t as usize] as i32) < bc {
-                    bc = cost[t as usize] as i32;
+                if (cost[t] as i32) < bc {
+                    bc = cost[t] as i32;
                     bt = t as i32;
                 }
             }
@@ -425,7 +423,7 @@ fn sendMTFValues(s: &mut EState) {
                 }
 
                 #[rustfmt::skip]
-                let _ = {
+                {
                     BZ_ITUR!(0);  BZ_ITUR!(1);  BZ_ITUR!(2);  BZ_ITUR!(3);  BZ_ITUR!(4);
                     BZ_ITUR!(5);  BZ_ITUR!(6);  BZ_ITUR!(7);  BZ_ITUR!(8);  BZ_ITUR!(9);
                     BZ_ITUR!(10); BZ_ITUR!(11); BZ_ITUR!(12); BZ_ITUR!(13); BZ_ITUR!(14);
@@ -455,7 +453,7 @@ fn sendMTFValues(s: &mut EState) {
             for t in 0..nGroups {
                 eprint!("{} ", fave[t],);
             }
-            eprintln!("");
+            eprintln!();
         }
 
         /*--
@@ -478,7 +476,7 @@ fn sendMTFValues(s: &mut EState) {
         let mut tmp2: u8;
         let mut tmp: u8;
 
-        for i in 0..nGroups as usize {
+        for i in 0..nGroups {
             pos[i] = i as u8;
         }
 
@@ -507,8 +505,8 @@ fn sendMTFValues(s: &mut EState) {
             minLen = Ord::min(minLen, s.len[t][i] as i32);
         }
 
-        assert_h!(!(maxLen > 17/*20*/), 3004);
-        assert_h!(!(minLen < 1), 3005);
+        assert_h!(maxLen <= 17, 3004);
+        assert_h!(minLen >= 1, 3005);
 
         BZ2_hbAssignCodes(&mut s.code[t], &s.len[t], minLen, maxLen, alphaSize);
     }
@@ -542,7 +540,7 @@ fn sendMTFValues(s: &mut EState) {
     writer.write(15, nSelectors as u32);
 
     for i in 0..nSelectors {
-        for _ in 0..s.selectorMtf[i as usize] {
+        for _ in 0..s.selectorMtf[i] {
             writer.write(1, 1);
         }
         writer.write(1, 0);
@@ -555,14 +553,14 @@ fn sendMTFValues(s: &mut EState) {
     nBytes = writer.num_z as i32;
 
     for t in 0..nGroups {
-        let mut curr = s.len[t as usize][0];
+        let mut curr = s.len[t][0];
         writer.write(5, curr as u32);
         for i in 0..alphaSize {
-            while curr < s.len[t as usize][i as usize] {
+            while curr < s.len[t][i] {
                 writer.write(2, 2);
                 curr += 1;
             }
-            while curr > s.len[t as usize][i as usize] {
+            while curr > s.len[t][i] {
                 writer.write(2, 3);
                 curr -= 1;
             }
@@ -604,7 +602,7 @@ fn sendMTFValues(s: &mut EState) {
             }
 
             #[rustfmt::skip]
-            let _ = {
+            {
                 BZ_ITAH!(0);  BZ_ITAH!(1);  BZ_ITAH!(2);  BZ_ITAH!(3);  BZ_ITAH!(4);
                 BZ_ITAH!(5);  BZ_ITAH!(6);  BZ_ITAH!(7);  BZ_ITAH!(8);  BZ_ITAH!(9);
                 BZ_ITAH!(10); BZ_ITAH!(11); BZ_ITAH!(12); BZ_ITAH!(13); BZ_ITAH!(14);

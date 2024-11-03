@@ -327,8 +327,7 @@ unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
                                                         nbytes_out_lo32,
                                                         nbytes_out_hi32,
                                                     );
-                                                    nbytes_in_d =
-                                                        uInt64_to_double(&mut nbytes_in);
+                                                    nbytes_in_d = uInt64_to_double(&mut nbytes_in);
                                                     nbytes_out_d =
                                                         uInt64_to_double(&mut nbytes_out);
                                                     uInt64_toAscii(
@@ -851,7 +850,8 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                                             if ret == 0 as libc::c_int {
                                                 if stream != stdout {
                                                     ret = fclose(stream);
-                                                    outputHandleJustInCase = std::ptr::null_mut::<FILE>();
+                                                    outputHandleJustInCase =
+                                                        std::ptr::null_mut::<FILE>();
                                                     if ret == -1 as libc::c_int {
                                                         current_block = 6432526541220421294;
                                                     } else {
