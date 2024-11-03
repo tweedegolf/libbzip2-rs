@@ -86,7 +86,7 @@ fn makeMaps_e(s: &mut EState) {
     }
 }
 
-unsafe fn generateMTFValues(s: &mut EState) {
+fn generateMTFValues(s: &mut EState) {
     /*
        After sorting (eg, here),
           s.arr1 [ 0 .. s->nblock-1 ] holds sorted order,
@@ -199,7 +199,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
     s.nMTF = wr;
 }
 
-unsafe fn sendMTFValues(s: &mut EState) {
+fn sendMTFValues(s: &mut EState) {
     const BZ_LESSER_ICOST: u8 = 0;
     const BZ_GREATER_ICOST: u8 = 15;
 
