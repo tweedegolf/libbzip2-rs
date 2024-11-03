@@ -1,4 +1,4 @@
-use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, Bool, DState};
+use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DState};
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
 
@@ -56,7 +56,7 @@ fn makeMaps_d(s: &mut DState) {
     s.nInUse = 0;
     i = 0;
     while i < 256 {
-        if s.inUse[i as usize] != 0 {
+        if s.inUse[i as usize] {
             s.seqToUnseq[s.nInUse as usize] = i as u8;
             s.nInUse += 1;
         }
@@ -1630,7 +1630,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 if uc == 1 {
-                    s.inUse[(i * 16 + j) as usize] = 1 as Bool;
+                    s.inUse[(i * 16 + j) as usize] = true;
                 }
                 j += 1;
                 current_block = 16953886395775657100;
@@ -1642,7 +1642,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
                 i = 0;
                 while i < 256 {
-                    s.inUse[i as usize] = 0 as Bool;
+                    s.inUse[i as usize] = false;
                     i += 1;
                 }
                 i = 0;
@@ -1672,9 +1672,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 if uc == 1 {
-                    s.inUse16[i as usize] = 1 as Bool;
+                    s.inUse16[i as usize] = true;
                 } else {
-                    s.inUse16[i as usize] = 0 as Bool;
+                    s.inUse16[i as usize] = false;
                 }
                 i += 1;
                 current_block = 454873545234741267;
@@ -2043,7 +2043,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 s.rNToGo = 0;
                                 s.rTPos = 0;
                                 if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
-                                    return 1 as Bool as i32;
+                                    return true as i32;
                                 }
                                 s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
                                 s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
@@ -2063,7 +2063,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
                             } else {
                                 if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
-                                    return 1 as Bool as i32;
+                                    return true as i32;
                                 }
                                 s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
                                 s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
@@ -2089,7 +2089,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 s.rNToGo = 0;
                                 s.rTPos = 0;
                                 if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
-                                    return 1 as Bool as i32;
+                                    return true as i32;
                                 }
                                 s.tPos = *(s.tt).offset(s.tPos as isize);
                                 s.k0 = (s.tPos & 0xff) as u8 as i32;
@@ -2106,7 +2106,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
                             } else {
                                 if s.tPos >= (100000 as u32).wrapping_mul(s.blockSize100k as u32) {
-                                    return 1 as Bool as i32;
+                                    return true as i32;
                                 }
                                 s.tPos = *(s.tt).offset(s.tPos as isize);
                                 s.k0 = (s.tPos & 0xff) as u8 as i32;
@@ -2204,7 +2204,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
                 15415362524153386998 => {
                     if i < 16 {
-                        if s.inUse16[i as usize] != 0 {
+                        if s.inUse16[i as usize] {
                             j = 0;
                             current_block = 16953886395775657100;
                             continue;
