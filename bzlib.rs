@@ -160,7 +160,6 @@ pub const BZ_N_OVERSHOOT2: usize = (BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2) as
 
 pub const FTAB_LEN: usize = u16::MAX as usize + 2;
 
-#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct EState {
     pub strm: *mut bz_stream,
