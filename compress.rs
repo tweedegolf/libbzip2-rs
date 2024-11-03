@@ -94,9 +94,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
        compressBlock().
     */
 
-    let ptr: *mut u32 = s.ptr;
     let block: *mut u8 = s.block;
-    let mtfv: *mut u16 = s.mtfv;
 
     makeMaps_e(s);
     let EOB = s.nInUse + 1;
@@ -114,7 +112,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
     for i in 0..s.nblock {
         let ll_i: u8;
         debug_assert!(wr <= i, "generateMTFValues(1)");
-        let mut j = (*ptr.offset(i as isize)).wrapping_sub(1) as i32;
+        let mut j = s.arr1.ptr()[i as usize].wrapping_sub(1) as i32;
         if j < 0 {
             j += s.nblock;
         }
@@ -128,11 +126,11 @@ unsafe fn generateMTFValues(s: &mut EState) {
                 zPend -= 1;
                 loop {
                     if zPend & 1 != 0 {
-                        *mtfv.offset(wr as isize) = 1;
+                        s.arr1.mtfv()[wr as usize] = 1;
                         wr += 1;
                         s.mtfFreq[1] += 1;
                     } else {
-                        *mtfv.offset(wr as isize) = 0;
+                        s.arr1.mtfv()[wr as usize] = 0;
                         wr += 1;
                         s.mtfFreq[0] += 1;
                     }
@@ -154,7 +152,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
                     core::mem::swap(&mut rtmp, &mut yy[j as usize]);
                 }
                 yy[0] = rtmp;
-                *mtfv.offset(wr as isize) = (j + 1) as u16;
+                s.arr1.mtfv()[wr as usize] = (j + 1) as u16;
                 wr += 1;
                 s.mtfFreq[(j + 1) as usize] += 1;
             }
@@ -165,11 +163,11 @@ unsafe fn generateMTFValues(s: &mut EState) {
         zPend -= 1;
         loop {
             if zPend & 1 != 0 {
-                *mtfv.offset(wr as isize) = BZ_RUNB;
+                s.arr1.mtfv()[wr as usize] = BZ_RUNB;
                 wr += 1;
                 s.mtfFreq[BZ_RUNB as usize] += 1;
             } else {
-                *mtfv.offset(wr as isize) = BZ_RUNA;
+                s.arr1.mtfv()[wr as usize] = BZ_RUNA;
                 wr += 1;
                 s.mtfFreq[BZ_RUNA as usize] += 1;
             }
@@ -180,7 +178,7 @@ unsafe fn generateMTFValues(s: &mut EState) {
         }
     }
 
-    *mtfv.offset(wr as isize) = EOB as u16;
+    s.arr1.mtfv()[wr as usize] = EOB as u16;
     wr += 1;
     s.mtfFreq[EOB as usize] += 1;
 
@@ -218,7 +216,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
     let mut cost: [u16; 6] = [0; 6];
     let mut fave: [i32; 6] = [0; 6];
 
-    let mtfv: *mut u16 = s.mtfv;
+    let mtfv = s.arr1.mtfv();
 
     if s.verbosity >= 3 {
         eprintln!(
@@ -346,7 +344,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
 
                 macro_rules! BZ_ITER {
                     ($nn:expr) => {
-                        icv = *mtfv.add((gs + $nn) as usize);
+                        icv = mtfv[(gs + $nn) as usize];
                         cost01 = cost01.wrapping_add(s.len_pack[icv as usize][0]);
                         cost23 = cost23.wrapping_add(s.len_pack[icv as usize][1]);
                         cost45 = cost45.wrapping_add(s.len_pack[icv as usize][2]);
@@ -376,7 +374,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
             } else {
                 /*--- slow version which correctly handles all situations ---*/
                 for i in gs..=ge {
-                    let icv_0: u16 = *mtfv.offset(i as isize);
+                    let icv_0: u16 = mtfv[i as usize];
 
                     for t in 0..nGroups {
                         cost[t as usize] =
@@ -406,7 +404,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
             if nGroups == 6 && 50 == ge - gs + 1 {
                 macro_rules! BZ_ITUR {
                     ($nn:expr) => {
-                        s.rfreq[bt as usize][*mtfv.add((gs + $nn) as usize) as usize] += 1;
+                        s.rfreq[bt as usize][mtfv[(gs + $nn) as usize] as usize] += 1;
                     };
                 }
 
@@ -425,8 +423,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
                 };
             } else {
                 for i in gs..=ge {
-                    s.rfreq[bt as usize][*mtfv.add(i as usize) as usize] += 1;
-                    s.rfreq[bt as usize][*mtfv.add(i as usize) as usize];
+                    s.rfreq[bt as usize][mtfv[i as usize] as usize] += 1;
                 }
             }
 
@@ -580,7 +577,7 @@ unsafe fn sendMTFValues(s: &mut EState) {
 
             macro_rules! BZ_ITAH {
                 ($nn:expr) => {
-                    mtfv_i = *mtfv.add((gs + $nn) as usize);
+                    mtfv_i = mtfv[(gs + $nn) as usize];
                     s.writer.write(
                         s_len_sel_selCtr[mtfv_i as usize] as i32,
                         s_code_sel_selCtr[mtfv_i as usize] as u32,
@@ -605,8 +602,8 @@ unsafe fn sendMTFValues(s: &mut EState) {
             /*--- slow version which correctly handles all situations ---*/
             for i in gs..=ge {
                 s.writer.write(
-                    s.len[s.selector[selCtr] as usize][*mtfv.offset(i as isize) as usize] as i32,
-                    s.code[s.selector[selCtr] as usize][*mtfv.offset(i as isize) as usize] as u32,
+                    s.len[s.selector[selCtr] as usize][mtfv[i as usize] as usize] as i32,
+                    s.code[s.selector[selCtr] as usize][mtfv[i as usize] as usize] as u32,
                 );
             }
         }

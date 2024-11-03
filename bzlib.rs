@@ -166,13 +166,11 @@ pub struct EState {
     pub mode: Mode,
     pub state: State,
     pub avail_in_expect: u32,
-    pub arr1: *mut u32,
+    pub arr1: Arr1,
     pub arr2: *mut u32,
     pub ftab: *mut u32,
     pub origPtr: i32,
-    pub ptr: *mut u32,
     pub block: *mut u8,
-    pub mtfv: *mut u16,
     pub writer: crate::compress::EWriter,
     pub workFactor: i32,
     pub state_in_ch: u32,
@@ -198,6 +196,40 @@ pub struct EState {
     pub code: [[i32; 258]; 6],
     pub rfreq: [[i32; 258]; 6],
     pub len_pack: [[u32; 4]; 258],
+}
+
+pub struct Arr1 {
+    ptr: *mut u32,
+    len: usize,
+}
+
+impl Arr1 {
+    fn new() -> Self {
+        Self {
+            ptr: core::ptr::null_mut(),
+            len: 0,
+        }
+    }
+
+    unsafe fn from_raw_parts_mut(ptr: *mut u32, len: usize) -> Self {
+        Self { ptr, len }
+    }
+
+    fn into_raw_parts(self) -> (*mut u32, usize) {
+        (self.ptr, self.len)
+    }
+
+    fn is_null(&self) -> bool {
+        self.ptr.is_null()
+    }
+
+    pub(crate) fn mtfv(&mut self) -> &mut [u16] {
+        unsafe { core::slice::from_raw_parts_mut(self.ptr.cast(), self.len * 2) }
+    }
+
+    pub(crate) fn ptr(&mut self) -> &mut [u32] {
+        unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -379,6 +411,21 @@ fn isempty_RL(s: &mut EState) -> bool {
     !(s.state_in_ch < 256 && s.state_in_len > 0)
 }
 
+unsafe fn bzalloc_array<T>(
+    bzalloc: AllocFunc,
+    opaque: *mut libc::c_void,
+    len: usize,
+) -> Option<*mut T> {
+    assert!(core::mem::align_of::<T>() <= 16);
+
+    let len = i32::try_from(len).ok()?;
+    let width = i32::try_from(core::mem::size_of::<T>()).ok()?;
+
+    let ptr = bzalloc(opaque, len, width);
+
+    (!ptr.is_null()).then_some(ptr.cast::<T>())
+}
+
 #[export_name = prefix!(BZ2_bzCompressInit)]
 pub unsafe extern "C" fn BZ2_bzCompressInit(
     strm: *mut bz_stream,
@@ -413,17 +460,17 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
 
     (*s).strm = strm;
 
-    (*s).arr1 = std::ptr::null_mut::<u32>();
+    (*s).arr1 = Arr1::new();
     (*s).arr2 = std::ptr::null_mut::<u32>();
     (*s).ftab = std::ptr::null_mut::<u32>();
 
     let n = 100000 * blockSize100k;
 
-    (*s).arr1 = (bzalloc)(
-        (*strm).opaque,
-        (n as u64).wrapping_mul(::core::mem::size_of::<u32>() as u64) as i32,
-        1,
-    ) as *mut u32;
+    let arr1_len = n as usize;
+    let arr1 = bzalloc_array(*bzalloc, (*strm).opaque, n as usize).unwrap_or(core::ptr::null_mut());
+    core::ptr::write_bytes(arr1, 0, arr1_len);
+    unsafe { (*s).arr1 = Arr1::from_raw_parts_mut(arr1, arr1_len) };
+
     (*s).arr2 = (bzalloc)(
         (*strm).opaque,
         ((n + (2 + 12 + 18 + 2)) as u64).wrapping_mul(::core::mem::size_of::<u32>() as u64) as i32,
@@ -437,7 +484,9 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
 
     if ((*s).arr1).is_null() || ((*s).arr2).is_null() || ((*s).ftab).is_null() {
         if !((*s).arr1).is_null() {
-            (bzfree)((*strm).opaque, (*s).arr1 as *mut libc::c_void);
+            let arr1 = core::ptr::replace(core::ptr::addr_of_mut!((*s).arr1), Arr1::new());
+            let (ptr, _len) = arr1.into_raw_parts();
+            (bzfree)((*strm).opaque, ptr as *mut libc::c_void);
         }
         if !((*s).arr2).is_null() {
             (bzfree)((*strm).opaque, (*s).arr2 as *mut libc::c_void);
@@ -461,9 +510,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     (*s).workFactor = workFactor;
 
     (*s).block = (*s).arr2 as *mut u8;
-    (*s).mtfv = (*s).arr1 as *mut u16;
     (*s).writer.zbits = std::ptr::null_mut::<u8>();
-    (*s).ptr = (*s).arr1;
 
     (*strm).state = s as *mut libc::c_void;
 
@@ -786,7 +833,9 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     };
 
     if !(s.arr1).is_null() {
-        (bzfree)(strm.opaque, s.arr1.cast::<c_void>());
+        let arr1 = core::mem::replace(&mut s.arr1, Arr1::new());
+        let (ptr, _len) = arr1.into_raw_parts();
+        (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
     if !(s.arr2).is_null() {
         (bzfree)(strm.opaque, s.arr2.cast::<c_void>());

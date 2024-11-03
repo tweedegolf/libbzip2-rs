@@ -1298,7 +1298,7 @@ fn mainSort(
 pub unsafe fn BZ2_blockSort(s: &mut EState) {
     let nblock = usize::try_from(s.nblock).unwrap();
 
-    let ptr = core::slice::from_raw_parts_mut(s.arr1, nblock);
+    let ptr = s.arr1.ptr();
 
     // bzip2 appears to use uninitalized memory. It all works out in the end, but is UB.
     core::ptr::write_bytes(s.ftab, 0, FTAB_LEN);
