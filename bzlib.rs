@@ -9,7 +9,6 @@ use libc::{
 use crate::compress::BZ2_compressBlock;
 use crate::crctable::BZ2_CRC32TABLE;
 use crate::decompress::{self, BZ2_decompress};
-use crate::randtable::BZ2_RNUMS;
 
 extern "C" {
     static stdin: *mut FILE;
@@ -277,10 +276,10 @@ pub struct bzFile {
     pub handle: *mut FILE,
     pub buf: [i8; 5000],
     pub bufN: i32,
-    pub writing: Bool,
     pub strm: bz_stream,
     pub lastErr: i32,
-    pub initialisedOk: Bool,
+    pub writing: bool,
+    pub initialisedOk: bool,
 }
 
 pub fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
@@ -1491,10 +1490,10 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     if !bzf.is_null() {
         (*bzf).lastErr = 0 as libc::c_int;
     }
-    (*bzf).initialisedOk = 0 as Bool;
+    (*bzf).initialisedOk = false;
     (*bzf).bufN = 0 as libc::c_int;
     (*bzf).handle = f;
-    (*bzf).writing = 1 as Bool;
+    (*bzf).writing = true;
     (*bzf).strm.bzalloc = None;
     (*bzf).strm.bzfree = None;
     (*bzf).strm.opaque = std::ptr::null_mut::<libc::c_void>();
@@ -1513,7 +1512,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
         return std::ptr::null_mut::<libc::c_void>();
     }
     (*bzf).strm.avail_in = 0 as libc::c_int as libc::c_uint;
-    (*bzf).initialisedOk = 1 as Bool;
+    (*bzf).initialisedOk = true;
     bzf as *mut libc::c_void
 }
 #[export_name = prefix!(BZ2_bzWrite)]
@@ -1542,7 +1541,7 @@ pub unsafe extern "C" fn BZ2_bzWrite(
         }
         return;
     }
-    if (*bzf).writing == 0 {
+    if !(*bzf).writing {
         if !bzerror.is_null() {
             *bzerror = -1 as libc::c_int;
         }
@@ -1654,7 +1653,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
         }
         return;
     }
-    if (*bzf).writing == 0 {
+    if !(*bzf).writing {
         if !bzerror.is_null() {
             *bzerror = -1 as libc::c_int;
         }
@@ -1812,10 +1811,10 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     if !bzf.is_null() {
         (*bzf).lastErr = 0 as libc::c_int;
     }
-    (*bzf).initialisedOk = 0 as Bool;
+    (*bzf).initialisedOk = false;
     (*bzf).handle = f;
     (*bzf).bufN = 0 as libc::c_int;
-    (*bzf).writing = 0 as Bool;
+    (*bzf).writing = false;
     (*bzf).strm.bzalloc = None;
     (*bzf).strm.bzfree = None;
     (*bzf).strm.opaque = std::ptr::null_mut::<libc::c_void>();
@@ -1838,7 +1837,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     }
     (*bzf).strm.avail_in = (*bzf).bufN as libc::c_uint;
     (*bzf).strm.next_in = ((*bzf).buf).as_mut_ptr();
-    (*bzf).initialisedOk = 1 as Bool;
+    (*bzf).initialisedOk = true;
     bzf as *mut libc::c_void
 }
 
@@ -1860,7 +1859,7 @@ pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut libc::c_int, b: *mut libc
         }
         return;
     }
-    if (*bzf).writing != 0 {
+    if (*bzf).writing {
         if !bzerror.is_null() {
             *bzerror = -1 as libc::c_int;
         }
@@ -1869,7 +1868,7 @@ pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut libc::c_int, b: *mut libc
         }
         return;
     }
-    if (*bzf).initialisedOk != 0 {
+    if (*bzf).initialisedOk {
         BZ2_bzDecompressEnd(&mut (*bzf).strm);
     }
     free(bzf as *mut libc::c_void);
@@ -1899,7 +1898,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
         }
         return 0 as libc::c_int;
     }
-    if (*bzf).writing != 0 {
+    if (*bzf).writing {
         if !bzerror.is_null() {
             *bzerror = -1 as libc::c_int;
         }
@@ -2305,7 +2304,7 @@ pub unsafe extern "C" fn BZ2_bzclose(b: *mut libc::c_void) {
         return;
     }
     fp = (*(b as *mut bzFile)).handle;
-    if (*(b as *mut bzFile)).writing != 0 {
+    if (*(b as *mut bzFile)).writing {
         BZ2_bzWriteClose(
             &mut bzerr,
             b,
