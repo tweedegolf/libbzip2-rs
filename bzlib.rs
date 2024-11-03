@@ -267,7 +267,7 @@ impl Arr2 {
     }
 
     pub(crate) fn zbits(&mut self, nblock: usize) -> &mut [u8] {
-        assert!(nblock <= 4 * self.len as usize);
+        assert!(nblock <= 4 * self.len);
         unsafe {
             core::slice::from_raw_parts_mut(
                 self.ptr.cast::<u8>().add(nblock),
@@ -281,13 +281,13 @@ impl Arr2 {
     }
 
     pub(crate) fn block(&mut self, nblock: usize) -> &mut [u8] {
-        assert!(nblock <= 4 * self.len as usize);
+        assert!(nblock <= 4 * self.len);
         unsafe { core::slice::from_raw_parts_mut(self.ptr.cast(), nblock) }
     }
 
     pub(crate) fn block_and_quadrant(&mut self, nblock: usize) -> (&mut [u8], &mut [u16]) {
         let len = nblock + BZ_N_OVERSHOOT;
-        assert!(3 * len.next_multiple_of(2) <= 4 * self.len as usize);
+        assert!(3 * len.next_multiple_of(2) <= 4 * self.len);
 
         let block = unsafe { core::slice::from_raw_parts_mut(self.ptr.cast(), len) };
 
@@ -529,12 +529,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         return BZ_CONFIG_ERROR as libc::c_int;
     }
 
-    if strm.is_null()
-        || blockSize100k < 1
-        || blockSize100k > 9
-        || workFactor < 0
-        || workFactor > 250
-    {
+    if strm.is_null() || !(1..=9).contains(&blockSize100k) || !(0..=250).contains(&workFactor) {
         return BZ_PARAM_ERROR as c_int;
     }
 
@@ -711,12 +706,12 @@ macro_rules! ADD_CHAR_TO_BLOCK {
 unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
     let mut progress_in = false;
 
-    match (*s).mode {
+    match s.mode {
         Mode::Running => loop {
             if s.nblock >= s.nblockMAX {
                 break;
             }
-            if (*strm).avail_in == 0 {
+            if strm.avail_in == 0 {
                 break;
             }
             progress_in = true;
@@ -725,14 +720,14 @@ unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
             strm.avail_in = (strm.avail_in).wrapping_sub(1);
             strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
             if strm.total_in_lo32 == 0 {
-                strm.total_in_hi32 = ((*strm).total_in_hi32).wrapping_add(1);
+                strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
             }
         },
         _ => loop {
             if s.nblock >= s.nblockMAX {
                 break;
             }
-            if (*strm).avail_in == 0 {
+            if strm.avail_in == 0 {
                 break;
             }
             if s.avail_in_expect == 0 {
@@ -744,7 +739,7 @@ unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
             strm.avail_in = (strm.avail_in).wrapping_sub(1);
             strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
             if strm.total_in_lo32 == 0 {
-                strm.total_in_hi32 = ((*strm).total_in_hi32).wrapping_add(1);
+                strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
             }
             s.avail_in_expect = (s.avail_in_expect).wrapping_sub(1);
         },
@@ -808,7 +803,7 @@ unsafe fn handle_compress(strm: &mut bz_stream, s: &mut EState) -> bool {
         } else if s.nblock >= s.nblockMAX {
             BZ2_compressBlock(s, false);
             s.state = State::Input;
-        } else if (*strm).avail_in == 0 {
+        } else if strm.avail_in == 0 {
             break;
         }
     }
@@ -841,7 +836,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: c_int) -> 
         return BZ_PARAM_ERROR as c_int;
     };
 
-    let Some(s) = ((*strm).state as *mut EState).as_mut() else {
+    let Some(s) = (strm.state as *mut EState).as_mut() else {
         return BZ_PARAM_ERROR as c_int;
     };
 
@@ -920,7 +915,7 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
         return BZ_PARAM_ERROR as c_int;
     };
 
-    let Some(s) = ((*strm).state as *mut EState).as_mut() else {
+    let Some(s) = (strm.state as *mut EState).as_mut() else {
         return BZ_PARAM_ERROR as c_int;
     };
 
@@ -928,7 +923,7 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
         return BZ_PARAM_ERROR as c_int;
     }
 
-    let Some(bzfree) = (*strm).bzfree else {
+    let Some(bzfree) = strm.bzfree else {
         return BZ_PARAM_ERROR as c_int;
     };
 
@@ -960,7 +955,6 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     verbosity: c_int,
     small: c_int,
 ) -> libc::c_int {
-    let s: *mut DState;
     if !bz_config_ok() {
         return BZ_CONFIG_ERROR as libc::c_int;
     }
@@ -970,13 +964,14 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     if small != 0 && small != 1 {
         return BZ_PARAM_ERROR as c_int;
     }
-    if verbosity < 0 || verbosity > 4 {
+    if !(0..=4).contains(&verbosity) {
         return BZ_PARAM_ERROR as c_int;
     }
     let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
     let _bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
 
-    s = (bzalloc)((*strm).opaque, core::mem::size_of::<DState>() as i32, 1) as *mut DState;
+    let s: *mut DState =
+        (bzalloc)((*strm).opaque, core::mem::size_of::<DState>() as i32, 1) as *mut DState;
     if s.is_null() {
         return BZ_MEM_ERROR as c_int;
     }
@@ -1137,7 +1132,6 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
 
         let avail_out_INIT: u32 = cs_avail_out;
         let s_save_nblockPP: i32 = s.save_nblock + 1;
-        let total_out_lo32_old: libc::c_uint;
 
         macro_rules! BZ_GET_FAST_C {
             ( $cccc:expr) => {
@@ -1252,7 +1246,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
         }
 
         /* save */
-        total_out_lo32_old = strm.total_out_lo32;
+        let total_out_lo32_old: libc::c_uint = strm.total_out_lo32;
         strm.total_out_lo32 =
             (strm.total_out_lo32).wrapping_add(avail_out_INIT.wrapping_sub(cs_avail_out));
         if strm.total_out_lo32 < total_out_lo32_old {
@@ -1473,7 +1467,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
         return BZ_PARAM_ERROR as c_int;
     };
 
-    let Some(s) = ((*strm).state as *mut DState).as_mut() else {
+    let Some(s) = (strm.state as *mut DState).as_mut() else {
         return BZ_PARAM_ERROR as c_int;
     };
 
@@ -1508,8 +1502,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
                 if s.calculatedBlockCRC != s.storedBlockCRC {
                     return BZ_DATA_ERROR as c_int;
                 }
-                s.calculatedCombinedCRC =
-                    s.calculatedCombinedCRC << 1 | s.calculatedCombinedCRC >> 31;
+                s.calculatedCombinedCRC = s.calculatedCombinedCRC.rotate_left(1);
                 s.calculatedCombinedCRC ^= s.calculatedBlockCRC;
                 s.state = decompress::State::BZ_X_BLKHDR_1;
             } else {
@@ -1517,24 +1510,23 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
             }
         }
         if !matches!(
-            (*s).state,
+            s.state,
             decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT
         ) {
             let r: i32 = BZ2_decompress(strm, s);
             if r == 4 as libc::c_int {
-                if (*s).verbosity >= 3 {
+                if s.verbosity >= 3 {
                     eprint!(
                         "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
-                        (*s).storedCombinedCRC,
-                        (*s).calculatedCombinedCRC,
+                        s.storedCombinedCRC, s.calculatedCombinedCRC,
                     );
                 }
-                if (*s).calculatedCombinedCRC != (*s).storedCombinedCRC {
+                if s.calculatedCombinedCRC != s.storedCombinedCRC {
                     return BZ_DATA_ERROR as c_int;
                 }
                 return r;
             }
-            if !matches!((*s).state, decompress::State::BZ_X_OUTPUT) {
+            if !matches!(s.state, decompress::State::BZ_X_OUTPUT) {
                 return r;
             }
         }
@@ -1547,7 +1539,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
         return BZ_PARAM_ERROR as c_int;
     };
 
-    let Some(s) = ((*strm).state as *mut DState).as_mut() else {
+    let Some(s) = (strm.state as *mut DState).as_mut() else {
         return BZ_PARAM_ERROR as c_int;
     };
 
@@ -1555,7 +1547,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
         return BZ_PARAM_ERROR as c_int;
     }
 
-    let Some(bzfree) = (*strm).bzfree else {
+    let Some(bzfree) = strm.bzfree else {
         return BZ_PARAM_ERROR as c_int;
     };
 
@@ -1596,7 +1588,6 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     verbosity: libc::c_int,
     mut workFactor: libc::c_int,
 ) -> *mut libc::c_void {
-    let ret: i32;
     let mut bzf: *mut bzFile = std::ptr::null_mut::<bzFile>();
     if !bzerror.is_null() {
         *bzerror = 0 as libc::c_int;
@@ -1652,7 +1643,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     if workFactor == 0 as libc::c_int {
         workFactor = 30 as libc::c_int;
     }
-    ret = BZ2_bzCompressInit(&mut (*bzf).strm, blockSize100k, verbosity, workFactor);
+    let ret: i32 = BZ2_bzCompressInit(&mut (*bzf).strm, blockSize100k, verbosity, workFactor);
     if ret != 0 as libc::c_int {
         if !bzerror.is_null() {
             *bzerror = ret;
@@ -1917,7 +1908,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     mut nUnused: libc::c_int,
 ) -> *mut libc::c_void {
     let mut bzf: *mut bzFile = std::ptr::null_mut::<bzFile>();
-    let ret: libc::c_int;
+
     if !bzerror.is_null() {
         *bzerror = 0 as libc::c_int;
     }
@@ -1976,7 +1967,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         unused = (unused as *mut u8).offset(1 as libc::c_int as isize) as *mut libc::c_void;
         nUnused -= 1;
     }
-    ret = BZ2_bzDecompressInit(&mut (*bzf).strm, verbosity, small);
+    let ret: libc::c_int = BZ2_bzDecompressInit(&mut (*bzf).strm, verbosity, small);
     if ret != 0 as libc::c_int {
         if !bzerror.is_null() {
             *bzerror = ret;
@@ -2415,11 +2406,11 @@ pub unsafe extern "C" fn BZ2_bzread(
     len: libc::c_int,
 ) -> libc::c_int {
     let mut bzerr: libc::c_int = 0;
-    let nread: libc::c_int;
+
     if (*(b as *mut bzFile)).lastErr == 4 as libc::c_int {
         return 0 as libc::c_int;
     }
-    nread = BZ2_bzRead(&mut bzerr, b, buf, len);
+    let nread: libc::c_int = BZ2_bzRead(&mut bzerr, b, buf, len);
     if bzerr == 0 as libc::c_int || bzerr == 4 as libc::c_int {
         nread
     } else {
@@ -2451,11 +2442,11 @@ pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut c_void) -> c_int {
 #[export_name = prefix!(BZ2_bzclose)]
 pub unsafe extern "C" fn BZ2_bzclose(b: *mut libc::c_void) {
     let mut bzerr: libc::c_int = 0;
-    let fp: *mut FILE;
+
     if b.is_null() {
         return;
     }
-    fp = (*(b as *mut bzFile)).handle;
+    let fp: *mut FILE = (*(b as *mut bzFile)).handle;
     if (*(b as *mut bzFile)).writing {
         BZ2_bzWriteClose(
             &mut bzerr,
@@ -2506,7 +2497,7 @@ pub unsafe extern "C" fn BZ2_bzerror(b: *const c_void, errnum: *mut c_int) -> *c
     if !errnum.is_null() {
         *errnum = err;
     }
-    let msg = match BZERRORSTRINGS.get((err * -1) as usize) {
+    let msg = match BZERRORSTRINGS.get(-err as usize) {
         Some(msg) => msg,
         None => "???\0",
     };

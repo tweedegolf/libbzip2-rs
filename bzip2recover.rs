@@ -210,8 +210,7 @@ unsafe fn endsInBz2(mut name: *mut i8) -> Bool {
     (*name.offset((n - 4 as libc::c_int) as isize) as libc::c_int == '.' as i32
         && *name.offset((n - 3 as libc::c_int) as isize) as libc::c_int == 'b' as i32
         && *name.offset((n - 2 as libc::c_int) as isize) as libc::c_int == 'z' as i32
-        && *name.offset((n - 1 as libc::c_int) as isize) as libc::c_int == '2' as i32)
-        as Bool
+        && *name.offset((n - 1 as libc::c_int) as isize) as libc::c_int == '2' as i32) as Bool
 }
 unsafe fn fopen_output_safely(mut name: *mut i8, mut mode: *const libc::c_char) -> *mut FILE {
     let mut fp: *mut FILE = std::ptr::null_mut::<FILE>();
@@ -558,8 +557,9 @@ pub fn main() {
     }
     args.push(core::ptr::null_mut());
     unsafe {
-        ::std::process::exit(
-            main_0((args.len() - 1) as i32, args.as_mut_ptr() as *mut *mut i8),
-        )
+        ::std::process::exit(main_0(
+            (args.len() - 1) as i32,
+            args.as_mut_ptr() as *mut *mut i8,
+        ))
     }
 }
