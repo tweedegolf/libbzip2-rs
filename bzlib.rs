@@ -200,7 +200,7 @@ pub struct EState {
     pub rfreq: [[i32; 258]; 6],
     pub len_pack: [[u32; 4]; 258],
 }
-pub type Bool = libc::c_uchar;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DState {
