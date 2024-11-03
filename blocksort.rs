@@ -1317,7 +1317,7 @@ pub unsafe fn BZ2_blockSort(s: &mut EState) {
     assert_h!(s.origPtr != -1, 1003);
 }
 
-unsafe fn BZ2_blockSortHelp(
+fn BZ2_blockSortHelp(
     ptr: &mut [u32],
     arr2: &mut Arr2,
     ftab: &mut [u32; FTAB_LEN],
