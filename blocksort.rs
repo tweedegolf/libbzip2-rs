@@ -92,8 +92,8 @@ fn fallbackQSort3(fmap: &mut [u32], eclass: &[u32], loSt: i32, hiSt: i32) {
 
         // the `fpop` macro has one occurence, so it was inlined here
         sp -= 1;
-        lo = stackLo[sp as usize];
-        hi = stackHi[sp as usize];
+        lo = stackLo[sp];
+        hi = stackHi[sp];
 
         if hi - lo < FALLBACK_QSORT_SMALL_THRESH {
             fallbackSimpleSort(fmap, eclass, lo, hi);
@@ -579,10 +579,10 @@ fn mainGtU(
         i1 = i1.wrapping_add(1);
         i2 = i2.wrapping_add(1);
         if i1 >= nblock {
-            i1 = (i1 as libc::c_uint).wrapping_sub(nblock) as u32 as u32;
+            i1 = i1.wrapping_sub(nblock);
         }
         if i2 >= nblock {
-            i2 = (i2 as libc::c_uint).wrapping_sub(nblock) as u32 as u32;
+            i2 = i2.wrapping_sub(nblock);
         }
         k -= 8 as libc::c_int;
         *budget -= 1;
@@ -620,10 +620,10 @@ fn mainSimpleSort(
     let mut i: i32;
     let mut j: i32;
     let mut h: i32;
-    let bigN: i32;
     let mut hp: i32;
     let mut v: u32;
-    bigN = hi - lo + 1 as libc::c_int;
+
+    let bigN = hi - lo + 1 as libc::c_int;
     if bigN < 2 as libc::c_int {
         return;
     }
@@ -1322,7 +1322,7 @@ fn BZ2_blockSortHelp(
     if nblock < 10000 {
         fallbackSort(ptr, arr2, ftab, nblock as i32, verbosity);
     } else {
-        let (block, quadrant) = arr2.block_and_quadrant(nblock as usize);
+        let (block, quadrant) = arr2.block_and_quadrant(nblock);
 
         /* (wfact-1) / 3 puts the default-factor-30
            transition point at very roughly the same place as
