@@ -362,7 +362,8 @@ unsafe extern "C" fn default_bzfree(_opaque: *mut libc::c_void, addr: *mut libc:
         free(addr);
     }
 }
-unsafe fn prepare_new_block(s: &mut EState) {
+
+fn prepare_new_block(s: &mut EState) {
     s.nblock = 0;
     s.writer.num_z = 0;
     s.state_out_pos = 0;
