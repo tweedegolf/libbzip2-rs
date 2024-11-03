@@ -519,11 +519,14 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         return BZ_MEM_ERROR as c_int;
     }
 
-    (*s).strm = strm;
+    // zero out the whole struct so that all fields are initialized. Even though MIRI only errors
+    // when uninitialized memory is actually used (i.e. read), it is still UB to have a (mutable)
+    // reference to (partially) uninitialized memory.
+    core::ptr::write_bytes(s, 0, 1);
 
-    (*s).arr1 = Arr1::new();
-    (*s).arr2 = Arr2::new();
-    (*s).ftab = std::ptr::null_mut::<u32>();
+    // this `strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
+    // that a given state belongs to a given strm.
+    (*s).strm = strm;
 
     let n = 100000 * blockSize100k;
 
