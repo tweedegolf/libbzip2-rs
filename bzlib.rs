@@ -155,8 +155,7 @@ pub enum State {
 pub const BZ_N_RADIX: i32 = 2;
 pub const BZ_N_QSORT: i32 = 12;
 pub const BZ_N_SHELL: i32 = 18;
-pub const BZ_N_OVERSHOOT: i32 = BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2;
-pub const BZ_N_OVERSHOOT2: usize = (BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2) as usize;
+pub const BZ_N_OVERSHOOT: usize = (BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2) as usize;
 
 pub const FTAB_LEN: usize = u16::MAX as usize + 2;
 
@@ -167,10 +166,9 @@ pub struct EState {
     pub state: State,
     pub avail_in_expect: u32,
     pub arr1: Arr1,
-    pub arr2: *mut u32,
+    pub arr2: Arr2,
     pub ftab: *mut u32,
     pub origPtr: i32,
-    pub block: *mut u8,
     pub writer: crate::compress::EWriter,
     pub workFactor: i32,
     pub state_in_ch: u32,
@@ -229,6 +227,53 @@ impl Arr1 {
 
     pub(crate) fn ptr(&mut self) -> &mut [u32] {
         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
+    }
+}
+
+pub struct Arr2 {
+    ptr: *mut u32,
+    len: usize,
+}
+
+impl Arr2 {
+    fn new() -> Self {
+        Self {
+            ptr: core::ptr::null_mut(),
+            len: 0,
+        }
+    }
+
+    unsafe fn from_raw_parts_mut(ptr: *mut u32, len: usize) -> Self {
+        Self { ptr, len }
+    }
+
+    fn into_raw_parts(self) -> (*mut u32, usize) {
+        (self.ptr, self.len)
+    }
+
+    fn is_null(&self) -> bool {
+        self.ptr.is_null()
+    }
+
+    pub(crate) fn arr2(&mut self) -> &mut [u32] {
+        unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
+    }
+
+    pub(crate) fn block(&mut self) -> &mut [u8] {
+        unsafe { core::slice::from_raw_parts_mut(self.ptr.cast(), self.len * 4) }
+    }
+
+    pub(crate) fn block_and_quadrant(&mut self, nblock: usize) -> (&mut [u8], &mut [u16]) {
+        let len = nblock + BZ_N_OVERSHOOT;
+        // assert!(3 * len.next_multiple_of(2) <= self.len as usize);
+
+        let block = unsafe { core::slice::from_raw_parts_mut(self.ptr.cast(), len) };
+
+        let start_byte = (len).next_multiple_of(2);
+        let quadrant: *mut u16 = self.ptr.wrapping_byte_add(start_byte) as *mut u8 as *mut u16;
+        let quadrant = unsafe { core::slice::from_raw_parts_mut(quadrant, len) };
+
+        (block, quadrant)
     }
 }
 
@@ -461,21 +506,21 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     (*s).strm = strm;
 
     (*s).arr1 = Arr1::new();
-    (*s).arr2 = std::ptr::null_mut::<u32>();
+    (*s).arr2 = Arr2::new();
     (*s).ftab = std::ptr::null_mut::<u32>();
 
     let n = 100000 * blockSize100k;
 
     let arr1_len = n as usize;
-    let arr1 = bzalloc_array(*bzalloc, (*strm).opaque, n as usize).unwrap_or(core::ptr::null_mut());
+    let arr1 = bzalloc_array(*bzalloc, (*strm).opaque, arr1_len).unwrap_or(core::ptr::null_mut());
     core::ptr::write_bytes(arr1, 0, arr1_len);
     unsafe { (*s).arr1 = Arr1::from_raw_parts_mut(arr1, arr1_len) };
 
-    (*s).arr2 = (bzalloc)(
-        (*strm).opaque,
-        ((n + (2 + 12 + 18 + 2)) as u64).wrapping_mul(::core::mem::size_of::<u32>() as u64) as i32,
-        1,
-    ) as *mut u32;
+    let arr2_len = n as usize + (2 + 12 + 18 + 2);
+    let arr2 = bzalloc_array(*bzalloc, (*strm).opaque, arr2_len).unwrap_or(core::ptr::null_mut());
+    core::ptr::write_bytes(arr2, 0, arr2_len);
+    unsafe { (*s).arr2 = Arr2::from_raw_parts_mut(arr2, arr2_len) };
+
     (*s).ftab = (bzalloc)(
         (*strm).opaque,
         (FTAB_LEN * core::mem::size_of::<u32>()) as i32,
@@ -489,7 +534,9 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
             (bzfree)((*strm).opaque, ptr as *mut libc::c_void);
         }
         if !((*s).arr2).is_null() {
-            (bzfree)((*strm).opaque, (*s).arr2 as *mut libc::c_void);
+            let arr2 = core::ptr::replace(core::ptr::addr_of_mut!((*s).arr2), Arr2::new());
+            let (ptr, _len) = arr2.into_raw_parts();
+            (bzfree)((*strm).opaque, ptr as *mut libc::c_void);
         }
         if !((*s).ftab).is_null() {
             (bzfree)((*strm).opaque, (*s).ftab as *mut libc::c_void);
@@ -509,7 +556,6 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     (*s).verbosity = verbosity;
     (*s).workFactor = workFactor;
 
-    (*s).block = (*s).arr2 as *mut u8;
     (*s).writer.zbits = std::ptr::null_mut::<u8>();
 
     (*strm).state = s as *mut libc::c_void;
@@ -539,37 +585,38 @@ unsafe fn add_pair_to_block(s: &mut EState) {
         BZ_UPDATE_CRC!(s.blockCRC, ch);
     }
 
+    let block = s.arr2.block();
     s.inUse[s.state_in_ch as usize] = true;
     match s.state_in_len {
         1 => {
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
         }
         2 => {
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
         }
         3 => {
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
         }
         _ => {
             s.inUse[(s.state_in_len - 4) as usize] = true;
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
-            *(s.block).offset(s.nblock as isize) = ch;
+            block[s.nblock as usize] = ch;
             s.nblock += 1;
-            *(s.block).offset(s.nblock as isize) = (s.state_in_len - 4) as u8;
+            block[s.nblock as usize] = (s.state_in_len - 4) as u8;
             s.nblock += 1;
         }
     };
@@ -592,7 +639,7 @@ macro_rules! ADD_CHAR_TO_BLOCK {
             let ch: u8 = $zs.state_in_ch as u8;
             BZ_UPDATE_CRC!($zs.blockCRC, ch);
             $zs.inUse[$zs.state_in_ch as usize] = true;
-            *($zs.block).offset($zs.nblock as isize) = ch;
+            $zs.arr2.block()[$zs.nblock as usize] = ch;
             $zs.nblock += 1;
             $zs.nblock;
             $zs.state_in_ch = zchh;
@@ -838,7 +885,9 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
         (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
     if !(s.arr2).is_null() {
-        (bzfree)(strm.opaque, s.arr2.cast::<c_void>());
+        let arr2 = core::mem::replace(&mut s.arr2, Arr2::new());
+        let (ptr, _len) = arr2.into_raw_parts();
+        (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
     if !(s.ftab).is_null() {
         (bzfree)(strm.opaque, s.ftab.cast::<c_void>());
