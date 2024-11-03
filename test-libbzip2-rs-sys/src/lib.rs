@@ -2,6 +2,7 @@
 
 use std::{
     ffi::{c_char, c_void, CStr},
+    os::fd::{AsRawFd, IntoRawFd},
     path::{Path, PathBuf},
 };
 
@@ -820,4 +821,76 @@ fn error_messages() {
 
         assert_eq!(i, errnum);
     }
+}
+
+#[test]
+fn test_bzflush() {
+    assert_eq!(
+        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzflush(core::ptr::null_mut()) },
+        0
+    );
+}
+
+#[test]
+fn open_and_close() {
+    let p = std::env::temp_dir().join("open_and_close.bz2");
+
+    const RB: *const c_char = b"rb\0".as_ptr().cast::<c_char>();
+    const WB: *const c_char = b"wb\0".as_ptr().cast::<c_char>();
+
+    // make sure this branch is hit
+    unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(core::ptr::null_mut()) };
+
+    let open_file = || {
+        std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .truncate(true)
+            .create(true)
+            .open(&p)
+            .unwrap()
+    };
+
+    {
+        let file = open_file();
+
+        let ptr =
+            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.as_raw_fd(), core::ptr::null()) };
+        assert!(ptr.is_null());
+    }
+
+    {
+        let file = open_file();
+
+        let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.into_raw_fd(), RB) };
+        assert!(!ptr.is_null());
+        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+    }
+
+    {
+        let file = open_file();
+
+        let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.into_raw_fd(), WB) };
+        assert!(!ptr.is_null());
+        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+    }
+
+    let path_as_cstring = p.with_extension("bz2\0").display().to_string();
+
+    {
+        let path = path_as_cstring.as_ptr().cast();
+        let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzopen(path, RB) };
+        assert!(!ptr.is_null());
+        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+    }
+
+    {
+        let path = path_as_cstring.as_ptr().cast();
+        let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzopen(path, WB) };
+        assert!(!ptr.is_null());
+        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+    }
+
+    // so it does not get dropped prematurely
+    drop(path_as_cstring);
 }
