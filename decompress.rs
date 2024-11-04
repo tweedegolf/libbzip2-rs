@@ -87,7 +87,7 @@ impl GetBitsConvert for i32 {
 
 pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     let mut current_block: u64;
-    let mut uc: u8 = 0;
+    let mut uc: u8;
     let mut retVal: ReturnCode;
     let mut minLen: i32;
     let mut maxLen: i32;
@@ -855,27 +855,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                 }
                 _ => {
                     s.state = State::BZ_X_MTF_6;
-                    loop {
-                        if s.bsLive >= 1 {
-                            let v_31: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
-                            s.bsLive -= 1;
-                            zj = v_31 as i32;
-                            break;
-                        } else if strm.avail_in == 0 {
-                            retVal = ReturnCode::BZ_OK;
-                            current_block = SAVE_STATE_AND_RETURN;
-                            continue 'c_10064;
-                        } else {
-                            s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                            s.bsLive += 8;
-                            strm.next_in = (strm.next_in).offset(1);
-                            strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                            strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                            if strm.total_in_lo32 == 0 {
-                                strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                            }
-                        }
-                    }
+
+                    GET_BIT!(strm, s, zj);
+
                     zvec = zvec << 1 | zj;
                     current_block = 16348713635569416413;
                 }
