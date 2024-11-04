@@ -113,7 +113,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
     let mut gSel: i32;
     let mut gMinlen: i32;
     let mut gLimit: i32;
-    let mut gBase: *mut i32;
+    let mut gBase: i32;
     let mut gPerm: i32;
 
     if let State::BZ_X_MAGIC_1 = s.state {
@@ -140,7 +140,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
         s.save_gSel = 0;
         s.save_gMinlen = 0;
         s.save_gLimit = 0;
-        s.save_gBase = std::ptr::null_mut::<i32>();
+        s.save_gBase = 0;
         s.save_gPerm = 0;
     }
 
@@ -226,9 +226,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         gMinlen = $s.minLens[gSel as usize];
                         gLimit = gSel;
                         gPerm = gSel;
-                        gBase = (*($s.base).as_mut_ptr().offset(gSel as isize))
-                            .as_mut_ptr()
-                            .offset(0_isize) as *mut i32;
+                        gBase = gSel;
                     }
                 }
                 groupPos -= 1;
@@ -890,14 +888,12 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
                     } else if zvec <= s.limit[gLimit as usize][zn as usize] {
-                        if zvec - *gBase.offset(zn as isize) < 0
-                            || zvec - *gBase.offset(zn as isize) >= 258
-                        {
+                        if !(0..258).contains(&(zvec - s.base[gBase as usize][zn as usize])) {
                             retVal = ReturnCode::BZ_DATA_ERROR;
                             break 'save_state_and_return;
                         } else {
                             nextSym = s.perm[gPerm as usize]
-                                [(zvec - *gBase.offset(zn as isize)) as usize];
+                                [(zvec - s.base[gBase as usize][zn as usize]) as usize];
                         }
                     } else {
                         zn += 1;
@@ -911,14 +907,12 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
                     } else if zvec <= s.limit[gLimit as usize][zn as usize] {
-                        if zvec - *gBase.offset(zn as isize) < 0
-                            || zvec - *gBase.offset(zn as isize) >= 258
-                        {
+                        if !(0..258).contains(&(zvec - s.base[gBase as usize][zn as usize])) {
                             retVal = ReturnCode::BZ_DATA_ERROR;
                             break 'save_state_and_return;
                         } else {
                             nextSym = s.perm[gPerm as usize]
-                                [(zvec - *gBase.offset(zn as isize)) as usize];
+                                [(zvec - s.base[gBase as usize][zn as usize]) as usize];
                             if nextSym == 0 || nextSym == 1 {
                                 current_block = 5649595406143318745;
                             } else {
@@ -962,14 +956,12 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
                     } else if zvec <= s.limit[gLimit as usize][zn as usize] {
-                        if zvec - *gBase.offset(zn as isize) < 0
-                            || zvec - *gBase.offset(zn as isize) >= 258
-                        {
+                        if !(0..258).contains(&(zvec - s.base[gBase as usize][zn as usize])) {
                             retVal = ReturnCode::BZ_DATA_ERROR;
                             break 'save_state_and_return;
                         } else {
                             nextSym = s.perm[gPerm as usize]
-                                [(zvec - *gBase.offset(zn as isize)) as usize];
+                                [(zvec - s.base[gBase as usize][zn as usize]) as usize];
                         }
                     } else {
                         zn += 1;
