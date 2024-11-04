@@ -114,7 +114,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
     let mut gMinlen: i32;
     let mut gLimit: i32;
     let mut gBase: *mut i32;
-    let mut gPerm: *mut i32;
+    let mut gPerm: i32;
 
     if let State::BZ_X_MAGIC_1 = s.state {
         /*initialise the save area*/
@@ -141,7 +141,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
         s.save_gMinlen = 0;
         s.save_gLimit = 0;
         s.save_gBase = std::ptr::null_mut::<i32>();
-        s.save_gPerm = std::ptr::null_mut::<i32>();
+        s.save_gPerm = 0;
     }
 
     /*restore from the save area*/
@@ -225,9 +225,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         gSel = $s.selector[groupNo as usize] as i32;
                         gMinlen = $s.minLens[gSel as usize];
                         gLimit = gSel;
-                        gPerm = (*($s.perm).as_mut_ptr().offset(gSel as isize))
-                            .as_mut_ptr()
-                            .offset(0_isize) as *mut i32;
+                        gPerm = gSel;
                         gBase = (*($s.base).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
                             .offset(0_isize) as *mut i32;
@@ -898,7 +896,8 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                             retVal = ReturnCode::BZ_DATA_ERROR;
                             break 'save_state_and_return;
                         } else {
-                            nextSym = *gPerm.offset((zvec - *gBase.offset(zn as isize)) as isize);
+                            nextSym = s.perm[gPerm as usize]
+                                [(zvec - *gBase.offset(zn as isize)) as usize];
                         }
                     } else {
                         zn += 1;
@@ -918,7 +917,8 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                             retVal = ReturnCode::BZ_DATA_ERROR;
                             break 'save_state_and_return;
                         } else {
-                            nextSym = *gPerm.offset((zvec - *gBase.offset(zn as isize)) as isize);
+                            nextSym = s.perm[gPerm as usize]
+                                [(zvec - *gBase.offset(zn as isize)) as usize];
                             if nextSym == 0 || nextSym == 1 {
                                 current_block = 5649595406143318745;
                             } else {
@@ -968,7 +968,8 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                             retVal = ReturnCode::BZ_DATA_ERROR;
                             break 'save_state_and_return;
                         } else {
-                            nextSym = *gPerm.offset((zvec - *gBase.offset(zn as isize)) as isize);
+                            nextSym = s.perm[gPerm as usize]
+                                [(zvec - *gBase.offset(zn as isize)) as usize];
                         }
                     } else {
                         zn += 1;
