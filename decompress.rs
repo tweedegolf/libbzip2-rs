@@ -112,7 +112,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
     let mut zj: i32;
     let mut gSel: i32;
     let mut gMinlen: i32;
-    let mut gLimit: *mut i32;
+    let mut gLimit: i32;
     let mut gBase: *mut i32;
     let mut gPerm: *mut i32;
 
@@ -139,7 +139,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
         s.save_zj = 0;
         s.save_gSel = 0;
         s.save_gMinlen = 0;
-        s.save_gLimit = std::ptr::null_mut::<i32>();
+        s.save_gLimit = 0;
         s.save_gBase = std::ptr::null_mut::<i32>();
         s.save_gPerm = std::ptr::null_mut::<i32>();
     }
@@ -224,9 +224,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         groupPos = 50;
                         gSel = $s.selector[groupNo as usize] as i32;
                         gMinlen = $s.minLens[gSel as usize];
-                        gLimit = (*($s.limit).as_mut_ptr().offset(gSel as isize))
-                            .as_mut_ptr()
-                            .offset(0_isize) as *mut i32;
+                        gLimit = gSel;
                         gPerm = (*($s.perm).as_mut_ptr().offset(gSel as isize))
                             .as_mut_ptr()
                             .offset(0_isize) as *mut i32;
@@ -893,7 +891,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                     if zn > 20 {
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
-                    } else if zvec <= *gLimit.offset(zn as isize) {
+                    } else if zvec <= s.limit[gLimit as usize][zn as usize] {
                         if zvec - *gBase.offset(zn as isize) < 0
                             || zvec - *gBase.offset(zn as isize) >= 258
                         {
@@ -913,7 +911,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                     if zn > 20 {
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
-                    } else if zvec <= *gLimit.offset(zn as isize) {
+                    } else if zvec <= s.limit[gLimit as usize][zn as usize] {
                         if zvec - *gBase.offset(zn as isize) < 0
                             || zvec - *gBase.offset(zn as isize) >= 258
                         {
@@ -963,7 +961,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                     if zn > 20 {
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
-                    } else if zvec <= *gLimit.offset(zn as isize) {
+                    } else if zvec <= s.limit[gLimit as usize][zn as usize] {
                         if zvec - *gBase.offset(zn as isize) < 0
                             || zvec - *gBase.offset(zn as isize) >= 258
                         {

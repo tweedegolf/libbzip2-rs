@@ -388,7 +388,7 @@ pub struct DState {
     pub save_zj: i32,
     pub save_gSel: i32,
     pub save_gMinlen: i32,
-    pub save_gLimit: *mut i32,
+    pub save_gLimit: i32,
     pub save_gBase: *mut i32,
     pub save_gPerm: *mut i32,
 }
