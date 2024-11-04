@@ -60,6 +60,29 @@ fn makeMaps_d(s: &mut DState) {
         }
     }
 }
+
+trait GetBitsConvert {
+    fn convert(x: u32) -> Self;
+}
+
+impl GetBitsConvert for bool {
+    fn convert(x: u32) -> Self {
+        x != 0
+    }
+}
+
+impl GetBitsConvert for u8 {
+    fn convert(x: u32) -> Self {
+        x as u8
+    }
+}
+
+impl GetBitsConvert for i32 {
+    fn convert(x: u32) -> Self {
+        x as i32
+    }
+}
+
 pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     let mut current_block: u64;
     let mut uc: u8 = 0;
@@ -149,40 +172,56 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
     const SAVE_STATE_AND_RETURN: u64 = 3350591128142761507;
 
     'save_state_and_return: {
+        macro_rules! GET_UCHAR {
+            ($strm:expr, $s:expr, $uuu:expr) => {
+                GET_BITS!($strm, $s, $uuu, 8);
+            };
+        }
+
+        macro_rules! GET_BIT {
+            ($strm:expr, $s:expr, $uuu:expr) => {
+                GET_BITS!($strm, $s, $uuu, 1);
+            };
+        }
+
+        macro_rules! GET_BITS {
+            ($strm:expr, $s:expr, $vvv:expr, $nnn:expr) => {
+                loop {
+                    if $s.bsLive >= $nnn {
+                        let v: u32 = ($s.bsBuff >> ($s.bsLive - $nnn)) & ((1 << $nnn) - 1);
+                        $s.bsLive -= $nnn;
+                        $vvv = GetBitsConvert::convert(v);
+                        break;
+                    }
+
+                    if $strm.avail_in == 0 {
+                        retVal = ReturnCode::BZ_OK;
+                        break 'save_state_and_return;
+                    }
+
+                    $s.bsBuff = $s.bsBuff << 8 | *($strm.next_in as *mut u8) as u32;
+                    $s.bsLive += 8;
+                    $strm.next_in = $strm.next_in.wrapping_add(1);
+                    $strm.avail_in -= 1;
+                    $strm.total_in_lo32 += 1;
+                    if $strm.total_in_lo32 == 0 {
+                        $strm.total_in_hi32 += 1;
+                    }
+                }
+            };
+        }
+
         match s.state {
             State::BZ_X_MAGIC_1 => {
                 s.state = State::BZ_X_MAGIC_1;
-                loop {
-                    if s.bsLive >= 8 {
-                        let v: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                        s.bsLive -= 8;
-                        uc = v as u8;
-                        current_block = 5235537862154438448;
-                        break;
-                    } else if strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        break 'save_state_and_return;
-                    } else {
-                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                        s.bsLive += 8;
-                        strm.next_in = (strm.next_in).offset(1);
-                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                        if strm.total_in_lo32 == 0 {
-                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                        }
-                    }
-                }
-                match current_block {
-                    SAVE_STATE_AND_RETURN => {}
-                    _ => {
-                        if uc != 0x42 {
-                            retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
-                            current_block = SAVE_STATE_AND_RETURN;
-                        } else {
-                            current_block = 15360092558900836893;
-                        }
-                    }
+
+                GET_UCHAR!(strm, s, uc);
+
+                if uc != b'B' {
+                    retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
+                    break 'save_state_and_return;
+                } else {
+                    current_block = 15360092558900836893;
                 }
             }
             State::BZ_X_MAGIC_2 => {
