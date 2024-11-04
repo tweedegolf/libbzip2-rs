@@ -348,7 +348,7 @@ pub struct DState {
     pub cftabCopy: [i32; 257],
     pub tt: DSlice<u32>,
     pub ll16: DSlice<u16>,
-    pub ll4: *mut u8,
+    pub ll4: DSlice<u8>,
     pub storedBlockCRC: u32,
     pub storedCombinedCRC: u32,
     pub calculatedBlockCRC: u32,
@@ -1026,7 +1026,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     (*strm).total_out_lo32 = 0;
     (*strm).total_out_hi32 = 0;
     (*s).smallDecompress = small != 0;
-    (*s).ll4 = std::ptr::null_mut::<u8>();
+    (*s).ll4 = DSlice::new();
     (*s).ll16 = DSlice::new();
     (*s).tt = DSlice::new();
     (*s).currBlockNo = 0;
@@ -1327,7 +1327,7 @@ pub fn BZ2_indexIntoF(indx: i32, cftab: &mut [i32]) -> i32 {
 
 macro_rules! GET_LL4 {
     ($s:expr, $i:expr) => {
-        (*($s.ll4).add(($s.tPos >> 1) as usize) as u32 >> ($s.tPos << 2 & 0x4) & 0xf)
+        $s.ll4.as_slice()[($s.tPos >> 1) as usize] as u32 >> ($s.tPos << 2 & 0x4) & 0xf
     };
 }
 
@@ -1593,10 +1593,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
 
     s.tt.dealloc(bzfree, strm.opaque);
     s.ll16.dealloc(bzfree, strm.opaque);
-
-    if !(s.ll4).is_null() {
-        (bzfree)(strm.opaque, s.ll4.cast::<c_void>());
-    }
+    s.ll4.dealloc(bzfree, strm.opaque);
 
     (bzfree)(strm.opaque, strm.state.cast::<c_void>());
     strm.state = std::ptr::null_mut::<libc::c_void>();
