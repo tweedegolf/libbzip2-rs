@@ -261,8 +261,6 @@ Int32 BZ2_decompress ( DState* s )
       if (s->origPtr < 0)
          RETURN(BZ_DATA_ERROR);
       if (s->origPtr > 10 + 100000*s->blockSize100k)
-         RETURN(BZ_DATA_ERROR);
-
       /*--- Receive the mapping table ---*/
       for (i = 0; i < 16; i++) {
          GET_BIT(BZ_X_MAPPING_1, uc);
