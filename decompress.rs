@@ -2,6 +2,11 @@ use crate::bzlib::{bz_stream, BZ2_indexIntoF, DSlice, DState, ReturnCode};
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
 
+/*-- Constants for the fast MTF decoder. --*/
+
+const MTFA_SIZE: i32 = 4096;
+const MTFL_SIZE: i32 = 16;
+
 #[repr(i32)]
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
@@ -1399,19 +1404,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         current_block = 11569294379105328467;
                         continue;
                     }
-                    t = 0;
-                    while t < nGroups {
+
+                    /*--- Create the Huffman decoding tables ---*/
+                    for t in 0..nGroups {
                         minLen = 32;
                         maxLen = 0;
-                        i = 0;
-                        while i < alphaSize {
-                            if s.len[t as usize][i as usize] as libc::c_int > maxLen {
-                                maxLen = s.len[t as usize][i as usize] as i32;
-                            }
-                            if (s.len[t as usize][i as usize] as libc::c_int) < minLen {
-                                minLen = s.len[t as usize][i as usize] as i32;
-                            }
-                            i += 1;
+                        for current in &s.len[t as usize][..alphaSize as usize] {
+                            maxLen = Ord::max(maxLen, *current as i32);
+                            minLen = Ord::min(minLen, *current as i32);
                         }
                         BZ2_hbCreateDecodeTables(
                             &mut s.limit[t as usize],
@@ -1423,34 +1423,31 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                             alphaSize,
                         );
                         s.minLens[t as usize] = minLen;
-                        t += 1;
                     }
+
+                    /*--- Now the MTF values ---*/
+
                     EOB = s.nInUse + 1;
                     nblockMAX = 100000 * s.blockSize100k;
                     groupNo = -1;
                     groupPos = 0;
-                    i = 0;
-                    while i <= 255 {
-                        s.unzftab[i as usize] = 0;
-                        i += 1;
-                    }
-                    let mut ii: i32;
-                    let mut jj: i32;
+                    s.unzftab.fill(0);
+
+                    /*-- MTF init --*/
                     let mut kk: i32;
-                    kk = 4096 - 1;
-                    ii = 256 / 16 - 1;
-                    while ii >= 0 {
-                        jj = 16 - 1;
-                        while jj >= 0 {
-                            s.mtfa[kk as usize] = (ii * 16 + jj) as u8;
+                    kk = MTFA_SIZE - 1;
+                    for ii in (0..256 / MTFL_SIZE).rev() {
+                        for jj in (0..MTFL_SIZE).rev() {
+                            s.mtfa[kk as usize] = (ii * MTFL_SIZE + jj) as u8;
                             kk -= 1;
-                            jj -= 1;
                         }
                         s.mtfbase[ii as usize] = kk + 1;
-                        ii -= 1;
                     }
+                    /*-- end MTF init --*/
+
                     nblock = 0;
                     update_group_pos!(s);
+
                     zn = gMinlen;
                     current_block = 13155828021133314705;
                 }
