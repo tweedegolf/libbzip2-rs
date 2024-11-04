@@ -779,27 +779,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                 }
                 15957329598978927534 => {
                     s.state = State::BZ_X_SELECTOR_3;
-                    loop {
-                        if s.bsLive >= 1 {
-                            let v_21: u32 = s.bsBuff >> (s.bsLive - 1) & (((1) << 1) - 1);
-                            s.bsLive -= 1;
-                            uc = v_21 as u8;
-                            break;
-                        } else if strm.avail_in == 0 {
-                            retVal = ReturnCode::BZ_OK;
-                            current_block = SAVE_STATE_AND_RETURN;
-                            continue 'c_10064;
-                        } else {
-                            s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                            s.bsLive += 8;
-                            strm.next_in = (strm.next_in).offset(1);
-                            strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                            strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                            if strm.total_in_lo32 == 0 {
-                                strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                            }
-                        }
-                    }
+
+                    GET_BIT!(strm, s, uc);
+
                     if uc == 0 {
                         current_block = 10081471997089450706;
                     } else {
@@ -814,27 +796,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                 }
                 14590825336193814119 => {
                     s.state = State::BZ_X_SELECTOR_2;
-                    loop {
-                        if s.bsLive >= 15 {
-                            let v_20: u32 = s.bsBuff >> (s.bsLive - 15) & (((1) << 15) - 1);
-                            s.bsLive -= 15;
-                            nSelectors = v_20 as i32;
-                            break;
-                        } else if strm.avail_in == 0 {
-                            retVal = ReturnCode::BZ_OK;
-                            current_block = SAVE_STATE_AND_RETURN;
-                            continue 'c_10064;
-                        } else {
-                            s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                            s.bsLive += 8;
-                            strm.next_in = (strm.next_in).offset(1);
-                            strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                            strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                            if strm.total_in_lo32 == 0 {
-                                strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                            }
-                        }
-                    }
+
+                    GET_BITS!(strm, s, nSelectors, 15);
+
                     if nSelectors < 1 {
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
@@ -845,27 +809,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                 }
                 9434444550647791986 => {
                     s.state = State::BZ_X_SELECTOR_1;
-                    loop {
-                        if s.bsLive >= 3 {
-                            let v_19: u32 = s.bsBuff >> (s.bsLive - 3) & (((1) << 3) - 1);
-                            s.bsLive -= 3;
-                            nGroups = v_19 as i32;
-                            break;
-                        } else if strm.avail_in == 0 {
-                            retVal = ReturnCode::BZ_OK;
-                            current_block = SAVE_STATE_AND_RETURN;
-                            continue 'c_10064;
-                        } else {
-                            s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                            s.bsLive += 8;
-                            strm.next_in = (strm.next_in).offset(1);
-                            strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                            strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                            if strm.total_in_lo32 == 0 {
-                                strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                            }
-                        }
-                    }
+
+                    GET_BITS!(strm, s, nGroups, 3);
+
                     if !!(2..=6).contains(&nGroups) {
                         current_block = 14590825336193814119;
                         continue;
