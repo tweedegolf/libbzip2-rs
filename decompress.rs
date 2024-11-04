@@ -1,4 +1,6 @@
-use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DState, ReturnCode};
+use crate::bzlib::{
+    bz_stream, bzalloc_array, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DState, ReturnCode,
+};
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
 
@@ -383,56 +385,48 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
 
             GET_BITS!(strm, s, s.blockSize100k, 8);
 
-            if s.blockSize100k < 0x30 + 1 || s.blockSize100k > 0x30 + 9 {
+            if !(b'1' as i32..=b'9' as i32).contains(&s.blockSize100k) {
                 retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
                 break 'save_state_and_return;
             }
 
-            s.blockSize100k -= 0x30;
+            s.blockSize100k -= b'0' as i32;
+
+            let Some(bzalloc) = strm.bzalloc else {
+                retVal = ReturnCode::BZ_PARAM_ERROR;
+                break 'save_state_and_return;
+            };
+
             if s.smallDecompress {
                 let ll16_len = s.blockSize100k as usize * 100000;
-                s.ll16 = (strm.bzalloc).expect("non-null function pointer")(
-                    strm.opaque,
-                    (ll16_len as libc::c_ulong)
-                        .wrapping_mul(::core::mem::size_of::<u16>() as libc::c_ulong)
-                        as libc::c_int,
-                    1,
-                ) as *mut u16;
+                let Some(ll16) = bzalloc_array::<u16>(bzalloc, strm.opaque, ll16_len) else {
+                    retVal = ReturnCode::BZ_MEM_ERROR;
+                    break 'save_state_and_return;
+                };
 
                 let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
-                s.ll4 = (strm.bzalloc).expect("non-null function pointer")(
-                    strm.opaque,
-                    (ll4_len as libc::c_ulong)
-                        .wrapping_mul(::core::mem::size_of::<u8>() as libc::c_ulong)
-                        as libc::c_int,
-                    1,
-                ) as *mut u8;
-
-                if (s.ll16).is_null() || (s.ll4).is_null() {
+                let Some(ll4) = bzalloc_array::<u8>(bzalloc, strm.opaque, ll4_len) else {
                     retVal = ReturnCode::BZ_MEM_ERROR;
-                    current_block = SAVE_STATE_AND_RETURN;
-                } else {
-                    // NOTE: bzip2 does not initialize this memory
-                    core::ptr::write_bytes(s.ll16, 0, ll16_len);
-                    core::ptr::write_bytes(s.ll4, 0, ll4_len);
+                    break 'save_state_and_return;
+                };
 
-                    current_block = 16838365919992687769;
-                }
+                s.ll16 = ll16;
+                s.ll4 = ll4;
+
+                // NOTE: bzip2 does not initialize this memory
+                core::ptr::write_bytes(s.ll16, 0, ll16_len);
+                core::ptr::write_bytes(s.ll4, 0, ll4_len);
             } else {
-                s.tt = (strm.bzalloc).expect("non-null function pointer")(
-                    strm.opaque,
-                    ((s.blockSize100k * 100000) as libc::c_ulong)
-                        .wrapping_mul(::core::mem::size_of::<i32>() as libc::c_ulong)
-                        as libc::c_int,
-                    1,
-                ) as *mut u32;
-                if (s.tt).is_null() {
+                let tt_len = s.blockSize100k as usize * 100000;
+                let Some(tt) = bzalloc_array::<u32>(bzalloc, strm.opaque, tt_len) else {
                     retVal = ReturnCode::BZ_MEM_ERROR;
-                    current_block = SAVE_STATE_AND_RETURN;
-                } else {
-                    current_block = 16838365919992687769;
-                }
+                    break 'save_state_and_return;
+                };
+
+                s.tt = tt;
             }
+
+            current_block = 16838365919992687769;
         }
         if current_block == 16838365919992687769 {
             s.state = State::BZ_X_BLKHDR_1;
