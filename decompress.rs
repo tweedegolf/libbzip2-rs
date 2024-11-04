@@ -586,270 +586,78 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
         match current_block {
             10292318171587122742 => {
                 s.state = State::BZ_X_CCRC_1;
-                loop {
-                    if s.bsLive >= 8 {
-                        let v_37: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                        s.bsLive -= 8;
-                        uc = v_37 as u8;
-                        current_block = 5465979950226085365;
-                        break;
-                    } else if strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        current_block = SAVE_STATE_AND_RETURN;
-                        break;
-                    } else {
-                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                        s.bsLive += 8;
-                        strm.next_in = (strm.next_in).offset(1);
-                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                        if strm.total_in_lo32 == 0 {
-                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                        }
-                    }
-                }
-                match current_block {
-                    SAVE_STATE_AND_RETURN => {}
-                    _ => {
-                        s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                        current_block = 14748314904637597825;
-                    }
-                }
+
+                GET_UCHAR!(strm, s, uc);
+
+                s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
+                current_block = 14748314904637597825;
             }
             5821827988509819404 => {
                 s.state = State::BZ_X_BCRC_1;
-                loop {
-                    if s.bsLive >= 8 {
-                        let v_9: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                        s.bsLive -= 8;
-                        uc = v_9 as u8;
-                        current_block = 15627786036016112248;
-                        break;
-                    } else if strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        current_block = SAVE_STATE_AND_RETURN;
-                        break;
-                    } else {
-                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                        s.bsLive += 8;
-                        strm.next_in = (strm.next_in).offset(1);
-                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                        if strm.total_in_lo32 == 0 {
-                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                        }
-                    }
-                }
-                match current_block {
-                    SAVE_STATE_AND_RETURN => {}
-                    _ => {
-                        s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                        current_block = 5023088878038355716;
-                    }
-                }
+
+                GET_UCHAR!(strm, s, uc);
+
+                s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
+                current_block = 5023088878038355716;
             }
             _ => {}
         }
         match current_block {
             14748314904637597825 => {
                 s.state = State::BZ_X_CCRC_2;
-                loop {
-                    if s.bsLive >= 8 {
-                        let v_38: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                        s.bsLive -= 8;
-                        uc = v_38 as u8;
-                        current_block = 3854366583354019639;
-                        break;
-                    } else if strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        current_block = SAVE_STATE_AND_RETURN;
-                        break;
-                    } else {
-                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                        s.bsLive += 8;
-                        strm.next_in = (strm.next_in).offset(1);
-                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                        if strm.total_in_lo32 == 0 {
-                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                        }
-                    }
-                }
-                match current_block {
-                    SAVE_STATE_AND_RETURN => {}
-                    _ => {
-                        s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                        current_block = 4092966239614665407;
-                    }
-                }
+
+                GET_UCHAR!(strm, s, uc);
+
+                s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
+                current_block = 4092966239614665407;
             }
             5023088878038355716 => {
                 s.state = State::BZ_X_BCRC_2;
-                loop {
-                    if s.bsLive >= 8 {
-                        let v_10: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                        s.bsLive -= 8;
-                        uc = v_10 as u8;
-                        current_block = 13493279574219925475;
-                        break;
-                    } else if strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        current_block = SAVE_STATE_AND_RETURN;
-                        break;
-                    } else {
-                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                        s.bsLive += 8;
-                        strm.next_in = (strm.next_in).offset(1);
-                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                        if strm.total_in_lo32 == 0 {
-                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                        }
-                    }
-                }
-                match current_block {
-                    SAVE_STATE_AND_RETURN => {}
-                    _ => {
-                        s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                        current_block = 8515868523999336537;
-                    }
-                }
+
+                GET_UCHAR!(strm, s, uc);
+
+                s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
+                current_block = 8515868523999336537;
             }
             _ => {}
         }
         match current_block {
             4092966239614665407 => {
                 s.state = State::BZ_X_CCRC_3;
-                loop {
-                    if s.bsLive >= 8 {
-                        let v_39: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                        s.bsLive -= 8;
-                        uc = v_39 as u8;
-                        current_block = 12082794684616777938;
-                        break;
-                    } else if strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        current_block = SAVE_STATE_AND_RETURN;
-                        break;
-                    } else {
-                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                        s.bsLive += 8;
-                        strm.next_in = (strm.next_in).offset(1);
-                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                        if strm.total_in_lo32 == 0 {
-                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                        }
-                    }
-                }
-                match current_block {
-                    SAVE_STATE_AND_RETURN => {}
-                    _ => {
-                        s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                        current_block = 18389040574536762539;
-                    }
-                }
+
+                GET_UCHAR!(strm, s, uc);
+
+                s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
+                current_block = 18389040574536762539;
             }
             8515868523999336537 => {
                 s.state = State::BZ_X_BCRC_3;
-                loop {
-                    if s.bsLive >= 8 {
-                        let v_11: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                        s.bsLive -= 8;
-                        uc = v_11 as u8;
-                        current_block = 4839309778395429725;
-                        break;
-                    } else if strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        current_block = SAVE_STATE_AND_RETURN;
-                        break;
-                    } else {
-                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                        s.bsLive += 8;
-                        strm.next_in = (strm.next_in).offset(1);
-                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                        if strm.total_in_lo32 == 0 {
-                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                        }
-                    }
-                }
-                match current_block {
-                    SAVE_STATE_AND_RETURN => {}
-                    _ => {
-                        s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                        current_block = 18234918597811156654;
-                    }
-                }
+
+                GET_UCHAR!(strm, s, uc);
+
+                s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
+                current_block = 18234918597811156654;
             }
             _ => {}
         }
         match current_block {
             18234918597811156654 => {
                 s.state = State::BZ_X_BCRC_4;
-                loop {
-                    if s.bsLive >= 8 {
-                        let v_12: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                        s.bsLive -= 8;
-                        uc = v_12 as u8;
-                        current_block = 17937968408868551711;
-                        break;
-                    } else if strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        current_block = SAVE_STATE_AND_RETURN;
-                        break;
-                    } else {
-                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                        s.bsLive += 8;
-                        strm.next_in = (strm.next_in).offset(1);
-                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                        if strm.total_in_lo32 == 0 {
-                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                        }
-                    }
-                }
-                match current_block {
-                    SAVE_STATE_AND_RETURN => {}
-                    _ => {
-                        s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                        current_block = 12310871532727186508;
-                    }
-                }
+
+                GET_UCHAR!(strm, s, uc);
+
+                s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
+                current_block = 12310871532727186508;
             }
             18389040574536762539 => {
                 s.state = State::BZ_X_CCRC_4;
-                loop {
-                    if s.bsLive >= 8 {
-                        let v_40: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                        s.bsLive -= 8;
-                        uc = v_40 as u8;
-                        current_block = 6276941480907995842;
-                        break;
-                    } else if strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        current_block = SAVE_STATE_AND_RETURN;
-                        break;
-                    } else {
-                        s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                        s.bsLive += 8;
-                        strm.next_in = (strm.next_in).offset(1);
-                        strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                        strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                        if strm.total_in_lo32 == 0 {
-                            strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                        }
-                    }
-                }
-                match current_block {
-                    SAVE_STATE_AND_RETURN => {}
-                    _ => {
-                        s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                        s.state = State::BZ_X_IDLE;
-                        retVal = ReturnCode::BZ_STREAM_END;
-                        current_block = SAVE_STATE_AND_RETURN;
-                    }
-                }
+
+                GET_UCHAR!(strm, s, uc);
+
+                s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
+                s.state = State::BZ_X_IDLE;
+                retVal = ReturnCode::BZ_STREAM_END;
+                current_block = SAVE_STATE_AND_RETURN;
             }
             _ => {}
         }
