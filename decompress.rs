@@ -147,6 +147,8 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
 
     retVal = 0;
 
+    const SAVE_STATE_AND_RETURN: u64 = 3350591128142761507;
+
     'save_state_and_return: {
         match s.state {
             State::BZ_X_MAGIC_1 => {
@@ -160,8 +162,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
-                        break;
+                        break 'save_state_and_return;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
                         s.bsLive += 8;
@@ -174,11 +175,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x42 {
                             retVal = -5;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 15360092558900836893;
                         }
@@ -312,7 +313,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 if 0 == 0 {
                     BZ2_bz__AssertH__fail(4002);
                 }
-                current_block = 3350591128142761507;
+                current_block = SAVE_STATE_AND_RETURN;
             }
         }
         if current_block == 15360092558900836893 {
@@ -326,7 +327,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     break;
                 } else if strm.avail_in == 0 {
                     retVal = 0;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
                     s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -340,11 +341,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
             }
             match current_block {
-                3350591128142761507 => {}
+                SAVE_STATE_AND_RETURN => {}
                 _ => {
                     if uc != 0x5a {
                         retVal = -5;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         current_block = 15953825877604003206;
                     }
@@ -362,7 +363,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     break;
                 } else if strm.avail_in == 0 {
                     retVal = 0;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
                     s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -376,11 +377,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
             }
             match current_block {
-                3350591128142761507 => {}
+                SAVE_STATE_AND_RETURN => {}
                 _ => {
                     if uc != 0x68 {
                         retVal = -5;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         current_block = 1137006006685247392;
                     }
@@ -398,7 +399,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     break;
                 } else if strm.avail_in == 0 {
                     retVal = 0;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
                     s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -412,11 +413,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
             }
             match current_block {
-                3350591128142761507 => {}
+                SAVE_STATE_AND_RETURN => {}
                 _ => {
                     if s.blockSize100k < 0x30 + 1 || s.blockSize100k > 0x30 + 9 {
                         retVal = -5;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         s.blockSize100k -= 0x30;
                         if s.smallDecompress {
@@ -440,7 +441,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
 
                             if (s.ll16).is_null() || (s.ll4).is_null() {
                                 retVal = -3;
-                                current_block = 3350591128142761507;
+                                current_block = SAVE_STATE_AND_RETURN;
                             } else {
                                 // NOTE: bzip2 does not initialize this memory
                                 core::ptr::write_bytes(s.ll16, 0, ll16_len);
@@ -458,7 +459,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             ) as *mut u32;
                             if (s.tt).is_null() {
                                 retVal = -3;
-                                current_block = 3350591128142761507;
+                                current_block = SAVE_STATE_AND_RETURN;
                             } else {
                                 current_block = 16838365919992687769;
                             }
@@ -478,7 +479,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     break;
                 } else if strm.avail_in == 0 {
                     retVal = 0;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
                     s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -492,13 +493,13 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
             }
             match current_block {
-                3350591128142761507 => {}
+                SAVE_STATE_AND_RETURN => {}
                 _ => {
                     if uc == 0x17 {
                         current_block = 14366592556287126287;
                     } else if uc != 0x31 {
                         retVal = -4;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         current_block = 5889181040567946013;
                     }
@@ -517,7 +518,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -531,11 +532,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x72 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 7651522734817633728;
                         }
@@ -553,7 +554,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -567,11 +568,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x41 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 887841530443712878;
                         }
@@ -592,7 +593,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -606,11 +607,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x45 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 15818849443713787272;
                         }
@@ -628,7 +629,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -642,11 +643,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x59 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 17767742176799939193;
                         }
@@ -667,7 +668,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -681,11 +682,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x38 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 15153555825877660840;
                         }
@@ -703,7 +704,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -717,11 +718,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x26 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 16325921850189496668;
                         }
@@ -742,7 +743,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -756,11 +757,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x50 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 1857046018890652364;
                         }
@@ -778,7 +779,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -792,11 +793,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x53 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 3202472413399101603;
                         }
@@ -817,7 +818,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -831,11 +832,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x90 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             s.storedCombinedCRC = 0_u32;
                             current_block = 10292318171587122742;
@@ -854,7 +855,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -868,11 +869,11 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x59 {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             s.currBlockNo += 1;
                             if s.verbosity >= 2 {
@@ -898,7 +899,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -912,7 +913,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                         current_block = 14748314904637597825;
@@ -930,7 +931,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -944,7 +945,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
                         current_block = 5023088878038355716;
@@ -965,7 +966,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -979,7 +980,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                         current_block = 4092966239614665407;
@@ -997,7 +998,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1011,7 +1012,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
                         current_block = 8515868523999336537;
@@ -1032,7 +1033,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1046,7 +1047,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                         current_block = 18389040574536762539;
@@ -1064,7 +1065,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1078,7 +1079,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
                         current_block = 18234918597811156654;
@@ -1099,7 +1100,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1113,7 +1114,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
                         current_block = 12310871532727186508;
@@ -1131,7 +1132,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         break;
                     } else if strm.avail_in == 0 {
                         retVal = 0;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1145,12 +1146,12 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                 }
                 match current_block {
-                    3350591128142761507 => {}
+                    SAVE_STATE_AND_RETURN => {}
                     _ => {
                         s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                         s.state = State::BZ_X_IDLE;
                         retVal = 4;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                     }
                 }
             }
@@ -1167,7 +1168,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     break;
                 } else if strm.avail_in == 0 {
                     retVal = 0;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
                     s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1181,7 +1182,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
             }
             match current_block {
-                3350591128142761507 => {}
+                SAVE_STATE_AND_RETURN => {}
                 _ => {
                     s.origPtr = 0;
                     current_block = 3338455798814466984;
@@ -1199,7 +1200,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     break;
                 } else if strm.avail_in == 0 {
                     retVal = 0;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
                     s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1213,7 +1214,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
             }
             match current_block {
-                3350591128142761507 => {}
+                SAVE_STATE_AND_RETURN => {}
                 _ => {
                     s.origPtr = s.origPtr << 8 | uc as i32;
                     current_block = 10262367570716242252;
@@ -1231,7 +1232,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     break;
                 } else if strm.avail_in == 0 {
                     retVal = 0;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
                     s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1245,7 +1246,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
             }
             match current_block {
-                3350591128142761507 => {}
+                SAVE_STATE_AND_RETURN => {}
                 _ => {
                     s.origPtr = s.origPtr << 8 | uc as i32;
                     current_block = 17024493544560437554;
@@ -1263,7 +1264,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     break;
                 } else if strm.avail_in == 0 {
                     retVal = 0;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
                     s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1277,15 +1278,15 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
             }
             match current_block {
-                3350591128142761507 => {}
+                SAVE_STATE_AND_RETURN => {}
                 _ => {
                     s.origPtr = s.origPtr << 8 | uc as i32;
                     if s.origPtr < 0 {
                         retVal = -4;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                     } else if s.origPtr > 10 + 100000 * s.blockSize100k {
                         retVal = -4;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         i = 0;
                         current_block = 454873545234741267;
@@ -1295,7 +1296,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
         }
         'c_10064: loop {
             match current_block {
-                3350591128142761507 => {
+                SAVE_STATE_AND_RETURN => {
                     s.save_i = i;
                     break;
                 }
@@ -1309,7 +1310,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1334,7 +1335,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1360,7 +1361,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1385,7 +1386,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1411,7 +1412,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1436,7 +1437,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1466,7 +1467,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1495,7 +1496,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1521,7 +1522,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1540,7 +1541,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         j += 1;
                         if j >= nGroups {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
                             current_block = 16531797892856733396;
@@ -1557,7 +1558,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1572,7 +1573,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     }
                     if nSelectors < 1 {
                         retVal = -4;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         continue;
                     } else {
                         i = 0;
@@ -1589,7 +1590,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1607,7 +1608,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         continue;
                     }
                     retVal = -4;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     continue;
                 }
                 15451013008180677144 => {
@@ -1620,7 +1621,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1662,7 +1663,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1690,7 +1691,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             break;
                         } else if strm.avail_in == 0 {
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
                             s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -1711,14 +1712,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 16348713635569416413 => {
                     if zn > 20 {
                         retVal = -4;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         continue;
                     } else if zvec <= *gLimit.offset(zn as isize) {
                         if zvec - *gBase.offset(zn as isize) < 0
                             || zvec - *gBase.offset(zn as isize) >= 258
                         {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
                             nextSym = *gPerm.offset((zvec - *gBase.offset(zn as isize)) as isize);
@@ -1733,14 +1734,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 7923635230025172457 => {
                     if zn > 20 {
                         retVal = -4;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         continue;
                     } else if zvec <= *gLimit.offset(zn as isize) {
                         if zvec - *gBase.offset(zn as isize) < 0
                             || zvec - *gBase.offset(zn as isize) >= 258
                         {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
                             nextSym = *gPerm.offset((zvec - *gBase.offset(zn as isize)) as isize);
@@ -1754,7 +1755,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                     while es > 0 {
                                         if nblock >= nblockMAX {
                                             retVal = -4;
-                                            current_block = 3350591128142761507;
+                                            current_block = SAVE_STATE_AND_RETURN;
                                             continue 'c_10064;
                                         } else {
                                             *(s.ll16).offset(nblock as isize) = uc as u16;
@@ -1766,7 +1767,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                     while es > 0 {
                                         if nblock >= nblockMAX {
                                             retVal = -4;
-                                            current_block = 3350591128142761507;
+                                            current_block = SAVE_STATE_AND_RETURN;
                                             continue 'c_10064;
                                         } else {
                                             *(s.tt).offset(nblock as isize) = uc as u32;
@@ -1787,14 +1788,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 9186389159759284570 => {
                     if zn > 20 {
                         retVal = -4;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         continue;
                     } else if zvec <= *gLimit.offset(zn as isize) {
                         if zvec - *gBase.offset(zn as isize) < 0
                             || zvec - *gBase.offset(zn as isize) >= 258
                         {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
                             nextSym = *gPerm.offset((zvec - *gBase.offset(zn as isize)) as isize);
@@ -1818,7 +1819,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             N = 1;
                         } else if nblock >= nblockMAX {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
                             let mut ii_0: i32;
@@ -1897,7 +1898,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 groupNo += 1;
                                 if groupNo >= nSelectors {
                                     retVal = -4;
-                                    current_block = 3350591128142761507;
+                                    current_block = SAVE_STATE_AND_RETURN;
                                     continue;
                                 } else {
                                     groupPos = 50;
@@ -1932,14 +1933,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     _ => {
                         if s.origPtr < 0 || s.origPtr >= nblock {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
                             i = 0;
                             while i <= 255 {
                                 if s.unzftab[i as usize] < 0 || s.unzftab[i as usize] > nblock {
                                     retVal = -4;
-                                    current_block = 3350591128142761507;
+                                    current_block = SAVE_STATE_AND_RETURN;
                                     continue 'c_10064;
                                 } else {
                                     i += 1;
@@ -1960,7 +1961,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             while i <= 256 {
                                 if s.cftab[i as usize] < 0 || s.cftab[i as usize] > nblock {
                                     retVal = -4;
-                                    current_block = 3350591128142761507;
+                                    current_block = SAVE_STATE_AND_RETURN;
                                     continue 'c_10064;
                                 } else {
                                     i += 1;
@@ -1970,7 +1971,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             while i <= 256 {
                                 if s.cftab[(i - 1) as usize] > s.cftab[i as usize] {
                                     retVal = -4;
-                                    current_block = 3350591128142761507;
+                                    current_block = SAVE_STATE_AND_RETURN;
                                     continue 'c_10064;
                                 } else {
                                     i += 1;
@@ -2122,7 +2123,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 }
                             }
                             retVal = 0;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         }
                     }
@@ -2131,7 +2132,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
             if current_block == 5649595406143318745 {
                 if N >= 2 * 1024 * 1024 {
                     retVal = -4;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                     continue;
                 } else {
                     if nextSym == 0 {
@@ -2144,7 +2145,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         groupNo += 1;
                         if groupNo >= nSelectors {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
                             groupPos = 50;
@@ -2269,7 +2270,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             continue 'c_10064;
                         }
                         retVal = -4;
-                        current_block = 3350591128142761507;
+                        current_block = SAVE_STATE_AND_RETURN;
                         continue 'c_10064;
                     }
                 }
@@ -2283,7 +2284,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
                 12571193857528100212 => {
                     retVal = -4;
-                    current_block = 3350591128142761507;
+                    current_block = SAVE_STATE_AND_RETURN;
                 }
                 _ => {
                     if t < nGroups {
@@ -2345,7 +2346,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         groupNo += 1;
                         if groupNo >= nSelectors {
                             retVal = -4;
-                            current_block = 3350591128142761507;
+                            current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
                             groupPos = 50;

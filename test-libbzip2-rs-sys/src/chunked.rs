@@ -16,7 +16,7 @@ fn decompress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<
     strm.next_out = dest.as_mut_ptr().cast::<core::ffi::c_char>();
     strm.avail_out = dest_len;
 
-    for chunk in source.chunks(256) {
+    for chunk in source.chunks(1) {
         strm.next_in = chunk.as_ptr() as *mut core::ffi::c_char;
         strm.avail_in = chunk.len() as _;
 
