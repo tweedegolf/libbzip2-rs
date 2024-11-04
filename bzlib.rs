@@ -347,7 +347,7 @@ pub struct DState {
     pub cftab: [i32; 257],
     pub cftabCopy: [i32; 257],
     pub tt: DSlice<u32>,
-    pub ll16: *mut u16,
+    pub ll16: DSlice<u16>,
     pub ll4: *mut u8,
     pub storedBlockCRC: u32,
     pub storedCombinedCRC: u32,
@@ -406,21 +406,21 @@ impl<T> DSlice<T> {
     }
 
     pub unsafe fn alloc(bzalloc: AllocFunc, opaque: *mut libc::c_void, len: usize) -> Option<Self> {
-        let ptr = unsafe { bzalloc_array::<T>(bzalloc, opaque, len) }?;
+        let ptr = bzalloc_array::<T>(bzalloc, opaque, len)?;
+        core::ptr::write_bytes(ptr, 0, len);
         Some(Self::from_raw_parts_mut(ptr, len))
+    }
+
+    pub unsafe fn dealloc(&mut self, bzfree: FreeFunc, opaque: *mut libc::c_void) {
+        let this = core::mem::replace(self, Self::new());
+        if this.len != 0 {
+            bzfree(opaque, this.ptr.cast())
+        }
     }
 
     /// Safety: ptr must satisfy the requirements of [`core::slice::from_raw_parts_mut`].
     pub unsafe fn from_raw_parts_mut(ptr: *mut T, len: usize) -> Self {
         Self { ptr, len }
-    }
-
-    fn into_raw_parts(self) -> (*mut T, usize) {
-        (self.ptr, self.len)
-    }
-
-    fn is_empty(&self) -> bool {
-        self.len == 0
     }
 
     pub fn as_slice(&self) -> &[T] {
@@ -1027,7 +1027,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     (*strm).total_out_hi32 = 0;
     (*s).smallDecompress = small != 0;
     (*s).ll4 = std::ptr::null_mut::<u8>();
-    (*s).ll16 = std::ptr::null_mut::<u16>();
+    (*s).ll16 = DSlice::new();
     (*s).tt = DSlice::new();
     (*s).currBlockNo = 0;
     (*s).verbosity = verbosity;
@@ -1333,7 +1333,7 @@ macro_rules! GET_LL4 {
 
 macro_rules! GET_LL {
     ($s:expr, $i:expr) => {
-        *($s.ll16).add($s.tPos as usize) as u32 | GET_LL4!($s, i) << 16
+        $s.ll16.as_slice()[$s.tPos as usize] as u32 | GET_LL4!($s, i) << 16
     };
 }
 
@@ -1591,14 +1591,8 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
         return BZ_PARAM_ERROR as c_int;
     };
 
-    if !(s.tt).is_empty() {
-        let (ptr, _len) = core::mem::replace(&mut s.tt, DSlice::new()).into_raw_parts();
-        (bzfree)(strm.opaque, ptr.cast::<c_void>());
-    }
-
-    if !(s.ll16).is_null() {
-        (bzfree)(strm.opaque, s.ll16.cast::<c_void>());
-    }
+    s.tt.dealloc(bzfree, strm.opaque);
+    s.ll16.dealloc(bzfree, strm.opaque);
 
     if !(s.ll4).is_null() {
         (bzfree)(strm.opaque, s.ll4.cast::<c_void>());
