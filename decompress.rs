@@ -1,4 +1,4 @@
-use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DSlice, DState, ReturnCode};
+use crate::bzlib::{bz_stream, BZ2_indexIntoF, DSlice, DState, ReturnCode};
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
 
@@ -364,15 +364,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
             State::BZ_X_CCRC_4 => {
                 current_block = 18389040574536762539;
             }
-            _ => {
-                if 0 == 0 {
-                    BZ2_bz__AssertH__fail(4001);
-                }
-                if 0 == 0 {
-                    BZ2_bz__AssertH__fail(4002);
-                }
-                current_block = SAVE_STATE_AND_RETURN;
-            }
+            State::BZ_X_IDLE | State::BZ_X_OUTPUT => unreachable!(),
         }
         if current_block == 15360092558900836893 {
             s.state = State::BZ_X_MAGIC_2;
