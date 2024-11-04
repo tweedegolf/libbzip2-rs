@@ -389,7 +389,7 @@ pub struct DState {
     pub save_gMinlen: i32,
     pub save_gLimit: i32,
     pub save_gBase: *mut i32,
-    pub save_gPerm: *mut i32,
+    pub save_gPerm: i32,
 }
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
