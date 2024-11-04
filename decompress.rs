@@ -213,6 +213,32 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
             };
         }
 
+        macro_rules! update_group_pos {
+            ($s:expr) => {
+                if groupPos == 0 {
+                    groupNo += 1;
+                    if groupNo >= nSelectors {
+                        retVal = ReturnCode::BZ_DATA_ERROR;
+                        break 'save_state_and_return;
+                    } else {
+                        groupPos = 50;
+                        gSel = $s.selector[groupNo as usize] as i32;
+                        gMinlen = $s.minLens[gSel as usize];
+                        gLimit = (*($s.limit).as_mut_ptr().offset(gSel as isize))
+                            .as_mut_ptr()
+                            .offset(0_isize) as *mut i32;
+                        gPerm = (*($s.perm).as_mut_ptr().offset(gSel as isize))
+                            .as_mut_ptr()
+                            .offset(0_isize) as *mut i32;
+                        gBase = (*($s.base).as_mut_ptr().offset(gSel as isize))
+                            .as_mut_ptr()
+                            .offset(0_isize) as *mut i32;
+                    }
+                }
+                groupPos -= 1;
+            };
+        }
+
         match s.state {
             State::BZ_X_MAGIC_1 => {
                 s.state = State::BZ_X_MAGIC_1;
@@ -1039,30 +1065,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                 *(s.tt).offset(nblock as isize) = s.seqToUnseq[uc as usize] as u32;
                             }
                             nblock += 1;
-                            if groupPos == 0 {
-                                groupNo += 1;
-                                if groupNo >= nSelectors {
-                                    retVal = ReturnCode::BZ_DATA_ERROR;
-                                    break 'save_state_and_return;
-                                } else {
-                                    groupPos = 50;
-                                    gSel = s.selector[groupNo as usize] as i32;
-                                    gMinlen = s.minLens[gSel as usize];
-                                    gLimit = (*(s.limit).as_mut_ptr().offset(gSel as isize))
-                                        .as_mut_ptr()
-                                        .offset(0_isize)
-                                        as *mut i32;
-                                    gPerm = (*(s.perm).as_mut_ptr().offset(gSel as isize))
-                                        .as_mut_ptr()
-                                        .offset(0_isize)
-                                        as *mut i32;
-                                    gBase = (*(s.base).as_mut_ptr().offset(gSel as isize))
-                                        .as_mut_ptr()
-                                        .offset(0_isize)
-                                        as *mut i32;
-                                }
-                            }
-                            groupPos -= 1;
+                            update_group_pos!(s);
                             zn = gMinlen;
                             current_block = 9050093969003559074;
                             continue;
@@ -1288,27 +1291,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         es += (1 + 1) * N;
                     }
                     N *= 2;
-                    if groupPos == 0 {
-                        groupNo += 1;
-                        if groupNo >= nSelectors {
-                            retVal = ReturnCode::BZ_DATA_ERROR;
-                            break 'save_state_and_return;
-                        } else {
-                            groupPos = 50;
-                            gSel = s.selector[groupNo as usize] as i32;
-                            gMinlen = s.minLens[gSel as usize];
-                            gLimit = (*(s.limit).as_mut_ptr().offset(gSel as isize))
-                                .as_mut_ptr()
-                                .offset(0_isize) as *mut i32;
-                            gPerm = (*(s.perm).as_mut_ptr().offset(gSel as isize))
-                                .as_mut_ptr()
-                                .offset(0_isize) as *mut i32;
-                            gBase = (*(s.base).as_mut_ptr().offset(gSel as isize))
-                                .as_mut_ptr()
-                                .offset(0_isize) as *mut i32;
-                        }
-                    }
-                    groupPos -= 1;
+                    update_group_pos!(s);
                     zn = gMinlen;
                     current_block = 9335356017384149594;
                     continue;
@@ -1487,27 +1470,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         ii -= 1;
                     }
                     nblock = 0;
-                    if groupPos == 0 {
-                        groupNo += 1;
-                        if groupNo >= nSelectors {
-                            retVal = ReturnCode::BZ_DATA_ERROR;
-                            break 'save_state_and_return;
-                        } else {
-                            groupPos = 50;
-                            gSel = s.selector[groupNo as usize] as i32;
-                            gMinlen = s.minLens[gSel as usize];
-                            gLimit = (*(s.limit).as_mut_ptr().offset(gSel as isize))
-                                .as_mut_ptr()
-                                .offset(0_isize) as *mut i32;
-                            gPerm = (*(s.perm).as_mut_ptr().offset(gSel as isize))
-                                .as_mut_ptr()
-                                .offset(0_isize) as *mut i32;
-                            gBase = (*(s.base).as_mut_ptr().offset(gSel as isize))
-                                .as_mut_ptr()
-                                .offset(0_isize) as *mut i32;
-                        }
-                    }
-                    groupPos -= 1;
+                    update_group_pos!(s);
                     zn = gMinlen;
                     current_block = 13155828021133314705;
                 }
