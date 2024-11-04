@@ -1,6 +1,4 @@
-use crate::bzlib::{
-    bz_stream, bzalloc_array, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DSlice, DState, ReturnCode,
-};
+use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DSlice, DState, ReturnCode};
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
 
@@ -425,7 +423,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                 };
 
                 let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
-                let Some(ll4) = bzalloc_array::<u8>(bzalloc, strm.opaque, ll4_len) else {
+                let Some(ll4) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, ll4_len) }) else {
                     retVal = ReturnCode::BZ_MEM_ERROR;
                     break 'save_state_and_return;
                 };
@@ -722,6 +720,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
         // mutable because they need to be reborrowed
         let mut tt = s.tt.as_mut_slice();
         let mut ll16 = s.ll16.as_mut_slice();
+        let mut ll4 = s.ll4.as_mut_slice();
 
         'c_10064: loop {
             match current_block {
@@ -1129,15 +1128,13 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                     uc = ll16[i as usize] as u8;
                                     ll16[i as usize] = (s.cftabCopy[uc as usize] & 0xffff) as u16;
                                     if i & 0x1 == 0 {
-                                        *(s.ll4).offset((i >> 1) as isize) =
-                                            (*(s.ll4).offset((i >> 1) as isize) as libc::c_int
-                                                & 0xf0
+                                        ll4[(i >> 1) as usize] =
+                                            (ll4[(i >> 1) as usize] as libc::c_int & 0xf0
                                                 | s.cftabCopy[uc as usize] >> 16)
                                                 as u8;
                                     } else {
-                                        *(s.ll4).offset((i >> 1) as isize) =
-                                            (*(s.ll4).offset((i >> 1) as isize) as libc::c_int
-                                                & 0xf
+                                        ll4[(i >> 1) as usize] =
+                                            (ll4[(i >> 1) as usize] as libc::c_int & 0xf
                                                 | (s.cftabCopy[uc as usize] >> 16) << 4)
                                                 as u8;
                                     }
@@ -1147,27 +1144,23 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                 }
                                 i = s.origPtr;
                                 j = (ll16[i as usize] as u32
-                                    | (*(s.ll4).offset((i >> 1) as isize) as u32 >> (i << 2 & 0x4)
-                                        & 0xf)
-                                        << 16) as i32;
+                                    | (ll4[(i >> 1) as usize] as u32 >> (i << 2 & 0x4) & 0xf) << 16)
+                                    as i32;
                                 loop {
                                     let tmp_0: i32 = (ll16[j as usize] as u32
-                                        | (*(s.ll4).offset((j >> 1) as isize) as u32
-                                            >> (j << 2 & 0x4)
-                                            & 0xf)
+                                        | (ll4[(j >> 1) as usize] as u32 >> (j << 2 & 0x4) & 0xf)
                                             << 16)
                                         as i32;
                                     ll16[j as usize] = (i & 0xffff) as u16;
                                     if j & 0x1 == 0 {
-                                        *(s.ll4).offset((j >> 1) as isize) =
-                                            (*(s.ll4).offset((j >> 1) as isize) as libc::c_int
-                                                & 0xf0
-                                                | i >> 16)
-                                                as u8;
+                                        ll4[(j >> 1) as usize] = (ll4[(j >> 1) as usize]
+                                            as libc::c_int
+                                            & 0xf0
+                                            | i >> 16)
+                                            as u8;
                                     } else {
-                                        *(s.ll4).offset((j >> 1) as isize) =
-                                            (*(s.ll4).offset((j >> 1) as isize) as libc::c_int
-                                                & 0xf
+                                        ll4[(j >> 1) as usize] =
+                                            (ll4[(j >> 1) as usize] as libc::c_int & 0xf
                                                 | (i >> 16) << 4)
                                                 as u8;
                                     }
@@ -1189,7 +1182,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                     }
                                     s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
                                     s.tPos = ll16[s.tPos as usize] as u32
-                                        | (*(s.ll4).offset((s.tPos >> 1) as isize) as u32
+                                        | (ll4[(s.tPos >> 1) as usize] as u32
                                             >> (s.tPos << 2 & 0x4)
                                             & 0xf)
                                             << 16;
@@ -1211,7 +1204,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                     }
                                     s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
                                     s.tPos = ll16[s.tPos as usize] as u32
-                                        | (*(s.ll4).offset((s.tPos >> 1) as isize) as u32
+                                        | (ll4[(s.tPos >> 1) as usize] as u32
                                             >> (s.tPos << 2 & 0x4)
                                             & 0xf)
                                             << 16;
@@ -1341,6 +1334,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                             // reborrow
                             tt = s.tt.as_mut_slice();
                             ll16 = s.ll16.as_mut_slice();
+                            ll4 = s.ll4.as_mut_slice();
 
                             if s.nInUse == 0 {
                                 current_block = 12571193857528100212;
