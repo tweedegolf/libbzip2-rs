@@ -1,4 +1,4 @@
-use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DState};
+use crate::bzlib::{bz_stream, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DState, ReturnCode};
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
 
@@ -60,10 +60,10 @@ fn makeMaps_d(s: &mut DState) {
         }
     }
 }
-pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
+pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     let mut current_block: u64;
     let mut uc: u8 = 0;
-    let mut retVal: i32;
+    let mut retVal: ReturnCode;
     let mut minLen: i32;
     let mut maxLen: i32;
     let mut i: i32;
@@ -145,8 +145,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
     gBase = s.save_gBase;
     gPerm = s.save_gPerm;
 
-    retVal = 0;
-
+    retVal = ReturnCode::BZ_OK;
     const SAVE_STATE_AND_RETURN: u64 = 3350591128142761507;
 
     'save_state_and_return: {
@@ -161,7 +160,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 5235537862154438448;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         break 'save_state_and_return;
                     } else {
                         s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
@@ -178,7 +177,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x42 {
-                            retVal = -5;
+                            retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 15360092558900836893;
@@ -326,7 +325,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 2168227384378665163;
                     break;
                 } else if strm.avail_in == 0 {
-                    retVal = 0;
+                    retVal = ReturnCode::BZ_OK;
                     current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
@@ -344,7 +343,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 SAVE_STATE_AND_RETURN => {}
                 _ => {
                     if uc != 0x5a {
-                        retVal = -5;
+                        retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
                         current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         current_block = 15953825877604003206;
@@ -362,7 +361,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 178030534879405462;
                     break;
                 } else if strm.avail_in == 0 {
-                    retVal = 0;
+                    retVal = ReturnCode::BZ_OK;
                     current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
@@ -380,7 +379,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 SAVE_STATE_AND_RETURN => {}
                 _ => {
                     if uc != 0x68 {
-                        retVal = -5;
+                        retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
                         current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         current_block = 1137006006685247392;
@@ -398,7 +397,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 7639320476250304355;
                     break;
                 } else if strm.avail_in == 0 {
-                    retVal = 0;
+                    retVal = ReturnCode::BZ_OK;
                     current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
@@ -416,7 +415,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 SAVE_STATE_AND_RETURN => {}
                 _ => {
                     if s.blockSize100k < 0x30 + 1 || s.blockSize100k > 0x30 + 9 {
-                        retVal = -5;
+                        retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
                         current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         s.blockSize100k -= 0x30;
@@ -440,7 +439,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             ) as *mut u8;
 
                             if (s.ll16).is_null() || (s.ll4).is_null() {
-                                retVal = -3;
+                                retVal = ReturnCode::BZ_MEM_ERROR;
                                 current_block = SAVE_STATE_AND_RETURN;
                             } else {
                                 // NOTE: bzip2 does not initialize this memory
@@ -458,7 +457,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 1,
                             ) as *mut u32;
                             if (s.tt).is_null() {
-                                retVal = -3;
+                                retVal = ReturnCode::BZ_MEM_ERROR;
                                 current_block = SAVE_STATE_AND_RETURN;
                             } else {
                                 current_block = 16838365919992687769;
@@ -478,7 +477,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 16937825661756021828;
                     break;
                 } else if strm.avail_in == 0 {
-                    retVal = 0;
+                    retVal = ReturnCode::BZ_OK;
                     current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
@@ -498,7 +497,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     if uc == 0x17 {
                         current_block = 14366592556287126287;
                     } else if uc != 0x31 {
-                        retVal = -4;
+                        retVal = ReturnCode::BZ_DATA_ERROR;
                         current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         current_block = 5889181040567946013;
@@ -517,7 +516,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 13733404100380861831;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -535,7 +534,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x72 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 7651522734817633728;
@@ -553,7 +552,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 1228639923084383292;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -571,7 +570,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x41 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 887841530443712878;
@@ -592,7 +591,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 12721425419429475574;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -610,7 +609,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x45 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 15818849443713787272;
@@ -628,7 +627,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 9235179519944561532;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -646,7 +645,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x59 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 17767742176799939193;
@@ -667,7 +666,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 13813414375753095368;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -685,7 +684,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x38 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 15153555825877660840;
@@ -703,7 +702,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 12467039471581323981;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -721,7 +720,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x26 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 16325921850189496668;
@@ -742,7 +741,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 1472103348880861285;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -760,7 +759,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x50 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 1857046018890652364;
@@ -778,7 +777,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 13164310931121142693;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -796,7 +795,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x53 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             current_block = 3202472413399101603;
@@ -817,7 +816,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 8232347840743503282;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -835,7 +834,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x90 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             s.storedCombinedCRC = 0_u32;
@@ -854,7 +853,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 14723615986260991866;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -872,7 +871,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     SAVE_STATE_AND_RETURN => {}
                     _ => {
                         if uc != 0x59 {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                         } else {
                             s.currBlockNo += 1;
@@ -898,7 +897,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 5465979950226085365;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -930,7 +929,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 15627786036016112248;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -965,7 +964,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 3854366583354019639;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -997,7 +996,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 13493279574219925475;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -1032,7 +1031,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 12082794684616777938;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -1064,7 +1063,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 4839309778395429725;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -1099,7 +1098,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 17937968408868551711;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -1131,7 +1130,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 6276941480907995842;
                         break;
                     } else if strm.avail_in == 0 {
-                        retVal = 0;
+                        retVal = ReturnCode::BZ_OK;
                         current_block = SAVE_STATE_AND_RETURN;
                         break;
                     } else {
@@ -1150,7 +1149,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     _ => {
                         s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                         s.state = State::BZ_X_IDLE;
-                        retVal = 4;
+                        retVal = ReturnCode::BZ_STREAM_END;
                         current_block = SAVE_STATE_AND_RETURN;
                     }
                 }
@@ -1167,7 +1166,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 7926734633677835471;
                     break;
                 } else if strm.avail_in == 0 {
-                    retVal = 0;
+                    retVal = ReturnCode::BZ_OK;
                     current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
@@ -1199,7 +1198,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 5948065351908552372;
                     break;
                 } else if strm.avail_in == 0 {
-                    retVal = 0;
+                    retVal = ReturnCode::BZ_OK;
                     current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
@@ -1231,7 +1230,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 8940662058537996670;
                     break;
                 } else if strm.avail_in == 0 {
-                    retVal = 0;
+                    retVal = ReturnCode::BZ_OK;
                     current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
@@ -1263,7 +1262,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 13366002463409402866;
                     break;
                 } else if strm.avail_in == 0 {
-                    retVal = 0;
+                    retVal = ReturnCode::BZ_OK;
                     current_block = SAVE_STATE_AND_RETURN;
                     break;
                 } else {
@@ -1282,10 +1281,10 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 _ => {
                     s.origPtr = s.origPtr << 8 | uc as i32;
                     if s.origPtr < 0 {
-                        retVal = -4;
+                        retVal = ReturnCode::BZ_DATA_ERROR;
                         current_block = SAVE_STATE_AND_RETURN;
                     } else if s.origPtr > 10 + 100000 * s.blockSize100k {
-                        retVal = -4;
+                        retVal = ReturnCode::BZ_DATA_ERROR;
                         current_block = SAVE_STATE_AND_RETURN;
                     } else {
                         i = 0;
@@ -1309,7 +1308,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             zvec = v_30 as i32;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1334,7 +1333,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             zj = v_29 as i32;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1360,7 +1359,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             zvec = v_28 as i32;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1385,7 +1384,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             zj = v_27 as i32;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1411,7 +1410,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             zvec = v_26 as i32;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1436,7 +1435,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             uc = v_25 as u8;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1466,7 +1465,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             uc = v_24 as u8;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1495,7 +1494,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             curr = v_23 as i32;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1521,7 +1520,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             uc = v_21 as u8;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1540,7 +1539,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     } else {
                         j += 1;
                         if j >= nGroups {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
@@ -1557,7 +1556,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             nSelectors = v_20 as i32;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1572,7 +1571,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         }
                     }
                     if nSelectors < 1 {
-                        retVal = -4;
+                        retVal = ReturnCode::BZ_DATA_ERROR;
                         current_block = SAVE_STATE_AND_RETURN;
                         continue;
                     } else {
@@ -1589,7 +1588,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             nGroups = v_19 as i32;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1607,7 +1606,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                         current_block = 14590825336193814119;
                         continue;
                     }
-                    retVal = -4;
+                    retVal = ReturnCode::BZ_DATA_ERROR;
                     current_block = SAVE_STATE_AND_RETURN;
                     continue;
                 }
@@ -1620,7 +1619,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             uc = v_18 as u8;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1662,7 +1661,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             uc = v_17 as u8;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1690,7 +1689,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             zj = v_31 as i32;
                             break;
                         } else if strm.avail_in == 0 {
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue 'c_10064;
                         } else {
@@ -1711,14 +1710,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
             match current_block {
                 16348713635569416413 => {
                     if zn > 20 {
-                        retVal = -4;
+                        retVal = ReturnCode::BZ_DATA_ERROR;
                         current_block = SAVE_STATE_AND_RETURN;
                         continue;
                     } else if zvec <= *gLimit.offset(zn as isize) {
                         if zvec - *gBase.offset(zn as isize) < 0
                             || zvec - *gBase.offset(zn as isize) >= 258
                         {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
@@ -1733,14 +1732,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
                 7923635230025172457 => {
                     if zn > 20 {
-                        retVal = -4;
+                        retVal = ReturnCode::BZ_DATA_ERROR;
                         current_block = SAVE_STATE_AND_RETURN;
                         continue;
                     } else if zvec <= *gLimit.offset(zn as isize) {
                         if zvec - *gBase.offset(zn as isize) < 0
                             || zvec - *gBase.offset(zn as isize) >= 258
                         {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
@@ -1754,7 +1753,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 if s.smallDecompress {
                                     while es > 0 {
                                         if nblock >= nblockMAX {
-                                            retVal = -4;
+                                            retVal = ReturnCode::BZ_DATA_ERROR;
                                             current_block = SAVE_STATE_AND_RETURN;
                                             continue 'c_10064;
                                         } else {
@@ -1766,7 +1765,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                 } else {
                                     while es > 0 {
                                         if nblock >= nblockMAX {
-                                            retVal = -4;
+                                            retVal = ReturnCode::BZ_DATA_ERROR;
                                             current_block = SAVE_STATE_AND_RETURN;
                                             continue 'c_10064;
                                         } else {
@@ -1787,14 +1786,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                 }
                 9186389159759284570 => {
                     if zn > 20 {
-                        retVal = -4;
+                        retVal = ReturnCode::BZ_DATA_ERROR;
                         current_block = SAVE_STATE_AND_RETURN;
                         continue;
                     } else if zvec <= *gLimit.offset(zn as isize) {
                         if zvec - *gBase.offset(zn as isize) < 0
                             || zvec - *gBase.offset(zn as isize) >= 258
                         {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
@@ -1818,7 +1817,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             es = -1;
                             N = 1;
                         } else if nblock >= nblockMAX {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
@@ -1897,7 +1896,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             if groupPos == 0 {
                                 groupNo += 1;
                                 if groupNo >= nSelectors {
-                                    retVal = -4;
+                                    retVal = ReturnCode::BZ_DATA_ERROR;
                                     current_block = SAVE_STATE_AND_RETURN;
                                     continue;
                                 } else {
@@ -1932,14 +1931,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     5649595406143318745 => {}
                     _ => {
                         if s.origPtr < 0 || s.origPtr >= nblock {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
                             i = 0;
                             while i <= 255 {
                                 if s.unzftab[i as usize] < 0 || s.unzftab[i as usize] > nblock {
-                                    retVal = -4;
+                                    retVal = ReturnCode::BZ_DATA_ERROR;
                                     current_block = SAVE_STATE_AND_RETURN;
                                     continue 'c_10064;
                                 } else {
@@ -1960,7 +1959,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             i = 0;
                             while i <= 256 {
                                 if s.cftab[i as usize] < 0 || s.cftab[i as usize] > nblock {
-                                    retVal = -4;
+                                    retVal = ReturnCode::BZ_DATA_ERROR;
                                     current_block = SAVE_STATE_AND_RETURN;
                                     continue 'c_10064;
                                 } else {
@@ -1970,7 +1969,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             i = 1;
                             while i <= 256 {
                                 if s.cftab[(i - 1) as usize] > s.cftab[i as usize] {
-                                    retVal = -4;
+                                    retVal = ReturnCode::BZ_DATA_ERROR;
                                     current_block = SAVE_STATE_AND_RETURN;
                                     continue 'c_10064;
                                 } else {
@@ -2050,7 +2049,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                     s.rNToGo = 0;
                                     s.rTPos = 0;
                                     if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
-                                        return true as i32;
+                                        // NOTE: this originates in the BZ_GET_FAST macro, and the
+                                        // `return true` is probably uninitentional?!
+                                        return ReturnCode::BZ_RUN_OK;
                                     }
                                     s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
                                     s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
@@ -2070,7 +2071,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                     s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
                                 } else {
                                     if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
-                                        return true as i32;
+                                        // NOTE: this originates in the BZ_GET_FAST macro, and the
+                                        // `return true` is probably uninitentional?!
+                                        return ReturnCode::BZ_RUN_OK;
                                     }
                                     s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
                                     s.tPos = *(s.ll16).offset(s.tPos as isize) as u32
@@ -2097,7 +2100,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                     s.rNToGo = 0;
                                     s.rTPos = 0;
                                     if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
-                                        return true as i32;
+                                        // NOTE: this originates in the BZ_GET_FAST macro, and the
+                                        // `return true` is probably uninitentional?!
+                                        return ReturnCode::BZ_RUN_OK;
                                     }
                                     s.tPos = *(s.tt).offset(s.tPos as isize);
                                     s.k0 = (s.tPos & 0xff) as u8 as i32;
@@ -2114,7 +2119,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                     s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
                                 } else {
                                     if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
-                                        return true as i32;
+                                        // NOTE: this originates in the BZ_GET_FAST macro, and the
+                                        // `return true` is probably uninitentional?!
+                                        return ReturnCode::BZ_RUN_OK;
                                     }
                                     s.tPos = *(s.tt).offset(s.tPos as isize);
                                     s.k0 = (s.tPos & 0xff) as u8 as i32;
@@ -2122,7 +2129,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                                     s.nblock_used += 1;
                                 }
                             }
-                            retVal = 0;
+                            retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         }
@@ -2131,7 +2138,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
             }
             if current_block == 5649595406143318745 {
                 if N >= 2 * 1024 * 1024 {
-                    retVal = -4;
+                    retVal = ReturnCode::BZ_DATA_ERROR;
                     current_block = SAVE_STATE_AND_RETURN;
                     continue;
                 } else {
@@ -2144,7 +2151,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     if groupPos == 0 {
                         groupNo += 1;
                         if groupNo >= nSelectors {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {
@@ -2269,7 +2276,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                             current_block = 17216244326479313607;
                             continue 'c_10064;
                         }
-                        retVal = -4;
+                        retVal = ReturnCode::BZ_DATA_ERROR;
                         current_block = SAVE_STATE_AND_RETURN;
                         continue 'c_10064;
                     }
@@ -2283,7 +2290,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     current_block = 9434444550647791986;
                 }
                 12571193857528100212 => {
-                    retVal = -4;
+                    retVal = ReturnCode::BZ_DATA_ERROR;
                     current_block = SAVE_STATE_AND_RETURN;
                 }
                 _ => {
@@ -2345,7 +2352,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
                     if groupPos == 0 {
                         groupNo += 1;
                         if groupNo >= nSelectors {
-                            retVal = -4;
+                            retVal = ReturnCode::BZ_DATA_ERROR;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
                         } else {

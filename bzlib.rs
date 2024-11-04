@@ -117,7 +117,7 @@ impl bz_stream {
 #[repr(i32)]
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
-enum ReturnCode {
+pub enum ReturnCode {
     BZ_OK = 0,
     BZ_RUN_OK = 1,
     BZ_FLUSH_OK = 2,
@@ -127,7 +127,7 @@ enum ReturnCode {
     BZ_PARAM_ERROR = -2,
     BZ_MEM_ERROR = -3,
     BZ_DATA_ERROR = -4,
-    // BZ_DATA_ERROR_MAGIC = -5,
+    BZ_DATA_ERROR_MAGIC = -5,
     // BZ_IO_ERROR = -6,
     BZ_UNEXPECTED_EOF = -7,
     BZ_OUTBUFF_FULL = -8,
@@ -1513,8 +1513,8 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
             s.state,
             decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT
         ) {
-            let r: i32 = BZ2_decompress(strm, s);
-            if r == 4 as libc::c_int {
+            let r = BZ2_decompress(strm, s);
+            if let BZ_STREAM_END = r {
                 if s.verbosity >= 3 {
                     eprint!(
                         "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
@@ -1524,10 +1524,10 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
                 if s.calculatedCombinedCRC != s.storedCombinedCRC {
                     return BZ_DATA_ERROR as c_int;
                 }
-                return r;
+                return r as c_int;
             }
             if !matches!(s.state, decompress::State::BZ_X_OUTPUT) {
-                return r;
+                return r as c_int;
             }
         }
     }
