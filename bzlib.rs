@@ -324,7 +324,6 @@ impl Ftab {
     }
 }
 
-#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DState {
     pub strm: *mut bz_stream,
@@ -347,7 +346,7 @@ pub struct DState {
     pub nblock_used: i32,
     pub cftab: [i32; 257],
     pub cftabCopy: [i32; 257],
-    pub tt: *mut u32,
+    pub tt: DSlice<u32>,
     pub ll16: *mut u16,
     pub ll4: *mut u8,
     pub storedBlockCRC: u32,
@@ -392,6 +391,47 @@ pub struct DState {
     pub save_gBase: i32,
     pub save_gPerm: i32,
 }
+
+pub struct DSlice<T> {
+    ptr: *mut T,
+    len: usize,
+}
+
+impl<T> DSlice<T> {
+    fn new() -> Self {
+        Self {
+            ptr: dangling(),
+            len: 0,
+        }
+    }
+
+    pub unsafe fn alloc(bzalloc: AllocFunc, opaque: *mut libc::c_void, len: usize) -> Option<Self> {
+        let ptr = unsafe { bzalloc_array::<T>(bzalloc, opaque, len) }?;
+        Some(Self::from_raw_parts_mut(ptr, len))
+    }
+
+    /// Safety: ptr must satisfy the requirements of [`core::slice::from_raw_parts_mut`].
+    pub unsafe fn from_raw_parts_mut(ptr: *mut T, len: usize) -> Self {
+        Self { ptr, len }
+    }
+
+    fn into_raw_parts(self) -> (*mut T, usize) {
+        (self.ptr, self.len)
+    }
+
+    fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        unsafe { core::slice::from_raw_parts(self.ptr, self.len) }
+    }
+
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
+    }
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -988,7 +1028,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     (*s).smallDecompress = small != 0;
     (*s).ll4 = std::ptr::null_mut::<u8>();
     (*s).ll16 = std::ptr::null_mut::<u16>();
-    (*s).tt = std::ptr::null_mut::<u32>();
+    (*s).tt = DSlice::new();
     (*s).currBlockNo = 0;
     (*s).verbosity = verbosity;
 
@@ -1020,7 +1060,7 @@ macro_rules! BZ_GET_FAST {
         if $s.tPos >= 100000u32.wrapping_mul($s.blockSize100k as u32) {
             return true;
         }
-        $s.tPos = *($s.tt).offset($s.tPos as isize);
+        $s.tPos = $s.tt.as_slice()[$s.tPos as usize];
         $cccc = ($s.tPos & 0xff) as _;
         $s.tPos >>= 8;
     };
@@ -1123,7 +1163,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
         let mut c_state_out_len: i32 = s.state_out_len;
         let mut c_nblock_used: i32 = s.nblock_used;
         let mut c_k0: i32 = s.k0;
-        let c_tt: *mut u32 = s.tt;
+        let c_tt = 0usize;
         let mut c_tPos: u32 = s.tPos;
         let mut cs_next_out: *mut libc::c_char = strm.next_out;
         let mut cs_avail_out: libc::c_uint = strm.avail_out;
@@ -1139,7 +1179,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
                 if c_tPos >= 100000u32.wrapping_mul(ro_blockSize100k as u32) {
                     return true;
                 }
-                c_tPos = *c_tt.offset(c_tPos as isize);
+                c_tPos = s.tt.as_slice()[c_tt..][c_tPos as usize];
                 $cccc = (c_tPos & 0xff) as _;
                 c_tPos >>= 8;
             };
@@ -1257,7 +1297,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
         s.state_out_len = c_state_out_len;
         s.nblock_used = c_nblock_used;
         s.k0 = c_k0;
-        s.tt = c_tt;
+        // s.tt = c_tt; // as far as I can tell, this value is never actually updated
         s.tPos = c_tPos;
         strm.next_out = cs_next_out;
         strm.avail_out = cs_avail_out;
@@ -1551,8 +1591,9 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
         return BZ_PARAM_ERROR as c_int;
     };
 
-    if !(s.tt).is_null() {
-        (bzfree)(strm.opaque, s.tt.cast::<c_void>());
+    if !(s.tt).is_empty() {
+        let (ptr, _len) = core::mem::replace(&mut s.tt, DSlice::new()).into_raw_parts();
+        (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
 
     if !(s.ll16).is_null() {

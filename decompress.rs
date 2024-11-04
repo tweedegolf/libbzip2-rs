@@ -1,5 +1,5 @@
 use crate::bzlib::{
-    bz_stream, bzalloc_array, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DState, ReturnCode,
+    bz_stream, bzalloc_array, BZ2_bz__AssertH__fail, BZ2_indexIntoF, DSlice, DState, ReturnCode,
 };
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
@@ -438,7 +438,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                 core::ptr::write_bytes(s.ll4, 0, ll4_len);
             } else {
                 let tt_len = s.blockSize100k as usize * 100000;
-                let Some(tt) = bzalloc_array::<u32>(bzalloc, strm.opaque, tt_len) else {
+                let Some(tt) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, tt_len) }) else {
                     retVal = ReturnCode::BZ_MEM_ERROR;
                     break 'save_state_and_return;
                 };
@@ -722,6 +722,10 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                 current_block = 454873545234741267;
             }
         }
+
+        // mutable because they need to be reborrowed
+        let mut tt = s.tt.as_mut_slice();
+
         'c_10064: loop {
             match current_block {
                 SAVE_STATE_AND_RETURN => {
@@ -936,7 +940,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                             retVal = ReturnCode::BZ_DATA_ERROR;
                                             break 'save_state_and_return;
                                         } else {
-                                            *(s.tt).offset(nblock as isize) = uc as u32;
+                                            tt[nblock as usize] = uc as u32;
                                             nblock += 1;
                                             es -= 1;
                                         }
@@ -1053,7 +1057,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                 *(s.ll16).offset(nblock as isize) =
                                     s.seqToUnseq[uc as usize] as u16;
                             } else {
-                                *(s.tt).offset(nblock as isize) = s.seqToUnseq[uc as usize] as u32;
+                                tt[nblock as usize] = s.seqToUnseq[uc as usize] as u32;
                             }
                             nblock += 1;
                             update_group_pos!(s);
@@ -1221,15 +1225,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                             } else {
                                 i = 0;
                                 while i < nblock {
-                                    uc = (*(s.tt).offset(i as isize) & 0xff) as u8;
-                                    let fresh0 =
-                                        &mut (*(s.tt).offset(s.cftab[uc as usize] as isize));
+                                    uc = (tt[i as usize] & 0xff) as u8;
+                                    let fresh0 = &mut (tt[s.cftab[uc as usize] as usize]);
                                     *fresh0 |= (i << 8) as libc::c_uint;
                                     s.cftab[uc as usize] += 1;
                                     s.cftab[uc as usize];
                                     i += 1;
                                 }
-                                s.tPos = *(s.tt).offset(s.origPtr as isize) >> 8;
+                                s.tPos = tt[s.origPtr as usize] >> 8;
                                 s.nblock_used = 0;
                                 if s.blockRandomised {
                                     s.rNToGo = 0;
@@ -1239,7 +1242,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                         // `return true` is probably uninitentional?!
                                         return ReturnCode::BZ_RUN_OK;
                                     }
-                                    s.tPos = *(s.tt).offset(s.tPos as isize);
+                                    s.tPos = tt[s.tPos as usize];
                                     s.k0 = (s.tPos & 0xff) as u8 as i32;
                                     s.tPos >>= 8;
                                     s.nblock_used += 1;
@@ -1258,7 +1261,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                         // `return true` is probably uninitentional?!
                                         return ReturnCode::BZ_RUN_OK;
                                     }
-                                    s.tPos = *(s.tt).offset(s.tPos as isize);
+                                    s.tPos = tt[s.tPos as usize];
                                     s.k0 = (s.tPos & 0xff) as u8 as i32;
                                     s.tPos >>= 8;
                                     s.nblock_used += 1;
@@ -1339,6 +1342,10 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                             }
                         } else {
                             makeMaps_d(s);
+
+                            // reborrow
+                            tt = s.tt.as_mut_slice();
+
                             if s.nInUse == 0 {
                                 current_block = 12571193857528100212;
                                 break;
