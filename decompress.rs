@@ -90,7 +90,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
     let mut gLimit: *mut i32;
     let mut gBase: *mut i32;
     let mut gPerm: *mut i32;
+
     if let State::BZ_X_MAGIC_1 = s.state {
+        /*initialise the save area*/
         s.save_i = 0;
         s.save_j = 0;
         s.save_t = 0;
@@ -116,6 +118,8 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
         s.save_gBase = std::ptr::null_mut::<i32>();
         s.save_gPerm = std::ptr::null_mut::<i32>();
     }
+
+    /*restore from the save area*/
     i = s.save_i;
     j = s.save_j;
     t = s.save_t;
@@ -140,7 +144,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
     gLimit = s.save_gLimit;
     gBase = s.save_gBase;
     gPerm = s.save_gPerm;
+
     retVal = 0;
+
     match s.state {
         State::BZ_X_MAGIC_1 => {
             s.state = State::BZ_X_MAGIC_1;
@@ -2354,6 +2360,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
             }
         }
     }
+
     s.save_j = j;
     s.save_t = t;
     s.save_alphaSize = alphaSize;
@@ -2377,5 +2384,6 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> i32 {
     s.save_gLimit = gLimit;
     s.save_gBase = gBase;
     s.save_gPerm = gPerm;
+
     retVal
 }
