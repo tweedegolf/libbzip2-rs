@@ -220,9 +220,9 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                 if uc != b'B' {
                     retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
                     break 'save_state_and_return;
-                } else {
-                    current_block = 15360092558900836893;
                 }
+
+                current_block = 15360092558900836893;
             }
             State::BZ_X_MAGIC_2 => {
                 current_block = 15360092558900836893;
@@ -356,153 +356,81 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
         }
         if current_block == 15360092558900836893 {
             s.state = State::BZ_X_MAGIC_2;
-            loop {
-                if s.bsLive >= 8 {
-                    let v_0: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                    s.bsLive -= 8;
-                    uc = v_0 as u8;
-                    current_block = 2168227384378665163;
-                    break;
-                } else if strm.avail_in == 0 {
-                    retVal = ReturnCode::BZ_OK;
-                    current_block = SAVE_STATE_AND_RETURN;
-                    break;
-                } else {
-                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                    s.bsLive += 8;
-                    strm.next_in = (strm.next_in).offset(1);
-                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                    if strm.total_in_lo32 == 0 {
-                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                    }
-                }
+
+            GET_UCHAR!(strm, s, uc);
+
+            if uc != b'Z' {
+                retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
+                break 'save_state_and_return;
             }
-            match current_block {
-                SAVE_STATE_AND_RETURN => {}
-                _ => {
-                    if uc != 0x5a {
-                        retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
-                        break 'save_state_and_return;
-                    } else {
-                        current_block = 15953825877604003206;
-                    }
-                }
-            }
+
+            current_block = 15953825877604003206;
         }
         if current_block == 15953825877604003206 {
             s.state = State::BZ_X_MAGIC_3;
-            loop {
-                if s.bsLive >= 8 {
-                    let v_1: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                    s.bsLive -= 8;
-                    uc = v_1 as u8;
-                    current_block = 178030534879405462;
-                    break;
-                } else if strm.avail_in == 0 {
-                    retVal = ReturnCode::BZ_OK;
-                    current_block = SAVE_STATE_AND_RETURN;
-                    break;
-                } else {
-                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                    s.bsLive += 8;
-                    strm.next_in = (strm.next_in).offset(1);
-                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                    if strm.total_in_lo32 == 0 {
-                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                    }
-                }
+
+            GET_UCHAR!(strm, s, uc);
+
+            if uc != b'h' {
+                retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
+                break 'save_state_and_return;
             }
-            match current_block {
-                SAVE_STATE_AND_RETURN => {}
-                _ => {
-                    if uc != 0x68 {
-                        retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
-                        break 'save_state_and_return;
-                    } else {
-                        current_block = 1137006006685247392;
-                    }
-                }
-            }
+
+            current_block = 1137006006685247392;
         }
         if current_block == 1137006006685247392 {
             s.state = State::BZ_X_MAGIC_4;
-            loop {
-                if s.bsLive >= 8 {
-                    let v_2: u32 = s.bsBuff >> (s.bsLive - 8) & (((1) << 8) - 1);
-                    s.bsLive -= 8;
-                    s.blockSize100k = v_2 as i32;
-                    current_block = 7639320476250304355;
-                    break;
-                } else if strm.avail_in == 0 {
-                    retVal = ReturnCode::BZ_OK;
-                    current_block = SAVE_STATE_AND_RETURN;
-                    break;
-                } else {
-                    s.bsBuff = s.bsBuff << 8 | *(strm.next_in as *mut u8) as u32;
-                    s.bsLive += 8;
-                    strm.next_in = (strm.next_in).offset(1);
-                    strm.avail_in = (strm.avail_in).wrapping_sub(1);
-                    strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-                    if strm.total_in_lo32 == 0 {
-                        strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
-                    }
-                }
+
+            GET_BITS!(strm, s, s.blockSize100k, 8);
+
+            if s.blockSize100k < 0x30 + 1 || s.blockSize100k > 0x30 + 9 {
+                retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
+                break 'save_state_and_return;
             }
-            match current_block {
-                SAVE_STATE_AND_RETURN => {}
-                _ => {
-                    if s.blockSize100k < 0x30 + 1 || s.blockSize100k > 0x30 + 9 {
-                        retVal = ReturnCode::BZ_DATA_ERROR_MAGIC;
-                        break 'save_state_and_return;
-                    } else {
-                        s.blockSize100k -= 0x30;
-                        if s.smallDecompress {
-                            let ll16_len = s.blockSize100k as usize * 100000;
-                            s.ll16 = (strm.bzalloc).expect("non-null function pointer")(
-                                strm.opaque,
-                                (ll16_len as libc::c_ulong)
-                                    .wrapping_mul(::core::mem::size_of::<u16>() as libc::c_ulong)
-                                    as libc::c_int,
-                                1,
-                            ) as *mut u16;
 
-                            let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
-                            s.ll4 = (strm.bzalloc).expect("non-null function pointer")(
-                                strm.opaque,
-                                (ll4_len as libc::c_ulong)
-                                    .wrapping_mul(::core::mem::size_of::<u8>() as libc::c_ulong)
-                                    as libc::c_int,
-                                1,
-                            ) as *mut u8;
+            s.blockSize100k -= 0x30;
+            if s.smallDecompress {
+                let ll16_len = s.blockSize100k as usize * 100000;
+                s.ll16 = (strm.bzalloc).expect("non-null function pointer")(
+                    strm.opaque,
+                    (ll16_len as libc::c_ulong)
+                        .wrapping_mul(::core::mem::size_of::<u16>() as libc::c_ulong)
+                        as libc::c_int,
+                    1,
+                ) as *mut u16;
 
-                            if (s.ll16).is_null() || (s.ll4).is_null() {
-                                retVal = ReturnCode::BZ_MEM_ERROR;
-                                current_block = SAVE_STATE_AND_RETURN;
-                            } else {
-                                // NOTE: bzip2 does not initialize this memory
-                                core::ptr::write_bytes(s.ll16, 0, ll16_len);
-                                core::ptr::write_bytes(s.ll4, 0, ll4_len);
+                let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
+                s.ll4 = (strm.bzalloc).expect("non-null function pointer")(
+                    strm.opaque,
+                    (ll4_len as libc::c_ulong)
+                        .wrapping_mul(::core::mem::size_of::<u8>() as libc::c_ulong)
+                        as libc::c_int,
+                    1,
+                ) as *mut u8;
 
-                                current_block = 16838365919992687769;
-                            }
-                        } else {
-                            s.tt = (strm.bzalloc).expect("non-null function pointer")(
-                                strm.opaque,
-                                ((s.blockSize100k * 100000) as libc::c_ulong)
-                                    .wrapping_mul(::core::mem::size_of::<i32>() as libc::c_ulong)
-                                    as libc::c_int,
-                                1,
-                            ) as *mut u32;
-                            if (s.tt).is_null() {
-                                retVal = ReturnCode::BZ_MEM_ERROR;
-                                current_block = SAVE_STATE_AND_RETURN;
-                            } else {
-                                current_block = 16838365919992687769;
-                            }
-                        }
-                    }
+                if (s.ll16).is_null() || (s.ll4).is_null() {
+                    retVal = ReturnCode::BZ_MEM_ERROR;
+                    current_block = SAVE_STATE_AND_RETURN;
+                } else {
+                    // NOTE: bzip2 does not initialize this memory
+                    core::ptr::write_bytes(s.ll16, 0, ll16_len);
+                    core::ptr::write_bytes(s.ll4, 0, ll4_len);
+
+                    current_block = 16838365919992687769;
+                }
+            } else {
+                s.tt = (strm.bzalloc).expect("non-null function pointer")(
+                    strm.opaque,
+                    ((s.blockSize100k * 100000) as libc::c_ulong)
+                        .wrapping_mul(::core::mem::size_of::<i32>() as libc::c_ulong)
+                        as libc::c_int,
+                    1,
+                ) as *mut u32;
+                if (s.tt).is_null() {
+                    retVal = ReturnCode::BZ_MEM_ERROR;
+                    current_block = SAVE_STATE_AND_RETURN;
+                } else {
+                    current_block = 16838365919992687769;
                 }
             }
         }
