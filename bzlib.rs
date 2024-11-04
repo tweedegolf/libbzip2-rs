@@ -502,7 +502,7 @@ fn isempty_RL(s: &mut EState) -> bool {
     !(s.state_in_ch < 256 && s.state_in_len > 0)
 }
 
-unsafe fn bzalloc_array<T>(
+pub unsafe fn bzalloc_array<T>(
     bzalloc: AllocFunc,
     opaque: *mut libc::c_void,
     len: usize,
