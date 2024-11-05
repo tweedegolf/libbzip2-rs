@@ -14,10 +14,9 @@ use libbzip2_rs_sys::bzlib::{
 };
 
 use libc::{
-    _exit, close, exit, fchmod, fchown, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen,
-    fprintf, fread, free, fwrite, getenv, isatty, lstat, malloc, open, perror, remove, rewind,
-    signal, size_t, stat, strcat, strcmp, strcpy, strlen, strncmp, strncpy, strstr, ungetc,
-    utimbuf, utime, write, FILE,
+    _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fprintf, fread, free,
+    fwrite, getenv, isatty, malloc, open, perror, remove, rewind, signal, size_t, stat, strcat,
+    strcmp, strcpy, strlen, strncmp, strncpy, strstr, ungetc, utimbuf, write, FILE,
 };
 extern "C" {
     static mut stdin: *mut FILE;
@@ -1412,52 +1411,44 @@ unsafe extern "C" fn mySignalCatcher(_: IntNative) {
 }
 unsafe fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
     let mut msg: *const libc::c_char = std::ptr::null::<libc::c_char>();
-    if opMode == 1 as libc::c_int {
+    if opMode == 1 {
         msg = b": Caught a SIGSEGV or SIGBUS whilst compressing.\n\n   Possible causes are (most likely first):\n   (1) This computer has unreliable memory or cache hardware\n       (a surprisingly common problem; try a different machine.)\n   (2) A bug in the compiler used to create this executable\n       (unlikely, if you didn't compile bzip2 yourself.)\n   (3) A real bug in bzip2 -- I hope this should never be the case.\n   The user's manual, Section 4.3, has more info on (1) and (2).\n   \n   If you suspect this is a bug in bzip2, or are unsure about (1)\n   or (2), report it at: https://gitlab.com/bzip2/bzip2/-/issues\n   Section 4.3 of the user's manual describes the info a useful\n   bug report should have.  If the manual is available on your\n   system, please try and read it before mailing me.  If you don't\n   have the manual or can't be bothered to read it, mail me anyway.\n\n\0"
             as *const u8 as *const libc::c_char;
     } else {
         msg = b": Caught a SIGSEGV or SIGBUS whilst decompressing.\n\n   Possible causes are (most likely first):\n   (1) The compressed data is corrupted, and bzip2's usual checks\n       failed to detect this.  Try bzip2 -tvv my_file.bz2.\n   (2) This computer has unreliable memory or cache hardware\n       (a surprisingly common problem; try a different machine.)\n   (3) A bug in the compiler used to create this executable\n       (unlikely, if you didn't compile bzip2 yourself.)\n   (4) A real bug in bzip2 -- I hope this should never be the case.\n   The user's manual, Section 4.3, has more info on (2) and (3).\n   \n   If you suspect this is a bug in bzip2, or are unsure about (2)\n   or (3), report it at: https://gitlab.com/bzip2/bzip2/-/issues\n   Section 4.3 of the user's manual describes the info a useful\n   bug report should have.  If the manual is available on your\n   system, please try and read it before mailing me.  If you don't\n   have the manual or can't be bothered to read it, mail me anyway.\n\n\0"
             as *const u8 as *const libc::c_char;
     }
-    write(
-        2 as libc::c_int,
-        b"\n\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        1 as libc::c_int as size_t,
-    );
-    write(
-        2 as libc::c_int,
-        progName as *const libc::c_void,
-        strlen(progName),
-    );
-    write(2 as libc::c_int, msg as *const libc::c_void, strlen(msg));
+    write(2, b"\n" as *const u8 as *const libc::c_void, 1);
+    write(2, progName as *const libc::c_void, strlen(progName) as _);
+    write(2, msg as *const libc::c_void, strlen(msg) as _);
     msg = b"\tInput file = \0" as *const u8 as *const libc::c_char;
-    write(2 as libc::c_int, msg as *const libc::c_void, strlen(msg));
     write(
         2 as libc::c_int,
-        inName.as_mut_ptr() as *const libc::c_void,
-        strlen(inName.as_mut_ptr()),
+        msg as *const libc::c_void,
+        strlen(msg) as _,
     );
     write(
-        2 as libc::c_int,
+        2,
+        inName.as_mut_ptr() as *const libc::c_void,
+        strlen(inName.as_mut_ptr()) as _,
+    );
+    write(
+        2,
         b"\n\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        1 as libc::c_int as size_t,
+        1,
     );
     msg = b"\tOutput file = \0" as *const u8 as *const libc::c_char;
-    write(2 as libc::c_int, msg as *const libc::c_void, strlen(msg));
+    write(2, msg as *const libc::c_void, strlen(msg) as _);
     write(
-        2 as libc::c_int,
+        2,
         outName.as_mut_ptr() as *const libc::c_void,
-        strlen(outName.as_mut_ptr()),
+        strlen(outName.as_mut_ptr()) as _,
     );
-    write(
-        2 as libc::c_int,
-        b"\n\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        1 as libc::c_int as size_t,
-    );
-    if opMode == 1 as libc::c_int {
-        setExit(3 as libc::c_int);
+    write(2, b"\n" as *const u8 as *const libc::c_void, 1);
+    if opMode == 1 {
+        setExit(3);
     } else {
-        setExit(2 as libc::c_int);
+        setExit(2);
     }
     _exit(exitValue);
 }
@@ -1534,10 +1525,11 @@ unsafe fn fopen_output_safely(mut name: *mut c_char, mut mode: *const libc::c_ch
     }
     fp
 }
+#[cfg(unix)]
 unsafe fn notAStandardFile(mut name: *mut c_char) -> Bool {
     let mut i: IntNative = 0;
     let mut statBuf: stat = zeroed();
-    i = lstat(name, &mut statBuf);
+    i = libc::lstat(name, &mut statBuf);
     if i != 0 as libc::c_int {
         return 1 as Bool;
     }
@@ -1546,14 +1538,34 @@ unsafe fn notAStandardFile(mut name: *mut c_char) -> Bool {
     }
     1 as Bool
 }
+#[cfg(not(unix))]
+unsafe fn notAStandardFile(mut name: *mut c_char) -> Bool {
+    let Ok(name) = std::ffi::CStr::from_ptr(name).to_str() else {
+        return 1;
+    };
+    let Ok(metadata) = std::path::Path::new(name).symlink_metadata() else {
+        return 1;
+    };
+
+    if metadata.file_type().is_file() {
+        0
+    } else {
+        1
+    }
+}
+#[cfg(unix)]
 unsafe fn countHardLinks(mut name: *mut c_char) -> i32 {
     let mut i: IntNative = 0;
     let mut statBuf: stat = zeroed();
-    i = lstat(name, &mut statBuf);
+    i = libc::lstat(name, &mut statBuf);
     if i != 0 as libc::c_int {
         return 0 as libc::c_int;
     }
     (statBuf.st_nlink).wrapping_sub(1) as i32
+}
+#[cfg(not(unix))]
+unsafe fn countHardLinks(mut name: *mut c_char) -> i32 {
+    0 // FIXME
 }
 static mut fileMetaInfo: stat = unsafe { zeroed() };
 unsafe fn saveInputFileMetaInfo(mut srcName: *mut c_char) {
@@ -1563,6 +1575,7 @@ unsafe fn saveInputFileMetaInfo(mut srcName: *mut c_char) {
         ioError();
     }
 }
+#[cfg(unix)]
 unsafe fn applySavedTimeInfoToOutputFile(mut dstName: *mut c_char) {
     let mut retVal: IntNative = 0;
     let mut uTimBuf: utimbuf = utimbuf {
@@ -1571,19 +1584,24 @@ unsafe fn applySavedTimeInfoToOutputFile(mut dstName: *mut c_char) {
     };
     uTimBuf.actime = fileMetaInfo.st_atime;
     uTimBuf.modtime = fileMetaInfo.st_mtime;
-    retVal = utime(dstName, &uTimBuf);
+    retVal = libc::utime(dstName, &uTimBuf);
     if retVal != 0 as libc::c_int {
         ioError();
     }
 }
+#[cfg(not(unix))]
+unsafe fn applySavedTimeInfoToOutputFile(_dstName: *mut c_char) {}
+#[cfg(unix)]
 unsafe fn applySavedFileAttrToOutputFile(mut fd: IntNative) {
     let mut retVal: IntNative = 0;
-    retVal = fchmod(fd, fileMetaInfo.st_mode);
+    retVal = libc::fchmod(fd, fileMetaInfo.st_mode);
     if retVal != 0 as libc::c_int {
         ioError();
     }
-    fchown(fd, fileMetaInfo.st_uid, fileMetaInfo.st_gid);
+    libc::fchown(fd, fileMetaInfo.st_uid, fileMetaInfo.st_gid);
 }
+#[cfg(not(unix))]
+unsafe fn applySavedFileAttrToOutputFile(_fd: IntNative) {}
 unsafe fn containsDubiousChars(_: *mut c_char) -> Bool {
     0
 }
