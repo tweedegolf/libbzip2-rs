@@ -2100,35 +2100,26 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
 #[export_name = prefix!(BZ2_bzReadClose)]
 pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut libc::c_int, b: *mut libc::c_void) {
     let bzf: *mut bzFile = b as *mut bzFile;
-    if !bzerror.is_null() {
-        *bzerror = 0 as libc::c_int;
-    }
-    if !bzf.is_null() {
-        (*bzf).lastErr = 0 as libc::c_int;
-    }
-    if bzf.is_null() {
-        if !bzerror.is_null() {
-            *bzerror = 0 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = 0 as libc::c_int;
-        }
+
+    BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
+
+    let Some(bzf) = bzf.as_mut() else {
+        BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
+        return;
+    };
+
+    if bzf.writing {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_SEQUENCE_ERROR);
         return;
     }
-    if (*bzf).writing {
-        if !bzerror.is_null() {
-            *bzerror = -1 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -1 as libc::c_int;
-        }
-        return;
+
+    if bzf.initialisedOk {
+        BZ2_bzDecompressEnd(&mut bzf.strm);
     }
-    if (*bzf).initialisedOk {
-        BZ2_bzDecompressEnd(&mut (*bzf).strm);
-    }
-    free(bzf as *mut libc::c_void);
+
+    free(bzf as *mut bzFile as *mut libc::c_void);
 }
+
 #[export_name = prefix!(BZ2_bzRead)]
 pub unsafe extern "C" fn BZ2_bzRead(
     bzerror: *mut libc::c_int,
