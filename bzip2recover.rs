@@ -8,8 +8,8 @@
 use libc::{fprintf, FILE};
 
 use libc::{
-    __errno_location, close, exit, fclose, fdopen, fflush, fopen, free, malloc, open, perror,
-    sprintf, strcat, strcpy, strlen, strncpy, strrchr,
+    close, exit, fclose, fdopen, fflush, fopen, free, malloc, open, perror, sprintf, strcat,
+    strcpy, strlen, strncpy, strrchr,
 };
 
 extern "C" {
@@ -17,10 +17,6 @@ extern "C" {
     fn getc(__stream: *mut FILE) -> libc::c_int;
     fn putc(__c: libc::c_int, __stream: *mut FILE) -> libc::c_int;
 }
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
-pub type size_t = libc::c_ulong;
-pub type _IO_lock_t = ();
 pub type MaybeUInt64 = libc::c_ulonglong;
 pub type Bool = libc::c_uchar;
 #[derive(Copy, Clone)]
@@ -146,9 +142,7 @@ unsafe fn bsGetBit(mut bs: *mut BitStream) -> i32 {
     } else {
         let mut retVal: i32 = getc((*bs).handle);
         if retVal == -1 as libc::c_int {
-            if *__errno_location() != 0 as libc::c_int {
-                readError();
-            }
+            readError();
             return 2 as libc::c_int;
         }
         (*bs).buffLive = 7 as libc::c_int;
