@@ -411,7 +411,6 @@ fn sendMTFValues(s: &mut EState) {
             }
             totc += bc;
             fave[bt as usize] += 1;
-            fave[bt as usize];
             s.selector[nSelectors] = bt as u8;
             nSelectors += 1;
 
@@ -467,7 +466,10 @@ fn sendMTFValues(s: &mut EState) {
     }
 
     assert_h!(nGroups < 8, 3002);
-    assert_h!(nSelectors < 32768 && nSelectors <= BZ_MAX_SELECTORS, 3003);
+    #[allow(clippy::redundant_comparisons)] // The C code does the same
+    {
+        assert_h!(nSelectors < 32768 && nSelectors <= BZ_MAX_SELECTORS, 3003);
+    }
 
     /*--- Compute MTF values for the selectors. ---*/
     {
