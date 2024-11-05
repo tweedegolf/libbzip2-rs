@@ -829,11 +829,127 @@ fn decompress_end_edge_cases() {
 }
 
 #[test]
+fn compress_init_edge_cases() {
+    use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR};
+
+    let blockSize100k = 9;
+    let verbosity = 0;
+    let workFactor = 30;
+
+    // valid input
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        BZ2_bzCompressEnd(strm.as_mut_ptr())
+    });
+
+    // strm is NULL
+    crate::assert_eq_rs_c!({
+        assert_eq!(
+            BZ_PARAM_ERROR,
+            BZ2_bzCompressInit(core::ptr::null_mut(), blockSize100k, verbosity, workFactor)
+        );
+    });
+
+    // blockSize100k is out of range
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_PARAM_ERROR,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), 123, verbosity, workFactor)
+        );
+    });
+
+    // interestingly, an out-of-range verbosity is OK
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, 123, workFactor)
+        );
+        BZ2_bzCompressEnd(strm.as_mut_ptr())
+    });
+
+    // workFactor
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_PARAM_ERROR,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, 251)
+        );
+    });
+
+    // workFactor of 0 picks the default work factor
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, 0)
+        );
+        BZ2_bzCompressEnd(strm.as_mut_ptr())
+    });
+
+    type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
+
+    // allocation failures
+    crate::assert_eq_rs_c!({
+        use core::sync::atomic::{AtomicUsize, Ordering};
+
+        let mut strm: MaybeUninit<bz_stream> = MaybeUninit::zeroed();
+        BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor);
+        let bzalloc: *mut c_void = core::ptr::addr_of_mut!((*strm.as_mut_ptr()).bzalloc)
+            .cast::<*mut c_void>()
+            .read();
+        BZ2_bzCompressEnd(strm.as_mut_ptr());
+
+        static TOTAL_BUDGET: AtomicUsize = AtomicUsize::new(0);
+        static BUDGET: AtomicUsize = AtomicUsize::new(0);
+
+        unsafe extern "C" fn failing_allocator(
+            opaque: *mut c_void,
+            items: i32,
+            size: i32,
+        ) -> *mut c_void {
+            let extra = (items * size) as usize;
+
+            if extra <= BUDGET.load(Ordering::Relaxed) {
+                BUDGET.fetch_sub(extra, Ordering::Relaxed);
+
+                let bzalloc: AllocFunc = core::mem::transmute(opaque);
+                (bzalloc)(core::ptr::null_mut(), items, size)
+            } else {
+                let total = TOTAL_BUDGET.fetch_add(extra, Ordering::Relaxed);
+                BUDGET.store(total + extra, Ordering::Relaxed);
+                core::ptr::null_mut()
+            }
+        }
+
+        for _ in 0..4 {
+            let mut strm: MaybeUninit<bz_stream> = MaybeUninit::zeroed();
+
+            core::ptr::addr_of_mut!((*strm.as_mut_ptr()).bzalloc)
+                .cast::<AllocFunc>()
+                .write(failing_allocator);
+
+            core::ptr::addr_of_mut!((*strm.as_mut_ptr()).opaque).write(bzalloc);
+
+            assert_eq!(
+                BZ_MEM_ERROR,
+                BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+            );
+        }
+    });
+}
+
+#[test]
 fn compress_end_edge_cases() {
     use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR};
 
-    let verbosity = 0;
     let blockSize100k = 9;
+    let verbosity = 0;
     let workFactor = 30;
 
     // strm is NULL
