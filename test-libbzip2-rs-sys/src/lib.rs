@@ -761,17 +761,17 @@ fn decompress_edge_cases() {
         BZ2_bzDecompressEnd(strm)
     });
 
+    let input: &[u8] = &[
+        66u8, 90, 104, 57, 49, 65, 89, 38, 83, 89, 164, 38, 196, 174, 0, 0, 5, 17, 128, 64, 0, 36,
+        167, 204, 0, 32, 0, 49, 3, 64, 208, 34, 105, 128, 122, 141, 161, 22, 187, 73, 99, 176, 39,
+        11, 185, 34, 156, 40, 72, 82, 19, 98, 87, 0,
+    ];
+
     // coverage of the log branches
     crate::assert_eq_rs_c!({
         let mut strm = MaybeUninit::zeroed();
         assert_eq!(BZ_OK, BZ2_bzDecompressInit(strm.as_mut_ptr(), 4, 0));
         let strm = strm.assume_init_mut();
-
-        let input: &[u8] = &[
-            66u8, 90, 104, 57, 49, 65, 89, 38, 83, 89, 164, 38, 196, 174, 0, 0, 5, 17, 128, 64, 0,
-            36, 167, 204, 0, 32, 0, 49, 3, 64, 208, 34, 105, 128, 122, 141, 161, 22, 187, 73, 99,
-            176, 39, 11, 185, 34, 156, 40, 72, 82, 19, 98, 87, 0,
-        ];
 
         let mut output = [0u8; 64];
 
@@ -782,6 +782,42 @@ fn decompress_edge_cases() {
         strm.next_out = output.as_mut_ptr().cast();
 
         assert_eq!(BZ_STREAM_END, BZ2_bzDecompress(strm));
+
+        BZ2_bzDecompressEnd(strm)
+    });
+
+    // next_in is NULL
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(BZ_OK, BZ2_bzDecompressInit(strm.as_mut_ptr(), 4, 0));
+        let strm = strm.assume_init_mut();
+
+        let mut output = [0u8; 64];
+
+        strm.avail_in = 0;
+        strm.next_in = core::ptr::null_mut();
+
+        strm.avail_out = output.len() as _;
+        strm.next_out = output.as_mut_ptr().cast();
+
+        assert_eq!(BZ_OK, BZ2_bzDecompress(strm));
+
+        BZ2_bzDecompressEnd(strm)
+    });
+
+    // next_out is NULL
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(BZ_OK, BZ2_bzDecompressInit(strm.as_mut_ptr(), 4, 0));
+        let strm = strm.assume_init_mut();
+
+        strm.avail_in = input.len() as _;
+        strm.next_in = input.as_ptr().cast_mut().cast();
+
+        strm.avail_out = 0;
+        strm.next_out = core::ptr::null_mut();
+
+        assert_eq!(BZ_OK, BZ2_bzDecompress(strm));
 
         BZ2_bzDecompressEnd(strm)
     });
@@ -941,6 +977,227 @@ fn compress_init_edge_cases() {
                 BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
             );
         }
+    });
+}
+
+#[test]
+fn compress_edge_cases() {
+    use bzip2_sys::{
+        BZ_FINISH, BZ_FINISH_OK, BZ_FLUSH, BZ_FLUSH_OK, BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR,
+        BZ_RUN, BZ_RUN_OK, BZ_SEQUENCE_ERROR, BZ_STREAM_END,
+    };
+
+    let blockSize100k = 9;
+    let verbosity = 0;
+    let workFactor = 30;
+
+    // strm is NULL
+    crate::assert_eq_rs_c!({
+        assert_eq!(
+            BZ_PARAM_ERROR,
+            BZ2_bzCompress(core::ptr::null_mut(), BZ_FINISH)
+        );
+    });
+
+    // state is NULL
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let mut state = core::ptr::null_mut();
+        core::mem::swap(&mut strm.state, &mut state);
+        assert_eq!(BZ_PARAM_ERROR, BZ2_bzCompress(strm, 2));
+        core::mem::swap(&mut strm.state, &mut state);
+
+        BZ2_bzCompressEnd(strm)
+    });
+
+    // action out of bounds
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, 4, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let input: &[u8] = b"lang is it ompaad";
+
+        let mut output = [0u8; 64];
+
+        strm.avail_in = input.len() as _;
+        strm.next_in = input.as_ptr().cast_mut().cast();
+
+        strm.avail_out = output.len() as _;
+        strm.next_out = output.as_mut_ptr().cast();
+
+        assert_eq!(BZ_PARAM_ERROR, BZ2_bzCompress(strm, 42));
+
+        BZ2_bzCompressEnd(strm);
+
+        output
+    });
+
+    // coverage of the log branches
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, 4, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let input: &[u8] = b"lang is it ompaad";
+
+        let mut output = [0u8; 64];
+
+        strm.avail_in = input.len() as _;
+        strm.next_in = input.as_ptr().cast_mut().cast();
+
+        strm.avail_out = output.len() as _;
+        strm.next_out = output.as_mut_ptr().cast();
+
+        assert_eq!(BZ_STREAM_END, BZ2_bzCompress(strm, 2));
+
+        BZ2_bzCompressEnd(strm);
+
+        output
+    });
+
+    let mut output = [0u8; 64];
+
+    // avail_in is NULL
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        strm.avail_in = 0;
+        strm.next_in = core::ptr::null_mut();
+
+        strm.avail_out = output.len() as _;
+        strm.next_out = output.as_mut_ptr().cast();
+
+        assert_eq!(BZ_STREAM_END, BZ2_bzCompress(strm, 2));
+
+        BZ2_bzCompressEnd(strm);
+
+        output
+    });
+
+    // avail_out is NULL
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let input: &[u8] = b"lang is it ompaad";
+
+        strm.avail_in = input.len() as _;
+        strm.next_in = input.as_ptr().cast_mut().cast();
+
+        strm.avail_out = 0;
+        strm.next_out = core::ptr::null_mut();
+
+        assert_eq!(BZ_FINISH_OK, BZ2_bzCompress(strm, 2));
+
+        BZ2_bzCompressEnd(strm);
+    });
+
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let input: &[u8] = b"lang is it ompaad";
+
+        strm.avail_in = 0;
+        strm.next_in = input.as_ptr().cast_mut().cast();
+
+        strm.avail_out = 0;
+        strm.next_out = output.as_mut_ptr().cast();
+
+        assert_eq!(BZ_SEQUENCE_ERROR, BZ2_bzCompress(strm, BZ_FINISH));
+
+        BZ2_bzCompressEnd(strm);
+
+        output
+    });
+}
+
+#[test]
+fn compress_action_edge_cases() {
+    use bzip2_sys::{
+        BZ_FINISH, BZ_FINISH_OK, BZ_FLUSH, BZ_FLUSH_OK, BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR,
+        BZ_RUN, BZ_RUN_OK, BZ_SEQUENCE_ERROR, BZ_STREAM_END,
+    };
+
+    let mut output = [0u8; 64];
+
+    let blockSize100k = 9;
+    let verbosity = 0;
+    let workFactor = 30;
+
+    // flush action
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let input: &[u8] = b"lang is it ompaad";
+
+        strm.avail_in = input.len() as _;
+        strm.next_in = input.as_ptr().cast_mut().cast();
+
+        strm.avail_out = 0;
+        strm.next_out = core::ptr::null_mut();
+
+        strm.next_out = output.as_mut_ptr().cast();
+
+        strm.avail_out = 4;
+        assert_eq!(BZ_RUN_OK, BZ2_bzCompress(strm, BZ_RUN));
+
+        // do some (but not all) flushing
+        strm.avail_out = 4;
+        assert_eq!(BZ_FLUSH_OK, BZ2_bzCompress(strm, BZ_FLUSH));
+
+        // now performing a non-flush action errors
+        assert_eq!(BZ_SEQUENCE_ERROR, BZ2_bzCompress(strm, BZ_RUN));
+
+        // also messing with the `avail_in` causes an error
+        strm.avail_in += 1;
+        assert_eq!(BZ_SEQUENCE_ERROR, BZ2_bzCompress(strm, BZ_FLUSH));
+        strm.avail_in -= 1;
+
+        // flush the remainder
+        strm.avail_out = 64 - 4 - 4;
+        assert_eq!(BZ_RUN_OK, BZ2_bzCompress(strm, BZ_FLUSH));
+
+        // process the remainder of the input, write it all to the output
+        assert_eq!(BZ_STREAM_END, BZ2_bzCompress(strm, BZ_FINISH));
+
+        // hits the idle SEQUENCE_ERROR case
+        assert_eq!(BZ_SEQUENCE_ERROR, BZ2_bzCompress(strm, BZ_RUN));
+
+        BZ2_bzCompressEnd(strm);
+
+        output
     });
 }
 
