@@ -1017,16 +1017,13 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                     pp -= 1;
                                 }
                                 s.mtfbase[lno as usize] += 1;
-                                s.mtfbase[lno as usize];
                                 while lno > 0 {
                                     s.mtfbase[lno as usize] -= 1;
-                                    s.mtfbase[lno as usize];
                                     s.mtfa[s.mtfbase[lno as usize] as usize] =
                                         s.mtfa[(s.mtfbase[(lno - 1) as usize] + 16 - 1) as usize];
                                     lno -= 1;
                                 }
                                 s.mtfbase[0_usize] -= 1;
-                                s.mtfbase[0_usize];
                                 s.mtfa[s.mtfbase[0_usize] as usize] = uc;
                                 if s.mtfbase[0_usize] == 0 {
                                     kk_0 = 4096 - 1;
@@ -1045,7 +1042,6 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                 }
                             }
                             s.unzftab[s.seqToUnseq[uc as usize] as usize] += 1;
-                            s.unzftab[s.seqToUnseq[uc as usize] as usize];
                             if s.smallDecompress {
                                 ll16[nblock as usize] = s.seqToUnseq[uc as usize] as u16;
                             } else {
@@ -1136,7 +1132,6 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                                 as u8;
                                     }
                                     s.cftabCopy[uc as usize] += 1;
-                                    s.cftabCopy[uc as usize];
                                     i += 1;
                                 }
                                 i = s.origPtr;
@@ -1214,7 +1209,6 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                                     let fresh0 = &mut (tt[s.cftab[uc as usize] as usize]);
                                     *fresh0 |= (i << 8) as libc::c_uint;
                                     s.cftab[uc as usize] += 1;
-                                    s.cftab[uc as usize];
                                     i += 1;
                                 }
                                 s.tPos = tt[s.origPtr as usize] >> 8;
