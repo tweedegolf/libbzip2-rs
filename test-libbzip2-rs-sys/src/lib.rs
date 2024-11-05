@@ -1,7 +1,8 @@
 #![allow(dead_code, unused_imports, unused_macros, non_snake_case)]
 
 use std::{
-    ffi::{c_char, c_void, CStr},
+    ffi::{c_char, c_int, c_void, CStr},
+    mem::MaybeUninit,
     os::fd::{AsRawFd, IntoRawFd},
     path::{Path, PathBuf},
 };
@@ -11,7 +12,6 @@ mod chunked;
 const SAMPLE1_REF: &[u8] = include_bytes!("../../tests/input/quick/sample1.ref");
 const SAMPLE1_BZ2: &[u8] = include_bytes!("../../tests/input/quick/sample1.bz2");
 
-#[cfg(test)]
 #[macro_export]
 macro_rules! assert_eq_rs_c {
     ($tt:tt) => {{
@@ -677,6 +677,65 @@ fn error_messages() {
 
         assert_eq!(i, errnum);
     }
+}
+
+#[test]
+fn decompress_init_edge_cases() {
+    use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR};
+
+    // valid input
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(BZ_OK, BZ2_bzDecompressInit(strm.as_mut_ptr(), 0, 0));
+        BZ2_bzDecompressEnd(strm.as_mut_ptr())
+    });
+
+    // strm is NULL
+    crate::assert_eq_rs_c!({
+        assert_eq!(
+            BZ_PARAM_ERROR,
+            BZ2_bzDecompressInit(core::ptr::null_mut(), 0, 0)
+        );
+    });
+
+    // verbosity is out of range
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_PARAM_ERROR,
+            BZ2_bzDecompressInit(strm.as_mut_ptr(), 42, 0)
+        );
+    });
+
+    // small is out of range
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_PARAM_ERROR,
+            BZ2_bzDecompressInit(strm.as_mut_ptr(), 0, 42)
+        );
+    });
+
+    type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
+
+    unsafe extern "C" fn failing_allocator(
+        _opaque: *mut c_void,
+        _items: i32,
+        _size: i32,
+    ) -> *mut c_void {
+        core::ptr::null_mut()
+    }
+
+    // fails to allocate
+    crate::assert_eq_rs_c!({
+        let mut strm: MaybeUninit<bz_stream> = MaybeUninit::zeroed();
+
+        core::ptr::addr_of_mut!((*strm.as_mut_ptr()).bzalloc)
+            .cast::<AllocFunc>()
+            .write(failing_allocator);
+
+        assert_eq!(BZ_MEM_ERROR, BZ2_bzDecompressInit(strm.as_mut_ptr(), 0, 0));
+    });
 }
 
 #[cfg(not(miri))]
