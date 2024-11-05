@@ -922,7 +922,7 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: c_int) -> 
     BZ2_bzCompressHelp(strm, action) as c_int
 }
 
-unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, action: c_int) -> ReturnCode {
+unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, action: i32) -> ReturnCode {
     let Some(s) = (strm.state as *mut EState).as_mut() else {
         return BZ_PARAM_ERROR;
     };
@@ -2243,47 +2243,41 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     sourceLen: libc::c_uint,
     blockSize100k: libc::c_int,
     verbosity: libc::c_int,
-    mut workFactor: libc::c_int,
+    workFactor: libc::c_int,
 ) -> libc::c_int {
     let mut strm: bz_stream = bz_stream::zeroed();
-    let mut ret: libc::c_int;
-    if dest.is_null()
-        || destLen.is_null()
-        || source.is_null()
-        || blockSize100k < 1 as libc::c_int
-        || blockSize100k > 9 as libc::c_int
-        || verbosity < 0 as libc::c_int
-        || verbosity > 4 as libc::c_int
-        || workFactor < 0 as libc::c_int
-        || workFactor > 250 as libc::c_int
-    {
+
+    if dest.is_null() || destLen.is_null() || source.is_null() {
         return BZ_PARAM_ERROR as c_int;
     }
-    if workFactor == 0 as libc::c_int {
-        workFactor = 30 as libc::c_int;
-    }
-    strm.bzalloc = None;
-    strm.bzfree = None;
-    strm.opaque = std::ptr::null_mut::<libc::c_void>();
-    ret = BZ2_bzCompressInit(&mut strm, blockSize100k, verbosity, workFactor);
+
+    let ret = BZ2_bzCompressInit(&mut strm, blockSize100k, verbosity, workFactor);
     if ret != 0 as libc::c_int {
         return ret;
     }
+
     strm.next_in = source;
     strm.next_out = dest;
     strm.avail_in = sourceLen;
     strm.avail_out = *destLen;
-    ret = BZ2_bzCompress(&mut strm, 2 as libc::c_int);
-    if ret == 3 as libc::c_int {
-        BZ2_bzCompressEnd(&mut strm);
-        -8 as libc::c_int
-    } else if ret != 4 as libc::c_int {
-        BZ2_bzCompressEnd(&mut strm);
-        return ret;
-    } else {
-        *destLen = (*destLen).wrapping_sub(strm.avail_out);
-        BZ2_bzCompressEnd(&mut strm);
-        return 0 as libc::c_int;
+
+    match BZ2_bzCompressHelp(&mut strm, Action::Finish as i32) {
+        ReturnCode::BZ_FINISH_OK => {
+            BZ2_bzCompressEnd(&mut strm);
+
+            ReturnCode::BZ_OUTBUFF_FULL as c_int
+        }
+        ReturnCode::BZ_STREAM_END => {
+            *destLen = (*destLen).wrapping_sub(strm.avail_out);
+            BZ2_bzCompressEnd(&mut strm);
+
+            ReturnCode::BZ_OK as c_int
+        }
+        error => {
+            BZ2_bzCompressEnd(&mut strm);
+
+            error as c_int
+        }
     }
 }
 #[export_name = prefix!(BZ2_bzBuffToBuffDecompress)]
