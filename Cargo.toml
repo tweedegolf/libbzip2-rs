@@ -12,6 +12,7 @@ authors = ["C2Rust"]
 version = "0.0.0"
 publish = false
 edition = "2021"
+rust-version = "1.82" # MSRV
 
 [[bin]]
 name = "bzip2"
