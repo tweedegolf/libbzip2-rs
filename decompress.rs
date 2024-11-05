@@ -1119,7 +1119,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             }
                             s.state_out_len = 0;
                             s.state_out_ch = 0_u8;
-                            s.calculatedBlockCRC = 0xffffffff as libc::c_long as u32;
+                            s.calculatedBlockCRC = 0xffffffffu32;
                             s.state = State::BZ_X_OUTPUT;
                             if s.verbosity >= 2 {
                                 eprint!("rt+rld");
