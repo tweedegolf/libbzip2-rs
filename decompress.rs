@@ -1,4 +1,4 @@
-use crate::bzlib::{bz_stream, BZ2_indexIntoF, DSlice, DState, ReturnCode};
+use crate::bzlib::{bz_stream, BZ2_indexIntoF, DSlice, DState, DecompressMode, ReturnCode};
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
 
@@ -415,32 +415,37 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 break 'save_state_and_return;
             };
 
-            if s.smallDecompress {
-                // SAFETY: we assume allocation is safe
-                let ll16_len = s.blockSize100k as usize * 100000;
-                let Some(ll16) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, ll16_len) }) else {
-                    retVal = ReturnCode::BZ_MEM_ERROR;
-                    break 'save_state_and_return;
-                };
+            match s.smallDecompress {
+                DecompressMode::Small => {
+                    // SAFETY: we assume allocation is safe
+                    let ll16_len = s.blockSize100k as usize * 100000;
+                    let Some(ll16) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, ll16_len) })
+                    else {
+                        retVal = ReturnCode::BZ_MEM_ERROR;
+                        break 'save_state_and_return;
+                    };
 
-                // SAFETY: we assume allocation is safe
-                let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
-                let Some(ll4) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, ll4_len) }) else {
-                    retVal = ReturnCode::BZ_MEM_ERROR;
-                    break 'save_state_and_return;
-                };
+                    // SAFETY: we assume allocation is safe
+                    let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
+                    let Some(ll4) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, ll4_len) })
+                    else {
+                        retVal = ReturnCode::BZ_MEM_ERROR;
+                        break 'save_state_and_return;
+                    };
 
-                s.ll16 = ll16;
-                s.ll4 = ll4;
-            } else {
-                // SAFETY: we assume allocation is safe
-                let tt_len = s.blockSize100k as usize * 100000;
-                let Some(tt) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, tt_len) }) else {
-                    retVal = ReturnCode::BZ_MEM_ERROR;
-                    break 'save_state_and_return;
-                };
+                    s.ll16 = ll16;
+                    s.ll4 = ll4;
+                }
+                DecompressMode::Fast => {
+                    // SAFETY: we assume allocation is safe
+                    let tt_len = s.blockSize100k as usize * 100000;
+                    let Some(tt) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, tt_len) }) else {
+                        retVal = ReturnCode::BZ_MEM_ERROR;
+                        break 'save_state_and_return;
+                    };
 
-                s.tt = tt;
+                    s.tt = tt;
+                }
             }
 
             current_block = 16838365919992687769;
@@ -919,26 +924,29 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                 es += 1;
                                 uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
                                 s.unzftab[uc as usize] += es;
-                                if s.smallDecompress {
-                                    while es > 0 {
-                                        if nblock >= nblockMAX {
-                                            retVal = ReturnCode::BZ_DATA_ERROR;
-                                            break 'save_state_and_return;
-                                        } else {
-                                            ll16[nblock as usize] = uc as u16;
-                                            nblock += 1;
-                                            es -= 1;
+                                match s.smallDecompress {
+                                    DecompressMode::Small => {
+                                        while es > 0 {
+                                            if nblock >= nblockMAX {
+                                                retVal = ReturnCode::BZ_DATA_ERROR;
+                                                break 'save_state_and_return;
+                                            } else {
+                                                ll16[nblock as usize] = uc as u16;
+                                                nblock += 1;
+                                                es -= 1;
+                                            }
                                         }
                                     }
-                                } else {
-                                    while es > 0 {
-                                        if nblock >= nblockMAX {
-                                            retVal = ReturnCode::BZ_DATA_ERROR;
-                                            break 'save_state_and_return;
-                                        } else {
-                                            tt[nblock as usize] = uc as u32;
-                                            nblock += 1;
-                                            es -= 1;
+                                    DecompressMode::Fast => {
+                                        while es > 0 {
+                                            if nblock >= nblockMAX {
+                                                retVal = ReturnCode::BZ_DATA_ERROR;
+                                                break 'save_state_and_return;
+                                            } else {
+                                                tt[nblock as usize] = uc as u32;
+                                                nblock += 1;
+                                                es -= 1;
+                                            }
                                         }
                                     }
                                 }
@@ -1045,10 +1053,13 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                 }
                             }
                             s.unzftab[s.seqToUnseq[uc as usize] as usize] += 1;
-                            if s.smallDecompress {
-                                ll16[nblock as usize] = s.seqToUnseq[uc as usize] as u16;
-                            } else {
-                                tt[nblock as usize] = s.seqToUnseq[uc as usize] as u32;
+                            match s.smallDecompress {
+                                DecompressMode::Small => {
+                                    ll16[nblock as usize] = s.seqToUnseq[uc as usize] as u16
+                                }
+                                DecompressMode::Fast => {
+                                    tt[nblock as usize] = s.seqToUnseq[uc as usize] as u32
+                                }
                             }
                             nblock += 1;
                             update_group_pos!(s);
@@ -1113,142 +1124,151 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             if s.verbosity >= 2 {
                                 eprint!("rt+rld");
                             }
-                            if s.smallDecompress {
-                                i = 0;
-                                while i <= 256 {
-                                    s.cftabCopy[i as usize] = s.cftab[i as usize];
-                                    i += 1;
-                                }
-                                i = 0;
-                                while i < nblock {
-                                    uc = ll16[i as usize] as u8;
-                                    ll16[i as usize] = (s.cftabCopy[uc as usize] & 0xffff) as u16;
-                                    if i & 0x1 == 0 {
-                                        ll4[(i >> 1) as usize] =
-                                            (ll4[(i >> 1) as usize] as libc::c_int & 0xf0
-                                                | s.cftabCopy[uc as usize] >> 16)
-                                                as u8;
-                                    } else {
-                                        ll4[(i >> 1) as usize] =
-                                            (ll4[(i >> 1) as usize] as libc::c_int & 0xf
-                                                | (s.cftabCopy[uc as usize] >> 16) << 4)
-                                                as u8;
+                            match s.smallDecompress {
+                                DecompressMode::Small => {
+                                    i = 0;
+                                    while i <= 256 {
+                                        s.cftabCopy[i as usize] = s.cftab[i as usize];
+                                        i += 1;
                                     }
-                                    s.cftabCopy[uc as usize] += 1;
-                                    i += 1;
-                                }
-                                i = s.origPtr;
-                                j = (ll16[i as usize] as u32
-                                    | (ll4[(i >> 1) as usize] as u32 >> (i << 2 & 0x4) & 0xf) << 16)
-                                    as i32;
-                                loop {
-                                    let tmp_0: i32 = (ll16[j as usize] as u32
-                                        | (ll4[(j >> 1) as usize] as u32 >> (j << 2 & 0x4) & 0xf)
-                                            << 16)
-                                        as i32;
-                                    ll16[j as usize] = (i & 0xffff) as u16;
-                                    if j & 0x1 == 0 {
-                                        ll4[(j >> 1) as usize] = (ll4[(j >> 1) as usize]
-                                            as libc::c_int
-                                            & 0xf0
-                                            | i >> 16)
-                                            as u8;
-                                    } else {
-                                        ll4[(j >> 1) as usize] =
-                                            (ll4[(j >> 1) as usize] as libc::c_int & 0xf
-                                                | (i >> 16) << 4)
-                                                as u8;
+                                    i = 0;
+                                    while i < nblock {
+                                        uc = ll16[i as usize] as u8;
+                                        ll16[i as usize] =
+                                            (s.cftabCopy[uc as usize] & 0xffff) as u16;
+                                        if i & 0x1 == 0 {
+                                            ll4[(i >> 1) as usize] =
+                                                (ll4[(i >> 1) as usize] as libc::c_int & 0xf0
+                                                    | s.cftabCopy[uc as usize] >> 16)
+                                                    as u8;
+                                        } else {
+                                            ll4[(i >> 1) as usize] =
+                                                (ll4[(i >> 1) as usize] as libc::c_int & 0xf
+                                                    | (s.cftabCopy[uc as usize] >> 16) << 4)
+                                                    as u8;
+                                        }
+                                        s.cftabCopy[uc as usize] += 1;
+                                        i += 1;
                                     }
-                                    i = j;
-                                    j = tmp_0;
-                                    if i == s.origPtr {
-                                        break;
-                                    }
-                                }
-                                s.tPos = s.origPtr as u32;
-                                s.nblock_used = 0;
-                                if s.blockRandomised {
-                                    s.rNToGo = 0;
-                                    s.rTPos = 0;
-                                    if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
-                                        // NOTE: this originates in the BZ_GET_FAST macro, and the
-                                        // `return true` is probably uninitentional?!
-                                        return ReturnCode::BZ_RUN_OK;
-                                    }
-                                    s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
-                                    s.tPos = ll16[s.tPos as usize] as u32
-                                        | (ll4[(s.tPos >> 1) as usize] as u32
-                                            >> (s.tPos << 2 & 0x4)
-                                            & 0xf)
-                                            << 16;
-                                    s.nblock_used += 1;
-                                    if s.rNToGo == 0 {
-                                        s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
-                                        s.rTPos += 1;
-                                        if s.rTPos == 512 {
-                                            s.rTPos = 0;
+                                    i = s.origPtr;
+                                    j = (ll16[i as usize] as u32
+                                        | (ll4[(i >> 1) as usize] as u32 >> (i << 2 & 0x4) & 0xf)
+                                            << 16) as i32;
+                                    loop {
+                                        let tmp_0: i32 = (ll16[j as usize] as u32
+                                            | (ll4[(j >> 1) as usize] as u32 >> (j << 2 & 0x4)
+                                                & 0xf)
+                                                << 16)
+                                            as i32;
+                                        ll16[j as usize] = (i & 0xffff) as u16;
+                                        if j & 0x1 == 0 {
+                                            ll4[(j >> 1) as usize] =
+                                                (ll4[(j >> 1) as usize] as libc::c_int & 0xf0
+                                                    | i >> 16)
+                                                    as u8;
+                                        } else {
+                                            ll4[(j >> 1) as usize] =
+                                                (ll4[(j >> 1) as usize] as libc::c_int & 0xf
+                                                    | (i >> 16) << 4)
+                                                    as u8;
+                                        }
+                                        i = j;
+                                        j = tmp_0;
+                                        if i == s.origPtr {
+                                            break;
                                         }
                                     }
-                                    s.rNToGo -= 1;
-                                    s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
-                                } else {
-                                    if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
-                                        // NOTE: this originates in the BZ_GET_FAST macro, and the
-                                        // `return true` is probably uninitentional?!
-                                        return ReturnCode::BZ_RUN_OK;
-                                    }
-                                    s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
-                                    s.tPos = ll16[s.tPos as usize] as u32
-                                        | (ll4[(s.tPos >> 1) as usize] as u32
-                                            >> (s.tPos << 2 & 0x4)
-                                            & 0xf)
-                                            << 16;
-                                    s.nblock_used += 1;
-                                }
-                            } else {
-                                i = 0;
-                                while i < nblock {
-                                    uc = (tt[i as usize] & 0xff) as u8;
-                                    let fresh0 = &mut (tt[s.cftab[uc as usize] as usize]);
-                                    *fresh0 |= (i << 8) as libc::c_uint;
-                                    s.cftab[uc as usize] += 1;
-                                    i += 1;
-                                }
-                                s.tPos = tt[s.origPtr as usize] >> 8;
-                                s.nblock_used = 0;
-                                if s.blockRandomised {
-                                    s.rNToGo = 0;
-                                    s.rTPos = 0;
-                                    if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
-                                        // NOTE: this originates in the BZ_GET_FAST macro, and the
-                                        // `return true` is probably uninitentional?!
-                                        return ReturnCode::BZ_RUN_OK;
-                                    }
-                                    s.tPos = tt[s.tPos as usize];
-                                    s.k0 = (s.tPos & 0xff) as u8 as i32;
-                                    s.tPos >>= 8;
-                                    s.nblock_used += 1;
-                                    if s.rNToGo == 0 {
-                                        s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
-                                        s.rTPos += 1;
-                                        if s.rTPos == 512 {
-                                            s.rTPos = 0;
+                                    s.tPos = s.origPtr as u32;
+                                    s.nblock_used = 0;
+                                    if s.blockRandomised {
+                                        s.rNToGo = 0;
+                                        s.rTPos = 0;
+                                        if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32)
+                                        {
+                                            // NOTE: this originates in the BZ_GET_FAST macro, and the
+                                            // `return true` is probably uninitentional?!
+                                            return ReturnCode::BZ_RUN_OK;
                                         }
+                                        s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
+                                        s.tPos = ll16[s.tPos as usize] as u32
+                                            | (ll4[(s.tPos >> 1) as usize] as u32
+                                                >> (s.tPos << 2 & 0x4)
+                                                & 0xf)
+                                                << 16;
+                                        s.nblock_used += 1;
+                                        if s.rNToGo == 0 {
+                                            s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
+                                            s.rTPos += 1;
+                                            if s.rTPos == 512 {
+                                                s.rTPos = 0;
+                                            }
+                                        }
+                                        s.rNToGo -= 1;
+                                        s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
+                                    } else {
+                                        if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32)
+                                        {
+                                            // NOTE: this originates in the BZ_GET_FAST macro, and the
+                                            // `return true` is probably uninitentional?!
+                                            return ReturnCode::BZ_RUN_OK;
+                                        }
+                                        s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
+                                        s.tPos = ll16[s.tPos as usize] as u32
+                                            | (ll4[(s.tPos >> 1) as usize] as u32
+                                                >> (s.tPos << 2 & 0x4)
+                                                & 0xf)
+                                                << 16;
+                                        s.nblock_used += 1;
                                     }
-                                    s.rNToGo -= 1;
-                                    s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
-                                } else {
-                                    if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32) {
-                                        // NOTE: this originates in the BZ_GET_FAST macro, and the
-                                        // `return true` is probably uninitentional?!
-                                        return ReturnCode::BZ_RUN_OK;
+                                }
+                                DecompressMode::Fast => {
+                                    i = 0;
+                                    while i < nblock {
+                                        uc = (tt[i as usize] & 0xff) as u8;
+                                        let fresh0 = &mut (tt[s.cftab[uc as usize] as usize]);
+                                        *fresh0 |= (i << 8) as libc::c_uint;
+                                        s.cftab[uc as usize] += 1;
+                                        i += 1;
                                     }
-                                    s.tPos = tt[s.tPos as usize];
-                                    s.k0 = (s.tPos & 0xff) as u8 as i32;
-                                    s.tPos >>= 8;
-                                    s.nblock_used += 1;
+                                    s.tPos = tt[s.origPtr as usize] >> 8;
+                                    s.nblock_used = 0;
+                                    if s.blockRandomised {
+                                        s.rNToGo = 0;
+                                        s.rTPos = 0;
+                                        if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32)
+                                        {
+                                            // NOTE: this originates in the BZ_GET_FAST macro, and the
+                                            // `return true` is probably uninitentional?!
+                                            return ReturnCode::BZ_RUN_OK;
+                                        }
+                                        s.tPos = tt[s.tPos as usize];
+                                        s.k0 = (s.tPos & 0xff) as u8 as i32;
+                                        s.tPos >>= 8;
+                                        s.nblock_used += 1;
+                                        if s.rNToGo == 0 {
+                                            s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
+                                            s.rTPos += 1;
+                                            if s.rTPos == 512 {
+                                                s.rTPos = 0;
+                                            }
+                                        }
+                                        s.rNToGo -= 1;
+                                        s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
+                                    } else {
+                                        if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32)
+                                        {
+                                            // NOTE: this originates in the BZ_GET_FAST macro, and the
+                                            // `return true` is probably uninitentional?!
+                                            return ReturnCode::BZ_RUN_OK;
+                                        }
+                                        s.tPos = tt[s.tPos as usize];
+                                        s.k0 = (s.tPos & 0xff) as u8 as i32;
+                                        s.tPos >>= 8;
+                                        s.nblock_used += 1;
+                                    }
                                 }
                             }
+
                             retVal = ReturnCode::BZ_OK;
                             current_block = SAVE_STATE_AND_RETURN;
                             continue;
