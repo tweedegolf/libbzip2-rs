@@ -1,4 +1,5 @@
 #![allow(dead_code, unused_imports, unused_macros, non_snake_case)]
+#![allow(clippy::missing_safety_doc)]
 
 use std::{
     ffi::{c_char, c_int, c_void, CStr},
@@ -251,7 +252,7 @@ fn compress_sample3() {
     assert_eq_compress!("../../tests/input/quick/sample3.bz2");
 }
 
-pub fn decompress_c<'a>(
+pub unsafe fn decompress_c(
     dest: *mut u8,
     dest_len: *mut libc::c_uint,
     source: *const u8,
@@ -333,7 +334,7 @@ pub fn decompress_c<'a>(
     }
 }
 
-pub fn decompress_rs<'a>(
+pub unsafe fn decompress_rs(
     dest: *mut u8,
     dest_len: *mut libc::c_uint,
     source: *const u8,
@@ -415,7 +416,7 @@ pub fn decompress_rs<'a>(
     }
 }
 
-pub fn compress_c<'a>(
+pub unsafe fn compress_c(
     dest: *mut u8,
     dest_len: *mut libc::c_uint,
     source: *const u8,
@@ -503,7 +504,7 @@ pub fn compress_c<'a>(
     }
 }
 
-pub fn compress_rs<'a>(
+pub unsafe fn compress_rs(
     dest: *mut u8,
     dest_len: *mut libc::c_uint,
     source: *const u8,
@@ -1359,12 +1360,14 @@ mod high_level_interface {
         let input = std::fs::read(p.join("../tests/input/quick/sample1.bz2")).unwrap();
         let mut expected = vec![0u8; 256 * 1024];
         let mut expected_len = expected.len() as _;
-        let err = decompress_c(
-            expected.as_mut_ptr(),
-            &mut expected_len,
-            input.as_ptr(),
-            input.len() as _,
-        );
+        let err = unsafe {
+            decompress_c(
+                expected.as_mut_ptr(),
+                &mut expected_len,
+                input.as_ptr(),
+                input.len() as _,
+            )
+        };
         assert_eq!(err, 0);
 
         let p = p.join("../tests/input/quick/sample1.bz2\0");
@@ -1480,12 +1483,14 @@ mod high_level_interface {
 
         let mut expected = vec![0u8; 256 * 1024];
         let mut expected_len = expected.len() as _;
-        let err = compress_c(
-            expected.as_mut_ptr(),
-            &mut expected_len,
-            SAMPLE1_BZ2.as_ptr(),
-            SAMPLE1_BZ2.len() as _,
-        );
+        let err = unsafe {
+            compress_c(
+                expected.as_mut_ptr(),
+                &mut expected_len,
+                SAMPLE1_BZ2.as_ptr(),
+                SAMPLE1_BZ2.len() as _,
+            )
+        };
         assert_eq!(err, 0);
 
         assert_eq!(

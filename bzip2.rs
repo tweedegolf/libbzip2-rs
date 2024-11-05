@@ -1571,7 +1571,7 @@ unsafe fn applySavedTimeInfoToOutputFile(mut dstName: *mut c_char) {
     };
     uTimBuf.actime = fileMetaInfo.st_atime;
     uTimBuf.modtime = fileMetaInfo.st_mtime;
-    retVal = utime(dstName, &mut uTimBuf);
+    retVal = utime(dstName, &uTimBuf);
     if retVal != 0 as libc::c_int {
         ioError();
     }
@@ -2645,36 +2645,19 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut c_char) -> IntNative {
             == 0 as libc::c_int
         {
             noisy = 0 as Bool;
-        } else if strcmp(
-            (*aa).name,
-            b"--version\0" as *const u8 as *const libc::c_char,
-        ) == 0 as libc::c_int
+        } else if strcmp((*aa).name, c"--version".as_ptr()) == 0
+            || strcmp((*aa).name, c"--license".as_ptr()) == 0
         {
             license();
-            exit(0 as libc::c_int);
-        } else if strcmp(
-            (*aa).name,
-            b"--license\0" as *const u8 as *const libc::c_char,
-        ) == 0 as libc::c_int
-        {
-            license();
-            exit(0 as libc::c_int);
+            exit(0);
         } else if strcmp(
             (*aa).name,
             b"--exponential\0" as *const u8 as *const libc::c_char,
         ) == 0 as libc::c_int
         {
             workFactor = 1 as libc::c_int;
-        } else if strcmp(
-            (*aa).name,
-            b"--repetitive-best\0" as *const u8 as *const libc::c_char,
-        ) == 0 as libc::c_int
-        {
-            redundant((*aa).name);
-        } else if strcmp(
-            (*aa).name,
-            b"--repetitive-fast\0" as *const u8 as *const libc::c_char,
-        ) == 0 as libc::c_int
+        } else if strcmp((*aa).name, c"--repetitive-best".as_ptr()) == 0
+            || strcmp((*aa).name, c"--repetitive-fast".as_ptr()) == 0
         {
             redundant((*aa).name);
         } else if strcmp((*aa).name, b"--fast\0" as *const u8 as *const libc::c_char)
@@ -2852,10 +2835,5 @@ fn main() {
         );
     }
     args.push(core::ptr::null_mut());
-    unsafe {
-        ::std::process::exit(main_0(
-            (args.len() - 1) as IntNative,
-            args.as_mut_ptr() as *mut *mut c_char,
-        ) as i32)
-    }
+    unsafe { ::std::process::exit(main_0((args.len() - 1) as IntNative, args.as_mut_ptr()) as i32) }
 }
