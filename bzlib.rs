@@ -884,6 +884,7 @@ impl TryFrom<i32> for Action {
 /// - [`BZ_PARAM_ERROR`] if any of
 ///     - `strm.is_null()`
 ///     - `strm.s.is_null()`
+///     - action is not one of [`BZ_RUN`], [`BZ_FLUSH`] or [`BZ_FINISH`]
 /// - [`BZ_RUN_OK`] successfully compressed, but ran out of input or output space
 /// - [`BZ_FLUSH_OK`] not all compressed data has been written to the output yet
 /// - [`BZ_FINISH_OK`] if all input has been read but not all output has been written to the output
@@ -896,11 +897,11 @@ impl TryFrom<i32> for Action {
 ///     - `strm` is `NULL`
 ///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`BZ2_bzCompressInit`]
 /// * Either
-///     - `strm.next_out` is `NULL`
-///     - `strm.next_out` is writable for `strm.avail_out` bytes
-/// * Either
-///     - `strm.next_in` is `NULL`
+///     - `strm.next_in` is `NULL` and `strm.avail_in` is 0
 ///     - `strm.next_in` is readable for `strm.avail_in` bytes
+/// * Either
+///     - `strm.next_out` is `NULL` and `strm.avail_out` is `0`
+///     - `strm.next_out` is writable for `strm.avail_out` bytes
 #[export_name = prefix!(BZ2_bzCompress)]
 pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: c_int) -> c_int {
     let Some(strm) = strm.as_mut() else {
@@ -1596,11 +1597,11 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
 ///     - `strm` is `NULL`
 ///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`BZ2_bzDecompressInit`]
 /// * Either
-///     - `strm.next_out` is `NULL`
-///     - `strm.next_out` is writable for `strm.avail_out` bytes
-/// * Either
-///     - `strm.next_in` is `NULL`
+///     - `strm.next_in` is `NULL` and `strm.avail_in` is 0
 ///     - `strm.next_in` is readable for `strm.avail_in` bytes
+/// * Either
+///     - `strm.next_out` is `NULL` and `strm.avail_out` is `0`
+///     - `strm.next_out` is writable for `strm.avail_out` bytes
 #[export_name = prefix!(BZ2_bzDecompress)]
 pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
