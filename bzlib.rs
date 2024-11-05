@@ -2239,6 +2239,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
         }
     }
 }
+
 #[export_name = prefix!(BZ2_bzReadGetUnused)]
 pub unsafe extern "C" fn BZ2_bzReadGetUnused(
     bzerror: *mut libc::c_int,
@@ -2247,42 +2248,28 @@ pub unsafe extern "C" fn BZ2_bzReadGetUnused(
     nUnused: *mut libc::c_int,
 ) {
     let bzf: *mut bzFile = b as *mut bzFile;
-    if bzf.is_null() {
-        if !bzerror.is_null() {
-            *bzerror = -2 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -2 as libc::c_int;
-        }
+
+    let Some(bzf) = bzf.as_mut() else {
+        BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
+        return;
+    };
+
+    if bzf.lastErr != ReturnCode::BZ_STREAM_END as c_int {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_SEQUENCE_ERROR);
         return;
     }
-    if (*bzf).lastErr != 4 as libc::c_int {
-        if !bzerror.is_null() {
-            *bzerror = -1 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -1 as libc::c_int;
-        }
+
+    let (Some(unused), Some(nUnused)) = (unused.as_mut(), nUnused.as_mut()) else {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
         return;
-    }
-    if unused.is_null() || nUnused.is_null() {
-        if !bzerror.is_null() {
-            *bzerror = -2 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -2 as libc::c_int;
-        }
-        return;
-    }
-    if !bzerror.is_null() {
-        *bzerror = 0 as libc::c_int;
-    }
-    if !bzf.is_null() {
-        (*bzf).lastErr = 0 as libc::c_int;
-    }
-    *nUnused = (*bzf).strm.avail_in as libc::c_int;
-    *unused = (*bzf).strm.next_in as *mut libc::c_void;
+    };
+
+    BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_OK);
+
+    *nUnused = bzf.strm.avail_in as libc::c_int;
+    *unused = bzf.strm.next_in as *mut libc::c_void;
 }
+
 #[export_name = prefix!(BZ2_bzBuffToBuffCompress)]
 pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     dest: *mut libc::c_char,
