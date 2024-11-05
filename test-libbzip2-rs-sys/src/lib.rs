@@ -828,6 +828,57 @@ fn decompress_end_edge_cases() {
     }
 }
 
+#[test]
+fn compress_end_edge_cases() {
+    use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR};
+
+    let verbosity = 0;
+    let blockSize100k = 9;
+    let workFactor = 30;
+
+    // strm is NULL
+    crate::assert_eq_rs_c!({
+        assert_eq!(BZ_PARAM_ERROR, BZ2_bzCompressEnd(core::ptr::null_mut()));
+    });
+
+    // state is NULL
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let mut state = core::ptr::null_mut();
+
+        core::mem::swap(&mut strm.state, &mut state);
+        BZ2_bzCompressEnd(strm);
+        core::mem::swap(&mut strm.state, &mut state);
+
+        BZ2_bzCompressEnd(strm)
+    });
+
+    // bzfree is NULL
+    unsafe {
+        use libbzip2_rs_sys::bzlib::*;
+
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let bzfree = strm.bzfree.take();
+
+        assert_eq!(BZ_PARAM_ERROR, BZ2_bzCompressEnd(strm));
+
+        strm.bzfree = bzfree;
+        assert_eq!(BZ_OK, BZ2_bzCompressEnd(strm));
+    }
+}
+
 #[cfg(not(miri))]
 mod high_level_interface {
     use super::*;
