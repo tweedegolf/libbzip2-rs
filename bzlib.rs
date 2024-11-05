@@ -2251,9 +2251,9 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
         return BZ_PARAM_ERROR as c_int;
     }
 
-    let ret = BZ2_bzCompressInit(&mut strm, blockSize100k, verbosity, workFactor);
-    if ret != 0 as libc::c_int {
-        return ret;
+    match BZ2_bzCompressInitHelp(&mut strm, blockSize100k, verbosity, workFactor) {
+        ReturnCode::BZ_OK => {}
+        ret => return ret as c_int,
     }
 
     strm.next_in = source;
@@ -2289,21 +2289,15 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     small: libc::c_int,
     verbosity: libc::c_int,
 ) -> libc::c_int {
-    if dest.is_null()
-        || destLen.is_null()
-        || source.is_null()
-        || small != 0 as libc::c_int && small != 1 as libc::c_int
-        || verbosity < 0 as libc::c_int
-        || verbosity > 4 as libc::c_int
-    {
+    if dest.is_null() || destLen.is_null() || source.is_null() {
         return BZ_PARAM_ERROR as c_int;
     }
 
     let mut strm: bz_stream = bz_stream::zeroed();
 
-    match BZ2_bzDecompressInit(&mut strm, verbosity, small) {
-        0 => {}
-        ret => return ret,
+    match BZ2_bzDecompressInitHelp(&mut strm, verbosity, small) {
+        ReturnCode::BZ_OK => {}
+        ret => return ret as c_int,
     }
 
     strm.next_in = source;
@@ -2311,8 +2305,8 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     strm.avail_in = sourceLen;
     strm.avail_out = *destLen;
 
-    match BZ2_bzDecompress(&mut strm) {
-        0 => {
+    match BZ2_bzDecompressHelp(&mut strm) {
+        ReturnCode::BZ_OK => {
             BZ2_bzDecompressEnd(&mut strm);
 
             match strm.avail_out {
@@ -2320,16 +2314,16 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
                 _ => BZ_UNEXPECTED_EOF as c_int,
             }
         }
-        4 => {
+        ReturnCode::BZ_STREAM_END => {
             *destLen = (*destLen).wrapping_sub(strm.avail_out);
             BZ2_bzDecompressEnd(&mut strm);
 
             BZ_OK as c_int
         }
-        ret => {
+        error => {
             BZ2_bzDecompressEnd(&mut strm);
 
-            ret
+            error as c_int
         }
     }
 }
