@@ -1633,17 +1633,21 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
         return BZ_PARAM_ERROR as c_int;
     };
 
+    BZ2_bzDecompressHelp(strm) as c_int
+}
+
+unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
     let Some(s) = (strm.state as *mut DState).as_mut() else {
-        return BZ_PARAM_ERROR as c_int;
+        return BZ_PARAM_ERROR;
     };
 
     if s.strm != strm {
-        return BZ_PARAM_ERROR as c_int;
+        return BZ_PARAM_ERROR;
     }
 
     loop {
         if let decompress::State::BZ_X_IDLE = s.state {
-            return BZ_SEQUENCE_ERROR as libc::c_int;
+            return BZ_SEQUENCE_ERROR;
         }
         if let decompress::State::BZ_X_OUTPUT = s.state {
             let corrupt = match s.smallDecompress {
@@ -1652,7 +1656,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
             };
 
             if corrupt {
-                return BZ_DATA_ERROR as c_int;
+                return BZ_DATA_ERROR;
             }
 
             if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
@@ -1667,13 +1671,13 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
                     eprint!("]");
                 }
                 if s.calculatedBlockCRC != s.storedBlockCRC {
-                    return BZ_DATA_ERROR as c_int;
+                    return BZ_DATA_ERROR;
                 }
                 s.calculatedCombinedCRC = s.calculatedCombinedCRC.rotate_left(1);
                 s.calculatedCombinedCRC ^= s.calculatedBlockCRC;
                 s.state = decompress::State::BZ_X_BLKHDR_1;
             } else {
-                return BZ_OK as libc::c_int;
+                return BZ_OK;
             }
         }
 
@@ -1688,13 +1692,13 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
                         );
                     }
                     if s.calculatedCombinedCRC != s.storedCombinedCRC {
-                        return BZ_DATA_ERROR as c_int;
+                        return BZ_DATA_ERROR;
                     }
-                    return ReturnCode::BZ_STREAM_END as c_int;
+                    return ReturnCode::BZ_STREAM_END;
                 }
                 return_code => match s.state {
                     decompress::State::BZ_X_OUTPUT => continue,
-                    _ => return return_code as c_int,
+                    _ => return return_code,
                 },
             },
         }
@@ -2127,114 +2131,76 @@ pub unsafe extern "C" fn BZ2_bzRead(
     buf: *mut libc::c_void,
     len: libc::c_int,
 ) -> libc::c_int {
-    let mut n: i32;
-    let mut ret: i32;
     let bzf: *mut bzFile = b as *mut bzFile;
-    if !bzerror.is_null() {
-        *bzerror = 0 as libc::c_int;
+
+    BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
+
+    let Some(bzf) = bzf.as_mut() else {
+        BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
+        return 0;
+    };
+
+    if buf.is_null() || len < 0 {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
+        return 0;
     }
-    if !bzf.is_null() {
-        (*bzf).lastErr = 0 as libc::c_int;
+
+    if bzf.writing {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_SEQUENCE_ERROR);
+        return 0;
     }
-    if bzf.is_null() || buf.is_null() || len < 0 as libc::c_int {
-        if !bzerror.is_null() {
-            *bzerror = -2 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -2 as libc::c_int;
-        }
-        return 0 as libc::c_int;
-    }
-    if (*bzf).writing {
-        if !bzerror.is_null() {
-            *bzerror = -1 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -1 as libc::c_int;
-        }
-        return 0 as libc::c_int;
-    }
+
     if len == 0 as libc::c_int {
-        if !bzerror.is_null() {
-            *bzerror = 0 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = 0 as libc::c_int;
-        }
-        return 0 as libc::c_int;
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_OK);
+        return 0;
     }
-    (*bzf).strm.avail_out = len as libc::c_uint;
-    (*bzf).strm.next_out = buf as *mut libc::c_char;
+
+    bzf.strm.avail_out = len as libc::c_uint;
+    bzf.strm.next_out = buf as *mut libc::c_char;
     loop {
-        if ferror((*bzf).handle) != 0 {
-            if !bzerror.is_null() {
-                *bzerror = -6 as libc::c_int;
-            }
-            if !bzf.is_null() {
-                (*bzf).lastErr = -6 as libc::c_int;
-            }
-            return 0 as libc::c_int;
+        if ferror(bzf.handle) != 0 {
+            BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_IO_ERROR);
+            return 0;
         }
-        if (*bzf).strm.avail_in == 0 as libc::c_int as libc::c_uint && !myfeof((*bzf).handle) {
-            n = fread(
-                ((*bzf).buf).as_mut_ptr() as *mut libc::c_void,
-                ::core::mem::size_of::<u8>() as libc::size_t,
+
+        if bzf.strm.avail_in == 0 && !myfeof(bzf.handle) {
+            let n = fread(
+                (bzf.buf).as_mut_ptr() as *mut libc::c_void,
+                ::core::mem::size_of::<u8>(),
                 5000,
-                (*bzf).handle,
+                bzf.handle,
             ) as i32;
-            if ferror((*bzf).handle) != 0 {
-                if !bzerror.is_null() {
-                    *bzerror = -6 as libc::c_int;
+
+            if ferror(bzf.handle) != 0 {
+                BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_IO_ERROR);
+                return 0;
+            }
+
+            bzf.bufN = n;
+            bzf.strm.avail_in = bzf.bufN as libc::c_uint;
+            bzf.strm.next_in = (bzf.buf).as_mut_ptr().cast::<c_char>();
+        }
+
+        match BZ2_bzDecompressHelp(&mut bzf.strm) {
+            ReturnCode::BZ_OK => {
+                if myfeof(bzf.handle) && bzf.strm.avail_in == 0 && bzf.strm.avail_out > 0 {
+                    BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_UNEXPECTED_EOF);
+                    return 0;
+                } else if bzf.strm.avail_out == 0 {
+                    BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_OK);
+                    return len;
+                } else {
+                    continue;
                 }
-                if !bzf.is_null() {
-                    (*bzf).lastErr = -6 as libc::c_int;
-                }
-                return 0 as libc::c_int;
             }
-            (*bzf).bufN = n;
-            (*bzf).strm.avail_in = (*bzf).bufN as libc::c_uint;
-            (*bzf).strm.next_in = ((*bzf).buf).as_mut_ptr().cast::<c_char>();
-        }
-        ret = BZ2_bzDecompress(&mut (*bzf).strm);
-        if ret != 0 as libc::c_int && ret != 4 as libc::c_int {
-            if !bzerror.is_null() {
-                *bzerror = ret;
+            ReturnCode::BZ_STREAM_END => {
+                BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_STREAM_END);
+                return (len as libc::c_uint).wrapping_sub(bzf.strm.avail_out) as libc::c_int;
             }
-            if !bzf.is_null() {
-                (*bzf).lastErr = ret;
+            error => {
+                BZ_SETERR!(bzerror, bzf, error);
+                return 0;
             }
-            return 0 as libc::c_int;
-        }
-        if ret == 0 as libc::c_int
-            && myfeof((*bzf).handle)
-            && (*bzf).strm.avail_in == 0 as libc::c_int as libc::c_uint
-            && (*bzf).strm.avail_out > 0 as libc::c_int as libc::c_uint
-        {
-            if !bzerror.is_null() {
-                *bzerror = -7 as libc::c_int;
-            }
-            if !bzf.is_null() {
-                (*bzf).lastErr = -7 as libc::c_int;
-            }
-            return 0 as libc::c_int;
-        }
-        if ret == 4 as libc::c_int {
-            if !bzerror.is_null() {
-                *bzerror = 4 as libc::c_int;
-            }
-            if !bzf.is_null() {
-                (*bzf).lastErr = 4 as libc::c_int;
-            }
-            return (len as libc::c_uint).wrapping_sub((*bzf).strm.avail_out) as libc::c_int;
-        }
-        if (*bzf).strm.avail_out == 0 as libc::c_int as libc::c_uint {
-            if !bzerror.is_null() {
-                *bzerror = 0 as libc::c_int;
-            }
-            if !bzf.is_null() {
-                (*bzf).lastErr = 0 as libc::c_int;
-            }
-            return len;
         }
     }
 }
