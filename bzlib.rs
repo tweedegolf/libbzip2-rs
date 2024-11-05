@@ -689,33 +689,23 @@ unsafe fn add_pair_to_block(s: &mut EState) {
     s.inUse[s.state_in_ch as usize] = true;
     match s.state_in_len {
         1 => {
-            block[s.nblock as usize] = ch;
+            block[s.nblock as usize..][..1].fill(ch);
             s.nblock += 1;
         }
         2 => {
-            block[s.nblock as usize] = ch;
-            s.nblock += 1;
-            block[s.nblock as usize] = ch;
-            s.nblock += 1;
+            block[s.nblock as usize..][..2].fill(ch);
+            s.nblock += 2;
         }
         3 => {
-            block[s.nblock as usize] = ch;
-            s.nblock += 1;
-            block[s.nblock as usize] = ch;
-            s.nblock += 1;
-            block[s.nblock as usize] = ch;
-            s.nblock += 1;
+            block[s.nblock as usize..][..3].fill(ch);
+            s.nblock += 3;
         }
         _ => {
             s.inUse[(s.state_in_len - 4) as usize] = true;
-            block[s.nblock as usize] = ch;
-            s.nblock += 1;
-            block[s.nblock as usize] = ch;
-            s.nblock += 1;
-            block[s.nblock as usize] = ch;
-            s.nblock += 1;
-            block[s.nblock as usize] = ch;
-            s.nblock += 1;
+
+            block[s.nblock as usize..][..4].fill(ch);
+            s.nblock += 4;
+
             block[s.nblock as usize] = (s.state_in_len - 4) as u8;
             s.nblock += 1;
         }
