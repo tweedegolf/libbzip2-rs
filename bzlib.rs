@@ -336,7 +336,7 @@ pub struct DState {
     pub bsBuff: u32,
     pub bsLive: i32,
     pub blockSize100k: i32,
-    pub smallDecompress: bool,
+    pub smallDecompress: DecompressMode,
     pub currBlockNo: i32,
     pub verbosity: i32,
     pub origPtr: i32,
@@ -989,6 +989,12 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     0 as libc::c_int
 }
 
+#[repr(u8)]
+pub enum DecompressMode {
+    Small,
+    Fast,
+}
+
 #[export_name = prefix!(BZ2_bzDecompressInit)]
 pub unsafe extern "C" fn BZ2_bzDecompressInit(
     strm: *mut bz_stream,
@@ -1001,9 +1007,11 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     if strm.is_null() {
         return BZ_PARAM_ERROR as c_int;
     }
-    if small != 0 && small != 1 {
-        return BZ_PARAM_ERROR as c_int;
-    }
+    let decompress_mode = match small {
+        0 => DecompressMode::Fast,
+        1 => DecompressMode::Small,
+        _ => return BZ_PARAM_ERROR as c_int,
+    };
     if !(0..=4).contains(&verbosity) {
         return BZ_PARAM_ERROR as c_int;
     }
@@ -1025,7 +1033,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     (*strm).total_in_hi32 = 0;
     (*strm).total_out_lo32 = 0;
     (*strm).total_out_hi32 = 0;
-    (*s).smallDecompress = small != 0;
+    (*s).smallDecompress = decompress_mode;
     (*s).ll4 = DSlice::new();
     (*s).ll16 = DSlice::new();
     (*s).tt = DSlice::new();
@@ -1520,10 +1528,9 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
             return BZ_SEQUENCE_ERROR as libc::c_int;
         }
         if let decompress::State::BZ_X_OUTPUT = s.state {
-            let corrupt = if s.smallDecompress {
-                unRLE_obuf_to_output_SMALL(strm, s)
-            } else {
-                unRLE_obuf_to_output_FAST(strm, s)
+            let corrupt = match s.smallDecompress {
+                DecompressMode::Small => unRLE_obuf_to_output_SMALL(strm, s),
+                DecompressMode::Fast => unRLE_obuf_to_output_FAST(strm, s),
             };
 
             if corrupt {
