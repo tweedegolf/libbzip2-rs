@@ -738,6 +738,55 @@ fn decompress_init_edge_cases() {
     });
 }
 
+#[test]
+fn decompress_edge_cases() {
+    use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR, BZ_STREAM_END};
+
+    // strm is NULL
+    crate::assert_eq_rs_c!({
+        assert_eq!(BZ_PARAM_ERROR, BZ2_bzDecompress(core::ptr::null_mut()));
+    });
+
+    // state is NULL
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(BZ_OK, BZ2_bzDecompressInit(strm.as_mut_ptr(), 0, 0));
+        let strm = strm.assume_init_mut();
+
+        let mut state = core::ptr::null_mut();
+        core::mem::swap(&mut strm.state, &mut state);
+        assert_eq!(BZ_PARAM_ERROR, BZ2_bzDecompress(strm));
+        core::mem::swap(&mut strm.state, &mut state);
+
+        BZ2_bzDecompressEnd(strm)
+    });
+
+    // coverage of the log branches
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(BZ_OK, BZ2_bzDecompressInit(strm.as_mut_ptr(), 4, 0));
+        let strm = strm.assume_init_mut();
+
+        let input: &[u8] = &[
+            66u8, 90, 104, 57, 49, 65, 89, 38, 83, 89, 164, 38, 196, 174, 0, 0, 5, 17, 128, 64, 0,
+            36, 167, 204, 0, 32, 0, 49, 3, 64, 208, 34, 105, 128, 122, 141, 161, 22, 187, 73, 99,
+            176, 39, 11, 185, 34, 156, 40, 72, 82, 19, 98, 87, 0,
+        ];
+
+        let mut output = [0u8; 64];
+
+        strm.avail_in = input.len() as _;
+        strm.next_in = input.as_ptr().cast_mut().cast();
+
+        strm.avail_out = output.len() as _;
+        strm.next_out = output.as_mut_ptr().cast();
+
+        assert_eq!(BZ_STREAM_END, BZ2_bzDecompress(strm));
+
+        BZ2_bzDecompressEnd(strm)
+    });
+}
+
 #[cfg(not(miri))]
 mod high_level_interface {
     use super::*;
