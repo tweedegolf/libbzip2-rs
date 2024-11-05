@@ -407,7 +407,6 @@ impl<T> DSlice<T> {
 
     pub unsafe fn alloc(bzalloc: AllocFunc, opaque: *mut libc::c_void, len: usize) -> Option<Self> {
         let ptr = bzalloc_array::<T>(bzalloc, opaque, len)?;
-        core::ptr::write_bytes(ptr, 0, len);
         Some(Self::from_raw_parts_mut(ptr, len))
     }
 
@@ -543,6 +542,14 @@ fn isempty_RL(s: &mut EState) -> bool {
     !(s.state_in_ch < 256 && s.state_in_len > 0)
 }
 
+/// Allocates `len` contiguous values of type `T`, and zeros out all elements.
+///
+/// # Safety
+///
+/// - `bzalloc` and `opaque` must form a valid allocator, meaning `bzalloc` returns either
+///     * a `NULL` pointer
+///     * a valid pointer to an allocation of `len * size_of::<T>()` bytes aligned to at least `align_of::<usize>()`
+/// - the type `T` must be zeroable (i.e. an all-zero bit pattern is valid for `T`)
 pub unsafe fn bzalloc_array<T>(
     bzalloc: AllocFunc,
     opaque: *mut libc::c_void,
@@ -555,7 +562,15 @@ pub unsafe fn bzalloc_array<T>(
 
     let ptr = bzalloc(opaque, len, width);
 
-    (!ptr.is_null()).then_some(ptr.cast::<T>())
+    if ptr.is_null() {
+        return None;
+    }
+
+    let ptr = ptr.cast::<T>();
+
+    core::ptr::write_bytes(ptr, 0, len as usize);
+
+    Some(ptr)
 }
 
 #[export_name = prefix!(BZ2_bzCompressInit)]
@@ -580,17 +595,11 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
     let bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
 
-    let s = (bzalloc)((*strm).opaque, core::mem::size_of::<EState>() as i32, 1) as *mut EState;
-    if s.is_null() {
+    let Some(s) = bzalloc_array::<EState>(*bzalloc, (*strm).opaque, 1) else {
         return BZ_MEM_ERROR as c_int;
-    }
+    };
 
-    // zero out the whole struct so that all fields are initialized. Even though MIRI only errors
-    // when uninitialized memory is actually used (i.e. read), it is still UB to have a (mutable)
-    // reference to (partially) uninitialized memory.
-    core::ptr::write_bytes(s, 0, 1);
-
-    // this `strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
+    // this `s.strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
     // that a given state belongs to a given strm.
     (*s).strm = strm;
 
@@ -626,13 +635,13 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
         return BZ_MEM_ERROR as c_int;
     };
 
-    core::ptr::write_bytes(arr1_alloc, 0, arr1_len);
+    // SAFETY: pointer is non-null and memory was initialized by `bzalloc_array`
     unsafe { (*s).arr1 = Arr1::from_raw_parts_mut(arr1_alloc, arr1_len) };
 
-    core::ptr::write_bytes(arr2_alloc, 0, arr2_len);
+    // SAFETY: pointer is non-null and memory was initialized by `bzalloc_array`
     unsafe { (*s).arr2 = Arr2::from_raw_parts_mut(arr2_alloc, arr2_len) };
 
-    core::ptr::write_bytes(ftab_alloc, 0, FTAB_LEN);
+    // SAFETY: pointer is non-null and memory was initialized by `bzalloc_array`
     unsafe { (*s).ftab = Ftab::from_ptr(ftab_alloc) };
 
     (*s).blockNo = 0;
@@ -1018,27 +1027,32 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
     let _bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
 
-    let s: *mut DState =
-        (bzalloc)((*strm).opaque, core::mem::size_of::<DState>() as i32, 1) as *mut DState;
-    if s.is_null() {
+    let Some(s) = bzalloc_array::<DState>(*bzalloc, (*strm).opaque, 1) else {
         return BZ_MEM_ERROR as c_int;
-    }
+    };
+
+    // this `s.strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
+    // that a given state belongs to a given strm.
     (*s).strm = strm;
-    (*strm).state = s as *mut libc::c_void;
+
     (*s).state = decompress::State::BZ_X_MAGIC_1;
     (*s).bsLive = 0;
     (*s).bsBuff = 0;
     (*s).calculatedCombinedCRC = 0;
-    (*strm).total_in_lo32 = 0;
-    (*strm).total_in_hi32 = 0;
-    (*strm).total_out_lo32 = 0;
-    (*strm).total_out_hi32 = 0;
+
     (*s).smallDecompress = decompress_mode;
     (*s).ll4 = DSlice::new();
     (*s).ll16 = DSlice::new();
     (*s).tt = DSlice::new();
     (*s).currBlockNo = 0;
     (*s).verbosity = verbosity;
+
+    (*strm).state = s as *mut libc::c_void;
+
+    (*strm).total_in_lo32 = 0;
+    (*strm).total_in_hi32 = 0;
+    (*strm).total_out_lo32 = 0;
+    (*strm).total_out_hi32 = 0;
 
     BZ_OK as libc::c_int
 }
