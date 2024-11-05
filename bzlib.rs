@@ -128,7 +128,7 @@ pub enum ReturnCode {
     BZ_MEM_ERROR = -3,
     BZ_DATA_ERROR = -4,
     BZ_DATA_ERROR_MAGIC = -5,
-    // BZ_IO_ERROR = -6,
+    BZ_IO_ERROR = -6,
     BZ_UNEXPECTED_EOF = -7,
     BZ_OUTBUFF_FULL = -8,
     BZ_CONFIG_ERROR = -9,
@@ -588,10 +588,19 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     strm: *mut bz_stream,
     blockSize100k: libc::c_int,
     verbosity: libc::c_int,
+    workFactor: libc::c_int,
+) -> c_int {
+    BZ2_bzCompressInitHelp(strm, blockSize100k, verbosity, workFactor) as c_int
+}
+
+unsafe fn BZ2_bzCompressInitHelp(
+    strm: *mut bz_stream,
+    blockSize100k: libc::c_int,
+    verbosity: libc::c_int,
     mut workFactor: libc::c_int,
-) -> libc::c_int {
+) -> ReturnCode {
     if strm.is_null() || !(1..=9).contains(&blockSize100k) || !(0..=250).contains(&workFactor) {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR;
     }
 
     if workFactor == 0 {
@@ -602,7 +611,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     let bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
 
     let Some(s) = bzalloc_array::<EState>(*bzalloc, (*strm).opaque, 1) else {
-        return BZ_MEM_ERROR as c_int;
+        return ReturnCode::BZ_MEM_ERROR;
     };
 
     // this `s.strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
@@ -638,7 +647,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
             (bzfree)((*strm).opaque, s as *mut libc::c_void);
         }
 
-        return BZ_MEM_ERROR as c_int;
+        return ReturnCode::BZ_MEM_ERROR;
     };
 
     // SAFETY: pointer is non-null and memory was initialized by `bzalloc_array`
@@ -669,7 +678,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     init_RL(&mut *s);
     prepare_new_block(&mut *s);
 
-    0
+    ReturnCode::BZ_OK
 }
 
 macro_rules! BZ_UPDATE_CRC {
@@ -1732,6 +1741,18 @@ unsafe fn myfeof(f: *mut FILE) -> bool {
     false
 }
 
+macro_rules! BZ_SETERR {
+    ($bzerror:expr, $bzf:expr, $return_code:expr) => {
+        if let Some(bzerror) = $bzerror.cast::<ReturnCode>().as_mut() {
+            *bzerror = $return_code;
+        }
+
+        if let Some(bzf) = $bzf.as_mut() {
+            bzf.lastErr = $return_code as libc::c_int;
+        }
+    };
+}
+
 #[export_name = prefix!(BZ2_bzWriteOpen)]
 pub unsafe extern "C" fn BZ2_bzWriteOpen(
     bzerror: *mut libc::c_int,
@@ -1740,76 +1761,62 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     verbosity: libc::c_int,
     mut workFactor: libc::c_int,
 ) -> *mut libc::c_void {
-    let mut bzf: *mut bzFile = std::ptr::null_mut::<bzFile>();
-    if !bzerror.is_null() {
-        *bzerror = 0 as libc::c_int;
-    }
-    if !bzf.is_null() {
-        (*bzf).lastErr = 0 as libc::c_int;
-    }
+    let bzf: *mut bzFile = std::ptr::null_mut::<bzFile>();
+
+    BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_OK);
+
     if f.is_null()
-        || (blockSize100k < 1 as libc::c_int || blockSize100k > 9 as libc::c_int)
-        || (workFactor < 0 as libc::c_int || workFactor > 250 as libc::c_int)
-        || (verbosity < 0 as libc::c_int || verbosity > 4 as libc::c_int)
+        || !(1..=9).contains(&blockSize100k)
+        || !(0..=250).contains(&workFactor)
+        || !(0..=4).contains(&verbosity)
     {
-        if !bzerror.is_null() {
-            *bzerror = -2 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -2 as libc::c_int;
-        }
-        return std::ptr::null_mut::<libc::c_void>();
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
+        return core::ptr::null_mut();
     }
+
     if ferror(f) != 0 {
-        if !bzerror.is_null() {
-            *bzerror = -6 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -6 as libc::c_int;
-        }
-        return std::ptr::null_mut::<libc::c_void>();
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_IO_ERROR);
+        return core::ptr::null_mut();
     }
-    bzf = malloc(core::mem::size_of::<bzFile>() as libc::size_t) as *mut bzFile;
-    if bzf.is_null() {
-        if !bzerror.is_null() {
-            *bzerror = -3 as libc::c_int;
+
+    let Some(bzf) = bzalloc_array::<bzFile>(default_bzalloc, core::ptr::null_mut(), 1) else {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_MEM_ERROR);
+        return core::ptr::null_mut();
+    };
+
+    BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_OK);
+
+    // SAFETY: bzf is non-null and correctly initalized
+    let bzf = unsafe { &mut *bzf };
+
+    bzf.initialisedOk = false;
+    bzf.bufN = 0;
+    bzf.handle = f;
+    bzf.writing = true;
+    bzf.strm.bzalloc = None;
+    bzf.strm.bzfree = None;
+    bzf.strm.opaque = std::ptr::null_mut();
+
+    if workFactor == 0 {
+        workFactor = 30;
+    }
+
+    match BZ2_bzCompressInitHelp(&mut (*bzf).strm, blockSize100k, verbosity, workFactor) {
+        ReturnCode::BZ_OK => {
+            (*bzf).strm.avail_in = 0;
+            (*bzf).initialisedOk = true;
+
+            bzf as *mut bzFile as *mut libc::c_void
         }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -3 as libc::c_int;
+        error => {
+            BZ_SETERR!(bzerror, bzf as *mut bzFile, error);
+            free(bzf as *mut bzFile as *mut libc::c_void);
+
+            core::ptr::null_mut()
         }
-        return std::ptr::null_mut::<libc::c_void>();
     }
-    if !bzerror.is_null() {
-        *bzerror = 0 as libc::c_int;
-    }
-    if !bzf.is_null() {
-        (*bzf).lastErr = 0 as libc::c_int;
-    }
-    (*bzf).initialisedOk = false;
-    (*bzf).bufN = 0 as libc::c_int;
-    (*bzf).handle = f;
-    (*bzf).writing = true;
-    (*bzf).strm.bzalloc = None;
-    (*bzf).strm.bzfree = None;
-    (*bzf).strm.opaque = std::ptr::null_mut::<libc::c_void>();
-    if workFactor == 0 as libc::c_int {
-        workFactor = 30 as libc::c_int;
-    }
-    let ret: i32 = BZ2_bzCompressInit(&mut (*bzf).strm, blockSize100k, verbosity, workFactor);
-    if ret != 0 as libc::c_int {
-        if !bzerror.is_null() {
-            *bzerror = ret;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = ret;
-        }
-        free(bzf as *mut libc::c_void);
-        return std::ptr::null_mut::<libc::c_void>();
-    }
-    (*bzf).strm.avail_in = 0 as libc::c_int as libc::c_uint;
-    (*bzf).initialisedOk = true;
-    bzf as *mut libc::c_void
 }
+
 #[export_name = prefix!(BZ2_bzWrite)]
 pub unsafe extern "C" fn BZ2_bzWrite(
     bzerror: *mut libc::c_int,
