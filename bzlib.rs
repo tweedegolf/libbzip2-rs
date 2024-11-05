@@ -573,6 +573,26 @@ pub unsafe fn bzalloc_array<T>(
     Some(ptr)
 }
 
+/// Prepares the stream for compression.
+///
+/// # Returns
+///
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `strm.is_null()`
+///     - `!(0..=9).contains(&blockSize100k)`
+///     - `!(0..=4).contains(&verbosity)`
+///     - `!(0..=250).contains(&workFactor)`
+/// - [`BZ_MEM_ERROR`] if insufficient memory is available
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * Either
+///     - `strm` is `NULL`
+///     - `strm` satisfies the requirements of `&mut *strm`
+/// * The `bzalloc`, `bzfree` and `opaque` fields form a [valid allocator](allocator-safety).
 #[export_name = prefix!(BZ2_bzCompressInit)]
 pub unsafe extern "C" fn BZ2_bzCompressInit(
     strm: *mut bz_stream,
@@ -879,6 +899,33 @@ impl TryFrom<i32> for Action {
     }
 }
 
+/// Compresses as much data as possible, and stops when the input buffer becomes empty or the output buffer becomes full.
+///
+/// # Returns
+///
+/// - [`BZ_SEQUENCE_ERROR`] if called on an invalid stream, e.g.
+///     - before [`BZ2_bzCompressInit`]
+///     - after [`BZ2_bzCompressEnd`]
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `strm.is_null()`
+///     - `strm.s.is_null()`
+/// - [`BZ_RUN_OK`] successfully compressed, but ran out of input or output space
+/// - [`BZ_FLUSH_OK`] not all compressed data has been written to the output yet
+/// - [`BZ_FINISH_OK`] if all input has been read but not all output has been written to the output
+///     buffer yet
+/// - [`BZ_STREAM_END`] if all input has been read all output has been written to the output buffer
+///
+/// # Safety
+///
+/// * Either
+///     - `strm` is `NULL`
+///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`BZ2_bzCompressInit`]
+/// * Either
+///     - `strm.next_out` is `NULL`
+///     - `strm.next_out` is writable for `strm.avail_out` bytes
+/// * Either
+///     - `strm.next_in` is `NULL`
+///     - `strm.next_in` is readable for `strm.avail_in` bytes
 #[export_name = prefix!(BZ2_bzCompress)]
 pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: c_int) -> c_int {
     let Some(strm) = strm.as_mut() else {
@@ -958,6 +1005,20 @@ unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, s: &mut EState, action: i32) 
     }
 }
 
+/// Deallocates all dynamically allocated data structures for this stream.
+///
+/// # Returns
+///
+/// - [`BZ_OK`] if success
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `strm.is_null()`
+///     - `strm.s.is_null()`
+///
+/// # Safety
+///
+/// * Either
+///     - `strm` is `NULL`
+///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`BZ2_bzCompressInit`]
 #[export_name = prefix!(BZ2_bzCompressEnd)]
 pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
@@ -1008,11 +1069,12 @@ pub enum DecompressMode {
 ///
 /// # Returns
 ///
-/// - [`BZ_OK`] on success
 /// - [`BZ_PARAM_ERROR`] if any of
+///     - `strm.is_null()`
 ///     - `!(0..=1).contains(&small)`
 ///     - `!(0..=4).contains(&verbosity)`
 /// - [`BZ_MEM_ERROR`] if insufficient memory is available
+/// - [`BZ_OK`] otherwise
 ///
 /// # Safety
 ///
@@ -1563,7 +1625,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
 ///     - `strm.next_out` is writable for `strm.avail_out` bytes
 /// * Either
 ///     - `strm.next_in` is `NULL`
-///     - `strm.next_in` is readable for `strm.avail_in`
+///     - `strm.next_in` is readable for `strm.avail_in` bytes
 #[export_name = prefix!(BZ2_bzDecompress)]
 pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
