@@ -88,7 +88,7 @@ impl GetBitsConvert for i32 {
     }
 }
 
-pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
+pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     let mut current_block: u64;
     let mut uc: u8;
     let mut retVal: ReturnCode;
@@ -204,7 +204,10 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                         break 'save_state_and_return;
                     }
 
-                    $s.bsBuff = $s.bsBuff << 8 | *($strm.next_in as *mut u8) as u32;
+                    // SAFETY: `next_in` is valid to read for `avail_in` bytes
+                    let next_byte = unsafe { *($strm.next_in as *mut u8) } as u32;
+
+                    $s.bsBuff = $s.bsBuff << 8 | next_byte;
                     $s.bsLive += 8;
                     $strm.next_in = $strm.next_in.wrapping_add(1);
                     $strm.avail_in -= 1;
@@ -413,12 +416,14 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
             };
 
             if s.smallDecompress {
+                // SAFETY: we assume allocation is safe
                 let ll16_len = s.blockSize100k as usize * 100000;
                 let Some(ll16) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, ll16_len) }) else {
                     retVal = ReturnCode::BZ_MEM_ERROR;
                     break 'save_state_and_return;
                 };
 
+                // SAFETY: we assume allocation is safe
                 let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
                 let Some(ll4) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, ll4_len) }) else {
                     retVal = ReturnCode::BZ_MEM_ERROR;
@@ -428,6 +433,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                 s.ll16 = ll16;
                 s.ll4 = ll4;
             } else {
+                // SAFETY: we assume allocation is safe
                 let tt_len = s.blockSize100k as usize * 100000;
                 let Some(tt) = (unsafe { DSlice::alloc(bzalloc, strm.opaque, tt_len) }) else {
                     retVal = ReturnCode::BZ_MEM_ERROR;
