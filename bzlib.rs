@@ -1864,7 +1864,7 @@ pub unsafe extern "C" fn BZ2_bzWrite(
     (*bzf).strm.next_in = buf as *mut libc::c_char;
     loop {
         (*bzf).strm.avail_out = 5000 as libc::c_int as libc::c_uint;
-        (*bzf).strm.next_out = ((*bzf).buf).as_mut_ptr();
+        (*bzf).strm.next_out = ((*bzf).buf).as_mut_ptr().cast::<c_char>();
         ret = BZ2_bzCompress(&mut (*bzf).strm, 0 as libc::c_int);
         if ret != 1 as libc::c_int {
             if !bzerror.is_null() {
@@ -1978,7 +1978,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
     if abandon == 0 && (*bzf).lastErr == 0 as libc::c_int {
         loop {
             (*bzf).strm.avail_out = 5000 as libc::c_int as libc::c_uint;
-            (*bzf).strm.next_out = ((*bzf).buf).as_mut_ptr();
+            (*bzf).strm.next_out = ((*bzf).buf).as_mut_ptr().cast::<c_char>();
             ret = BZ2_bzCompress(&mut (*bzf).strm, 2 as libc::c_int);
             if ret != 3 as libc::c_int && ret != 4 as libc::c_int {
                 if !bzerror.is_null() {
@@ -2128,7 +2128,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         return std::ptr::null_mut::<libc::c_void>();
     }
     (*bzf).strm.avail_in = (*bzf).bufN as libc::c_uint;
-    (*bzf).strm.next_in = ((*bzf).buf).as_mut_ptr();
+    (*bzf).strm.next_in = ((*bzf).buf).as_mut_ptr().cast::<c_char>();
     (*bzf).initialisedOk = true;
     bzf as *mut libc::c_void
 }
@@ -2238,7 +2238,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
             }
             (*bzf).bufN = n;
             (*bzf).strm.avail_in = (*bzf).bufN as libc::c_uint;
-            (*bzf).strm.next_in = ((*bzf).buf).as_mut_ptr();
+            (*bzf).strm.next_in = ((*bzf).buf).as_mut_ptr().cast::<c_char>();
         }
         ret = BZ2_bzDecompress(&mut (*bzf).strm);
         if ret != 0 as libc::c_int && ret != 4 as libc::c_int {
