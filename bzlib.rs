@@ -1541,6 +1541,32 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
     }
 }
 
+/// Decompresses as much data as possible, and stops when the input buffer becomes empty or the output buffer becomes full.
+///
+/// # Returns
+///
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `strm.is_null()`
+///     - `strm.s.is_null()`
+///     - `strm.avail_out < 1`
+/// - [`BZ_DATA_ERROR`] if a data integrity error is detected in the compressed stream
+/// - [`BZ_DATA_ERROR_MAGIC`] if the compressed stream doesn't begin with the right magic bytes
+/// - [`BZ_MEM_ERROR`] if there wasn't enough memory available
+/// - [`BZ_STREAM_END`] if the logical end of the data stream was detected and all output has been
+///     written to the output buffer
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// * Either
+///     - `strm` is `NULL`
+///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`BZ2_bzDecompressInit`]
+/// * Either
+///     - `strm.next_out` is `NULL`
+///     - `strm.next_out` is writable for `strm.avail_out` bytes
+/// * Either
+///     - `strm.next_in` is `NULL`
+///     - `strm.next_in` is readable for `strm.avail_in`
 #[export_name = prefix!(BZ2_bzDecompress)]
 pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
@@ -1615,6 +1641,23 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
     }
 }
 
+/// Deallocates all dynamically allocated data structures for this stream.
+///
+/// # Returns
+///
+/// - [`BZ_OK`] if success
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `strm.is_null()`
+///     - `strm.s.is_null()`
+///
+/// # Safety
+///
+/// * Either
+///     - `strm` is `NULL`
+///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`BZ2_bzDecompressInit`]
+/// * Either
+///     - `bzalloc`, `bzfree` and `opaque` are `NULL`
+///     - `bzalloc`, `bzfree` and `opaque` are form a valid allocator
 #[export_name = prefix!(BZ2_bzDecompressEnd)]
 pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_int {
     let Some(strm) = strm.as_mut() else {
