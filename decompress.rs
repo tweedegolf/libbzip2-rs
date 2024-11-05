@@ -702,16 +702,13 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
             GET_UCHAR!(strm, s, uc);
 
             s.origPtr = s.origPtr << 8 | uc as i32;
-            if s.origPtr < 0 {
+            if !(0..10 + 100000 * s.blockSize100k).contains(&s.origPtr) {
                 retVal = ReturnCode::BZ_DATA_ERROR;
                 break 'save_state_and_return;
-            } else if s.origPtr > 10 + 100000 * s.blockSize100k {
-                retVal = ReturnCode::BZ_DATA_ERROR;
-                break 'save_state_and_return;
-            } else {
-                i = 0;
-                current_block = 454873545234741267;
             }
+
+            i = 0;
+            current_block = 454873545234741267;
         }
 
         // mutable because they need to be reborrowed
@@ -829,7 +826,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
 
                     GET_BITS!(strm, s, nGroups, 3);
 
-                    if !!(2..=6).contains(&nGroups) {
+                    if (2..=6).contains(&nGroups) {
                         current_block = 14590825336193814119;
                         continue;
                     }
@@ -1373,7 +1370,7 @@ pub unsafe fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode
                             current_block = 7746242308555130918;
                             continue;
                         }
-                        if !!(1..=20).contains(&curr) {
+                        if (1..=20).contains(&curr) {
                             current_block = 17216244326479313607;
                             continue 'c_10064;
                         }
