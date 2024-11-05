@@ -1139,6 +1139,100 @@ fn compress_edge_cases() {
 }
 
 #[test]
+fn compress_64_bit_arithmetic_edge_cases() {
+    use bzip2_sys::{
+        BZ_FINISH, BZ_FINISH_OK, BZ_FLUSH, BZ_FLUSH_OK, BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR,
+        BZ_RUN, BZ_RUN_OK, BZ_SEQUENCE_ERROR, BZ_STREAM_END,
+    };
+
+    let mut output = [0u8; 64];
+
+    let blockSize100k = 9;
+    let verbosity = 0;
+    let workFactor = 30;
+
+    // 32-bit overflow for the running state
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let input: &[u8] = b"lang is it ompaad";
+
+        strm.avail_in = input.len() as _;
+        strm.next_in = input.as_ptr().cast_mut().cast();
+
+        strm.avail_out = output.len() as _;
+        strm.next_out = output.as_mut_ptr().cast();
+
+        strm.total_in_lo32 = u32::MAX - 5;
+        strm.total_out_lo32 = u32::MAX - 5;
+
+        assert_eq!(BZ_RUN_OK, BZ2_bzCompress(strm, BZ_RUN));
+
+        let total_in = (strm.total_in_hi32 as u64) << 32 | strm.total_in_lo32 as u64;
+        assert_eq!(total_in, u32::MAX as u64 - 5 + input.len() as u64);
+
+        assert_eq!(BZ_STREAM_END, BZ2_bzCompress(strm, BZ_FINISH));
+
+        const OUTPUT_SIZE: u64 = 54;
+
+        let total_out = (strm.total_out_hi32 as u64) << 32 | strm.total_out_lo32 as u64;
+        assert_eq!(total_out, u32::MAX as u64 - 5 + OUTPUT_SIZE);
+
+        BZ2_bzCompressEnd(strm);
+
+        output
+    });
+
+    // 32-bit overflow for the flushing state
+    crate::assert_eq_rs_c!({
+        let mut strm = MaybeUninit::zeroed();
+        assert_eq!(
+            BZ_OK,
+            BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor)
+        );
+        let strm = strm.assume_init_mut();
+
+        let input: &[u8] = b"lang is it ompaad";
+
+        strm.next_in = input.as_ptr().cast_mut().cast();
+        strm.next_out = output.as_mut_ptr().cast();
+
+        let (first_chunk, second_chunk) = (input.len() - 5, 5);
+
+        strm.avail_in = first_chunk as _;
+        strm.avail_out = 4;
+
+        strm.total_in_lo32 = u32::MAX - strm.avail_in;
+        strm.total_out_lo32 = u32::MAX;
+
+        assert_eq!(BZ_RUN_OK, BZ2_bzCompress(strm, BZ_RUN));
+
+        strm.avail_out = 60;
+        strm.avail_in = second_chunk;
+        assert_eq!(BZ_RUN_OK, BZ2_bzCompress(strm, BZ_FLUSH));
+
+        let total_in = (strm.total_in_hi32 as u64) << 32 | strm.total_in_lo32 as u64;
+        assert_eq!(total_in, u32::MAX as u64 + second_chunk as u64);
+
+        assert_eq!(BZ_STREAM_END, BZ2_bzCompress(strm, BZ_FINISH));
+
+        const OUTPUT_SIZE: u64 = 54;
+
+        let total_out = (strm.total_out_hi32 as u64) << 32 | strm.total_out_lo32 as u64;
+        assert_eq!(total_out, u32::MAX as u64 + OUTPUT_SIZE);
+
+        BZ2_bzCompressEnd(strm);
+
+        output
+    });
+}
+
+#[test]
 fn compress_action_edge_cases() {
     use bzip2_sys::{
         BZ_FINISH, BZ_FINISH_OK, BZ_FLUSH, BZ_FLUSH_OK, BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR,

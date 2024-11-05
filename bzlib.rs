@@ -767,7 +767,7 @@ unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
                 strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
             }
         },
-        _ => loop {
+        Mode::Idle | Mode::Flushing | Mode::Finishing => loop {
             if s.nblock >= s.nblockMAX {
                 break;
             }
@@ -959,9 +959,11 @@ unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, s: &mut EState, action: i32) 
             }
             Mode::Finishing => {
                 let Ok(Action::Finish) = Action::try_from(action) else {
+                    // unreachable in practice
                     return BZ_SEQUENCE_ERROR;
                 };
                 if s.avail_in_expect != strm.avail_in {
+                    // unreachable in practice
                     return BZ_SEQUENCE_ERROR;
                 }
                 let progress = handle_compress(strm, s);
