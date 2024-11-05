@@ -1882,7 +1882,7 @@ pub unsafe extern "C" fn BZ2_bzWrite(
                     let n2 = fwrite(
                         bzf.buf.as_mut_ptr().cast::<c_void>(),
                         core::mem::size_of::<u8>(),
-                        n1 as usize,
+                        n1,
                         bzf.handle,
                     );
                     if n1 != n2 || ferror(bzf.handle) != 0 {
@@ -1931,119 +1931,92 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
     nbytes_out_lo32: *mut libc::c_uint,
     nbytes_out_hi32: *mut libc::c_uint,
 ) {
-    let mut n: i32;
-    let mut n2: i32;
-    let mut ret: i32;
     let bzf: *mut bzFile = b as *mut bzFile;
-    if bzf.is_null() {
-        if !bzerror.is_null() {
-            *bzerror = 0 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = 0 as libc::c_int;
-        }
+
+    let Some(bzf) = bzf.as_mut() else {
+        BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
+        return;
+    };
+
+    if !bzf.writing {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_SEQUENCE_ERROR);
         return;
     }
-    if !(*bzf).writing {
-        if !bzerror.is_null() {
-            *bzerror = -1 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -1 as libc::c_int;
-        }
+
+    if ferror(bzf.handle) != 0 {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_IO_ERROR);
         return;
     }
-    if ferror((*bzf).handle) != 0 {
-        if !bzerror.is_null() {
-            *bzerror = -6 as libc::c_int;
-        }
-        if !bzf.is_null() {
-            (*bzf).lastErr = -6 as libc::c_int;
-        }
-        return;
+
+    if let Some(nbytes_in_lo32) = nbytes_in_lo32.as_mut() {
+        *nbytes_in_lo32 = 0
     }
-    if !nbytes_in_lo32.is_null() {
-        *nbytes_in_lo32 = 0 as libc::c_int as libc::c_uint;
+    if let Some(nbytes_in_hi32) = nbytes_in_hi32.as_mut() {
+        *nbytes_in_hi32 = 0;
     }
-    if !nbytes_in_hi32.is_null() {
-        *nbytes_in_hi32 = 0 as libc::c_int as libc::c_uint;
+    if let Some(nbytes_out_lo32) = nbytes_out_lo32.as_mut() {
+        *nbytes_out_lo32 = 0;
     }
-    if !nbytes_out_lo32.is_null() {
-        *nbytes_out_lo32 = 0 as libc::c_int as libc::c_uint;
+    if let Some(nbytes_out_hi32) = nbytes_out_hi32.as_mut() {
+        *nbytes_out_hi32 = 0;
     }
-    if !nbytes_out_hi32.is_null() {
-        *nbytes_out_hi32 = 0 as libc::c_int as libc::c_uint;
-    }
-    if abandon == 0 && (*bzf).lastErr == 0 as libc::c_int {
+
+    if abandon == 0 && bzf.lastErr == 0 as libc::c_int {
         loop {
-            (*bzf).strm.avail_out = 5000 as libc::c_int as libc::c_uint;
-            (*bzf).strm.next_out = ((*bzf).buf).as_mut_ptr().cast::<c_char>();
-            ret = BZ2_bzCompress(&mut (*bzf).strm, 2 as libc::c_int);
-            if ret != 3 as libc::c_int && ret != 4 as libc::c_int {
-                if !bzerror.is_null() {
-                    *bzerror = ret;
-                }
-                if !bzf.is_null() {
-                    (*bzf).lastErr = ret;
-                }
-                return;
-            }
-            if (*bzf).strm.avail_out < 5000 as libc::c_int as libc::c_uint {
-                n = (5000 as libc::c_int as libc::c_uint).wrapping_sub((*bzf).strm.avail_out)
-                    as i32;
-                n2 = fwrite(
-                    ((*bzf).buf).as_mut_ptr() as *mut libc::c_void,
-                    ::core::mem::size_of::<u8>() as libc::size_t,
-                    n as usize,
-                    (*bzf).handle,
-                ) as i32;
-                if n != n2 || ferror((*bzf).handle) != 0 {
-                    if !bzerror.is_null() {
-                        *bzerror = -6 as libc::c_int;
+            bzf.strm.avail_out = BZ_MAX_UNUSED;
+            bzf.strm.next_out = (bzf.buf).as_mut_ptr().cast::<c_char>();
+            match BZ2_bzCompressHelp(&mut bzf.strm, 2 as libc::c_int) {
+                ret @ (BZ_FINISH_OK | BZ_STREAM_END) => {
+                    if bzf.strm.avail_out < BZ_MAX_UNUSED {
+                        let n1 = BZ_MAX_UNUSED.wrapping_sub(bzf.strm.avail_out) as usize;
+                        let n2 = fwrite(
+                            bzf.buf.as_mut_ptr().cast::<c_void>(),
+                            core::mem::size_of::<u8>(),
+                            n1,
+                            bzf.handle,
+                        );
+                        if n1 != n2 || ferror(bzf.handle) != 0 {
+                            BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_IO_ERROR);
+                        }
                     }
-                    if !bzf.is_null() {
-                        (*bzf).lastErr = -6 as libc::c_int;
+
+                    if let ReturnCode::BZ_STREAM_END = ret {
+                        break;
                     }
+                }
+                ret => {
+                    BZ_SETERR!(bzerror, bzf, ret);
                     return;
                 }
             }
-            if ret == 4 as libc::c_int {
-                break;
-            }
         }
     }
-    if abandon == 0 && ferror((*bzf).handle) == 0 {
-        fflush((*bzf).handle);
-        if ferror((*bzf).handle) != 0 {
-            if !bzerror.is_null() {
-                *bzerror = -6 as libc::c_int;
-            }
-            if !bzf.is_null() {
-                (*bzf).lastErr = -6 as libc::c_int;
-            }
+
+    if abandon == 0 && ferror(bzf.handle) == 0 {
+        fflush(bzf.handle);
+        if ferror(bzf.handle) != 0 {
+            BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_IO_ERROR);
             return;
         }
     }
-    if !nbytes_in_lo32.is_null() {
-        *nbytes_in_lo32 = (*bzf).strm.total_in_lo32;
+
+    if let Some(nbytes_in_lo32) = nbytes_in_lo32.as_mut() {
+        *nbytes_in_lo32 = bzf.strm.total_in_lo32;
     }
-    if !nbytes_in_hi32.is_null() {
-        *nbytes_in_hi32 = (*bzf).strm.total_in_hi32;
+    if let Some(nbytes_in_hi32) = nbytes_in_lo32.as_mut() {
+        *nbytes_in_hi32 = bzf.strm.total_in_hi32;
     }
-    if !nbytes_out_lo32.is_null() {
-        *nbytes_out_lo32 = (*bzf).strm.total_out_lo32;
+    if let Some(nbytes_out_lo32) = nbytes_in_lo32.as_mut() {
+        *nbytes_out_lo32 = bzf.strm.total_out_lo32;
     }
-    if !nbytes_out_hi32.is_null() {
-        *nbytes_out_hi32 = (*bzf).strm.total_out_hi32;
+    if let Some(nbytes_out_hi32) = nbytes_in_lo32.as_mut() {
+        *nbytes_out_hi32 = bzf.strm.total_out_hi32;
     }
-    if !bzerror.is_null() {
-        *bzerror = 0 as libc::c_int;
-    }
-    if !bzf.is_null() {
-        (*bzf).lastErr = 0 as libc::c_int;
-    }
-    BZ2_bzCompressEnd(&mut (*bzf).strm);
-    free(bzf as *mut libc::c_void);
+
+    BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_OK);
+
+    BZ2_bzCompressEnd(&mut bzf.strm);
+    free(bzf as *mut bzFile as *mut libc::c_void);
 }
 
 #[export_name = prefix!(BZ2_bzReadOpen)]
