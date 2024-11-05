@@ -5,6 +5,8 @@
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
 
+use std::ffi::c_char;
+
 use libc::{fprintf, FILE};
 
 use libc::{
@@ -25,11 +27,11 @@ pub struct BitStream {
     pub handle: *mut FILE,
     pub buffer: i32,
     pub buffLive: i32,
-    pub mode: i8,
+    pub mode: u8,
 }
-pub static mut inFileName: [i8; 2000] = [0; 2000];
-pub static mut outFileName: [i8; 2000] = [0; 2000];
-pub static mut progName: [i8; 2000] = [0; 2000];
+pub static mut inFileName: [c_char; 2000] = [0; 2000];
+pub static mut outFileName: [c_char; 2000] = [0; 2000];
+pub static mut progName: [c_char; 2000] = [0; 2000];
 pub static mut bytesOut: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 pub static mut bytesIn: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 unsafe fn readError() {
@@ -107,7 +109,7 @@ unsafe fn bsOpenReadStream(mut stream: *mut FILE) -> *mut BitStream {
     (*bs).handle = stream;
     (*bs).buffer = 0 as libc::c_int;
     (*bs).buffLive = 0 as libc::c_int;
-    (*bs).mode = 'r' as i32 as i8;
+    (*bs).mode = b'r';
     bs
 }
 unsafe fn bsOpenWriteStream(mut stream: *mut FILE) -> *mut BitStream {
@@ -118,7 +120,7 @@ unsafe fn bsOpenWriteStream(mut stream: *mut FILE) -> *mut BitStream {
     (*bs).handle = stream;
     (*bs).buffer = 0 as libc::c_int;
     (*bs).buffLive = 0 as libc::c_int;
-    (*bs).mode = 'w' as i32 as i8;
+    (*bs).mode = b'w';
     bs
 }
 unsafe fn bsPutBit(mut bs: *mut BitStream, mut bit: i32) {
@@ -152,7 +154,7 @@ unsafe fn bsGetBit(mut bs: *mut BitStream) -> i32 {
 }
 unsafe fn bsClose(mut bs: *mut BitStream) {
     let mut retVal: i32 = 0;
-    if (*bs).mode as libc::c_int == 'w' as i32 {
+    if (*bs).mode == b'w' {
         while (*bs).buffLive < 8 as libc::c_int {
             (*bs).buffLive += 1;
             (*bs).buffer <<= 1 as libc::c_int;
@@ -169,7 +171,7 @@ unsafe fn bsClose(mut bs: *mut BitStream) {
     }
     retVal = fclose((*bs).handle);
     if retVal == -1 as libc::c_int {
-        if (*bs).mode as libc::c_int == 'w' as i32 {
+        if (*bs).mode == b'w' {
             writeError();
         } else {
             readError();
@@ -196,7 +198,7 @@ unsafe fn bsPutUInt32(mut bs: *mut BitStream, mut c: u32) {
         i -= 1;
     }
 }
-unsafe fn endsInBz2(mut name: *mut i8) -> Bool {
+unsafe fn endsInBz2(mut name: *mut c_char) -> Bool {
     let mut n: i32 = strlen(name) as i32;
     if n <= 4 as libc::c_int {
         return 0 as Bool;
@@ -206,7 +208,7 @@ unsafe fn endsInBz2(mut name: *mut i8) -> Bool {
         && *name.offset((n - 2 as libc::c_int) as isize) as libc::c_int == 'z' as i32
         && *name.offset((n - 1 as libc::c_int) as isize) as libc::c_int == '2' as i32) as Bool
 }
-unsafe fn fopen_output_safely(mut name: *mut i8, mut mode: *const libc::c_char) -> *mut FILE {
+unsafe fn fopen_output_safely(mut name: *mut c_char, mut mode: *const libc::c_char) -> *mut FILE {
     let mut fp: *mut FILE = std::ptr::null_mut::<FILE>();
     let mut fh: libc::c_int = 0;
     fh = open(
@@ -227,7 +229,7 @@ pub static mut bStart: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut bEnd: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut rbStart: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut rbEnd: [MaybeUInt64; 50000] = [0; 50000];
-unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
+unsafe fn main_0(mut argc: i32, mut argv: *mut *mut c_char) -> i32 {
     let mut inFile: *mut FILE = std::ptr::null_mut::<FILE>();
     let mut outFile: *mut FILE = std::ptr::null_mut::<FILE>();
     let mut bsIn: *mut BitStream = std::ptr::null_mut::<BitStream>();
@@ -240,14 +242,14 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
     let mut buffHi: u32 = 0;
     let mut buffLo: u32 = 0;
     let mut blockCRC: u32 = 0;
-    let mut p: *mut i8 = std::ptr::null_mut::<i8>();
+    let mut p: *mut c_char = std::ptr::null_mut();
     strncpy(
         progName.as_mut_ptr(),
         *argv.offset(0 as libc::c_int as isize),
         (2000 as libc::c_int - 1 as libc::c_int) as usize,
     );
-    progName[(2000 as libc::c_int - 1 as libc::c_int) as usize] = '\0' as i32 as i8;
-    outFileName[0 as libc::c_int as usize] = 0 as libc::c_int as i8;
+    progName[(2000 as libc::c_int - 1 as libc::c_int) as usize] = '\0' as i32 as c_char;
+    outFileName[0 as libc::c_int as usize] = 0 as libc::c_int as c_char;
     inFileName[0 as libc::c_int as usize] = outFileName[0 as libc::c_int as usize];
     fprintf(
         stderr,
@@ -463,12 +465,12 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
             }
             wrBlock += 1;
         } else if bitsRead == rbStart[wrBlock as usize] {
-            let mut split: *mut i8 = std::ptr::null_mut::<i8>();
+            let mut split: *mut c_char = std::ptr::null_mut();
             let mut ofs: i32 = 0;
             let mut k: i32 = 0;
             k = 0 as libc::c_int;
             while k < 2000 as libc::c_int {
-                outFileName[k as usize] = 0 as libc::c_int as i8;
+                outFileName[k as usize] = 0 as libc::c_int as c_char;
                 k += 1;
             }
             strcpy(outFileName.as_mut_ptr(), inFileName.as_mut_ptr());
@@ -487,7 +489,7 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut i8) -> i32 {
             p = split;
             while *p != 0 {
                 if *p as libc::c_int == ' ' as i32 {
-                    *p = '0' as i32 as i8;
+                    *p = '0' as i32 as c_char;
                 }
                 p = p.offset(1);
             }
@@ -553,7 +555,7 @@ pub fn main() {
     unsafe {
         ::std::process::exit(main_0(
             (args.len() - 1) as i32,
-            args.as_mut_ptr() as *mut *mut i8,
+            args.as_mut_ptr() as *mut *mut c_char,
         ))
     }
 }
