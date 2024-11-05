@@ -1516,7 +1516,7 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
 
     loop {
         if let decompress::State::BZ_X_IDLE = s.state {
-            return -1 as libc::c_int;
+            return BZ_SEQUENCE_ERROR as libc::c_int;
         }
         if let decompress::State::BZ_X_OUTPUT = s.state {
             let corrupt = if s.smallDecompress {
@@ -1524,9 +1524,11 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
             } else {
                 unRLE_obuf_to_output_FAST(strm, s)
             };
+
             if corrupt {
                 return BZ_DATA_ERROR as c_int;
             }
+
             if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
                 s.calculatedBlockCRC = !s.calculatedBlockCRC;
                 if s.verbosity >= 3 {
@@ -1548,26 +1550,27 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
                 return BZ_OK as libc::c_int;
             }
         }
-        if !matches!(
-            s.state,
-            decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT
-        ) {
-            let r = BZ2_decompress(strm, s);
-            if let BZ_STREAM_END = r {
-                if s.verbosity >= 3 {
-                    eprint!(
-                        "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
-                        s.storedCombinedCRC, s.calculatedCombinedCRC,
-                    );
+
+        match s.state {
+            decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT => continue,
+            _ => match BZ2_decompress(strm, s) {
+                BZ_STREAM_END => {
+                    if s.verbosity >= 3 {
+                        eprint!(
+                            "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
+                            s.storedCombinedCRC, s.calculatedCombinedCRC,
+                        );
+                    }
+                    if s.calculatedCombinedCRC != s.storedCombinedCRC {
+                        return BZ_DATA_ERROR as c_int;
+                    }
+                    return ReturnCode::BZ_STREAM_END as c_int;
                 }
-                if s.calculatedCombinedCRC != s.storedCombinedCRC {
-                    return BZ_DATA_ERROR as c_int;
-                }
-                return r as c_int;
-            }
-            if !matches!(s.state, decompress::State::BZ_X_OUTPUT) {
-                return r as c_int;
-            }
+                return_code => match s.state {
+                    decompress::State::BZ_X_OUTPUT => continue,
+                    _ => return return_code as c_int,
+                },
+            },
         }
     }
 }
