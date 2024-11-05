@@ -4,6 +4,7 @@
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
 
+use std::ffi::CStr;
 use std::mem::zeroed;
 
 use libbzip2_rs_sys::bzlib::{
@@ -12,18 +13,16 @@ use libbzip2_rs_sys::bzlib::{
 };
 
 use libc::{
-    __errno_location, _exit, close, exit, fchmod, fchown, fclose, fdopen, ferror, fflush, fgetc,
-    fileno, fopen, fprintf, fread, free, fwrite, getenv, isatty, lstat, malloc, open, perror,
-    remove, rewind, signal, size_t, stat, strcat, strcmp, strcpy, strerror, strlen, strncmp,
-    strncpy, strstr, ungetc, utimbuf, utime, write, FILE,
+    _exit, close, exit, fchmod, fchown, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen,
+    fprintf, fread, free, fwrite, getenv, isatty, lstat, malloc, open, perror, remove, rewind,
+    signal, size_t, stat, strcat, strcmp, strcpy, strlen, strncmp, strncpy, strstr, ungetc,
+    utimbuf, utime, write, FILE,
 };
 extern "C" {
     static mut stdin: *mut FILE;
     static mut stdout: *mut FILE;
     static mut stderr: *mut FILE;
-    fn __ctype_b_loc() -> *mut *const libc::c_ushort;
 }
-const _ISspace: libc::c_uint = 8192;
 type Bool = libc::c_uchar;
 type IntNative = libc::c_int;
 #[derive(Copy, Clone)]
@@ -1541,9 +1540,7 @@ unsafe fn notAStandardFile(mut name: *mut i8) -> Bool {
     if i != 0 as libc::c_int {
         return 1 as Bool;
     }
-    if statBuf.st_mode & 0o170000 as libc::c_int as libc::c_uint
-        == 0o100000 as libc::c_int as libc::c_uint
-    {
+    if statBuf.st_mode & 0o170000 == 0o100000 {
         return 0 as Bool;
     }
     1 as Bool
@@ -1555,7 +1552,7 @@ unsafe fn countHardLinks(mut name: *mut i8) -> i32 {
     if i != 0 as libc::c_int {
         return 0 as libc::c_int;
     }
-    (statBuf.st_nlink).wrapping_sub(1 as libc::c_int as libc::c_ulong) as i32
+    (statBuf.st_nlink).wrapping_sub(1) as i32
 }
 static mut fileMetaInfo: stat = unsafe { zeroed() };
 unsafe fn saveInputFileMetaInfo(mut srcName: *mut i8) {
@@ -1672,12 +1669,11 @@ unsafe fn compress(mut name: *mut i8) {
         return;
     }
     if srcMode != 1 as libc::c_int && fileExists(inName.as_mut_ptr()) == 0 {
-        fprintf(
-            stderr,
-            b"%s: Can't open input file %s: %s.\n\0" as *const u8 as *const libc::c_char,
-            progName,
-            inName.as_mut_ptr(),
-            strerror(*__errno_location()),
+        eprintln!(
+            "{}: Can't open input file {}: {}.",
+            std::env::args().next().unwrap(),
+            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+            std::io::Error::last_os_error(),
         );
         setExit(1 as libc::c_int);
         return;
@@ -1686,13 +1682,11 @@ unsafe fn compress(mut name: *mut i8) {
     while i < 4 as libc::c_int {
         if hasSuffix(inName.as_mut_ptr(), zSuffix[i as usize]) != 0 {
             if noisy != 0 {
-                fprintf(
-                    stderr,
-                    b"%s: Input file %s already has %s suffix.\n\0" as *const u8
-                        as *const libc::c_char,
-                    progName,
-                    inName.as_mut_ptr(),
-                    zSuffix[i as usize],
+                eprintln!(
+                    "{}: Input file {} already has {} suffix.",
+                    std::env::args().next().unwrap(),
+                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    CStr::from_ptr(zSuffix[i as usize]).to_string_lossy(),
                 );
             }
             setExit(1 as libc::c_int);
@@ -1702,9 +1696,7 @@ unsafe fn compress(mut name: *mut i8) {
     }
     if srcMode == 3 as libc::c_int || srcMode == 2 as libc::c_int {
         stat(inName.as_mut_ptr(), &mut statBuf);
-        if statBuf.st_mode & 0o170000 as libc::c_int as libc::c_uint
-            == 0o40000 as libc::c_int as libc::c_uint
-        {
+        if statBuf.st_mode & 0o170000 == 0o40000 {
             fprintf(
                 stderr,
                 b"%s: Input file %s is a directory.\n\0" as *const u8 as *const libc::c_char,
@@ -1813,12 +1805,11 @@ unsafe fn compress(mut name: *mut i8) {
                 return;
             }
             if inStr.is_null() {
-                fprintf(
-                    stderr,
-                    b"%s: Can't open input file %s: %s.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    inName.as_mut_ptr(),
-                    strerror(*__errno_location()),
+                eprintln!(
+                    "{}: Can't open input file {}: {}.",
+                    std::env::args().next().unwrap(),
+                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    std::io::Error::last_os_error(),
                 );
                 setExit(1 as libc::c_int);
                 return;
@@ -1834,12 +1825,11 @@ unsafe fn compress(mut name: *mut i8) {
                 b"wb\0" as *const u8 as *const libc::c_char,
             );
             if outStr.is_null() {
-                fprintf(
-                    stderr,
-                    b"%s: Can't create output file %s: %s.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    outName.as_mut_ptr(),
-                    strerror(*__errno_location()),
+                eprintln!(
+                    "{}: Can't create output file {}: {}.",
+                    std::env::args().next().unwrap(),
+                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    std::io::Error::last_os_error(),
                 );
                 if !inStr.is_null() {
                     fclose(inStr);
@@ -1848,12 +1838,11 @@ unsafe fn compress(mut name: *mut i8) {
                 return;
             }
             if inStr.is_null() {
-                fprintf(
-                    stderr,
-                    b"%s: Can't open input file %s: %s.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    inName.as_mut_ptr(),
-                    strerror(*__errno_location()),
+                eprintln!(
+                    "{}: Can't open input file {}: {}.",
+                    std::env::args().next().unwrap(),
+                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    std::io::Error::last_os_error(),
                 );
                 if !outStr.is_null() {
                     fclose(outStr);
@@ -1970,21 +1959,18 @@ unsafe fn uncompress(mut name: *mut i8) {
         return;
     }
     if srcMode != 1 as libc::c_int && fileExists(inName.as_mut_ptr()) == 0 {
-        fprintf(
-            stderr,
-            b"%s: Can't open input file %s: %s.\n\0" as *const u8 as *const libc::c_char,
-            progName,
-            inName.as_mut_ptr(),
-            strerror(*__errno_location()),
+        eprintln!(
+            "{}: Can't open input file {}: {}.",
+            std::env::args().next().unwrap(),
+            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+            std::io::Error::last_os_error(),
         );
         setExit(1 as libc::c_int);
         return;
     }
     if srcMode == 3 as libc::c_int || srcMode == 2 as libc::c_int {
         stat(inName.as_mut_ptr(), &mut statBuf);
-        if statBuf.st_mode & 0o170000 as libc::c_int as libc::c_uint
-            == 0o40000 as libc::c_int as libc::c_uint
-        {
+        if statBuf.st_mode & 0o170000 == 0o40000 {
             fprintf(
                 stderr,
                 b"%s: Input file %s is a directory.\n\0" as *const u8 as *const libc::c_char,
@@ -2084,12 +2070,11 @@ unsafe fn uncompress(mut name: *mut i8) {
             );
             outStr = stdout;
             if inStr.is_null() {
-                fprintf(
-                    stderr,
-                    b"%s: Can't open input file %s:%s.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    inName.as_mut_ptr(),
-                    strerror(*__errno_location()),
+                eprintln!(
+                    "{}: Can't open input file {}:{}.",
+                    std::env::args().next().unwrap(),
+                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    std::io::Error::last_os_error(),
                 );
                 if !inStr.is_null() {
                     fclose(inStr);
@@ -2108,12 +2093,11 @@ unsafe fn uncompress(mut name: *mut i8) {
                 b"wb\0" as *const u8 as *const libc::c_char,
             );
             if outStr.is_null() {
-                fprintf(
-                    stderr,
-                    b"%s: Can't create output file %s: %s.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    outName.as_mut_ptr(),
-                    strerror(*__errno_location()),
+                eprintln!(
+                    "{}: Can't create output file {}: {}.",
+                    std::env::args().next().unwrap(),
+                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    std::io::Error::last_os_error(),
                 );
                 if !inStr.is_null() {
                     fclose(inStr);
@@ -2122,12 +2106,11 @@ unsafe fn uncompress(mut name: *mut i8) {
                 return;
             }
             if inStr.is_null() {
-                fprintf(
-                    stderr,
-                    b"%s: Can't open input file %s: %s.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    inName.as_mut_ptr(),
-                    strerror(*__errno_location()),
+                eprintln!(
+                    "{}: Can't open input file {}: {}.",
+                    std::env::args().next().unwrap(),
+                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    std::io::Error::last_os_error(),
                 );
                 if !outStr.is_null() {
                     fclose(outStr);
@@ -2237,21 +2220,18 @@ unsafe fn testf(mut name: *mut i8) {
         return;
     }
     if srcMode != 1 as libc::c_int && fileExists(inName.as_mut_ptr()) == 0 {
-        fprintf(
-            stderr,
-            b"%s: Can't open input %s: %s.\n\0" as *const u8 as *const libc::c_char,
-            progName,
-            inName.as_mut_ptr(),
-            strerror(*__errno_location()),
+        eprintln!(
+            "{}: Can't open input {}: {}.",
+            std::env::args().next().unwrap(),
+            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+            std::io::Error::last_os_error(),
         );
         setExit(1 as libc::c_int);
         return;
     }
     if srcMode != 1 as libc::c_int {
         stat(inName.as_mut_ptr(), &mut statBuf);
-        if statBuf.st_mode & 0o170000 as libc::c_int as libc::c_uint
-            == 0o40000 as libc::c_int as libc::c_uint
-        {
+        if statBuf.st_mode & 0o170000 == 0o40000 {
             fprintf(
                 stderr,
                 b"%s: Input file %s is a directory.\n\0" as *const u8 as *const libc::c_char,
@@ -2288,12 +2268,11 @@ unsafe fn testf(mut name: *mut i8) {
                 b"rb\0" as *const u8 as *const libc::c_char,
             );
             if inStr.is_null() {
-                fprintf(
-                    stderr,
-                    b"%s: Can't open input file %s:%s.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    inName.as_mut_ptr(),
-                    strerror(*__errno_location()),
+                eprintln!(
+                    "{}: Can't open input file {}:{}.",
+                    std::env::args().next().unwrap(),
+                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    std::io::Error::last_os_error(),
                 );
                 setExit(1 as libc::c_int);
                 return;
@@ -2393,17 +2372,11 @@ unsafe fn addFlagsFromEnvVar(mut argList: *mut *mut Cell, mut varName: *mut i8) 
             }
             p = p.offset(i as isize);
             i = 0 as libc::c_int;
-            while *(*__ctype_b_loc()).offset(*p.offset(0 as libc::c_int as isize) as i32 as isize)
-                as libc::c_int
-                & _ISspace as libc::c_int as libc::c_ushort as libc::c_int
-                != 0
-            {
+            while !(*p.offset(0 as libc::c_int as isize) as u8 as char).is_ascii_whitespace() {
                 p = p.offset(1);
             }
             while *p.offset(i as isize) as libc::c_int != 0 as libc::c_int
-                && *(*__ctype_b_loc()).offset(*p.offset(i as isize) as i32 as isize) as libc::c_int
-                    & _ISspace as libc::c_int as libc::c_ushort as libc::c_int
-                    == 0
+                && !(*p.offset(i as isize) as u8 as char).is_ascii_whitespace()
             {
                 i += 1;
             }
