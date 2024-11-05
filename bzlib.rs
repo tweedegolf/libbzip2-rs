@@ -1028,9 +1028,6 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     verbosity: c_int,
     small: c_int,
 ) -> libc::c_int {
-    if !bz_config_ok() {
-        return BZ_CONFIG_ERROR as libc::c_int;
-    }
     if strm.is_null() {
         return BZ_PARAM_ERROR as c_int;
     }
@@ -1655,9 +1652,6 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
 /// * Either
 ///     - `strm` is `NULL`
 ///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`BZ2_bzDecompressInit`]
-/// * Either
-///     - `bzalloc`, `bzfree` and `opaque` are `NULL`
-///     - `bzalloc`, `bzfree` and `opaque` are form a valid allocator
 #[export_name = prefix!(BZ2_bzDecompressEnd)]
 pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_int {
     let Some(strm) = strm.as_mut() else {
