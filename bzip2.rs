@@ -1,9 +1,10 @@
-#![allow(dead_code)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
+
+use std::mem::zeroed;
 
 use libbzip2_rs_sys::bzlib::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
@@ -12,109 +13,53 @@ use libbzip2_rs_sys::bzlib::{
 
 use libc::{
     __errno_location, _exit, close, exit, fchmod, fchown, fclose, fdopen, ferror, fflush, fgetc,
-    fileno, fopen, fprintf, fread, free, fwrite, getenv, isatty, malloc, open, perror, remove,
-    rewind, signal, size_t, strcat, strcmp, strcpy, strerror, strlen, strncmp, strncpy, strstr,
-    ungetc, utimbuf, utime, write, FILE,
+    fileno, fopen, fprintf, fread, free, fwrite, getenv, isatty, lstat, malloc, open, perror,
+    remove, rewind, signal, size_t, stat, strcat, strcmp, strcpy, strerror, strlen, strncmp,
+    strncpy, strstr, ungetc, utimbuf, utime, write, FILE,
 };
 extern "C" {
     static mut stdin: *mut FILE;
     static mut stdout: *mut FILE;
     static mut stderr: *mut FILE;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
-    fn stat(__file: *const libc::c_char, __buf: *mut stat) -> libc::c_int;
-    fn lstat(__file: *const libc::c_char, __buf: *mut stat) -> libc::c_int;
 }
-pub type __dev_t = libc::c_ulong;
-pub type __uid_t = libc::c_uint;
-pub type __gid_t = libc::c_uint;
-pub type __ino_t = libc::c_ulong;
-pub type __mode_t = libc::c_uint;
-pub type __nlink_t = libc::c_ulong;
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
-pub type __time_t = libc::c_long;
-pub type __blksize_t = libc::c_long;
-pub type __blkcnt_t = libc::c_long;
-pub type __ssize_t = libc::c_long;
-pub type __syscall_slong_t = libc::c_long;
-pub type _IO_lock_t = ();
-pub type ssize_t = __ssize_t;
+const _ISspace: libc::c_uint = 8192;
+type Bool = libc::c_uchar;
+type IntNative = libc::c_int;
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct timespec {
-    pub tv_sec: __time_t,
-    pub tv_nsec: __syscall_slong_t,
-}
-pub type __sighandler_t = Option<unsafe extern "C" fn(libc::c_int) -> ()>;
-pub type C2RustUnnamed = libc::c_uint;
-pub const _ISalnum: C2RustUnnamed = 8;
-pub const _ISpunct: C2RustUnnamed = 4;
-pub const _IScntrl: C2RustUnnamed = 2;
-pub const _ISblank: C2RustUnnamed = 1;
-pub const _ISgraph: C2RustUnnamed = 32768;
-pub const _ISprint: C2RustUnnamed = 16384;
-pub const _ISspace: C2RustUnnamed = 8192;
-pub const _ISxdigit: C2RustUnnamed = 4096;
-pub const _ISdigit: C2RustUnnamed = 2048;
-pub const _ISalpha: C2RustUnnamed = 1024;
-pub const _ISlower: C2RustUnnamed = 512;
-pub const _ISupper: C2RustUnnamed = 256;
-pub type BZFILE = ();
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct stat {
-    pub st_dev: __dev_t,
-    pub st_ino: __ino_t,
-    pub st_nlink: __nlink_t,
-    pub st_mode: __mode_t,
-    pub st_uid: __uid_t,
-    pub st_gid: __gid_t,
-    pub __pad0: libc::c_int,
-    pub st_rdev: __dev_t,
-    pub st_size: __off_t,
-    pub st_blksize: __blksize_t,
-    pub st_blocks: __blkcnt_t,
-    pub st_atim: timespec,
-    pub st_mtim: timespec,
-    pub st_ctim: timespec,
-    pub __glibc_reserved: [__syscall_slong_t; 3],
-}
-pub type Bool = libc::c_uchar;
-pub type IntNative = libc::c_int;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct UInt64 {
-    pub b: [u8; 8],
+struct UInt64 {
+    b: [u8; 8],
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct zzzz {
-    pub name: *mut i8,
-    pub link: *mut zzzz,
+struct zzzz {
+    name: *mut i8,
+    link: *mut zzzz,
 }
-pub type Cell = zzzz;
-pub static mut verbosity: i32 = 0;
-pub static mut keepInputFiles: Bool = 0;
-pub static mut smallMode: Bool = 0;
-pub static mut deleteOutputOnInterrupt: Bool = 0;
-pub static mut forceOverwrite: Bool = 0;
-pub static mut testFailsExist: Bool = 0;
-pub static mut unzFailsExist: Bool = 0;
-pub static mut noisy: Bool = 0;
-pub static mut numFileNames: i32 = 0;
-pub static mut numFilesProcessed: i32 = 0;
-pub static mut blockSize100k: i32 = 0;
-pub static mut exitValue: i32 = 0;
-pub static mut opMode: i32 = 0;
-pub static mut srcMode: i32 = 0;
-pub static mut longestFileName: i32 = 0;
-pub static mut inName: [i8; 1034] = [0; 1034];
-pub static mut outName: [i8; 1034] = [0; 1034];
-pub static mut tmpName: [i8; 1034] = [0; 1034];
-pub static mut progName: *mut i8 = 0 as *const i8 as *mut i8;
-pub static mut progNameReally: [i8; 1034] = [0; 1034];
-pub static mut outputHandleJustInCase: *mut FILE = 0 as *const FILE as *mut FILE;
-pub static mut workFactor: i32 = 0;
+type Cell = zzzz;
+static mut verbosity: i32 = 0;
+static mut keepInputFiles: Bool = 0;
+static mut smallMode: Bool = 0;
+static mut deleteOutputOnInterrupt: Bool = 0;
+static mut forceOverwrite: Bool = 0;
+static mut testFailsExist: Bool = 0;
+static mut unzFailsExist: Bool = 0;
+static mut noisy: Bool = 0;
+static mut numFileNames: i32 = 0;
+static mut numFilesProcessed: i32 = 0;
+static mut blockSize100k: i32 = 0;
+static mut exitValue: i32 = 0;
+static mut opMode: i32 = 0;
+static mut srcMode: i32 = 0;
+static mut longestFileName: i32 = 0;
+static mut inName: [i8; 1034] = [0; 1034];
+static mut outName: [i8; 1034] = [0; 1034];
+static mut tmpName: [i8; 1034] = [0; 1034];
+static mut progName: *mut i8 = 0 as *const i8 as *mut i8;
+static mut progNameReally: [i8; 1034] = [0; 1034];
+static mut outputHandleJustInCase: *mut FILE = 0 as *const FILE as *mut FILE;
+static mut workFactor: i32 = 0;
 unsafe fn uInt64_from_UInt32s(mut n: *mut UInt64, mut lo32: u32, mut hi32: u32) {
     (*n).b[7 as libc::c_int as usize] =
         (hi32 >> 24 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
@@ -1339,32 +1284,7 @@ unsafe fn showFileNames() {
 }
 unsafe fn cleanUpAndFail(mut ec: i32) -> ! {
     let mut retVal: IntNative = 0;
-    let mut statBuf: stat = stat {
-        st_dev: 0,
-        st_ino: 0,
-        st_nlink: 0,
-        st_mode: 0,
-        st_uid: 0,
-        st_gid: 0,
-        __pad0: 0,
-        st_rdev: 0,
-        st_size: 0,
-        st_blksize: 0,
-        st_blocks: 0,
-        st_atim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_mtim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_ctim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        __glibc_reserved: [0; 3],
-    };
+    let mut statBuf: stat = zeroed();
     if srcMode == 3 as libc::c_int
         && opMode != 3 as libc::c_int
         && deleteOutputOnInterrupt as libc::c_int != 0
@@ -1616,32 +1536,7 @@ unsafe fn fopen_output_safely(mut name: *mut i8, mut mode: *const libc::c_char) 
 }
 unsafe fn notAStandardFile(mut name: *mut i8) -> Bool {
     let mut i: IntNative = 0;
-    let mut statBuf: stat = stat {
-        st_dev: 0,
-        st_ino: 0,
-        st_nlink: 0,
-        st_mode: 0,
-        st_uid: 0,
-        st_gid: 0,
-        __pad0: 0,
-        st_rdev: 0,
-        st_size: 0,
-        st_blksize: 0,
-        st_blocks: 0,
-        st_atim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_mtim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_ctim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        __glibc_reserved: [0; 3],
-    };
+    let mut statBuf: stat = zeroed();
     i = lstat(name, &mut statBuf);
     if i != 0 as libc::c_int {
         return 1 as Bool;
@@ -1655,64 +1550,14 @@ unsafe fn notAStandardFile(mut name: *mut i8) -> Bool {
 }
 unsafe fn countHardLinks(mut name: *mut i8) -> i32 {
     let mut i: IntNative = 0;
-    let mut statBuf: stat = stat {
-        st_dev: 0,
-        st_ino: 0,
-        st_nlink: 0,
-        st_mode: 0,
-        st_uid: 0,
-        st_gid: 0,
-        __pad0: 0,
-        st_rdev: 0,
-        st_size: 0,
-        st_blksize: 0,
-        st_blocks: 0,
-        st_atim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_mtim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_ctim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        __glibc_reserved: [0; 3],
-    };
+    let mut statBuf: stat = zeroed();
     i = lstat(name, &mut statBuf);
     if i != 0 as libc::c_int {
         return 0 as libc::c_int;
     }
     (statBuf.st_nlink).wrapping_sub(1 as libc::c_int as libc::c_ulong) as i32
 }
-static mut fileMetaInfo: stat = stat {
-    st_dev: 0,
-    st_ino: 0,
-    st_nlink: 0,
-    st_mode: 0,
-    st_uid: 0,
-    st_gid: 0,
-    __pad0: 0,
-    st_rdev: 0,
-    st_size: 0,
-    st_blksize: 0,
-    st_blocks: 0,
-    st_atim: timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    },
-    st_mtim: timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    },
-    st_ctim: timespec {
-        tv_sec: 0,
-        tv_nsec: 0,
-    },
-    __glibc_reserved: [0; 3],
-};
+static mut fileMetaInfo: stat = unsafe { zeroed() };
 unsafe fn saveInputFileMetaInfo(mut srcName: *mut i8) {
     let mut retVal: IntNative = 0;
     retVal = stat(srcName, core::ptr::addr_of_mut!(fileMetaInfo));
@@ -1726,8 +1571,8 @@ unsafe fn applySavedTimeInfoToOutputFile(mut dstName: *mut i8) {
         actime: 0,
         modtime: 0,
     };
-    uTimBuf.actime = fileMetaInfo.st_atim.tv_sec;
-    uTimBuf.modtime = fileMetaInfo.st_mtim.tv_sec;
+    uTimBuf.actime = fileMetaInfo.st_atime;
+    uTimBuf.modtime = fileMetaInfo.st_mtime;
     retVal = utime(dstName, &mut uTimBuf);
     if retVal != 0 as libc::c_int {
         ioError();
@@ -1744,13 +1589,13 @@ unsafe fn applySavedFileAttrToOutputFile(mut fd: IntNative) {
 unsafe fn containsDubiousChars(_: *mut i8) -> Bool {
     0
 }
-pub static mut zSuffix: [*const i8; 4] = [
+static mut zSuffix: [*const i8; 4] = [
     b".bz2\0" as *const u8 as *const libc::c_char,
     b".bz\0" as *const u8 as *const libc::c_char,
     b".tbz2\0" as *const u8 as *const libc::c_char,
     b".tbz\0" as *const u8 as *const libc::c_char,
 ];
-pub static mut unzSuffix: [*const i8; 4] = [
+static mut unzSuffix: [*const i8; 4] = [
     b"\0" as *const u8 as *const libc::c_char,
     b"\0" as *const u8 as *const libc::c_char,
     b".tar\0" as *const u8 as *const libc::c_char,
@@ -1780,32 +1625,7 @@ unsafe fn compress(mut name: *mut i8) {
     let mut outStr: *mut FILE = std::ptr::null_mut::<FILE>();
     let mut n: i32 = 0;
     let mut i: i32 = 0;
-    let mut statBuf: stat = stat {
-        st_dev: 0,
-        st_ino: 0,
-        st_nlink: 0,
-        st_mode: 0,
-        st_uid: 0,
-        st_gid: 0,
-        __pad0: 0,
-        st_rdev: 0,
-        st_size: 0,
-        st_blksize: 0,
-        st_blocks: 0,
-        st_atim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_mtim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_ctim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        __glibc_reserved: [0; 3],
-    };
+    let mut statBuf: stat = zeroed();
     deleteOutputOnInterrupt = 0 as Bool;
     if name.is_null() && srcMode != 1 as libc::c_int {
         panic(b"compress: bad modes\n\0" as *const u8 as *const libc::c_char);
@@ -2079,32 +1899,7 @@ unsafe fn uncompress(mut name: *mut i8) {
     let mut i: i32 = 0;
     let mut magicNumberOK: Bool = 0;
     let mut cantGuess: Bool = 0;
-    let mut statBuf: stat = stat {
-        st_dev: 0,
-        st_ino: 0,
-        st_nlink: 0,
-        st_mode: 0,
-        st_uid: 0,
-        st_gid: 0,
-        __pad0: 0,
-        st_rdev: 0,
-        st_size: 0,
-        st_blksize: 0,
-        st_blocks: 0,
-        st_atim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_mtim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_ctim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        __glibc_reserved: [0; 3],
-    };
+    let mut statBuf: stat = zeroed();
     deleteOutputOnInterrupt = 0 as Bool;
     if name.is_null() && srcMode != 1 as libc::c_int {
         panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
@@ -2404,32 +2199,7 @@ unsafe fn uncompress(mut name: *mut i8) {
 unsafe fn testf(mut name: *mut i8) {
     let mut inStr: *mut FILE = std::ptr::null_mut::<FILE>();
     let mut allOK: Bool = 0;
-    let mut statBuf: stat = stat {
-        st_dev: 0,
-        st_ino: 0,
-        st_nlink: 0,
-        st_mode: 0,
-        st_uid: 0,
-        st_gid: 0,
-        __pad0: 0,
-        st_rdev: 0,
-        st_size: 0,
-        st_blksize: 0,
-        st_blocks: 0,
-        st_atim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_mtim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        st_ctim: timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        },
-        __glibc_reserved: [0; 3],
-    };
+    let mut statBuf: stat = zeroed();
     deleteOutputOnInterrupt = 0 as Bool;
     if name.is_null() && srcMode != 1 as libc::c_int {
         panic(b"testf: bad modes\n\0" as *const u8 as *const libc::c_char);
@@ -3100,7 +2870,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut i8) -> IntNative {
     }
     exitValue
 }
-pub fn main() {
+fn main() {
     let mut args: Vec<*mut libc::c_char> = Vec::new();
     for arg in ::std::env::args() {
         args.push(
