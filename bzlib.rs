@@ -496,19 +496,9 @@ pub fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
     }
 }
 
-const fn bz_config_ok() -> bool {
-    if core::mem::size_of::<core::ffi::c_int>() != 4 {
-        return false;
-    }
-    if core::mem::size_of::<core::ffi::c_short>() != 2 {
-        return false;
-    }
-    if core::mem::size_of::<core::ffi::c_char>() != 1 {
-        return false;
-    }
-
-    true
-}
+const _C_INT_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_int>() == 4);
+const _C_SHORT_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_short>() == 2);
+const _C_CHAR_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_char>() == 1);
 
 unsafe extern "C" fn default_bzalloc(
     _opaque: *mut libc::c_void,
@@ -600,10 +590,6 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     verbosity: libc::c_int,
     mut workFactor: libc::c_int,
 ) -> libc::c_int {
-    if !bz_config_ok() {
-        return BZ_CONFIG_ERROR as libc::c_int;
-    }
-
     if strm.is_null() || !(1..=9).contains(&blockSize100k) || !(0..=250).contains(&workFactor) {
         return BZ_PARAM_ERROR as c_int;
     }
