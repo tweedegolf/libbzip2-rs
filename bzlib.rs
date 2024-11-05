@@ -2482,14 +2482,7 @@ unsafe fn bzopen_or_bzdopen(
         },
     );
     if open_mode == 0 as libc::c_int {
-        strcat(
-            mode2.as_mut_ptr(),
-            if writing != 0 {
-                b"e\0" as *const u8 as *const libc::c_char
-            } else {
-                b"e\0" as *const u8 as *const libc::c_char
-            },
-        );
+        strcat(mode2.as_mut_ptr(), c"e".as_ptr());
     }
     if open_mode == 0 as libc::c_int {
         if path.is_null()
