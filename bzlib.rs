@@ -1004,6 +1004,24 @@ pub enum DecompressMode {
     Fast,
 }
 
+/// Prepares the stream for decompression.
+///
+/// # Returns
+///
+/// - [`BZ_OK`] on success
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `!(0..=1).contains(&small)`
+///     - `!(0..=4).contains(&verbosity)`
+/// - [`BZ_MEM_ERROR`] if insufficient memory is available
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * Either
+///     - `strm` is `NULL`
+///     - `strm` satisfies the requirements of `&mut *strm`
+/// * The `bzalloc`, `bzfree` and `opaque` fields form a [valid allocator](allocator-safety).
 #[export_name = prefix!(BZ2_bzDecompressInit)]
 pub unsafe extern "C" fn BZ2_bzDecompressInit(
     strm: *mut bz_stream,
