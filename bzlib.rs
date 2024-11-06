@@ -8,6 +8,7 @@ use crate::compress::compress_block;
 use crate::crctable::BZ2_CRC32TABLE;
 use crate::decompress::{self, decompress};
 use crate::libbzip2_rs_sys_version;
+use crate::BZ_MAX_UNUSED;
 
 extern "C" {
     static stdin: *mut FILE;
@@ -26,29 +27,13 @@ pub(crate) const BZ_MAX_SELECTORS: usize = 2 + (900000 / BZ_G_SIZE);
 pub(crate) const BZ_RUNA: u16 = 0;
 pub(crate) const BZ_RUNB: u16 = 1;
 
-pub(crate) const BZ_MAX_UNUSED: u32 = 5000;
+pub(crate) const BZ_MAX_UNUSED_U32: u32 = 5000;
 
 #[cfg(doc)]
 use crate::{
-    // return codes
-    BZ_CONFIG_ERROR,
-    BZ_DATA_ERROR,
-    BZ_DATA_ERROR_MAGIC,
-    BZ_FINISH,
-    BZ_FINISH_OK,
-    BZ_FLUSH,
-    BZ_FLUSH_OK,
-    BZ_IO_ERROR,
-    BZ_MEM_ERROR,
-    BZ_OK,
-    BZ_OUTBUFF_FULL,
-    BZ_PARAM_ERROR,
-    // compress actions
-    BZ_RUN,
-    BZ_RUN_OK,
-    BZ_SEQUENCE_ERROR,
-    BZ_STREAM_END,
-    BZ_UNEXPECTED_EOF,
+    BZ_CONFIG_ERROR, BZ_DATA_ERROR, BZ_DATA_ERROR_MAGIC, BZ_FINISH, BZ_FINISH_OK, BZ_FLUSH,
+    BZ_FLUSH_OK, BZ_IO_ERROR, BZ_MAX_UNUSED, BZ_MEM_ERROR, BZ_OK, BZ_OUTBUFF_FULL, BZ_PARAM_ERROR,
+    BZ_RUN, BZ_RUN_OK, BZ_SEQUENCE_ERROR, BZ_STREAM_END, BZ_UNEXPECTED_EOF,
 };
 
 #[cfg(feature = "custom-prefix")]
@@ -438,7 +423,11 @@ impl<T> DSlice<T> {
         }
     }
 
-    pub(crate) unsafe fn alloc(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) -> Option<Self> {
+    pub(crate) unsafe fn alloc(
+        bzalloc: AllocFunc,
+        opaque: *mut c_void,
+        len: usize,
+    ) -> Option<Self> {
         let ptr = bzalloc_array::<T>(bzalloc, opaque, len)?;
         Some(Self::from_raw_parts_mut(ptr, len))
     }
@@ -463,6 +452,8 @@ impl<T> DSlice<T> {
         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 }
+
+pub enum BZFILE {}
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
@@ -516,11 +507,7 @@ fn isempty_rl(s: &mut EState) -> bool {
 ///     * a `NULL` pointer
 ///     * a valid pointer to an allocation of `len * size_of::<T>()` bytes aligned to at least `align_of::<usize>()`
 /// - the type `T` must be zeroable (i.e. an all-zero bit pattern is valid for `T`)
-unsafe fn bzalloc_array<T>(
-    bzalloc: AllocFunc,
-    opaque: *mut c_void,
-    len: usize,
-) -> Option<*mut T> {
+unsafe fn bzalloc_array<T>(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) -> Option<*mut T> {
     assert!(core::mem::align_of::<T>() <= 16);
 
     let len = i32::try_from(len).ok()?;
@@ -1770,7 +1757,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     blockSize100k: c_int,
     verbosity: c_int,
     mut workFactor: c_int,
-) -> *mut c_void {
+) -> *mut BZFILE {
     let bzf: *mut bzFile = ptr::null_mut::<bzFile>();
 
     BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
@@ -1816,7 +1803,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
             bzf.strm.avail_in = 0;
             bzf.initialisedOk = true;
 
-            bzf as *mut bzFile as *mut c_void
+            bzf as *mut bzFile as *mut BZFILE
         }
         error => {
             BZ_SETERR!(bzerror, bzf, error);
@@ -1830,7 +1817,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
 #[export_name = prefix!(BZ2_bzWrite)]
 pub unsafe extern "C" fn BZ2_bzWrite(
     bzerror: *mut c_int,
-    b: *mut c_void,
+    b: *mut BZFILE,
     buf: *mut c_void,
     len: c_int,
 ) {
@@ -1867,12 +1854,12 @@ pub unsafe extern "C" fn BZ2_bzWrite(
     bzf.strm.next_in = buf.cast::<c_char>();
 
     loop {
-        bzf.strm.avail_out = BZ_MAX_UNUSED;
+        bzf.strm.avail_out = BZ_MAX_UNUSED_U32;
         bzf.strm.next_out = bzf.buf.as_mut_ptr().cast::<c_char>();
         match BZ2_bzCompressHelp(&mut bzf.strm, Action::Run as c_int) {
             ReturnCode::BZ_RUN_OK => {
-                if bzf.strm.avail_out < BZ_MAX_UNUSED {
-                    let n1 = BZ_MAX_UNUSED.wrapping_sub(bzf.strm.avail_out) as usize;
+                if bzf.strm.avail_out < BZ_MAX_UNUSED_U32 {
+                    let n1 = BZ_MAX_UNUSED_U32.wrapping_sub(bzf.strm.avail_out) as usize;
                     let n2 = fwrite(
                         bzf.buf.as_mut_ptr().cast::<c_void>(),
                         mem::size_of::<u8>(),
@@ -1900,7 +1887,7 @@ pub unsafe extern "C" fn BZ2_bzWrite(
 #[export_name = prefix!(BZ2_bzWriteClose)]
 pub unsafe extern "C" fn BZ2_bzWriteClose(
     bzerror: *mut c_int,
-    b: *mut c_void,
+    b: *mut BZFILE,
     abandon: c_int,
     nbytes_in: *mut c_uint,
     nbytes_out: *mut c_uint,
@@ -1918,7 +1905,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose(
 #[export_name = prefix!(BZ2_bzWriteClose64)]
 pub unsafe extern "C" fn BZ2_bzWriteClose64(
     bzerror: *mut c_int,
-    b: *mut c_void,
+    b: *mut BZFILE,
     abandon: c_int,
     nbytes_in_lo32: *mut c_uint,
     nbytes_in_hi32: *mut c_uint,
@@ -1957,12 +1944,12 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
 
     if abandon == 0 && bzf.lastErr == ReturnCode::BZ_OK {
         loop {
-            bzf.strm.avail_out = BZ_MAX_UNUSED;
+            bzf.strm.avail_out = BZ_MAX_UNUSED_U32;
             bzf.strm.next_out = (bzf.buf).as_mut_ptr().cast::<c_char>();
             match BZ2_bzCompressHelp(&mut bzf.strm, 2 as c_int) {
                 ret @ (ReturnCode::BZ_FINISH_OK | ReturnCode::BZ_STREAM_END) => {
-                    if bzf.strm.avail_out < BZ_MAX_UNUSED {
-                        let n1 = BZ_MAX_UNUSED.wrapping_sub(bzf.strm.avail_out) as usize;
+                    if bzf.strm.avail_out < BZ_MAX_UNUSED_U32 {
+                        let n1 = BZ_MAX_UNUSED_U32.wrapping_sub(bzf.strm.avail_out) as usize;
                         let n2 = fwrite(
                             bzf.buf.as_mut_ptr().cast::<c_void>(),
                             mem::size_of::<u8>(),
@@ -2013,6 +2000,48 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
     free(bzf as *mut bzFile as *mut c_void);
 }
 
+/// Prepare to read compressed data from a file handle.
+///
+/// The file handle `f` should refer to a file which has been opened for reading, and for which the error indicator `libc::ferror(f)` is not set.
+///
+/// If small is 1, the library will try to decompress using less memory, at the expense of speed.
+///
+/// For reasons explained below, [`BZ2_bzRead`] will decompress the nUnused bytes starting at unused, before starting to read from the file `f`.
+/// At most [`BZ_MAX_UNUSED`] bytes may be supplied like this. If this facility is not required, you should pass NULL and 0 for unused and nUnused respectively.
+///
+/// For the meaning of parameters `small`, `verbosity`, see [`BZ2_bzDecompressInit`].
+///
+/// Because the compression ratio of the compressed data cannot be known in advance,
+/// there is no easy way to guarantee that the output buffer will be big enough.
+/// You may of course make arrangements in your code to record the size of the uncompressed data,
+/// but such a mechanism is beyond the scope of this library.
+///
+/// # Returns
+///
+/// - a valid pointer to an abstract `BZFILE`
+/// - `NULL` otherwise
+///
+/// # Possible assignments to `bzerror`
+///
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `(unused.is_null() && nUnused != 0)`
+///     - `(!unused.is_null() && !(0..=BZ_MAX_UNUSED).contains(&nUnused))`
+///     - `!(0..=1).contains(&small)`
+///     - `!(0..=4).contains(&verbosity)`
+/// - [`BZ_IO_ERROR`] if `libc::ferror(f)` is nonzero
+/// - [`BZ_MEM_ERROR`] if insufficient memory is available
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `bzerror` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `unused` is `NULL`
+///     - `unused` is readable for `nUnused` bytes
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzReadOpen)]
 pub unsafe extern "C" fn BZ2_bzReadOpen(
     bzerror: *mut c_int,
@@ -2021,7 +2050,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     small: c_int,
     unused: *mut c_void,
     nUnused: c_int,
-) -> *mut c_void {
+) -> *mut BZFILE {
     let bzf: *mut bzFile = ptr::null_mut::<bzFile>();
 
     BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
@@ -2030,15 +2059,15 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         || !(0..=1).contains(&small)
         || !(0..=4).contains(&verbosity)
         || (unused.is_null() && nUnused != 0)
-        || (!unused.is_null() && !(0..=5000).contains(&nUnused))
+        || (!unused.is_null() && !(0..=BZ_MAX_UNUSED_U32 as c_int).contains(&nUnused))
     {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
-        return ptr::null_mut::<c_void>();
+        return ptr::null_mut::<BZFILE>();
     }
 
     if ferror(f) != 0 {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_IO_ERROR);
-        return ptr::null_mut::<c_void>();
+        return ptr::null_mut::<BZFILE>();
     }
 
     let Some(bzf) = bzalloc_array::<bzFile>(default_bzalloc, ptr::null_mut(), 1) else {
@@ -2081,11 +2110,34 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         }
     }
 
-    bzf as *mut bzFile as *mut c_void
+    bzf as *mut bzFile as *mut BZFILE
 }
 
+/// Releases all memory associated with a [`BZFILE`] opened with [`BZ2_bzReadOpen`].
+///
+/// This function does not call `fclose` on the underlying file handle, the caller should close the
+/// file if appropriate.
+///
+/// This function should be called to clean up after all error situations on `BZFILE`s opened with
+/// [`BZ2_bzReadOpen`].
+///
+/// # Possible assignments to `bzerror`
+///
+/// - [`BZ_SEQUENCE_ERROR`] if b was opened with [`BZ2_bzWriteOpen`]
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `bzerror` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzReadOpen`] or [`BZ2_bzWriteOpen`]
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzReadClose)]
-pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut c_int, b: *mut c_void) {
+pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut c_int, b: *mut BZFILE) {
     let bzf: *mut bzFile = b as *mut bzFile;
 
     BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
@@ -2107,10 +2159,44 @@ pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut c_int, b: *mut c_void) {
     free(bzf as *mut bzFile as *mut c_void);
 }
 
+/// Reads up to `len` (uncompressed) bytes from the compressed file `b` into the buffer `buf`.
+///
+/// # Returns
+///
+/// - the number of bytes read
+///
+/// # Possible assignments to `bzerror`
+///
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `b.is_null()`
+///     - `buf.is_null()`
+///     - `len < 0`
+/// - [`BZ_SEQUENCE_ERROR`] if b was opened with [`BZ2_bzWriteOpen`]
+/// - [`BZ_IO_ERROR`] if there is an error reading from the compressed file
+/// - [`BZ_UNEXPECTED_EOF`] if the compressed data ends before the logical end-of-stream was detected
+/// - [`BZ_DATA_ERROR`] if a data integrity error is detected in the compressed stream
+/// - [`BZ_DATA_ERROR_MAGIC`] if the compressed stream doesn't begin with the right magic bytes
+/// - [`BZ_MEM_ERROR`] if insufficient memory is available
+/// - [`BZ_STREAM_END`] if the logical end-of-stream was detected
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `bzerror` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzReadOpen`] or [`BZ2_bzWriteOpen`]
+/// * Either
+///     - `buf` is `NULL`
+///     - `buf` is writable for `len` bytes
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzRead)]
 pub unsafe extern "C" fn BZ2_bzRead(
     bzerror: *mut c_int,
-    b: *mut c_void,
+    b: *mut BZFILE,
     buf: *mut c_void,
     len: c_int,
 ) -> c_int {
@@ -2191,7 +2277,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
 #[export_name = prefix!(BZ2_bzReadGetUnused)]
 pub unsafe extern "C" fn BZ2_bzReadGetUnused(
     bzerror: *mut c_int,
-    b: *mut c_void,
+    b: *mut BZFILE,
     unused: *mut *mut c_void,
     nUnused: *mut c_int,
 ) {
@@ -2330,7 +2416,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
 /// - [`BZ_OUTBUFF_FULL`] if the size of the compressed data exceeds `*destLen`
 /// - [`BZ_DATA_ERROR`] if a data integrity error is detected in the compressed stream
 /// - [`BZ_DATA_ERROR_MAGIC`] if the compressed stream doesn't begin with the right magic bytes
-/// - [`BZ_UNEXPECTED_EOF`] if the compressed stream ends unexpectedly
+/// - [`BZ_UNEXPECTED_EOF`] if the compressed data ends before the logical end-of-stream was detected
 /// - [`BZ_OK`] otherwise
 ///
 /// # Safety
@@ -2409,7 +2495,7 @@ unsafe fn bzopen_or_bzdopen(
     path: *const c_char,
     open_mode: OpenMode,
     mode: *const c_char,
-) -> *mut c_void {
+) -> *mut BZFILE {
     let mut bzerr = 0;
     let mut unused: [c_char; BZ_MAX_UNUSED as usize] = [0; BZ_MAX_UNUSED as usize];
 
@@ -2504,18 +2590,18 @@ unsafe fn bzopen_or_bzdopen(
 
 /// Opens a `.bz2` file for reading or writing using its name. Analogous to fopen.
 #[export_name = prefix!(BZ2_bzopen)]
-pub unsafe extern "C" fn BZ2_bzopen(path: *const c_char, mode: *const c_char) -> *mut c_void {
+pub unsafe extern "C" fn BZ2_bzopen(path: *const c_char, mode: *const c_char) -> *mut BZFILE {
     bzopen_or_bzdopen(path, OpenMode::Pointer, mode)
 }
 
 /// Opens a `.bz2` file for reading or writing using a pre-existing file descriptor. Analogous to fdopen.
 #[export_name = prefix!(BZ2_bzdopen)]
-pub unsafe extern "C" fn BZ2_bzdopen(fd: c_int, mode: *const c_char) -> *mut c_void {
+pub unsafe extern "C" fn BZ2_bzdopen(fd: c_int, mode: *const c_char) -> *mut BZFILE {
     bzopen_or_bzdopen(ptr::null(), OpenMode::FileDescriptor(fd), mode)
 }
 
 #[export_name = prefix!(BZ2_bzread)]
-pub unsafe extern "C" fn BZ2_bzread(b: *mut c_void, buf: *mut c_void, len: c_int) -> c_int {
+pub unsafe extern "C" fn BZ2_bzread(b: *mut BZFILE, buf: *mut c_void, len: c_int) -> c_int {
     let mut bzerr = 0;
 
     if (*(b as *mut bzFile)).lastErr == ReturnCode::BZ_STREAM_END {
@@ -2530,7 +2616,7 @@ pub unsafe extern "C" fn BZ2_bzread(b: *mut c_void, buf: *mut c_void, len: c_int
 }
 
 #[export_name = prefix!(BZ2_bzwrite)]
-pub unsafe extern "C" fn BZ2_bzwrite(b: *mut c_void, buf: *mut c_void, len: c_int) -> c_int {
+pub unsafe extern "C" fn BZ2_bzwrite(b: *mut BZFILE, buf: *mut c_void, len: c_int) -> c_int {
     let mut bzerr = 0;
     BZ2_bzWrite(&mut bzerr, b, buf, len);
 
@@ -2547,7 +2633,7 @@ pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut c_void) -> c_int {
 }
 
 #[export_name = prefix!(BZ2_bzclose)]
-pub unsafe extern "C" fn BZ2_bzclose(b: *mut c_void) {
+pub unsafe extern "C" fn BZ2_bzclose(b: *mut BZFILE) {
     let mut bzerr: c_int = 0;
 
     let (fp, operation) = {

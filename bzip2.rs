@@ -10,7 +10,7 @@ use std::ptr;
 
 use libbzip2_rs_sys::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
-    BZ2_bzWriteClose64, BZ2_bzWriteOpen, BZ2_bzlibVersion,
+    BZ2_bzWriteClose64, BZ2_bzWriteOpen, BZ2_bzlibVersion, BZFILE,
 };
 
 use libc::{
@@ -484,7 +484,7 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
 }
 
 unsafe fn testStream(zStream: *mut FILE) -> bool {
-    let mut bzf: *mut libc::c_void;
+    let mut bzf: *mut BZFILE;
     let mut bzerr: i32 = 0;
     let mut i: i32;
     let mut obuf: [u8; 5000] = [0; 5000];

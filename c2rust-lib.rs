@@ -41,8 +41,11 @@ pub const BZ_RUN: c_int = Action::Run as c_int;
 pub const BZ_FLUSH: c_int = Action::Flush as c_int;
 pub const BZ_FINISH: c_int = Action::Finish as c_int;
 
+pub const BZ_MAX_UNUSED: c_int = bzlib::BZ_MAX_UNUSED_U32 as c_int;
+
 // types
 pub use bzlib::bz_stream;
+pub use bzlib::BZFILE;
 
 // the low-level interface
 pub use bzlib::{BZ2_bzCompress, BZ2_bzCompressEnd, BZ2_bzCompressInit};
