@@ -866,7 +866,7 @@ unsafe fn handle_compress(strm: &mut bz_stream, s: &mut EState) -> bool {
     progress_in || progress_out
 }
 
-enum Action {
+pub(crate) enum Action {
     Run = 0,
     Flush = 1,
     Finish = 2,

@@ -6,7 +6,7 @@ use std::ffi::{c_char, CStr};
 use std::mem::zeroed;
 use std::ptr;
 
-use libbzip2_rs_sys::bzlib::{
+use libbzip2_rs_sys::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
     BZ2_bzWriteClose64, BZ2_bzWriteOpen, BZ2_bzlibVersion,
 };
