@@ -640,47 +640,6 @@ mod bzip2_testfiles {
 }
 
 #[test]
-fn error_messages() {
-    use libbzip2_rs_sys::bzlib::{bzFile, bz_stream, BZ2_bzerror};
-
-    let mut bz_file = bzFile {
-        handle: std::ptr::null_mut(),
-        buf: [0; 5000],
-        bufN: 0,
-        strm: bz_stream::zeroed(),
-        lastErr: 0,
-        writing: false,
-        initialisedOk: false,
-    };
-
-    for i in -17..1 {
-        bz_file.lastErr = i;
-
-        let mut errnum = 0;
-        let ptr = unsafe { BZ2_bzerror(&bz_file as *const _ as *const c_void, &mut errnum) };
-        assert!(!ptr.is_null());
-        let cstr = unsafe { CStr::from_ptr(ptr) };
-
-        match i {
-            1 => assert_eq!(cstr.to_str(), Ok("OK")),
-            0 => assert_eq!(cstr.to_str(), Ok("OK")),
-            -1 => assert_eq!(cstr.to_str(), Ok("SEQUENCE_ERROR")),
-            -2 => assert_eq!(cstr.to_str(), Ok("PARAM_ERROR")),
-            -3 => assert_eq!(cstr.to_str(), Ok("MEM_ERROR")),
-            -4 => assert_eq!(cstr.to_str(), Ok("DATA_ERROR")),
-            -5 => assert_eq!(cstr.to_str(), Ok("DATA_ERROR_MAGIC")),
-            -6 => assert_eq!(cstr.to_str(), Ok("IO_ERROR")),
-            -7 => assert_eq!(cstr.to_str(), Ok("UNEXPECTED_EOF")),
-            -8 => assert_eq!(cstr.to_str(), Ok("OUTBUFF_FULL")),
-            -9 => assert_eq!(cstr.to_str(), Ok("CONFIG_ERROR")),
-            _ => assert_eq!(cstr.to_str(), Ok("???")),
-        }
-
-        assert_eq!(i, errnum);
-    }
-}
-
-#[test]
 fn decompress_init_edge_cases() {
     use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR};
 

@@ -437,11 +437,11 @@ impl<T> DSlice<T> {
 #[repr(C)]
 pub struct bzFile {
     pub handle: *mut FILE,
-    pub buf: [i8; 5000],
+    pub buf: [i8; BZ_MAX_UNUSED as usize],
     pub bufN: i32,
     pub strm: bz_stream,
     pub lastErr: i32,
-    pub writing: bool,
+    pub operation: Operation,
     pub initialisedOk: bool,
 }
 
@@ -1819,7 +1819,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     bzf.initialisedOk = false;
     bzf.bufN = 0;
     bzf.handle = f;
-    bzf.writing = true;
+    bzf.operation = Operation::Writing;
     bzf.strm.bzalloc = None;
     bzf.strm.bzfree = None;
     bzf.strm.opaque = std::ptr::null_mut();
@@ -1865,7 +1865,7 @@ pub unsafe extern "C" fn BZ2_bzWrite(
         return;
     }
 
-    if !bzf.writing {
+    if !matches!(bzf.operation, Operation::Writing) {
         BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_SEQUENCE_ERROR);
         return;
     }
@@ -1949,7 +1949,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
         return;
     };
 
-    if !bzf.writing {
+    if !matches!(bzf.operation, Operation::Writing) {
         BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_SEQUENCE_ERROR);
         return;
     }
@@ -2071,7 +2071,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     bzf.initialisedOk = false;
     bzf.handle = f;
     bzf.bufN = 0;
-    bzf.writing = false;
+    bzf.operation = Operation::Reading;
     bzf.strm.bzalloc = None;
     bzf.strm.bzfree = None;
     bzf.strm.opaque = core::ptr::null_mut();
@@ -2112,7 +2112,7 @@ pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut libc::c_int, b: *mut libc
         return;
     };
 
-    if bzf.writing {
+    if !matches!(bzf.operation, Operation::Reading) {
         BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_SEQUENCE_ERROR);
         return;
     }
@@ -2145,7 +2145,7 @@ pub unsafe extern "C" fn BZ2_bzRead(
         return 0;
     }
 
-    if bzf.writing {
+    if !matches!(bzf.operation, Operation::Reading) {
         BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_SEQUENCE_ERROR);
         return 0;
     }
@@ -2328,6 +2328,13 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     }
 }
 
+#[derive(Copy, Clone)]
+#[repr(u8)]
+pub enum Operation {
+    Reading,
+    Writing,
+}
+
 enum OpenMode {
     Pointer,
     FileDescriptor(i32),
@@ -2338,11 +2345,6 @@ unsafe fn bzopen_or_bzdopen(
     open_mode: OpenMode,
     mode: *const libc::c_char,
 ) -> *mut libc::c_void {
-    enum Operation {
-        Reading,
-        Writing,
-    }
-
     let mut bzerr = 0;
     let mut unused: [libc::c_char; BZ_MAX_UNUSED as usize] = [0; BZ_MAX_UNUSED as usize];
 
@@ -2483,33 +2485,36 @@ pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut c_void) -> c_int {
 pub unsafe extern "C" fn BZ2_bzclose(b: *mut libc::c_void) {
     let mut bzerr: libc::c_int = 0;
 
-    let (fp, writing) = {
+    let (fp, operation) = {
         let Some(bzf) = (b as *mut bzFile).as_mut() else {
             return;
         };
 
-        (bzf.handle, bzf.writing)
+        (bzf.handle, bzf.operation)
     };
 
-    if writing {
-        BZ2_bzWriteClose(
-            &mut bzerr,
-            b,
-            false as i32,
-            core::ptr::null_mut(),
-            core::ptr::null_mut(),
-        );
-        if bzerr != 0 {
+    match operation {
+        Operation::Reading => {
+            BZ2_bzReadClose(&mut bzerr, b);
+        }
+        Operation::Writing => {
             BZ2_bzWriteClose(
-                std::ptr::null_mut(),
+                &mut bzerr,
                 b,
-                true as i32,
+                false as i32,
                 core::ptr::null_mut(),
                 core::ptr::null_mut(),
             );
+            if bzerr != 0 {
+                BZ2_bzWriteClose(
+                    std::ptr::null_mut(),
+                    b,
+                    true as i32,
+                    core::ptr::null_mut(),
+                    core::ptr::null_mut(),
+                );
+            }
         }
-    } else {
-        BZ2_bzReadClose(&mut bzerr, b);
     }
 
     if fp != stdin && fp != stdout {
@@ -2547,4 +2552,48 @@ pub unsafe extern "C" fn BZ2_bzerror(b: *const c_void, errnum: *mut c_int) -> *c
         None => "???\0",
     };
     msg.as_ptr().cast::<c_char>()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn error_messages() {
+        let mut bz_file = bzFile {
+            handle: std::ptr::null_mut(),
+            buf: [0; 5000],
+            bufN: 0,
+            strm: bz_stream::zeroed(),
+            lastErr: 0,
+            operation: Operation::Reading,
+            initialisedOk: false,
+        };
+
+        for i in -17..1 {
+            bz_file.lastErr = i;
+
+            let mut errnum = 0;
+            let ptr = unsafe { BZ2_bzerror(&bz_file as *const _ as *const c_void, &mut errnum) };
+            assert!(!ptr.is_null());
+            let cstr = unsafe { CStr::from_ptr(ptr) };
+
+            match i {
+                1 => assert_eq!(cstr.to_str(), Ok("OK")),
+                0 => assert_eq!(cstr.to_str(), Ok("OK")),
+                -1 => assert_eq!(cstr.to_str(), Ok("SEQUENCE_ERROR")),
+                -2 => assert_eq!(cstr.to_str(), Ok("PARAM_ERROR")),
+                -3 => assert_eq!(cstr.to_str(), Ok("MEM_ERROR")),
+                -4 => assert_eq!(cstr.to_str(), Ok("DATA_ERROR")),
+                -5 => assert_eq!(cstr.to_str(), Ok("DATA_ERROR_MAGIC")),
+                -6 => assert_eq!(cstr.to_str(), Ok("IO_ERROR")),
+                -7 => assert_eq!(cstr.to_str(), Ok("UNEXPECTED_EOF")),
+                -8 => assert_eq!(cstr.to_str(), Ok("OUTBUFF_FULL")),
+                -9 => assert_eq!(cstr.to_str(), Ok("CONFIG_ERROR")),
+                _ => assert_eq!(cstr.to_str(), Ok("???")),
+            }
+
+            assert_eq!(i, errnum);
+        }
+    }
 }
