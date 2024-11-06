@@ -1,8 +1,6 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
-#![allow(unused_assignments)]
-#![allow(unused_mut)]
 
 use std::ffi::{c_char, CStr};
 use std::mem::zeroed;
@@ -59,7 +57,7 @@ static mut progName: *mut c_char = ptr::null_mut();
 static mut progNameReally: [c_char; 1034] = [0; 1034];
 static mut outputHandleJustInCase: *mut FILE = ptr::null_mut();
 static mut workFactor: i32 = 0;
-unsafe fn uInt64_from_UInt32s(mut n: *mut UInt64, mut lo32: u32, mut hi32: u32) {
+unsafe fn uInt64_from_UInt32s(n: *mut UInt64, lo32: u32, hi32: u32) {
     (*n).b[7 as libc::c_int as usize] =
         (hi32 >> 24 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
     (*n).b[6 as libc::c_int as usize] =
@@ -75,11 +73,10 @@ unsafe fn uInt64_from_UInt32s(mut n: *mut UInt64, mut lo32: u32, mut hi32: u32) 
         (lo32 >> 8 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
     (*n).b[0 as libc::c_int as usize] = (lo32 & 0xff as libc::c_int as libc::c_uint) as u8;
 }
-unsafe fn uInt64_to_double(mut n: *mut UInt64) -> libc::c_double {
-    let mut i: i32 = 0;
+unsafe fn uInt64_to_double(n: *mut UInt64) -> libc::c_double {
     let mut base: libc::c_double = 1.0f64;
     let mut sum: libc::c_double = 0.0f64;
-    i = 0 as libc::c_int;
+    let mut i = 0 as libc::c_int;
     while i < 8 as libc::c_int {
         sum += base * (*n).b[i as usize] as libc::c_double;
         base *= 256.0f64;
@@ -87,9 +84,8 @@ unsafe fn uInt64_to_double(mut n: *mut UInt64) -> libc::c_double {
     }
     sum
 }
-unsafe fn uInt64_isZero(mut n: *mut UInt64) -> Bool {
-    let mut i: i32 = 0;
-    i = 0 as libc::c_int;
+unsafe fn uInt64_isZero(n: *mut UInt64) -> Bool {
+    let mut i = 0 as libc::c_int;
     while i < 8 as libc::c_int {
         if (*n).b[i as usize] as libc::c_int != 0 as libc::c_int {
             return 0 as Bool;
@@ -98,14 +94,11 @@ unsafe fn uInt64_isZero(mut n: *mut UInt64) -> Bool {
     }
     1 as Bool
 }
-unsafe fn uInt64_qrm10(mut n: *mut UInt64) -> i32 {
-    let mut rem: u32 = 0;
-    let mut tmp: u32 = 0;
-    let mut i: i32 = 0;
-    rem = 0 as libc::c_int as u32;
-    i = 7 as libc::c_int;
+unsafe fn uInt64_qrm10(n: *mut UInt64) -> i32 {
+    let mut rem = 0 as libc::c_int as u32;
+    let mut i = 7 as libc::c_int;
     while i >= 0 as libc::c_int {
-        tmp = rem
+        let tmp = rem
             .wrapping_mul(256 as libc::c_int as libc::c_uint)
             .wrapping_add((*n).b[i as usize] as libc::c_uint);
         (*n).b[i as usize] = tmp.wrapping_div(10 as libc::c_int as libc::c_uint) as u8;
@@ -114,14 +107,12 @@ unsafe fn uInt64_qrm10(mut n: *mut UInt64) -> i32 {
     }
     rem as i32
 }
-unsafe fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut UInt64) {
-    let mut i: i32 = 0;
-    let mut q: i32 = 0;
+unsafe fn uInt64_toAscii(outbuf: *mut libc::c_char, n: *mut UInt64) {
     let mut buf: [u8; 32] = [0; 32];
     let mut nBuf: i32 = 0 as libc::c_int;
     let mut n_copy: UInt64 = *n;
     loop {
-        q = uInt64_qrm10(&mut n_copy);
+        let q = uInt64_qrm10(&mut n_copy);
         buf[nBuf as usize] = (q + '0' as i32) as u8;
         nBuf += 1;
         if uInt64_isZero(&mut n_copy) != 0 {
@@ -129,34 +120,32 @@ unsafe fn uInt64_toAscii(mut outbuf: *mut libc::c_char, mut n: *mut UInt64) {
         }
     }
     *outbuf.offset(nBuf as isize) = 0 as libc::c_int as libc::c_char;
-    i = 0 as libc::c_int;
+    let mut i = 0 as libc::c_int;
     while i < nBuf {
         *outbuf.offset(i as isize) = buf[(nBuf - i - 1 as libc::c_int) as usize] as libc::c_char;
         i += 1;
     }
 }
-unsafe fn myfeof(mut f: *mut FILE) -> Bool {
-    let mut c: i32 = fgetc(f);
+unsafe fn myfeof(f: *mut FILE) -> Bool {
+    let c: i32 = fgetc(f);
     if c == -1 as libc::c_int {
         return 1 as Bool;
     }
     ungetc(c, f);
     0 as Bool
 }
-unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
+unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE) {
     let mut current_block: u64;
-    let mut bzf: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
     let mut ibuf: [u8; 5000] = [0; 5000];
-    let mut nIbuf: i32 = 0;
     let mut nbytes_in_lo32: u32 = 0;
     let mut nbytes_in_hi32: u32 = 0;
     let mut nbytes_out_lo32: u32 = 0;
     let mut nbytes_out_hi32: u32 = 0;
     let mut bzerr: i32 = 0;
     let mut bzerr_dummy: i32 = 0;
-    let mut ret: i32 = 0;
+    let mut ret: i32;
     if ferror(stream) == 0 && ferror(zStream) == 0 {
-        bzf = BZ2_bzWriteOpen(&mut bzerr, zStream, blockSize100k, verbosity, workFactor);
+        let bzf = BZ2_bzWriteOpen(&mut bzerr, zStream, blockSize100k, verbosity, workFactor);
         if bzerr != 0 as libc::c_int {
             current_block = 6224343814938714352;
         } else {
@@ -168,7 +157,7 @@ unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
                     current_block = 9606288038608642794;
                     break;
                 }
-                nIbuf = fread(
+                let nIbuf = fread(
                     ibuf.as_mut_ptr() as *mut libc::c_void,
                     core::mem::size_of::<u8>() as libc::size_t,
                     5000 as libc::c_int as libc::size_t,
@@ -214,7 +203,7 @@ unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
                             current_block = 4037297614742950260;
                         } else {
                             if zStream != stdout {
-                                let mut fd: i32 = fileno(zStream);
+                                let fd: i32 = fileno(zStream);
                                 if fd < 0 as libc::c_int {
                                     current_block = 4037297614742950260;
                                 } else {
@@ -259,8 +248,6 @@ unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
                                                         UInt64 { b: [0; 8] };
                                                     let mut nbytes_out: UInt64 =
                                                         UInt64 { b: [0; 8] };
-                                                    let mut nbytes_in_d: libc::c_double = 0.;
-                                                    let mut nbytes_out_d: libc::c_double = 0.;
                                                     uInt64_from_UInt32s(
                                                         &mut nbytes_in,
                                                         nbytes_in_lo32,
@@ -271,8 +258,9 @@ unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
                                                         nbytes_out_lo32,
                                                         nbytes_out_hi32,
                                                     );
-                                                    nbytes_in_d = uInt64_to_double(&mut nbytes_in);
-                                                    nbytes_out_d =
+                                                    let nbytes_in_d =
+                                                        uInt64_to_double(&mut nbytes_in);
+                                                    let nbytes_out_d =
                                                         uInt64_to_double(&mut nbytes_out);
                                                     uInt64_toAscii(
                                                         buf_nin.as_mut_ptr(),
@@ -375,22 +363,19 @@ unsafe fn compressStream(mut stream: *mut FILE, mut zStream: *mut FILE) {
     }
     ioError();
 }
-unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Bool {
+unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> Bool {
     let mut current_block: u64;
-    let mut bzf: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
+    let mut bzf: *mut libc::c_void;
     let mut bzerr: i32 = 0;
     let mut bzerr_dummy: i32 = 0;
-    let mut ret: i32 = 0;
-    let mut nread: i32 = 0;
-    let mut streamNo: i32 = 0;
-    let mut i: i32 = 0;
+    let mut ret: i32;
+    let mut nread: i32;
+    let mut i: i32;
     let mut obuf: [u8; 5000] = [0; 5000];
     let mut unused: [u8; 5000] = [0; 5000];
-    let mut nUnused: i32 = 0;
     let mut unusedTmpV: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
-    let mut unusedTmp: *mut u8 = std::ptr::null_mut::<u8>();
-    nUnused = 0 as libc::c_int;
-    streamNo = 0 as libc::c_int;
+    let mut nUnused: libc::c_int = 0;
+    let mut streamNo: libc::c_int = 0;
     if ferror(stream) == 0 && ferror(zStream) == 0 {
         's_37: loop {
             bzf = BZ2_bzReadOpen(
@@ -440,7 +425,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
             if bzerr != 0 as libc::c_int {
                 panic(b"decompress:bzReadGetUnused\0" as *const u8 as *const libc::c_char);
             }
-            unusedTmp = unusedTmpV as *mut u8;
+            let unusedTmp = unusedTmpV as *mut u8;
             i = 0 as libc::c_int;
             while i < nUnused {
                 unused[i as usize] = *unusedTmp.offset(i as isize);
@@ -775,7 +760,7 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
                         _ => {
                             if ferror(zStream) == 0 {
                                 if stream != stdout {
-                                    let mut fd: i32 = fileno(stream);
+                                    let fd: i32 = fileno(stream);
                                     if fd < 0 as libc::c_int {
                                         current_block = 6432526541220421294;
                                     } else {
@@ -832,21 +817,18 @@ unsafe fn uncompressStream(mut zStream: *mut FILE, mut stream: *mut FILE) -> Boo
     }
     ioError();
 }
-unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
+unsafe fn testStream(zStream: *mut FILE) -> Bool {
     let mut current_block: u64;
-    let mut bzf: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
+    let mut bzf: *mut libc::c_void;
     let mut bzerr: i32 = 0;
     let mut bzerr_dummy: i32 = 0;
-    let mut ret: i32 = 0;
-    let mut streamNo: i32 = 0;
-    let mut i: i32 = 0;
+    let ret: i32;
+    let mut i: i32;
     let mut obuf: [u8; 5000] = [0; 5000];
     let mut unused: [u8; 5000] = [0; 5000];
-    let mut nUnused: i32 = 0;
     let mut unusedTmpV: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
-    let mut unusedTmp: *mut u8 = std::ptr::null_mut::<u8>();
-    nUnused = 0 as libc::c_int;
-    streamNo = 0 as libc::c_int;
+    let mut nUnused = 0 as libc::c_int;
+    let mut streamNo = 0 as libc::c_int;
     if ferror(zStream) == 0 {
         's_29: loop {
             bzf = BZ2_bzReadOpen(
@@ -882,7 +864,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
             if bzerr != 0 as libc::c_int {
                 panic(b"test:bzReadGetUnused\0" as *const u8 as *const libc::c_char);
             }
-            unusedTmp = unusedTmpV as *mut u8;
+            let unusedTmp = unusedTmpV as *mut u8;
             i = 0 as libc::c_int;
             while i < nUnused {
                 unused[i as usize] = *unusedTmp.offset(i as isize);
@@ -1257,7 +1239,7 @@ unsafe fn testStream(mut zStream: *mut FILE) -> Bool {
     }
     ioError();
 }
-unsafe fn setExit(mut v: i32) {
+unsafe fn setExit(v: i32) {
     if v > exitValue {
         exitValue = v;
     }
@@ -1281,15 +1263,13 @@ unsafe fn showFileNames() {
         );
     }
 }
-unsafe fn cleanUpAndFail(mut ec: i32) -> ! {
-    let mut retVal: IntNative = 0;
+unsafe fn cleanUpAndFail(ec: i32) -> ! {
     let mut statBuf: stat = zeroed();
     if srcMode == 3 as libc::c_int
         && opMode != 3 as libc::c_int
         && deleteOutputOnInterrupt as libc::c_int != 0
     {
-        retVal = stat(inName.as_mut_ptr(), &mut statBuf);
-        if retVal == 0 as libc::c_int {
+        if stat(inName.as_mut_ptr(), &mut statBuf) == 0 {
             if noisy != 0 {
                 fprintf(
                     stderr,
@@ -1302,8 +1282,7 @@ unsafe fn cleanUpAndFail(mut ec: i32) -> ! {
             if !outputHandleJustInCase.is_null() {
                 fclose(outputHandleJustInCase);
             }
-            retVal = remove(outName.as_mut_ptr());
-            if retVal != 0 as libc::c_int {
+            if remove(outName.as_mut_ptr()) != 0 {
                 fprintf(
                     stderr,
                     b"%s: WARNING: deletion of output file (apparently) failed.\n\0" as *const u8
@@ -1355,7 +1334,7 @@ unsafe fn cleanUpAndFail(mut ec: i32) -> ! {
     setExit(ec);
     exit(exitValue);
 }
-unsafe fn panic(mut s: *const c_char) -> ! {
+unsafe fn panic(s: *const c_char) -> ! {
     fprintf(
         stderr,
         b"\n%s: PANIC -- internal consistency error:\n\t%s\n\tThis is a BUG.  Please report it at:\n\thttps://gitlab.com/bzip2/bzip2/-/issues\n\0"
@@ -1410,7 +1389,7 @@ unsafe extern "C" fn mySignalCatcher(_: IntNative) {
     cleanUpAndFail(1 as libc::c_int);
 }
 unsafe fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
-    let mut msg: *const libc::c_char = std::ptr::null::<libc::c_char>();
+    let mut msg: *const libc::c_char;
     if opMode == 1 {
         msg = b": Caught a SIGSEGV or SIGBUS whilst compressing.\n\n   Possible causes are (most likely first):\n   (1) This computer has unreliable memory or cache hardware\n       (a surprisingly common problem; try a different machine.)\n   (2) A bug in the compiler used to create this executable\n       (unlikely, if you didn't compile bzip2 yourself.)\n   (3) A real bug in bzip2 -- I hope this should never be the case.\n   The user's manual, Section 4.3, has more info on (1) and (2).\n   \n   If you suspect this is a bug in bzip2, or are unsure about (1)\n   or (2), report it at: https://gitlab.com/bzip2/bzip2/-/issues\n   Section 4.3 of the user's manual describes the info a useful\n   bug report should have.  If the manual is available on your\n   system, please try and read it before mailing me.  If you don't\n   have the manual or can't be bothered to read it, mail me anyway.\n\n\0"
             as *const u8 as *const libc::c_char;
@@ -1470,18 +1449,17 @@ unsafe fn configError() -> ! {
     setExit(3 as libc::c_int);
     exit(exitValue);
 }
-unsafe fn pad(mut s: *mut c_char) {
-    let mut i: i32 = 0;
+unsafe fn pad(s: *mut c_char) {
     if strlen(s) as i32 >= longestFileName {
         return;
     }
-    i = 1 as libc::c_int;
+    let mut i = 1 as libc::c_int;
     while i <= longestFileName - strlen(s) as i32 {
         fprintf(stderr, b" \0" as *const u8 as *const libc::c_char);
         i += 1;
     }
 }
-unsafe fn copyFileName(mut to: *mut c_char, mut from: *const c_char) {
+unsafe fn copyFileName(to: *mut c_char, from: *const c_char) {
     if strlen(from) > (1034 as libc::c_int - 10 as libc::c_int) as libc::size_t {
         fprintf(
             stderr,
@@ -1500,18 +1478,16 @@ unsafe fn copyFileName(mut to: *mut c_char, mut from: *const c_char) {
     );
     *to.offset((1034 as libc::c_int - 10 as libc::c_int) as isize) = '\0' as i32 as c_char;
 }
-unsafe fn fileExists(mut name: *mut c_char) -> Bool {
-    let mut tmp: *mut FILE = fopen(name, b"rb\0" as *const u8 as *const libc::c_char);
-    let mut exists: Bool = (tmp != std::ptr::null_mut::<libc::c_void>() as *mut FILE) as Bool;
+unsafe fn fileExists(name: *mut c_char) -> Bool {
+    let tmp: *mut FILE = fopen(name, b"rb\0" as *const u8 as *const libc::c_char);
+    let exists: Bool = (tmp != std::ptr::null_mut::<libc::c_void>() as *mut FILE) as Bool;
     if !tmp.is_null() {
         fclose(tmp);
     }
     exists
 }
-unsafe fn fopen_output_safely(mut name: *mut c_char, mut mode: *const libc::c_char) -> *mut FILE {
-    let mut fp: *mut FILE = std::ptr::null_mut::<FILE>();
-    let mut fh: IntNative = 0;
-    fh = open(
+unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *mut FILE {
+    let fh = open(
         name,
         0o1 as libc::c_int | 0o100 as libc::c_int | 0o200 as libc::c_int,
         0o200 as libc::c_int | 0o400 as libc::c_int,
@@ -1519,17 +1495,16 @@ unsafe fn fopen_output_safely(mut name: *mut c_char, mut mode: *const libc::c_ch
     if fh == -1 as libc::c_int {
         return std::ptr::null_mut::<FILE>();
     }
-    fp = fdopen(fh, mode);
+    let fp = fdopen(fh, mode);
     if fp.is_null() {
         close(fh);
     }
     fp
 }
 #[cfg(unix)]
-unsafe fn notAStandardFile(mut name: *mut c_char) -> Bool {
-    let mut i: IntNative = 0;
+unsafe fn notAStandardFile(name: *mut c_char) -> Bool {
     let mut statBuf: stat = zeroed();
-    i = libc::lstat(name, &mut statBuf);
+    let i = libc::lstat(name, &mut statBuf);
     if i != 0 as libc::c_int {
         return 1 as Bool;
     }
@@ -1539,7 +1514,7 @@ unsafe fn notAStandardFile(mut name: *mut c_char) -> Bool {
     1 as Bool
 }
 #[cfg(not(unix))]
-unsafe fn notAStandardFile(mut name: *mut c_char) -> Bool {
+unsafe fn notAStandardFile(name: *mut c_char) -> Bool {
     let Ok(name) = std::ffi::CStr::from_ptr(name).to_str() else {
         return 1;
     };
@@ -1554,37 +1529,34 @@ unsafe fn notAStandardFile(mut name: *mut c_char) -> Bool {
     }
 }
 #[cfg(unix)]
-unsafe fn countHardLinks(mut name: *mut c_char) -> i32 {
-    let mut i: IntNative = 0;
+unsafe fn countHardLinks(name: *mut c_char) -> i32 {
     let mut statBuf: stat = zeroed();
-    i = libc::lstat(name, &mut statBuf);
+    let i = libc::lstat(name, &mut statBuf);
     if i != 0 as libc::c_int {
         return 0 as libc::c_int;
     }
     (statBuf.st_nlink).wrapping_sub(1) as i32
 }
 #[cfg(not(unix))]
-unsafe fn countHardLinks(mut name: *mut c_char) -> i32 {
+unsafe fn countHardLinks(name: *mut c_char) -> i32 {
     0 // FIXME
 }
 static mut fileMetaInfo: stat = unsafe { zeroed() };
-unsafe fn saveInputFileMetaInfo(mut srcName: *mut c_char) {
-    let mut retVal: IntNative = 0;
-    retVal = stat(srcName, core::ptr::addr_of_mut!(fileMetaInfo));
+unsafe fn saveInputFileMetaInfo(srcName: *mut c_char) {
+    let retVal = stat(srcName, core::ptr::addr_of_mut!(fileMetaInfo));
     if retVal != 0 as libc::c_int {
         ioError();
     }
 }
 #[cfg(unix)]
-unsafe fn applySavedTimeInfoToOutputFile(mut dstName: *mut c_char) {
-    let mut retVal: IntNative = 0;
+unsafe fn applySavedTimeInfoToOutputFile(dstName: *mut c_char) {
     let mut uTimBuf: utimbuf = utimbuf {
         actime: 0,
         modtime: 0,
     };
     uTimBuf.actime = fileMetaInfo.st_atime;
     uTimBuf.modtime = fileMetaInfo.st_mtime;
-    retVal = libc::utime(dstName, &uTimBuf);
+    let retVal = libc::utime(dstName, &uTimBuf);
     if retVal != 0 as libc::c_int {
         ioError();
     }
@@ -1592,9 +1564,8 @@ unsafe fn applySavedTimeInfoToOutputFile(mut dstName: *mut c_char) {
 #[cfg(not(unix))]
 unsafe fn applySavedTimeInfoToOutputFile(_dstName: *mut c_char) {}
 #[cfg(unix)]
-unsafe fn applySavedFileAttrToOutputFile(mut fd: IntNative) {
-    let mut retVal: IntNative = 0;
-    retVal = libc::fchmod(fd, fileMetaInfo.st_mode);
+unsafe fn applySavedFileAttrToOutputFile(fd: IntNative) {
+    let retVal = libc::fchmod(fd, fileMetaInfo.st_mode);
     if retVal != 0 as libc::c_int {
         ioError();
     }
@@ -1617,9 +1588,9 @@ static mut unzSuffix: [*const c_char; 4] = [
     b".tar\0" as *const u8 as *const libc::c_char,
     b".tar\0" as *const u8 as *const libc::c_char,
 ];
-unsafe fn hasSuffix(mut s: *mut c_char, mut suffix: *const c_char) -> Bool {
-    let mut ns: i32 = strlen(s) as i32;
-    let mut nx: i32 = strlen(suffix) as i32;
+unsafe fn hasSuffix(s: *mut c_char, suffix: *const c_char) -> Bool {
+    let ns: i32 = strlen(s) as i32;
+    let nx: i32 = strlen(suffix) as i32;
     if ns < nx {
         return 0 as Bool;
     }
@@ -1628,11 +1599,7 @@ unsafe fn hasSuffix(mut s: *mut c_char, mut suffix: *const c_char) -> Bool {
     }
     0 as Bool
 }
-unsafe fn mapSuffix(
-    mut name: *mut c_char,
-    mut oldSuffix: *const c_char,
-    mut newSuffix: *const c_char,
-) -> Bool {
+unsafe fn mapSuffix(name: *mut c_char, oldSuffix: *const c_char, newSuffix: *const c_char) -> Bool {
     if hasSuffix(name, oldSuffix) == 0 {
         return 0 as Bool;
     }
@@ -1640,11 +1607,10 @@ unsafe fn mapSuffix(
     strcat(name, newSuffix);
     1 as Bool
 }
-unsafe fn compress(mut name: *mut c_char) {
-    let mut inStr: *mut FILE = std::ptr::null_mut::<FILE>();
-    let mut outStr: *mut FILE = std::ptr::null_mut::<FILE>();
+unsafe fn compress(name: *mut c_char) {
+    let inStr: *mut FILE;
+    let outStr: *mut FILE;
     let mut n: i32 = 0;
-    let mut i: i32 = 0;
     let mut statBuf: stat = zeroed();
     deleteOutputOnInterrupt = 0 as Bool;
     if name.is_null() && srcMode != 1 as libc::c_int {
@@ -1701,7 +1667,7 @@ unsafe fn compress(mut name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    i = 0 as libc::c_int;
+    let mut i = 0 as libc::c_int;
     while i < 4 as libc::c_int {
         if hasSuffix(inName.as_mut_ptr(), zSuffix[i as usize]) != 0 {
             if noisy != 0 {
@@ -1895,7 +1861,7 @@ unsafe fn compress(mut name: *mut c_char) {
         applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
         deleteOutputOnInterrupt = 0 as Bool;
         if keepInputFiles == 0 {
-            let mut retVal: IntNative = remove(inName.as_mut_ptr());
+            let retVal: IntNative = remove(inName.as_mut_ptr());
             if retVal != 0 as libc::c_int {
                 ioError();
             }
@@ -1903,20 +1869,16 @@ unsafe fn compress(mut name: *mut c_char) {
     }
     deleteOutputOnInterrupt = 0 as Bool;
 }
-unsafe fn uncompress(mut name: *mut c_char) {
-    let mut current_block: u64;
-    let mut inStr: *mut FILE = std::ptr::null_mut::<FILE>();
-    let mut outStr: *mut FILE = std::ptr::null_mut::<FILE>();
-    let mut n: i32 = 0;
-    let mut i: i32 = 0;
-    let mut magicNumberOK: Bool = 0;
-    let mut cantGuess: Bool = 0;
-    let mut statBuf: stat = zeroed();
+unsafe fn uncompress(name: *mut c_char) {
+    let current_block: u64;
+    let inStr: *mut FILE;
+    let outStr: *mut FILE;
+    let n: i32;
     deleteOutputOnInterrupt = 0 as Bool;
     if name.is_null() && srcMode != 1 as libc::c_int {
         panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
-    cantGuess = 0 as Bool;
+    let mut cantGuess = 0 as Bool;
     match srcMode {
         1 => {
             copyFileName(
@@ -1931,7 +1893,7 @@ unsafe fn uncompress(mut name: *mut c_char) {
         3 => {
             copyFileName(inName.as_mut_ptr(), name);
             copyFileName(outName.as_mut_ptr(), name);
-            i = 0 as libc::c_int;
+            let mut i = 0 as libc::c_int;
             loop {
                 if i >= 4 as libc::c_int {
                     current_block = 7651349459974463963;
@@ -1992,6 +1954,7 @@ unsafe fn uncompress(mut name: *mut c_char) {
         return;
     }
     if srcMode == 3 as libc::c_int || srcMode == 2 as libc::c_int {
+        let mut statBuf: stat = zeroed();
         stat(inName.as_mut_ptr(), &mut statBuf);
         if statBuf.st_mode & 0o170000 == 0o40000 {
             fprintf(
@@ -2157,14 +2120,14 @@ unsafe fn uncompress(mut name: *mut c_char) {
     }
     outputHandleJustInCase = outStr;
     deleteOutputOnInterrupt = 1 as Bool;
-    magicNumberOK = uncompressStream(inStr, outStr);
+    let magicNumberOK = uncompressStream(inStr, outStr);
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     if magicNumberOK != 0 {
         if srcMode == 3 as libc::c_int {
             applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
             deleteOutputOnInterrupt = 0 as Bool;
             if keepInputFiles == 0 {
-                let mut retVal: IntNative = remove(inName.as_mut_ptr());
+                let retVal: IntNative = remove(inName.as_mut_ptr());
                 if retVal != 0 as libc::c_int {
                     ioError();
                 }
@@ -2174,7 +2137,7 @@ unsafe fn uncompress(mut name: *mut c_char) {
         unzFailsExist = 1 as Bool;
         deleteOutputOnInterrupt = 0 as Bool;
         if srcMode == 3 as libc::c_int {
-            let mut retVal_0: IntNative = remove(outName.as_mut_ptr());
+            let retVal_0: IntNative = remove(outName.as_mut_ptr());
             if retVal_0 != 0 as libc::c_int {
                 ioError();
             }
@@ -2202,10 +2165,8 @@ unsafe fn uncompress(mut name: *mut c_char) {
         }
     };
 }
-unsafe fn testf(mut name: *mut c_char) {
-    let mut inStr: *mut FILE = std::ptr::null_mut::<FILE>();
-    let mut allOK: Bool = 0;
-    let mut statBuf: stat = zeroed();
+unsafe fn testf(name: *mut c_char) {
+    let inStr: *mut FILE;
     deleteOutputOnInterrupt = 0 as Bool;
     if name.is_null() && srcMode != 1 as libc::c_int {
         panic(b"testf: bad modes\n\0" as *const u8 as *const libc::c_char);
@@ -2253,6 +2214,7 @@ unsafe fn testf(mut name: *mut c_char) {
         return;
     }
     if srcMode != 1 as libc::c_int {
+        let mut statBuf: stat = zeroed();
         stat(inName.as_mut_ptr(), &mut statBuf);
         if statBuf.st_mode & 0o170000 == 0o40000 {
             fprintf(
@@ -2315,7 +2277,7 @@ unsafe fn testf(mut name: *mut c_char) {
         fflush(stderr);
     }
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-    allOK = testStream(inStr);
+    let allOK = testStream(inStr);
     if allOK as libc::c_int != 0 && verbosity >= 1 as libc::c_int {
         fprintf(stderr, b"ok\n\0" as *const u8 as *const libc::c_char);
     }
@@ -2331,7 +2293,7 @@ unsafe fn license() {
         BZ2_bzlibVersion(),
     );
 }
-unsafe fn usage(mut fullProgName: *mut c_char) {
+unsafe fn usage(fullProgName: *mut c_char) {
     fprintf(
         stderr,
         b"bzip2, a block-sorting file compressor.  Version %s.\n\n   usage: %s [flags and input files in any order]\n\n   -h --help           print this message\n   -d --decompress     force decompression\n   -z --compress       force compression\n   -k --keep           keep (don't delete) input files\n   -f --force          overwrite existing output files\n   -t --test           test compressed file integrity\n   -c --stdout         output to standard out\n   -q --quiet          suppress noncritical error messages\n   -v --verbose        be verbose (a 2nd -v gives more)\n   -L --license        display software version & license\n   -V --version        display software version & license\n   -s --small          use less memory (at most 2500k)\n   -1 .. -9            set block size to 100k .. 900k\n   --fast              alias for -1\n   --best              alias for -9\n\n   If invoked as `bzip2', default action is to compress.\n              as `bunzip2',  default action is to decompress.\n              as `bzcat', default action is to decompress to stdout.\n\n   If no file names are given, bzip2 compresses or decompresses\n   from standard input to standard output.  You can combine\n   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n\n\0"
@@ -2340,7 +2302,7 @@ unsafe fn usage(mut fullProgName: *mut c_char) {
         fullProgName,
     );
 }
-unsafe fn redundant(mut flag: *mut c_char) {
+unsafe fn redundant(flag: *mut c_char) {
     fprintf(
         stderr,
         b"%s: %s is redundant in versions 0.9.5 and above\n\0" as *const u8 as *const libc::c_char,
@@ -2348,24 +2310,22 @@ unsafe fn redundant(mut flag: *mut c_char) {
         flag,
     );
 }
-unsafe fn myMalloc(mut n: i32) -> *mut libc::c_void {
-    let mut p: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
-    p = malloc(n as size_t);
+unsafe fn myMalloc(n: i32) -> *mut libc::c_void {
+    let p: *mut libc::c_void = malloc(n as size_t);
     if p.is_null() {
         outOfMemory();
     }
     p
 }
 unsafe fn mkCell() -> *mut Cell {
-    let mut c: *mut Cell = std::ptr::null_mut::<Cell>();
-    c = myMalloc(core::mem::size_of::<Cell>() as libc::c_ulong as i32) as *mut Cell;
+    let c: *mut Cell = myMalloc(core::mem::size_of::<Cell>() as libc::c_ulong as i32) as *mut Cell;
     (*c).name = std::ptr::null_mut();
     (*c).link = std::ptr::null_mut::<zzzz>();
     c
 }
-unsafe fn snocString(mut root: *mut Cell, mut name: *mut c_char) -> *mut Cell {
+unsafe fn snocString(root: *mut Cell, name: *mut c_char) -> *mut Cell {
     if root.is_null() {
-        let mut tmp: *mut Cell = mkCell();
+        let tmp: *mut Cell = mkCell();
         (*tmp).name = myMalloc((5 as libc::c_int as libc::size_t).wrapping_add(strlen(name)) as i32)
             as *mut c_char;
         strcpy((*tmp).name, name);
@@ -2379,16 +2339,11 @@ unsafe fn snocString(mut root: *mut Cell, mut name: *mut c_char) -> *mut Cell {
         root
     }
 }
-unsafe fn addFlagsFromEnvVar(mut argList: *mut *mut Cell, mut varName: *const c_char) {
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut k: i32 = 0;
-    let mut envbase: *mut c_char = std::ptr::null_mut();
-    let mut p: *mut c_char = std::ptr::null_mut();
-    envbase = getenv(varName);
+unsafe fn addFlagsFromEnvVar(argList: *mut *mut Cell, varName: *const c_char) {
+    let envbase = getenv(varName);
     if !envbase.is_null() {
-        p = envbase;
-        i = 0 as libc::c_int;
+        let mut p = envbase;
+        let mut i = 0 as libc::c_int;
         loop {
             if *p.offset(i as isize) as libc::c_int == 0 as libc::c_int {
                 break;
@@ -2404,11 +2359,11 @@ unsafe fn addFlagsFromEnvVar(mut argList: *mut *mut Cell, mut varName: *const c_
                 i += 1;
             }
             if i > 0 as libc::c_int {
-                k = i;
+                let mut k = i;
                 if k > 1034 as libc::c_int - 10 as libc::c_int {
                     k = 1034 as libc::c_int - 10 as libc::c_int;
                 }
-                j = 0 as libc::c_int;
+                let mut j = 0 as libc::c_int;
                 while j < k {
                     tmpName[j as usize] = *p.offset(j as isize);
                     j += 1;
@@ -2419,13 +2374,7 @@ unsafe fn addFlagsFromEnvVar(mut argList: *mut *mut Cell, mut varName: *const c_
         }
     }
 }
-unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut c_char) -> IntNative {
-    let mut i: i32 = 0;
-    let mut j: i32 = 0;
-    let mut tmp: *mut c_char = ptr::null_mut();
-    let mut argList: *mut Cell = std::ptr::null_mut::<Cell>();
-    let mut aa: *mut Cell = std::ptr::null_mut::<Cell>();
-    let mut decode: Bool = 0;
+unsafe fn main_0(argc: IntNative, argv: *mut *mut c_char) -> IntNative {
     if ::core::mem::size_of::<i32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
         || ::core::mem::size_of::<u32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
         || ::core::mem::size_of::<i16>() as libc::c_ulong != 2 as libc::c_int as libc::c_ulong
@@ -2449,8 +2398,6 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut c_char) -> IntNative {
     workFactor = 30 as libc::c_int;
     deleteOutputOnInterrupt = 0 as Bool;
     exitValue = 0 as libc::c_int;
-    j = 0 as libc::c_int;
-    i = j;
     signal(
         11 as libc::c_int,
         mySIGSEGVorSIGBUScatcher as unsafe fn(IntNative) as usize,
@@ -2474,7 +2421,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut c_char) -> IntNative {
     progName = &mut *progNameReally
         .as_mut_ptr()
         .offset(0 as libc::c_int as isize);
-    tmp = &mut *progNameReally
+    let mut tmp = progNameReally
         .as_mut_ptr()
         .offset(0 as libc::c_int as isize);
     while *tmp as libc::c_int != '\0' as i32 {
@@ -2483,18 +2430,18 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut c_char) -> IntNative {
         }
         tmp = tmp.offset(1);
     }
-    argList = std::ptr::null_mut::<Cell>();
+    let mut argList = std::ptr::null_mut::<Cell>();
     addFlagsFromEnvVar(&mut argList, b"BZIP2\0" as *const u8 as *const libc::c_char);
     addFlagsFromEnvVar(&mut argList, b"BZIP\0" as *const u8 as *const libc::c_char);
-    i = 1 as libc::c_int;
+    let mut i = 1 as libc::c_int;
     while i <= argc - 1 as libc::c_int {
         argList = snocString(argList, *argv.offset(i as isize));
         i += 1;
     }
     longestFileName = 7 as libc::c_int;
     numFileNames = 0 as libc::c_int;
-    decode = 1 as Bool;
-    aa = argList;
+    let mut decode = 1 as Bool;
+    let mut aa = argList;
     while !aa.is_null() {
         if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char) == 0 as libc::c_int {
             decode = 0 as Bool;
@@ -2539,7 +2486,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut c_char) -> IntNative {
         if *((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int == '-' as i32
             && *((*aa).name).offset(1 as libc::c_int as isize) as libc::c_int != '-' as i32
         {
-            j = 1 as libc::c_int;
+            let mut j = 1 as libc::c_int;
             while *((*aa).name).offset(j as isize) as libc::c_int != '\0' as i32 {
                 match *((*aa).name).offset(j as isize) as libc::c_int {
                     99 => {
@@ -2834,7 +2781,7 @@ unsafe fn main_0(mut argc: IntNative, mut argv: *mut *mut c_char) -> IntNative {
     }
     aa = argList;
     while !aa.is_null() {
-        let mut aa2: *mut Cell = (*aa).link;
+        let aa2: *mut Cell = (*aa).link;
         if !((*aa).name).is_null() {
             free((*aa).name as *mut libc::c_void);
         }
