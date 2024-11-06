@@ -2463,17 +2463,13 @@ pub unsafe extern "C" fn BZ2_bzread(b: *mut c_void, buf: *mut c_void, len: c_int
 }
 
 #[export_name = prefix!(BZ2_bzwrite)]
-pub unsafe extern "C" fn BZ2_bzwrite(
-    b: *mut libc::c_void,
-    buf: *mut libc::c_void,
-    len: libc::c_int,
-) -> libc::c_int {
+pub unsafe extern "C" fn BZ2_bzwrite(b: *mut c_void, buf: *mut c_void, len: c_int) -> c_int {
     let mut bzerr = 0;
     BZ2_bzWrite(&mut bzerr, b, buf, len);
-    if bzerr == 0 {
-        len
-    } else {
-        -1
+
+    match bzerr {
+        0 => len,
+        _ => -1,
     }
 }
 
