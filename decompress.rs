@@ -56,67 +56,68 @@ pub enum State {
     BZ_X_CCRC_4 = 50,
 }
 
+#[allow(non_camel_case_types)]
 #[derive(Eq, PartialEq)]
 enum Block {
+    SAVE_STATE_AND_RETURN,
+    BZ_X_MAGIC_2,
+    BZ_X_MAGIC_3,
+    BZ_X_MAGIC_4,
+    BZ_X_BLKHDR_1,
+    BZ_X_BLKHDR_2,
+    BZ_X_BLKHDR_3,
+    BZ_X_BLKHDR_4,
+    BZ_X_BLKHDR_5,
+    BZ_X_BLKHDR_6,
+    BZ_X_BCRC_1,
+    BZ_X_BCRC_2,
+    BZ_X_BCRC_3,
+    BZ_X_BCRC_4,
+    BZ_X_RANDBIT,
+    BZ_X_ORIGPTR_1,
+    BZ_X_ORIGPTR_2,
+    BZ_X_ORIGPTR_3,
+    BZ_X_MAPPING_1,
+    BZ_X_MAPPING_2,
+    BZ_X_SELECTOR_1,
+    BZ_X_SELECTOR_2,
+    BZ_X_SELECTOR_3,
+    BZ_X_CODING_1,
+    BZ_X_CODING_2,
+    BZ_X_CODING_3,
+    BZ_X_MTF_1,
+    BZ_X_MTF_2,
+    BZ_X_MTF_3,
+    BZ_X_MTF_4,
+    BZ_X_MTF_5,
+    BZ_X_MTF_6,
+    BZ_X_ENDHDR_2,
+    BZ_X_ENDHDR_3,
+    BZ_X_ENDHDR_4,
+    BZ_X_ENDHDR_5,
+    BZ_X_ENDHDR_6,
+    BZ_X_CCRC_1,
+    BZ_X_CCRC_2,
+    BZ_X_CCRC_3,
+    BZ_X_CCRC_4,
     Block1,
-    Block2,
-    Block3,
-    Block4,
-    Block5,
-    Block6,
-    Block7,
-    Block8,
-    Block9,
-    Block10,
     Block11,
-    Block12,
-    Block13,
-    Block14,
-    Block15,
-    Block16,
-    Block17,
     Block18,
-    Block19,
-    Block20,
-    Block21,
-    Block22,
-    Block23,
     Block24,
     Block25,
     Block26,
-    Block27,
     Block28,
-    Block29,
-    Block30,
-    Block31,
-    Block32,
-    Block33,
-    Block34,
     Block35,
-    Block36,
-    Block37,
-    Block38,
     Block39,
     Block40,
     Block41,
-    Block42,
     Block43,
-    Block44,
     Block45,
     Block46,
-    Block47,
-    Block48,
-    Block49,
-    Block50,
     Block51,
     Block52,
-    Block53,
-    Block54,
-    Block55,
     Block56,
-    Block57,
     Block58,
-    Block59,
 }
 use Block::*;
 
@@ -238,7 +239,6 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     gPerm = s.save_gPerm;
 
     retVal = ReturnCode::BZ_OK;
-    const SAVE_STATE_AND_RETURN: Block = Block38;
 
     'save_state_and_return: {
         macro_rules! GET_UCHAR {
@@ -314,131 +314,131 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = Block17;
+                current_block = BZ_X_MAGIC_2;
             }
             State::BZ_X_MAGIC_2 => {
-                current_block = Block17;
+                current_block = BZ_X_MAGIC_2;
             }
             State::BZ_X_MAGIC_3 => {
-                current_block = Block21;
+                current_block = BZ_X_MAGIC_3;
             }
             State::BZ_X_MAGIC_4 => {
-                current_block = Block6;
+                current_block = BZ_X_MAGIC_4;
             }
             State::BZ_X_BLKHDR_1 => {
-                current_block = Block27;
+                current_block = BZ_X_BLKHDR_1;
             }
             State::BZ_X_BLKHDR_2 => {
-                current_block = Block48;
+                current_block = BZ_X_BLKHDR_2;
             }
             State::BZ_X_BLKHDR_3 => {
-                current_block = Block54;
+                current_block = BZ_X_BLKHDR_3;
             }
             State::BZ_X_BLKHDR_4 => {
-                current_block = Block31;
+                current_block = BZ_X_BLKHDR_4;
             }
             State::BZ_X_BLKHDR_5 => {
-                current_block = Block23;
+                current_block = BZ_X_BLKHDR_5;
             }
             State::BZ_X_BLKHDR_6 => {
-                current_block = Block36;
+                current_block = BZ_X_BLKHDR_6;
             }
             State::BZ_X_BCRC_1 => {
-                current_block = Block47;
+                current_block = BZ_X_BCRC_1;
             }
             State::BZ_X_BCRC_2 => {
-                current_block = Block44;
+                current_block = BZ_X_BCRC_2;
             }
             State::BZ_X_BCRC_3 => {
-                current_block = Block53;
+                current_block = BZ_X_BCRC_3;
             }
             State::BZ_X_BCRC_4 => {
-                current_block = Block32;
+                current_block = BZ_X_BCRC_4;
             }
             State::BZ_X_RANDBIT => {
-                current_block = Block10;
+                current_block = BZ_X_RANDBIT;
             }
             State::BZ_X_ORIGPTR_1 => {
-                current_block = Block37;
+                current_block = BZ_X_ORIGPTR_1;
             }
             State::BZ_X_ORIGPTR_2 => {
-                current_block = Block3;
+                current_block = BZ_X_ORIGPTR_2;
             }
             State::BZ_X_ORIGPTR_3 => {
-                current_block = Block29;
+                current_block = BZ_X_ORIGPTR_3;
             }
             State::BZ_X_MAPPING_1 => {
-                current_block = Block7;
+                current_block = BZ_X_MAPPING_1;
             }
             State::BZ_X_MAPPING_2 => {
-                current_block = Block19;
+                current_block = BZ_X_MAPPING_2;
             }
             State::BZ_X_SELECTOR_1 => {
-                current_block = Block59;
+                current_block = BZ_X_SELECTOR_1;
             }
             State::BZ_X_SELECTOR_2 => {
-                current_block = Block14;
+                current_block = BZ_X_SELECTOR_2;
             }
             State::BZ_X_SELECTOR_3 => {
-                current_block = Block22;
+                current_block = BZ_X_SELECTOR_3;
             }
             State::BZ_X_CODING_1 => {
-                current_block = Block8;
+                current_block = BZ_X_CODING_1;
             }
             State::BZ_X_CODING_2 => {
-                current_block = Block30;
+                current_block = BZ_X_CODING_2;
             }
             State::BZ_X_CODING_3 => {
-                current_block = Block49;
+                current_block = BZ_X_CODING_3;
             }
             State::BZ_X_MTF_1 => {
-                current_block = Block12;
+                current_block = BZ_X_MTF_1;
             }
             State::BZ_X_MTF_2 => {
-                current_block = Block2;
+                current_block = BZ_X_MTF_2;
             }
             State::BZ_X_MTF_3 => {
-                current_block = Block57;
+                current_block = BZ_X_MTF_3;
             }
             State::BZ_X_MTF_4 => {
-                current_block = Block9;
+                current_block = BZ_X_MTF_4;
             }
             State::BZ_X_MTF_5 => {
-                current_block = Block55;
+                current_block = BZ_X_MTF_5;
             }
             State::BZ_X_MTF_6 => {
-                current_block = Block5;
+                current_block = BZ_X_MTF_6;
             }
             State::BZ_X_ENDHDR_2 => {
-                current_block = Block13;
+                current_block = BZ_X_ENDHDR_2;
             }
             State::BZ_X_ENDHDR_3 => {
-                current_block = Block50;
+                current_block = BZ_X_ENDHDR_3;
             }
             State::BZ_X_ENDHDR_4 => {
-                current_block = Block20;
+                current_block = BZ_X_ENDHDR_4;
             }
             State::BZ_X_ENDHDR_5 => {
-                current_block = Block16;
+                current_block = BZ_X_ENDHDR_5;
             }
             State::BZ_X_ENDHDR_6 => {
-                current_block = Block34;
+                current_block = BZ_X_ENDHDR_6;
             }
             State::BZ_X_CCRC_1 => {
-                current_block = Block4;
+                current_block = BZ_X_CCRC_1;
             }
             State::BZ_X_CCRC_2 => {
-                current_block = Block15;
+                current_block = BZ_X_CCRC_2;
             }
             State::BZ_X_CCRC_3 => {
-                current_block = Block42;
+                current_block = BZ_X_CCRC_3;
             }
             State::BZ_X_CCRC_4 => {
-                current_block = Block33;
+                current_block = BZ_X_CCRC_4;
             }
             State::BZ_X_IDLE | State::BZ_X_OUTPUT => unreachable!(),
         }
-        if current_block == Block17 {
+        if current_block == BZ_X_MAGIC_2 {
             s.state = State::BZ_X_MAGIC_2;
 
             GET_UCHAR!(strm, s, uc);
@@ -448,9 +448,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 break 'save_state_and_return;
             }
 
-            current_block = Block21;
+            current_block = BZ_X_MAGIC_3;
         }
-        if current_block == Block21 {
+        if current_block == BZ_X_MAGIC_3 {
             s.state = State::BZ_X_MAGIC_3;
 
             GET_UCHAR!(strm, s, uc);
@@ -460,9 +460,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 break 'save_state_and_return;
             }
 
-            current_block = Block6;
+            current_block = BZ_X_MAGIC_4;
         }
-        if current_block == Block6 {
+        if current_block == BZ_X_MAGIC_4 {
             s.state = State::BZ_X_MAGIC_4;
 
             GET_BITS!(strm, s, s.blockSize100k, 8);
@@ -512,25 +512,25 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 }
             }
 
-            current_block = Block27;
+            current_block = BZ_X_BLKHDR_1;
         }
-        if current_block == Block27 {
+        if current_block == BZ_X_BLKHDR_1 {
             s.state = State::BZ_X_BLKHDR_1;
 
             GET_UCHAR!(strm, s, uc);
 
             if uc == 0x17 {
                 // skips to `State::BZ_X_ENDHDR_2`
-                current_block = Block13;
+                current_block = BZ_X_ENDHDR_2;
             } else if uc != 0x31 {
                 retVal = ReturnCode::BZ_DATA_ERROR;
                 break 'save_state_and_return;
             } else {
-                current_block = Block48;
+                current_block = BZ_X_BLKHDR_2;
             }
         }
         match current_block {
-            Block13 => {
+            BZ_X_ENDHDR_2 => {
                 s.state = State::BZ_X_ENDHDR_2;
 
                 GET_UCHAR!(strm, s, uc);
@@ -540,9 +540,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = Block50;
+                current_block = BZ_X_ENDHDR_3;
             }
-            Block48 => {
+            BZ_X_BLKHDR_2 => {
                 s.state = State::BZ_X_BLKHDR_2;
 
                 GET_UCHAR!(strm, s, uc);
@@ -551,12 +551,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     retVal = ReturnCode::BZ_DATA_ERROR;
                     break 'save_state_and_return;
                 }
-                current_block = Block54;
+                current_block = BZ_X_BLKHDR_3;
             }
             _ => {}
         }
         match current_block {
-            Block50 => {
+            BZ_X_ENDHDR_3 => {
                 s.state = State::BZ_X_ENDHDR_3;
 
                 GET_UCHAR!(strm, s, uc);
@@ -566,9 +566,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = Block20;
+                current_block = BZ_X_ENDHDR_4;
             }
-            Block54 => {
+            BZ_X_BLKHDR_3 => {
                 s.state = State::BZ_X_BLKHDR_3;
 
                 GET_UCHAR!(strm, s, uc);
@@ -578,12 +578,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = Block31;
+                current_block = BZ_X_BLKHDR_4;
             }
             _ => {}
         }
         match current_block {
-            Block20 => {
+            BZ_X_ENDHDR_4 => {
                 s.state = State::BZ_X_ENDHDR_4;
 
                 GET_UCHAR!(strm, s, uc);
@@ -593,9 +593,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = Block16;
+                current_block = BZ_X_ENDHDR_5;
             }
-            Block31 => {
+            BZ_X_BLKHDR_4 => {
                 s.state = State::BZ_X_BLKHDR_4;
 
                 GET_UCHAR!(strm, s, uc);
@@ -605,12 +605,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = Block23;
+                current_block = BZ_X_BLKHDR_5;
             }
             _ => {}
         }
         match current_block {
-            Block16 => {
+            BZ_X_ENDHDR_5 => {
                 s.state = State::BZ_X_ENDHDR_5;
 
                 GET_UCHAR!(strm, s, uc);
@@ -620,9 +620,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = Block34;
+                current_block = BZ_X_ENDHDR_6;
             }
-            Block23 => {
+            BZ_X_BLKHDR_5 => {
                 s.state = State::BZ_X_BLKHDR_5;
 
                 GET_UCHAR!(strm, s, uc);
@@ -632,12 +632,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = Block36;
+                current_block = BZ_X_BLKHDR_6;
             }
             _ => {}
         }
         match current_block {
-            Block34 => {
+            BZ_X_ENDHDR_6 => {
                 s.state = State::BZ_X_ENDHDR_6;
 
                 GET_UCHAR!(strm, s, uc);
@@ -648,9 +648,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 }
 
                 s.storedCombinedCRC = 0_u32;
-                current_block = Block4;
+                current_block = BZ_X_CCRC_1;
             }
-            Block36 => {
+            BZ_X_BLKHDR_6 => {
                 s.state = State::BZ_X_BLKHDR_6;
 
                 GET_UCHAR!(strm, s, uc);
@@ -665,77 +665,77 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     eprint!("\n    [{}: huff+mtf ", s.currBlockNo);
                 }
                 s.storedBlockCRC = 0_u32;
-                current_block = Block47;
+                current_block = BZ_X_BCRC_1;
             }
             _ => {}
         }
         match current_block {
-            Block4 => {
+            BZ_X_CCRC_1 => {
                 s.state = State::BZ_X_CCRC_1;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                current_block = Block15;
+                current_block = BZ_X_CCRC_2;
             }
-            Block47 => {
+            BZ_X_BCRC_1 => {
                 s.state = State::BZ_X_BCRC_1;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                current_block = Block44;
+                current_block = BZ_X_BCRC_2;
             }
             _ => {}
         }
         match current_block {
-            Block15 => {
+            BZ_X_CCRC_2 => {
                 s.state = State::BZ_X_CCRC_2;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                current_block = Block42;
+                current_block = BZ_X_CCRC_3;
             }
-            Block44 => {
+            BZ_X_BCRC_2 => {
                 s.state = State::BZ_X_BCRC_2;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                current_block = Block53;
+                current_block = BZ_X_BCRC_3;
             }
             _ => {}
         }
         match current_block {
-            Block42 => {
+            BZ_X_CCRC_3 => {
                 s.state = State::BZ_X_CCRC_3;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                current_block = Block33;
+                current_block = BZ_X_CCRC_4;
             }
-            Block53 => {
+            BZ_X_BCRC_3 => {
                 s.state = State::BZ_X_BCRC_3;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                current_block = Block32;
+                current_block = BZ_X_BCRC_4;
             }
             _ => {}
         }
         match current_block {
-            Block32 => {
+            BZ_X_BCRC_4 => {
                 s.state = State::BZ_X_BCRC_4;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                current_block = Block10;
+                current_block = BZ_X_RANDBIT;
             }
-            Block33 => {
+            BZ_X_CCRC_4 => {
                 s.state = State::BZ_X_CCRC_4;
 
                 GET_UCHAR!(strm, s, uc);
@@ -747,31 +747,31 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
             }
             _ => {}
         }
-        if current_block == Block10 {
+        if current_block == BZ_X_RANDBIT {
             s.state = State::BZ_X_RANDBIT;
 
             GET_BITS!(strm, s, s.blockRandomised, 1);
 
             s.origPtr = 0;
-            current_block = Block37;
+            current_block = BZ_X_ORIGPTR_1;
         }
-        if current_block == Block37 {
+        if current_block == BZ_X_ORIGPTR_1 {
             s.state = State::BZ_X_ORIGPTR_1;
 
             GET_UCHAR!(strm, s, uc);
 
             s.origPtr = s.origPtr << 8 | uc as i32;
-            current_block = Block3;
+            current_block = BZ_X_ORIGPTR_2;
         }
-        if current_block == Block3 {
+        if current_block == BZ_X_ORIGPTR_2 {
             s.state = State::BZ_X_ORIGPTR_2;
 
             GET_UCHAR!(strm, s, uc);
 
             s.origPtr = s.origPtr << 8 | uc as i32;
-            current_block = Block29;
+            current_block = BZ_X_ORIGPTR_3;
         }
-        if current_block == Block29 {
+        if current_block == BZ_X_ORIGPTR_3 {
             s.state = State::BZ_X_ORIGPTR_3;
 
             GET_UCHAR!(strm, s, uc);
@@ -797,14 +797,14 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     s.save_i = i;
                     break;
                 }
-                Block55 => {
+                BZ_X_MTF_5 => {
                     s.state = State::BZ_X_MTF_5;
 
                     GET_BITS!(strm, s, zvec, zn);
 
                     current_block = Block24;
                 }
-                Block9 => {
+                BZ_X_MTF_4 => {
                     s.state = State::BZ_X_MTF_4;
 
                     GET_BIT!(strm, s, zj);
@@ -812,14 +812,14 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     zvec = zvec << 1 | zj;
                     current_block = Block52;
                 }
-                Block57 => {
+                BZ_X_MTF_3 => {
                     s.state = State::BZ_X_MTF_3;
 
                     GET_BITS!(strm, s, zvec, zn);
 
                     current_block = Block52;
                 }
-                Block2 => {
+                BZ_X_MTF_2 => {
                     s.state = State::BZ_X_MTF_2;
 
                     GET_BIT!(strm, s, zj);
@@ -827,14 +827,14 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     zvec = zvec << 1 | zj;
                     current_block = Block56;
                 }
-                Block12 => {
+                BZ_X_MTF_1 => {
                     s.state = State::BZ_X_MTF_1;
 
                     GET_BITS!(strm, s, zvec, zn);
 
                     current_block = Block56;
                 }
-                Block49 => {
+                BZ_X_CODING_3 => {
                     s.state = State::BZ_X_CODING_3;
 
                     GET_BIT!(strm, s, uc);
@@ -847,18 +847,18 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
 
                     current_block = Block45;
                 }
-                Block30 => {
+                BZ_X_CODING_2 => {
                     s.state = State::BZ_X_CODING_2;
 
                     GET_BIT!(strm, s, uc);
 
                     if uc != 0 {
-                        current_block = Block49;
+                        current_block = BZ_X_CODING_3;
                         continue;
                     }
                     current_block = Block51;
                 }
-                Block8 => {
+                BZ_X_CODING_1 => {
                     s.state = State::BZ_X_CODING_1;
 
                     GET_BITS!(strm, s, curr, 5);
@@ -866,7 +866,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     i = 0;
                     current_block = Block26;
                 }
-                Block22 => {
+                BZ_X_SELECTOR_3 => {
                     s.state = State::BZ_X_SELECTOR_3;
 
                     GET_BIT!(strm, s, uc);
@@ -883,7 +883,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         }
                     }
                 }
-                Block14 => {
+                BZ_X_SELECTOR_2 => {
                     s.state = State::BZ_X_SELECTOR_2;
 
                     GET_BITS!(strm, s, nSelectors, 15);
@@ -896,19 +896,19 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     }
                     current_block = Block39;
                 }
-                Block59 => {
+                BZ_X_SELECTOR_1 => {
                     s.state = State::BZ_X_SELECTOR_1;
 
                     GET_BITS!(strm, s, nGroups, 3);
 
                     if (2..=6).contains(&nGroups) {
-                        current_block = Block14;
+                        current_block = BZ_X_SELECTOR_2;
                         continue;
                     }
                     retVal = ReturnCode::BZ_DATA_ERROR;
                     break 'save_state_and_return;
                 }
-                Block19 => {
+                BZ_X_MAPPING_2 => {
                     s.state = State::BZ_X_MAPPING_2;
 
                     GET_BIT!(strm, s, uc);
@@ -921,7 +921,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 }
                 Block43 => {
                     if i < 16 {
-                        current_block = Block7;
+                        current_block = BZ_X_MAPPING_1;
                         continue;
                     }
                     i = 0;
@@ -932,7 +932,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     i = 0;
                     current_block = Block18;
                 }
-                Block7 => {
+                BZ_X_MAPPING_1 => {
                     s.state = State::BZ_X_MAPPING_1;
 
                     GET_BIT!(strm, s, uc);
@@ -966,7 +966,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         }
                     } else {
                         zn += 1;
-                        current_block = Block5;
+                        current_block = BZ_X_MTF_6;
                         continue;
                     }
                     current_block = Block40;
@@ -1019,7 +1019,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         }
                     } else {
                         zn += 1;
-                        current_block = Block9;
+                        current_block = BZ_X_MTF_4;
                         continue;
                     }
                 }
@@ -1037,7 +1037,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         }
                     } else {
                         zn += 1;
-                        current_block = Block2;
+                        current_block = BZ_X_MTF_2;
                         continue;
                     }
                     current_block = Block40;
@@ -1128,7 +1128,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             nblock += 1;
                             update_group_pos!(s);
                             zn = gMinlen;
-                            current_block = Block55;
+                            current_block = BZ_X_MTF_5;
                             continue;
                         }
                         current_block = Block46;
@@ -1353,7 +1353,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     N *= 2;
                     update_group_pos!(s);
                     zn = gMinlen;
-                    current_block = Block57;
+                    current_block = BZ_X_MTF_3;
                     continue;
                 }
             }
@@ -1361,7 +1361,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 match current_block {
                     Block28 => {
                         if j < 16 {
-                            current_block = Block19;
+                            current_block = BZ_X_MAPPING_2;
                             continue 'c_10064;
                         }
                     }
@@ -1448,7 +1448,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     }
                     Block25 => {
                         if 1 != 0 {
-                            current_block = Block22;
+                            current_block = BZ_X_SELECTOR_3;
                             continue 'c_10064;
                         } else {
                             current_block = Block1;
@@ -1461,7 +1461,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             continue;
                         }
                         if (1..=20).contains(&curr) {
-                            current_block = Block30;
+                            current_block = BZ_X_CODING_2;
                             continue 'c_10064;
                         }
                         retVal = ReturnCode::BZ_DATA_ERROR;
@@ -1474,7 +1474,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
             match current_block {
                 Block58 => {
                     alphaSize = s.nInUse + 2;
-                    current_block = Block59;
+                    current_block = BZ_X_SELECTOR_1;
                 }
                 Block11 => {
                     retVal = ReturnCode::BZ_DATA_ERROR;
@@ -1482,7 +1482,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 }
                 _ => {
                     if t < nGroups {
-                        current_block = Block8;
+                        current_block = BZ_X_CODING_1;
                         continue;
                     }
 
@@ -1530,7 +1530,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     update_group_pos!(s);
 
                     zn = gMinlen;
-                    current_block = Block12;
+                    current_block = BZ_X_MTF_1;
                 }
             }
         }
