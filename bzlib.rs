@@ -198,8 +198,8 @@ pub struct EState {
 }
 
 /// Creates a new pointer that is dangling, but well-aligned.
-fn dangling<T>() -> *mut T {
-    core::ptr::null_mut::<T>().wrapping_add(4)
+pub(crate) fn dangling<T>() -> *mut T {
+    core::ptr::null_mut::<T>().wrapping_add(core::mem::align_of::<T>())
 }
 
 pub struct Arr1 {
