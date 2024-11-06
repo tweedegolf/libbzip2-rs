@@ -1028,7 +1028,7 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     (bzfree)(strm.opaque, strm.state);
     strm.state = ptr::null_mut::<c_void>();
 
-    0 as c_int
+    ReturnCode::BZ_OK as c_int
 }
 
 pub(crate) enum DecompressMode {
