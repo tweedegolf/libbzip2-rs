@@ -532,7 +532,7 @@ unsafe fn bzalloc_array<T>(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) 
 ///
 /// - [`BZ_PARAM_ERROR`] if any of
 ///     - `strm.is_null()`
-///     - `!(0..=9).contains(&blockSize100k)`
+///     - `!(1..=9).contains(&blockSize100k)`
 ///     - `!(0..=4).contains(&verbosity)`
 ///     - `!(0..=250).contains(&workFactor)`
 /// - [`BZ_MEM_ERROR`] if insufficient memory is available
@@ -1750,6 +1750,38 @@ macro_rules! BZ_SETERR {
     };
 }
 
+/// Prepare to write compressed data to a file handle.
+///
+/// The file handle `f` should refer to a file which has been opened for writing, and for which the error indicator `libc::ferror(f)` is not set.
+///
+/// For the meaning of parameters `blockSize100k`, `verbosity` and `workFactor`, see [`BZ2_bzCompressInit`].
+///
+/// # Returns
+///
+/// - if `*bzerror` is [`BZ_OK`], a valid pointer to an abstract `BZFILE`
+/// - otherwise `NULL`
+///
+/// # Possible assignments to `bzerror`
+///
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `f.is_null`
+///     - `!(1..=9).contains(&blockSize100k)`
+///     - `!(0..=4).contains(&verbosity)`
+///     - `!(0..=250).contains(&workFactor)`
+/// - [`BZ_IO_ERROR`] if `libc::ferror(f)` is nonzero
+/// - [`BZ_MEM_ERROR`] if insufficient memory is available
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `bzerror` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `f` is `NULL`
+///     - `f` a valid pointer to a `FILE`
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzWriteOpen)]
 pub unsafe extern "C" fn BZ2_bzWriteOpen(
     bzerror: *mut c_int,
@@ -1814,6 +1846,33 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     }
 }
 
+/// Absorbs `len` bytes from the buffer `buf`, eventually to be compressed and written to the file.
+///
+/// # Returns
+///
+/// # Possible assignments to `bzerror`
+///
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `b.is_null()`
+///     - `buf.is_null()`
+///     - `len < 0`
+/// - [`BZ_SEQUENCE_ERROR`] if b was opened with [`BZ2_bzReadOpen`]
+/// - [`BZ_IO_ERROR`] if there is an error writing to the compressed file
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `bzerror` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzWriteOpen`] or [`BZ2_bzReadOpen`]
+/// * Either
+///     - `buf` is `NULL`
+///     - `buf` is writable for `len` bytes
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzWrite)]
 pub unsafe extern "C" fn BZ2_bzWrite(
     bzerror: *mut c_int,
@@ -1884,6 +1943,35 @@ pub unsafe extern "C" fn BZ2_bzWrite(
     }
 }
 
+/// Compresses and flushes to the compressed file all data so far supplied by [`BZ2_bzWrite`].
+///
+/// The logical end-of-stream markers are also written, so subsequent calls to [`BZ2_bzWrite`] are illegal.
+/// All memory associated with the compressed file `b` is released. [`libc::fflush`] is called on the compressed file,
+/// but it is not [`libc::fclose`]'d.
+///
+/// If [`BZ2_bzWriteClose`] is called to clean up after an error, the only action is to release the memory.
+/// The library records the error codes issued by previous calls, so this situation will be detected automatically.
+/// There is no attempt to complete the compression operation, nor to [`libc::fflush`] the compressed file.
+/// You can force this behaviour to happen even in the case of no error, by passing a nonzero value to `abandon`.
+///
+/// # Possible assignments to `bzerror`
+///
+/// - [`BZ_SEQUENCE_ERROR`] if b was opened with [`BZ2_bzWriteOpen`]
+/// - [`BZ_IO_ERROR`] if there is an error writing to the compressed file
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `bzerror` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzReadOpen`] or [`BZ2_bzWriteOpen`]
+/// * `nbytes_in` satisfies the requirements of [`pointer::as_mut`]
+/// * `nbytes_out` satisfies the requirements of [`pointer::as_mut`]
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzWriteClose)]
 pub unsafe extern "C" fn BZ2_bzWriteClose(
     bzerror: *mut c_int,
@@ -1902,6 +1990,38 @@ pub unsafe extern "C" fn BZ2_bzWriteClose(
         ptr::null_mut::<c_uint>(),
     );
 }
+
+/// Compresses and flushes to the compressed file all data so far supplied by [`BZ2_bzWrite`].
+///
+/// The logical end-of-stream markers are also written, so subsequent calls to [`BZ2_bzWrite`] are illegal.
+/// All memory associated with the compressed file `b` is released. [`libc::fflush`] is called on the compressed file,
+/// but it is not [`libc::fclose`]'d.
+///
+/// If [`BZ2_bzWriteClose64`] is called to clean up after an error, the only action is to release the memory.
+/// The library records the error codes issued by previous calls, so this situation will be detected automatically.
+/// There is no attempt to complete the compression operation, nor to [`libc::fflush`] the compressed file.
+/// You can force this behaviour to happen even in the case of no error, by passing a nonzero value to `abandon`.
+///
+/// # Possible assignments to `bzerror`
+///
+/// - [`BZ_SEQUENCE_ERROR`] if b was opened with [`BZ2_bzWriteOpen`]
+/// - [`BZ_IO_ERROR`] if there is an error writing to the compressed file
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `bzerror` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzReadOpen`] or [`BZ2_bzWriteOpen`]
+/// * `nbytes_in_lo32: satisfies the requirements of [`pointer::as_mut`]
+/// * `nbytes_in_hi32: satisfies the requirements of [`pointer::as_mut`]
+/// * `nbytes_out_lo32: satisfies the requirements of [`pointer::as_mut`]
+/// * `nbytes_out_hi32: satisfies the requirements of [`pointer::as_mut`]
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzWriteClose64)]
 pub unsafe extern "C" fn BZ2_bzWriteClose64(
     bzerror: *mut c_int,
@@ -2018,8 +2138,8 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
 ///
 /// # Returns
 ///
-/// - a valid pointer to an abstract `BZFILE`
-/// - `NULL` otherwise
+/// - if `*bzerror` is [`BZ_OK`], a valid pointer to an abstract `BZFILE`
+/// - otherwise `NULL`
 ///
 /// # Possible assignments to `bzerror`
 ///
@@ -2353,7 +2473,7 @@ pub unsafe extern "C" fn BZ2_bzReadGetUnused(
 ///     - `dest.is_null()`
 ///     - `destLen.is_null()`
 ///     - `source.is_null()`
-///     - `!(0..=9).contains(&blockSize100k)`
+///     - `!(1..=9).contains(&blockSize100k)`
 ///     - `!(0..=4).contains(&verbosity)`
 ///     - `!(0..=250).contains(&workFactor)`
 /// - [`BZ_MEM_ERROR`] if insufficient memory is available
