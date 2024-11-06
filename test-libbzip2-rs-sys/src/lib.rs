@@ -637,8 +637,6 @@ mod bzip2_testfiles {
 
 #[test]
 fn decompress_init_edge_cases() {
-    use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR};
-
     // valid input
     crate::assert_eq_rs_c!({
         let mut strm = MaybeUninit::zeroed();
@@ -696,8 +694,6 @@ fn decompress_init_edge_cases() {
 
 #[test]
 fn decompress_edge_cases() {
-    use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR, BZ_STREAM_END};
-
     // strm is NULL
     crate::assert_eq_rs_c!({
         assert_eq!(BZ_PARAM_ERROR, BZ2_bzDecompress(core::ptr::null_mut()));
@@ -781,8 +777,6 @@ fn decompress_edge_cases() {
 
 #[test]
 fn decompress_end_edge_cases() {
-    use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR};
-
     // strm is NULL
     crate::assert_eq_rs_c!({
         assert_eq!(BZ_PARAM_ERROR, BZ2_bzDecompressEnd(core::ptr::null_mut()));
@@ -822,8 +816,6 @@ fn decompress_end_edge_cases() {
 
 #[test]
 fn compress_init_edge_cases() {
-    use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR};
-
     let blockSize100k = 9;
     let verbosity = 0;
     let workFactor = 30;
@@ -938,11 +930,6 @@ fn compress_init_edge_cases() {
 
 #[test]
 fn compress_edge_cases() {
-    use bzip2_sys::{
-        BZ_FINISH, BZ_FINISH_OK, BZ_FLUSH, BZ_FLUSH_OK, BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR,
-        BZ_RUN, BZ_RUN_OK, BZ_SEQUENCE_ERROR, BZ_STREAM_END,
-    };
-
     let blockSize100k = 9;
     let verbosity = 0;
     let workFactor = 30;
@@ -1096,11 +1083,6 @@ fn compress_edge_cases() {
 
 #[test]
 fn compress_64_bit_arithmetic_edge_cases() {
-    use bzip2_sys::{
-        BZ_FINISH, BZ_FINISH_OK, BZ_FLUSH, BZ_FLUSH_OK, BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR,
-        BZ_RUN, BZ_RUN_OK, BZ_SEQUENCE_ERROR, BZ_STREAM_END,
-    };
-
     let mut output = [0u8; 64];
 
     let blockSize100k = 9;
@@ -1190,11 +1172,6 @@ fn compress_64_bit_arithmetic_edge_cases() {
 
 #[test]
 fn compress_action_edge_cases() {
-    use bzip2_sys::{
-        BZ_FINISH, BZ_FINISH_OK, BZ_FLUSH, BZ_FLUSH_OK, BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR,
-        BZ_RUN, BZ_RUN_OK, BZ_SEQUENCE_ERROR, BZ_STREAM_END,
-    };
-
     let mut output = [0u8; 64];
 
     let blockSize100k = 9;
@@ -1253,8 +1230,6 @@ fn compress_action_edge_cases() {
 
 #[test]
 fn compress_end_edge_cases() {
-    use bzip2_sys::{BZ_MEM_ERROR, BZ_OK, BZ_PARAM_ERROR};
-
     let blockSize100k = 9;
     let verbosity = 0;
     let workFactor = 30;
@@ -1353,7 +1328,7 @@ mod high_level_interface {
                 )
             };
 
-            if bzerror == bzip2_sys::BZ_OK || bzerror == bzip2_sys::BZ_STREAM_END {
+            if bzerror == BZ_OK || bzerror == BZ_STREAM_END {
                 output.extend(&buffer[..bytes_read as usize]);
             }
         }
@@ -1365,9 +1340,9 @@ mod high_level_interface {
 
         unsafe { libc::fclose(input_file) };
 
-        assert_eq!(after_read, bzip2_sys::BZ_STREAM_END);
+        assert_eq!(after_read, BZ_STREAM_END);
 
-        assert_eq!(bzerror, bzip2_sys::BZ_OK);
+        assert_eq!(bzerror, BZ_OK);
 
         assert_eq!(&expected[..expected_len as usize], output);
     }
@@ -1434,7 +1409,7 @@ mod high_level_interface {
 
         unsafe { libc::fclose(output_file) };
 
-        assert_eq!(bzerror, bzip2_sys::BZ_OK);
+        assert_eq!(bzerror, BZ_OK);
 
         let mut expected = vec![0u8; 256 * 1024];
         let mut expected_len = expected.len() as _;
