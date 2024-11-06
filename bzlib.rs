@@ -1,9 +1,8 @@
-use core::ffi::{c_char, c_int, c_uint, c_void};
+use core::ffi::{c_char, c_int, c_uint, c_void, CStr};
 
 use libc::FILE;
 use libc::{
-    exit, fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, strcat,
-    strcmp, ungetc,
+    exit, fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, ungetc,
 };
 
 use crate::compress::BZ2_compressBlock;
@@ -2328,113 +2327,123 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     }
 }
 
+enum OpenMode {
+    Pointer,
+    FileDescriptor(i32),
+}
+
 unsafe fn bzopen_or_bzdopen(
     path: *const libc::c_char,
-    fd: libc::c_int,
-    mut mode: *const libc::c_char,
-    open_mode: libc::c_int,
+    open_mode: OpenMode,
+    mode: *const libc::c_char,
 ) -> *mut libc::c_void {
-    let mut bzerr: libc::c_int = 0;
-    let mut unused: [libc::c_char; 5000] = [0; 5000];
-    let mut blockSize100k: libc::c_int = 9 as libc::c_int;
-    let mut writing: libc::c_int = 0 as libc::c_int;
-    let mut mode2: [libc::c_char; 10] = [0; 10];
-    let fp: *mut FILE;
-    let bzfp: *mut libc::c_void;
-    let verbosity: libc::c_int = 0 as libc::c_int;
-    let workFactor: libc::c_int = 30 as libc::c_int;
-    let mut smallMode: libc::c_int = 0 as libc::c_int;
-    let nUnused: libc::c_int = 0 as libc::c_int;
-    if mode.is_null() {
-        return std::ptr::null_mut::<libc::c_void>();
+    enum Operation {
+        Reading,
+        Writing,
     }
-    while *mode != 0 {
-        match *mode as libc::c_int {
-            114 => {
-                writing = 0 as libc::c_int;
-            }
-            119 => {
-                writing = 1 as libc::c_int;
-            }
-            115 => {
-                smallMode = 1 as libc::c_int;
-            }
-            _ => {
-                if (*mode as u8 as char).is_ascii_digit() {
-                    blockSize100k = (*mode as u8 - 0x30) as libc::c_int;
-                }
-            }
+
+    let mut bzerr = 0;
+    let mut unused: [libc::c_char; BZ_MAX_UNUSED as usize] = [0; BZ_MAX_UNUSED as usize];
+
+    let mut blockSize100k = 9;
+    let verbosity = 0;
+    let workFactor = 30;
+    let nUnused = 0;
+
+    let mut smallMode = false;
+    let mut operation = Operation::Reading;
+
+    let mode = if mode.is_null() {
+        return core::ptr::null_mut();
+    } else {
+        CStr::from_ptr(mode)
+    };
+
+    let path = if path.is_null() {
+        None
+    } else {
+        Some(CStr::from_ptr(path))
+    };
+
+    for c in mode.to_bytes() {
+        match c {
+            b'r' => operation = Operation::Reading,
+            b'w' => operation = Operation::Writing,
+            b's' => smallMode = true,
+            b'0'..=b'9' => blockSize100k = (*c - b'0') as i32,
+            _ => {}
         }
-        mode = mode.offset(1);
     }
-    strcat(
-        mode2.as_mut_ptr(),
-        if writing != 0 {
-            b"wb\0" as *const u8 as *const libc::c_char
-        } else {
-            b"rb\0" as *const u8 as *const libc::c_char
+
+    let mode = match open_mode {
+        OpenMode::Pointer => match operation {
+            Operation::Reading => b"rbe\0".as_slice(),
+            Operation::Writing => b"rbe\0".as_slice(),
         },
-    );
-    if open_mode == 0 as libc::c_int {
-        strcat(mode2.as_mut_ptr(), c"e".as_ptr());
-    }
-    if open_mode == 0 as libc::c_int {
-        if path.is_null()
-            || strcmp(path, b"\0" as *const u8 as *const libc::c_char) == 0 as libc::c_int
-        {
-            fp = if writing != 0 { stdout } else { stdin };
-        } else {
-            fp = fopen(path, mode2.as_mut_ptr());
-        }
-    } else {
-        fp = fdopen(fd, mode2.as_mut_ptr());
-    }
+        OpenMode::FileDescriptor(_) => match operation {
+            Operation::Reading => b"rb\0".as_slice(),
+            Operation::Writing => b"rb\0".as_slice(),
+        },
+    };
+
+    let mode2 = mode.as_ptr().cast_mut().cast::<c_char>();
+
+    let default_file = match operation {
+        Operation::Reading => stdin,
+        Operation::Writing => stdout,
+    };
+
+    let fp = match open_mode {
+        OpenMode::Pointer => match path {
+            None => default_file,
+            Some(path) if path.is_empty() => default_file,
+            Some(path) => fopen(path.as_ptr(), mode2),
+        },
+        OpenMode::FileDescriptor(fd) => fdopen(fd, mode2),
+    };
+
     if fp.is_null() {
-        return std::ptr::null_mut::<libc::c_void>();
+        return core::ptr::null_mut();
     }
-    if writing != 0 {
-        if blockSize100k < 1 as libc::c_int {
-            blockSize100k = 1 as libc::c_int;
-        }
-        if blockSize100k > 9 as libc::c_int {
-            blockSize100k = 9 as libc::c_int;
-        }
-        bzfp = BZ2_bzWriteOpen(&mut bzerr, fp, blockSize100k, verbosity, workFactor);
-    } else {
-        bzfp = BZ2_bzReadOpen(
+
+    let bzfp = match operation {
+        Operation::Reading => BZ2_bzReadOpen(
             &mut bzerr,
             fp,
             verbosity,
-            smallMode,
+            smallMode as i32,
             unused.as_mut_ptr() as *mut libc::c_void,
             nUnused,
-        );
-    }
+        ),
+        Operation::Writing => BZ2_bzWriteOpen(
+            &mut bzerr,
+            fp,
+            blockSize100k.clamp(1, 9),
+            verbosity,
+            workFactor,
+        ),
+    };
+
     if bzfp.is_null() {
         if fp != stdin && fp != stdout {
             fclose(fp);
         }
-        return std::ptr::null_mut::<libc::c_void>();
+        return core::ptr::null_mut();
     }
+
     bzfp
 }
 
 /// Opens a `.bz2` file for reading or writing using its name. Analogous to fopen.
 #[export_name = prefix!(BZ2_bzopen)]
-pub unsafe extern "C" fn BZ2_bzopen(
-    path: *const libc::c_char,
-    mode: *const libc::c_char,
-) -> *mut libc::c_void {
-    bzopen_or_bzdopen(path, -1 as libc::c_int, mode, 0)
+pub unsafe extern "C" fn BZ2_bzopen(path: *const c_char, mode: *const c_char) -> *mut c_void {
+    bzopen_or_bzdopen(path, OpenMode::Pointer, mode)
 }
 
 /// Opens a `.bz2` file for reading or writing using a pre-existing file descriptor. Analogous to fdopen.
 #[export_name = prefix!(BZ2_bzdopen)]
-pub unsafe extern "C" fn BZ2_bzdopen(
-    fd: libc::c_int,
-    mode: *const libc::c_char,
-) -> *mut libc::c_void {
-    bzopen_or_bzdopen(std::ptr::null::<libc::c_char>(), fd, mode, 1)
+pub unsafe extern "C" fn BZ2_bzdopen(fd: c_int, mode: *const c_char) -> *mut c_void {
+    bzopen_or_bzdopen(core::ptr::null(), OpenMode::FileDescriptor(fd), mode)
 }
 
 #[export_name = prefix!(BZ2_bzread)]
