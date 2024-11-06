@@ -83,11 +83,11 @@ jobs:
       - name: cargo build
         run: cargo build --target ${{matrix.target}} ${{ matrix.features }}
       - name: cargo nextest # reports segfaults in a helpful way
-        run: cargo nextest run --target ${{matrix.target}} ${{ matrix.features }} --no-fail-fast
+        run: cargo nextest run --target ${{matrix.target}} ${{ matrix.features }} --no-fail-fast --workspace
         env:
           RUST_BACKTRACE: 1
       - name: cargo test with llvm-cov
-        run: cargo llvm-cov --target ${{matrix.target}} ${{ matrix.features }} --lcov --output-path lcov.info
+        run: cargo llvm-cov --target ${{matrix.target}} ${{ matrix.features }} --lcov --output-path lcov.info --ignore-filename-regex "bzip2recover.rs|bzip2\.rs|test-libbzip2" --workspace
         env:
           RUST_BACKTRACE: 1
         if: matrix.os != 'windows-2022'
