@@ -59,7 +59,6 @@ pub enum State {
 #[allow(non_camel_case_types)]
 #[derive(Eq, PartialEq)]
 enum Block {
-    SAVE_STATE_AND_RETURN,
     BZ_X_MAGIC_2,
     BZ_X_MAGIC_3,
     BZ_X_MAGIC_4,
@@ -156,7 +155,6 @@ impl GetBitsConvert for i32 {
 pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     let mut current_block: Block;
     let mut uc: u8;
-    let mut retVal: ReturnCode;
     let mut minLen: i32;
     let mut maxLen: i32;
     let mut i: i32;
@@ -238,9 +236,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     gBase = s.save_gBase;
     gPerm = s.save_gPerm;
 
-    retVal = ReturnCode::BZ_OK;
-
-    'save_state_and_return: {
+    let ret_val: ReturnCode = 'save_state_and_return: {
         macro_rules! GET_UCHAR {
             ($strm:expr, $s:expr, $uuu:expr) => {
                 GET_BITS!($strm, $s, $uuu, 8);
@@ -264,8 +260,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     }
 
                     if $strm.avail_in == 0 {
-                        retVal = ReturnCode::BZ_OK;
-                        break 'save_state_and_return;
+                        break 'save_state_and_return ReturnCode::BZ_OK;
                     }
 
                     // SAFETY: `next_in` is valid to read for `avail_in` bytes
@@ -304,8 +299,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
 
         macro_rules! error {
             ($code:ident) => {
-                retVal = ReturnCode::$code;
-                break 'save_state_and_return;
+                break 'save_state_and_return ReturnCode::$code;
             };
         }
 
@@ -729,8 +723,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                 s.state = State::BZ_X_IDLE;
-                retVal = ReturnCode::BZ_STREAM_END;
-                current_block = SAVE_STATE_AND_RETURN;
+                error!(BZ_STREAM_END);
             }
             _ => {}
         }
@@ -779,10 +772,6 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
 
         'c_10064: loop {
             match current_block {
-                SAVE_STATE_AND_RETURN => {
-                    s.save_i = i;
-                    break;
-                }
                 BZ_X_MTF_5 => {
                     s.state = State::BZ_X_MTF_5;
 
@@ -1299,9 +1288,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                 }
                             }
 
-                            retVal = ReturnCode::BZ_OK;
-                            current_block = SAVE_STATE_AND_RETURN;
-                            continue;
+                            break 'save_state_and_return ReturnCode::BZ_OK;
                         }
                     }
                 }
@@ -1492,7 +1479,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 }
             }
         }
-    }
+    };
 
     s.save_i = i;
     s.save_j = j;
@@ -1519,5 +1506,5 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     s.save_gBase = gBase;
     s.save_gPerm = gPerm;
 
-    retVal
+    ret_val
 }
