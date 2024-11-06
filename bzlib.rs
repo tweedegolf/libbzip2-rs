@@ -453,6 +453,19 @@ impl<T> DSlice<T> {
     }
 }
 
+/// Abstract handle to a `.bz2` file.
+///
+/// This type is created by:
+///
+/// - [`BZ2_bzReadOpen`]
+/// - [`BZ2_bzWriteOpen`]
+/// - [`BZ2_bzopen`]
+///
+/// And destructed by:
+///
+/// - [`BZ2_bzReadClose`]
+/// - [`BZ2_bzWriteClose`]
+/// - [`BZ2_bzclose`]
 pub enum BZFILE {}
 
 #[allow(non_camel_case_types)]
