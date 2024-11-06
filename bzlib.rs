@@ -107,7 +107,7 @@ type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct bz_stream {
-    pub next_in: *mut c_char,
+    pub next_in: *const c_char,
     pub avail_in: c_uint,
     pub total_in_lo32: c_uint,
     pub total_in_hi32: c_uint,
@@ -1877,7 +1877,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
 pub unsafe extern "C" fn BZ2_bzWrite(
     bzerror: *mut c_int,
     b: *mut BZFILE,
-    buf: *mut c_void,
+    buf: *const c_void,
     len: c_int,
 ) {
     let bzf = b as *mut bzFile;
@@ -2283,7 +2283,7 @@ pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut c_int, b: *mut BZFILE) {
 ///
 /// # Returns
 ///
-/// - the number of bytes read
+/// The number of bytes read
 ///
 /// # Possible assignments to `bzerror`
 ///
@@ -2740,18 +2740,62 @@ unsafe fn bzopen_or_bzdopen(
     bzfp
 }
 
-/// Opens a `.bz2` file for reading or writing using its name. Analogous to fopen.
+/// Opens a `.bz2` file for reading or writing using its name. Analogous to [`libc::fopen`].
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * Either
+///     - `path` is `NULL`
+///     - `path` is a null-terminated sequence of bytes
+/// * Either
+///     - `mode` is `NULL`
+///     - `mode` is a null-terminated sequence of bytes
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzopen)]
 pub unsafe extern "C" fn BZ2_bzopen(path: *const c_char, mode: *const c_char) -> *mut BZFILE {
     bzopen_or_bzdopen(path, OpenMode::Pointer, mode)
 }
 
-/// Opens a `.bz2` file for reading or writing using a pre-existing file descriptor. Analogous to fdopen.
+/// Opens a `.bz2` file for reading or writing using a pre-existing file descriptor. Analogous to [`libc::fdopen`].
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `fd` must be a valid file descriptor for the duration of [`BZ2_bzdopen`]
+/// * Either
+///     - `mode` is `NULL`
+///     - `mode` is a null-terminated sequence of bytes
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzdopen)]
 pub unsafe extern "C" fn BZ2_bzdopen(fd: c_int, mode: *const c_char) -> *mut BZFILE {
     bzopen_or_bzdopen(ptr::null(), OpenMode::FileDescriptor(fd), mode)
 }
 
+/// Reads up to `len` (uncompressed) bytes from the compressed file `b` into the buffer `buf`.
+///
+/// Analogous to [`libc::fread`].
+///
+/// # Returns
+///
+/// Number of bytes read on success, or `-1` on failure.
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzWriteOpen`] or [`BZ2_bzReadOpen`]
+/// * Either
+///     - `buf` is `NULL`
+///     - `buf` is writable for `len` bytes
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzread)]
 pub unsafe extern "C" fn BZ2_bzread(b: *mut BZFILE, buf: *mut c_void, len: c_int) -> c_int {
     let mut bzerr = 0;
@@ -2759,7 +2803,7 @@ pub unsafe extern "C" fn BZ2_bzread(b: *mut BZFILE, buf: *mut c_void, len: c_int
     if (*(b as *mut bzFile)).lastErr == ReturnCode::BZ_STREAM_END {
         return 0;
     }
-    let nread: c_int = BZ2_bzRead(&mut bzerr, b, buf, len);
+    let nread = BZ2_bzRead(&mut bzerr, b, buf, len);
     if bzerr == 0 || bzerr == ReturnCode::BZ_STREAM_END as i32 {
         nread
     } else {
@@ -2767,8 +2811,28 @@ pub unsafe extern "C" fn BZ2_bzread(b: *mut BZFILE, buf: *mut c_void, len: c_int
     }
 }
 
+/// Absorbs `len` bytes from the buffer `buf`, eventually to be compressed and written to the file.
+///
+/// Analogous to [`libc::fwrite`].
+///
+/// # Returns
+///
+/// The value `len` on success, or `-1` on failure.
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzWriteOpen`] or [`BZ2_bzReadOpen`]
+/// * Either
+///     - `buf` is `NULL`
+///     - `buf` is readable for `len` bytes
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzwrite)]
-pub unsafe extern "C" fn BZ2_bzwrite(b: *mut BZFILE, buf: *mut c_void, len: c_int) -> c_int {
+pub unsafe extern "C" fn BZ2_bzwrite(b: *mut BZFILE, buf: *const c_void, len: c_int) -> c_int {
     let mut bzerr = 0;
     BZ2_bzWrite(&mut bzerr, b, buf, len);
 
@@ -2778,12 +2842,34 @@ pub unsafe extern "C" fn BZ2_bzwrite(b: *mut BZFILE, buf: *mut c_void, len: c_in
     }
 }
 
+/// Flushes a [`BZFILE`].
+///
+/// Analogous to [`libc::fflush`].
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzReadOpen`] or [`BZ2_bzWriteOpen`]
 #[export_name = prefix!(BZ2_bzflush)]
-pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut c_void) -> c_int {
+pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut BZFILE) -> c_int {
     /* do nothing now... */
     0
 }
 
+/// Closes a [`BZFILE`].
+///
+/// Analogous to [`libc::fclose`].
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzReadOpen`] or [`BZ2_bzWriteOpen`]
 #[export_name = prefix!(BZ2_bzclose)]
 pub unsafe extern "C" fn BZ2_bzclose(b: *mut BZFILE) {
     let mut bzerr: c_int = 0;
@@ -2844,12 +2930,28 @@ const BZERRORSTRINGS: [&str; 16] = [
     "???\0",
 ];
 
+/// Describes the most recent error.
+///
+/// # Returns
+///
+/// A null-terminated string describing the most recent error status of `b`, and also sets `*errnum` to its numerical value.
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzReadOpen`] or [`BZ2_bzWriteOpen`]
+/// * `errnum` satisfies the requirements of [`pointer::as_mut`]
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzerror)]
-pub unsafe extern "C" fn BZ2_bzerror(b: *const c_void, errnum: *mut c_int) -> *const c_char {
+pub unsafe extern "C" fn BZ2_bzerror(b: *const BZFILE, errnum: *mut c_int) -> *const c_char {
     let err = Ord::min(0, (*(b as *const bzFile)).lastErr as c_int);
-    if !errnum.is_null() {
+    if let Some(errnum) = errnum.as_mut() {
         *errnum = err;
-    }
+    };
     let msg = match BZERRORSTRINGS.get(-err as usize) {
         Some(msg) => msg,
         None => "???\0",
@@ -2894,7 +2996,7 @@ mod tests {
             bz_file.lastErr = return_code;
 
             let mut errnum = 0;
-            let ptr = unsafe { BZ2_bzerror(&bz_file as *const _ as *const c_void, &mut errnum) };
+            let ptr = unsafe { BZ2_bzerror(&bz_file as *const _ as *const BZFILE, &mut errnum) };
             assert!(!ptr.is_null());
             let cstr = unsafe { CStr::from_ptr(ptr) };
 
