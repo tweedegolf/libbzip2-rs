@@ -2448,21 +2448,17 @@ pub unsafe extern "C" fn BZ2_bzdopen(fd: c_int, mode: *const c_char) -> *mut c_v
 }
 
 #[export_name = prefix!(BZ2_bzread)]
-pub unsafe extern "C" fn BZ2_bzread(
-    b: *mut libc::c_void,
-    buf: *mut libc::c_void,
-    len: libc::c_int,
-) -> libc::c_int {
-    let mut bzerr: libc::c_int = 0;
+pub unsafe extern "C" fn BZ2_bzread(b: *mut c_void, buf: *mut c_void, len: c_int) -> c_int {
+    let mut bzerr = 0;
 
-    if (*(b as *mut bzFile)).lastErr == 4 as libc::c_int {
-        return 0 as libc::c_int;
+    if (*(b as *mut bzFile)).lastErr == ReturnCode::BZ_STREAM_END as i32 {
+        return 0;
     }
     let nread: libc::c_int = BZ2_bzRead(&mut bzerr, b, buf, len);
-    if bzerr == 0 as libc::c_int || bzerr == 4 as libc::c_int {
+    if bzerr == 0 || bzerr == ReturnCode::BZ_STREAM_END as i32 {
         nread
     } else {
-        -1 as libc::c_int
+        -1
     }
 }
 
