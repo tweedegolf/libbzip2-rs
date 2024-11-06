@@ -17,15 +17,6 @@ mod decompress;
 mod huffman;
 mod randtable;
 
-#[macro_export]
-macro_rules! assert_h {
-    ($condition:expr, $errcode:expr) => {{
-        if !$condition {
-            $crate::bzlib::BZ2_bz__AssertH__fail($errcode);
-        }
-    }};
-}
-
 pub(crate) use bzlib::{Action, ReturnCode};
 
 pub const BZ_OK: c_int = ReturnCode::BZ_OK as c_int;
@@ -66,3 +57,93 @@ pub use bzlib::{
     BZ2_bzclose, BZ2_bzdopen, BZ2_bzerror, BZ2_bzflush, BZ2_bzlibVersion, BZ2_bzopen, BZ2_bzread,
     BZ2_bzwrite,
 };
+
+// --- version number logic
+
+macro_rules! libbzip2_rs_sys_version {
+    () => {
+        concat!("1.1.0-libbzip2-rs-sys-", env!("CARGO_PKG_VERSION"))
+    };
+}
+
+pub(crate) use libbzip2_rs_sys_version;
+
+// --- assert failure logic
+
+macro_rules! assert_h {
+    ($condition:expr, $errcode:expr) => {{
+        if !$condition {
+            eprint!("{}", $crate::AssertFail($errcode));
+            std::process::exit(3);
+        }
+    }};
+}
+
+pub(crate) use assert_h;
+
+pub(crate) struct AssertFail(i32);
+
+impl core::fmt::Display for AssertFail {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            concat!(
+                "\n",
+                "\n",
+                "bzip2/libbzip2: internal error number {}.\n",
+                "This is a bug in bzip2/libbzip2, {}.\n",
+                "Please report it at: https://gitlab.com/bzip2/bzip2/-/issues\n",
+                "If this happened when you were using some program which uses\n",
+                "libbzip2 as a component, you should also report this bug to\n",
+                "the author(s) of that program.\n",
+                "Please make an effort to report this bug;\n",
+                "timely and accurate bug reports eventually lead to higher\n",
+                "quality software.  Thanks.\n",
+                "\n"
+            ),
+            self.0,
+            libbzip2_rs_sys_version!(),
+        ))?;
+
+        if self.0 == 1007 {
+            f.write_fmt(format_args!(concat!(
+                "\n",
+                "*** A special note about internal error number 1007 ***\n",
+                "\n",
+                "Experience suggests that a common cause of i.e. 1007\n",
+                "is unreliable memory or other hardware.  The 1007 assertion\n",
+                "just happens to cross-check the results of huge numbers of\n",
+                "memory reads/writes, and so acts (unintendedly) as a stress\n",
+                "test of your memory system.\n",
+                "\n",
+                "I suggest the following: try compressing the file again,\n",
+                "possibly monitoring progress in detail with the -vv flag.\n",
+                "\n",
+                "* If the error cannot be reproduced, and/or happens at different\n",
+                "  points in compression, you may have a flaky memory system.\n",
+                "  Try a memory-test program.  I have used Memtest86\n",
+                "  (www.memtest86.com).  At the time of writing it is free (GPLd).\n",
+                "  Memtest86 tests memory much more thorougly than your BIOSs\n",
+                "  power-on test, and may find failures that the BIOS doesn't.\n",
+                "\n",
+                "* If the error can be repeatably reproduced, this is a bug in\n",
+                "  bzip2, and I would very much like to hear about it.  Please\n",
+                "  let me know, and, ideally, save a copy of the file causing the\n",
+                "  problem -- without which I will be unable to investigate it.\n",
+                "\n"
+            )))?;
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn print_assert_fail_coverage() {
+        use core::fmt::Write;
+        write!(&mut String::new(), "{}", AssertFail(1007)).unwrap();
+    }
+}

@@ -1,13 +1,12 @@
 use core::ffi::{c_char, c_int, c_uint, c_void, CStr};
 
 use libc::FILE;
-use libc::{
-    exit, fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, ungetc,
-};
+use libc::{fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, ungetc};
 
 use crate::compress::BZ2_compressBlock;
 use crate::crctable::BZ2_CRC32TABLE;
 use crate::decompress::{self, BZ2_decompress};
+use crate::libbzip2_rs_sys_version;
 
 extern "C" {
     static stdin: *mut FILE;
@@ -72,12 +71,6 @@ macro_rules! prefix {
 macro_rules! prefix {
     ($name:expr) => {
         concat!("LIBBZIP2_RS_SYS_TEST_", stringify!($name))
-    };
-}
-
-macro_rules! libbzip2_rs_sys_version {
-    () => {
-        concat!("1.1.0-libbzip2-rs-sys-", env!("CARGO_PKG_VERSION"))
     };
 }
 
@@ -487,58 +480,6 @@ pub struct bzFile {
     pub lastErr: ReturnCode,
     pub operation: Operation,
     pub initialisedOk: bool,
-}
-
-pub fn BZ2_bz__AssertH__fail(errcode: libc::c_int) {
-    eprint!(
-        concat!(
-            "\n",
-            "\n",
-            "bzip2/libbzip2: internal error number {}.\n",
-            "This is a bug in bzip2/libbzip2, {}.\n",
-            "Please report it at: https://gitlab.com/bzip2/bzip2/-/issues\n",
-            "If this happened when you were using some program which uses\n",
-            "libbzip2 as a component, you should also report this bug to\n",
-            "the author(s) of that program.\n",
-            "Please make an effort to report this bug;\n",
-            "timely and accurate bug reports eventually lead to higher\n",
-            "quality software.  Thanks.\n",
-            "\n"
-        ),
-        errcode,
-        libbzip2_rs_sys_version!(),
-    );
-    if errcode == 1007 as libc::c_int {
-        eprint!(concat!(
-            "\n",
-            "*** A special note about internal error number 1007 ***\n",
-            "\n",
-            "Experience suggests that a common cause of i.e. 1007\n",
-            "is unreliable memory or other hardware.  The 1007 assertion\n",
-            "just happens to cross-check the results of huge numbers of\n",
-            "memory reads/writes, and so acts (unintendedly) as a stress\n",
-            "test of your memory system.\n",
-            "\n",
-            "I suggest the following: try compressing the file again,\n",
-            "possibly monitoring progress in detail with the -vv flag.\n",
-            "\n",
-            "* If the error cannot be reproduced, and/or happens at different\n",
-            "  points in compression, you may have a flaky memory system.\n",
-            "  Try a memory-test program.  I have used Memtest86\n",
-            "  (www.memtest86.com).  At the time of writing it is free (GPLd).\n",
-            "  Memtest86 tests memory much more thorougly than your BIOSs\n",
-            "  power-on test, and may find failures that the BIOS doesn't.\n",
-            "\n",
-            "* If the error can be repeatably reproduced, this is a bug in\n",
-            "  bzip2, and I would very much like to hear about it.  Please\n",
-            "  let me know, and, ideally, save a copy of the file causing the\n",
-            "  problem -- without which I will be unable to investigate it.\n",
-            "\n"
-        ));
-    }
-    unsafe {
-        exit(3 as libc::c_int);
-    }
 }
 
 const _C_INT_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_int>() == 4);
