@@ -248,7 +248,7 @@ impl Arr1 {
         }
     }
 
-    /// Safety: ptr must satisfy the requirements of [`core::slice::from_raw_parts_mut`].
+    /// Safety: ptr and len must satisfy the requirements of [`core::slice::from_raw_parts_mut`].
     unsafe fn from_raw_parts_mut(ptr: *mut u32, len: usize) -> Self {
         Self { ptr, len }
     }
@@ -2218,6 +2218,43 @@ pub unsafe extern "C" fn BZ2_bzReadGetUnused(
     *unused = bzf.strm.next_in as *mut c_void;
 }
 
+/// Compress the input data into the destination buffer.
+///
+/// This function attempts to compress the data in `source[0 .. sourceLen]` into `dest[0 .. *destLen]`.
+/// If the destination buffer is big enough, `*destLen` is set to the size of the compressed data, and [`BZ_OK`] is returned.
+/// If the compressed data won't fit, `*destLen` is unchanged, and [`BZ_OUTBUFF_FULL`] is returned.
+///
+/// For the meaning of parameters `blockSize100k`, `verbosity` and `workFactor`, see [`BZ2_bzCompressInit`].
+///
+/// A safe choice for the length of the output buffer is a size 1% larger than the input length,
+/// plus 600 extra bytes.
+///
+/// # Returns
+///
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `dest.is_null()`
+///     - `destLen.is_null()`
+///     - `source.is_null()`
+///     - `!(0..=9).contains(&blockSize100k)`
+///     - `!(0..=4).contains(&verbosity)`
+///     - `!(0..=250).contains(&workFactor)`
+/// - [`BZ_MEM_ERROR`] if insufficient memory is available
+/// - [`BZ_OUTBUFF_FULL`] if the size of the compressed data exceeds `*destLen`
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `destLen` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `dest` is `NULL`
+///     - `dest` is writable for `*destLen` bytes
+/// * Either
+///     - `source` is `NULL`
+///     - `source` is readable for `sourceLen`
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzBuffToBuffCompress)]
 pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     dest: *mut c_char,
@@ -2230,7 +2267,11 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
 ) -> c_int {
     let mut strm: bz_stream = bz_stream::zeroed();
 
-    if dest.is_null() || destLen.is_null() || source.is_null() {
+    let Some(destLen) = destLen.as_mut() else {
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
+    };
+
+    if dest.is_null() || source.is_null() {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
