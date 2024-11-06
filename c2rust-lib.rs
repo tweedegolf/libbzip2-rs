@@ -3,6 +3,8 @@
 #![allow(clippy::missing_safety_doc)] // FIXME remove once everything has safety docs
 #![allow(clippy::needless_range_loop)] // FIXME remove once all instances are fixed
 
+//! A drop-in compatible rust implementation of bzip2
+
 use core::ffi::c_int;
 
 extern crate libc;
