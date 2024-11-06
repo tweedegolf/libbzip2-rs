@@ -2304,6 +2304,48 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
         }
     }
 }
+
+/// Decompress the input data into the destination buffer.
+///
+/// This function attempts to decompress the data in `source[0 .. sourceLen]` into `dest[0 .. *destLen]`.
+/// If the destination buffer is big enough, `*destLen` is set to the size of the decompressed data, and [`BZ_OK`] is returned.
+/// If the decompressed data won't fit, `*destLen` is unchanged, and [`BZ_OUTBUFF_FULL`] is returned.
+///
+/// For the meaning of parameters `small`, `verbosity`, see [`BZ2_bzDecompressInit`].
+///
+/// Because the compression ratio of the compressed data cannot be known in advance,
+/// there is no easy way to guarantee that the output buffer will be big enough.
+/// You may of course make arrangements in your code to record the size of the uncompressed data,
+/// but such a mechanism is beyond the scope of this library.
+///
+/// # Returns
+///
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `dest.is_null()`
+///     - `destLen.is_null()`
+///     - `source.is_null()`
+///     - `!(0..=1).contains(&small)`
+///     - `!(0..=4).contains(&verbosity)`
+/// - [`BZ_MEM_ERROR`] if insufficient memory is available
+/// - [`BZ_OUTBUFF_FULL`] if the size of the compressed data exceeds `*destLen`
+/// - [`BZ_DATA_ERROR`] if a data integrity error is detected in the compressed stream
+/// - [`BZ_DATA_ERROR_MAGIC`] if the compressed stream doesn't begin with the right magic bytes
+/// - [`BZ_UNEXPECTED_EOF`] if the compressed stream ends unexpectedly
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `destLen` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `dest` is `NULL`
+///     - `dest` is writable for `*destLen` bytes
+/// * Either
+///     - `source` is `NULL`
+///     - `source` is readable for `sourceLen`
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzBuffToBuffDecompress)]
 pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     dest: *mut c_char,
