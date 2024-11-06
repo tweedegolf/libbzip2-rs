@@ -2274,6 +2274,38 @@ pub unsafe extern "C" fn BZ2_bzRead(
     }
 }
 
+/// Returns data which was read from the compressed file but was not needed to get to the logical end-of-stream.
+///
+/// # Returns
+///
+/// - `*unused` is set to the address of the data
+/// - `*nUnused` is set to the number of bytes.
+///
+/// `*nUnused` will be set to a value contained in `0..=BZ_MAX_UNUSED`.
+///
+/// # Possible assignments to `bzerror`
+///
+/// - [`BZ_PARAM_ERROR`] if any of
+///     - `b.is_null()`
+///     - `unused.is_null()`
+///     - `nUnused.is_null()`
+/// - [`BZ_SEQUENCE_ERROR`] if any of
+///     - [`BZ_STREAM_END`] has not been signaled
+///     - b was opened with [`BZ2_bzWriteOpen`]
+/// - [`BZ_OK`] otherwise
+///
+/// # Safety
+///
+/// The caller must guarantee that
+///
+/// * `bzerror` satisfies the requirements of [`pointer::as_mut`]
+/// * `unused` satisfies the requirements of [`pointer::as_mut`]
+/// * `nUnused` satisfies the requirements of [`pointer::as_mut`]
+/// * Either
+///     - `b` is `NULL`
+///     - `b` is initialized with [`BZ2_bzReadOpen`] or [`BZ2_bzWriteOpen`]
+///
+/// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzReadGetUnused)]
 pub unsafe extern "C" fn BZ2_bzReadGetUnused(
     bzerror: *mut c_int,
