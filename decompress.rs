@@ -772,74 +772,62 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
 
         'c_10064: loop {
             match current_block {
-                BZ_X_MTF_5 => {
-                    s.state = State::BZ_X_MTF_5;
-
-                    GET_BITS!(strm, s, zvec, zn);
-
-                    current_block = Block24;
-                }
-                BZ_X_MTF_4 => {
-                    s.state = State::BZ_X_MTF_4;
-
-                    GET_BIT!(strm, s, zj);
-
-                    zvec = zvec << 1 | zj;
-                    current_block = Block52;
-                }
-                BZ_X_MTF_3 => {
-                    s.state = State::BZ_X_MTF_3;
-
-                    GET_BITS!(strm, s, zvec, zn);
-
-                    current_block = Block52;
-                }
-                BZ_X_MTF_2 => {
-                    s.state = State::BZ_X_MTF_2;
-
-                    GET_BIT!(strm, s, zj);
-
-                    zvec = zvec << 1 | zj;
-                    current_block = Block56;
-                }
-                BZ_X_MTF_1 => {
-                    s.state = State::BZ_X_MTF_1;
-
-                    GET_BITS!(strm, s, zvec, zn);
-
-                    current_block = Block56;
-                }
-                BZ_X_CODING_3 => {
-                    s.state = State::BZ_X_CODING_3;
+                BZ_X_MAPPING_1 => {
+                    s.state = State::BZ_X_MAPPING_1;
 
                     GET_BIT!(strm, s, uc);
 
-                    if uc == 0 {
-                        curr += 1;
-                    } else {
-                        curr -= 1;
-                    }
-
-                    current_block = Block45;
+                    s.inUse16[i as usize] = uc == 1;
+                    i += 1;
+                    current_block = Block43;
+                    continue;
                 }
-                BZ_X_CODING_2 => {
-                    s.state = State::BZ_X_CODING_2;
-
-                    GET_BIT!(strm, s, uc);
-
-                    if uc != 0 {
-                        current_block = BZ_X_CODING_3;
+                Block43 => {
+                    if i < 16 {
+                        current_block = BZ_X_MAPPING_1;
                         continue;
                     }
-                    current_block = Block51;
-                }
-                BZ_X_CODING_1 => {
-                    s.state = State::BZ_X_CODING_1;
-
-                    GET_BITS!(strm, s, curr, 5);
-
                     i = 0;
-                    current_block = Block26;
+                    while i < 256 {
+                        s.inUse[i as usize] = false;
+                        i += 1;
+                    }
+                    i = 0;
+                    current_block = Block18;
+                }
+                BZ_X_MAPPING_2 => {
+                    s.state = State::BZ_X_MAPPING_2;
+
+                    GET_BIT!(strm, s, uc);
+
+                    if uc == 1 {
+                        s.inUse[(i * 16 + j) as usize] = true;
+                    }
+                    j += 1;
+                    current_block = Block28;
+                }
+                BZ_X_SELECTOR_1 => {
+                    s.state = State::BZ_X_SELECTOR_1;
+
+                    GET_BITS!(strm, s, nGroups, 3);
+
+                    if (2..=6).contains(&nGroups) {
+                        current_block = BZ_X_SELECTOR_2;
+                        continue;
+                    }
+                    error!(BZ_DATA_ERROR);
+                }
+                BZ_X_SELECTOR_2 => {
+                    s.state = State::BZ_X_SELECTOR_2;
+
+                    GET_BITS!(strm, s, nSelectors, 15);
+
+                    if nSelectors < 1 {
+                        error!(BZ_DATA_ERROR);
+                    } else {
+                        i = 0;
+                    }
+                    current_block = Block39;
                 }
                 BZ_X_SELECTOR_3 => {
                     s.state = State::BZ_X_SELECTOR_3;
@@ -857,62 +845,74 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         }
                     }
                 }
-                BZ_X_SELECTOR_2 => {
-                    s.state = State::BZ_X_SELECTOR_2;
+                BZ_X_CODING_1 => {
+                    s.state = State::BZ_X_CODING_1;
 
-                    GET_BITS!(strm, s, nSelectors, 15);
+                    GET_BITS!(strm, s, curr, 5);
 
-                    if nSelectors < 1 {
-                        error!(BZ_DATA_ERROR);
+                    i = 0;
+                    current_block = Block26;
+                }
+                BZ_X_CODING_2 => {
+                    s.state = State::BZ_X_CODING_2;
+
+                    GET_BIT!(strm, s, uc);
+
+                    if uc != 0 {
+                        current_block = BZ_X_CODING_3;
+                        continue;
+                    }
+                    current_block = Block51;
+                }
+                BZ_X_CODING_3 => {
+                    s.state = State::BZ_X_CODING_3;
+
+                    GET_BIT!(strm, s, uc);
+
+                    if uc == 0 {
+                        curr += 1;
                     } else {
-                        i = 0;
+                        curr -= 1;
                     }
-                    current_block = Block39;
+
+                    current_block = Block45;
                 }
-                BZ_X_SELECTOR_1 => {
-                    s.state = State::BZ_X_SELECTOR_1;
+                BZ_X_MTF_1 => {
+                    s.state = State::BZ_X_MTF_1;
 
-                    GET_BITS!(strm, s, nGroups, 3);
+                    GET_BITS!(strm, s, zvec, zn);
 
-                    if (2..=6).contains(&nGroups) {
-                        current_block = BZ_X_SELECTOR_2;
-                        continue;
-                    }
-                    error!(BZ_DATA_ERROR);
+                    current_block = Block56;
                 }
-                BZ_X_MAPPING_2 => {
-                    s.state = State::BZ_X_MAPPING_2;
+                BZ_X_MTF_2 => {
+                    s.state = State::BZ_X_MTF_2;
 
-                    GET_BIT!(strm, s, uc);
+                    GET_BIT!(strm, s, zj);
 
-                    if uc == 1 {
-                        s.inUse[(i * 16 + j) as usize] = true;
-                    }
-                    j += 1;
-                    current_block = Block28;
+                    zvec = zvec << 1 | zj;
+                    current_block = Block56;
                 }
-                Block43 => {
-                    if i < 16 {
-                        current_block = BZ_X_MAPPING_1;
-                        continue;
-                    }
-                    i = 0;
-                    while i < 256 {
-                        s.inUse[i as usize] = false;
-                        i += 1;
-                    }
-                    i = 0;
-                    current_block = Block18;
+                BZ_X_MTF_3 => {
+                    s.state = State::BZ_X_MTF_3;
+
+                    GET_BITS!(strm, s, zvec, zn);
+
+                    current_block = Block52;
                 }
-                BZ_X_MAPPING_1 => {
-                    s.state = State::BZ_X_MAPPING_1;
+                BZ_X_MTF_4 => {
+                    s.state = State::BZ_X_MTF_4;
 
-                    GET_BIT!(strm, s, uc);
+                    GET_BIT!(strm, s, zj);
 
-                    s.inUse16[i as usize] = uc == 1;
-                    i += 1;
-                    current_block = Block43;
-                    continue;
+                    zvec = zvec << 1 | zj;
+                    current_block = Block52;
+                }
+                BZ_X_MTF_5 => {
+                    s.state = State::BZ_X_MTF_5;
+
+                    GET_BITS!(strm, s, zvec, zn);
+
+                    current_block = Block24;
                 }
                 _ => {
                     s.state = State::BZ_X_MTF_6;
