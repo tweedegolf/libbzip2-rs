@@ -315,126 +315,46 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
 
                 current_block = BZ_X_MAGIC_2;
             }
-            State::BZ_X_MAGIC_2 => {
-                current_block = BZ_X_MAGIC_2;
-            }
-            State::BZ_X_MAGIC_3 => {
-                current_block = BZ_X_MAGIC_3;
-            }
-            State::BZ_X_MAGIC_4 => {
-                current_block = BZ_X_MAGIC_4;
-            }
-            State::BZ_X_BLKHDR_1 => {
-                current_block = BZ_X_BLKHDR_1;
-            }
-            State::BZ_X_BLKHDR_2 => {
-                current_block = BZ_X_BLKHDR_2;
-            }
-            State::BZ_X_BLKHDR_3 => {
-                current_block = BZ_X_BLKHDR_3;
-            }
-            State::BZ_X_BLKHDR_4 => {
-                current_block = BZ_X_BLKHDR_4;
-            }
-            State::BZ_X_BLKHDR_5 => {
-                current_block = BZ_X_BLKHDR_5;
-            }
-            State::BZ_X_BLKHDR_6 => {
-                current_block = BZ_X_BLKHDR_6;
-            }
-            State::BZ_X_BCRC_1 => {
-                current_block = BZ_X_BCRC_1;
-            }
-            State::BZ_X_BCRC_2 => {
-                current_block = BZ_X_BCRC_2;
-            }
-            State::BZ_X_BCRC_3 => {
-                current_block = BZ_X_BCRC_3;
-            }
-            State::BZ_X_BCRC_4 => {
-                current_block = BZ_X_BCRC_4;
-            }
-            State::BZ_X_RANDBIT => {
-                current_block = BZ_X_RANDBIT;
-            }
-            State::BZ_X_ORIGPTR_1 => {
-                current_block = BZ_X_ORIGPTR_1;
-            }
-            State::BZ_X_ORIGPTR_2 => {
-                current_block = BZ_X_ORIGPTR_2;
-            }
-            State::BZ_X_ORIGPTR_3 => {
-                current_block = BZ_X_ORIGPTR_3;
-            }
-            State::BZ_X_MAPPING_1 => {
-                current_block = BZ_X_MAPPING_1;
-            }
-            State::BZ_X_MAPPING_2 => {
-                current_block = BZ_X_MAPPING_2;
-            }
-            State::BZ_X_SELECTOR_1 => {
-                current_block = BZ_X_SELECTOR_1;
-            }
-            State::BZ_X_SELECTOR_2 => {
-                current_block = BZ_X_SELECTOR_2;
-            }
-            State::BZ_X_SELECTOR_3 => {
-                current_block = BZ_X_SELECTOR_3;
-            }
-            State::BZ_X_CODING_1 => {
-                current_block = BZ_X_CODING_1;
-            }
-            State::BZ_X_CODING_2 => {
-                current_block = BZ_X_CODING_2;
-            }
-            State::BZ_X_CODING_3 => {
-                current_block = BZ_X_CODING_3;
-            }
-            State::BZ_X_MTF_1 => {
-                current_block = BZ_X_MTF_1;
-            }
-            State::BZ_X_MTF_2 => {
-                current_block = BZ_X_MTF_2;
-            }
-            State::BZ_X_MTF_3 => {
-                current_block = BZ_X_MTF_3;
-            }
-            State::BZ_X_MTF_4 => {
-                current_block = BZ_X_MTF_4;
-            }
-            State::BZ_X_MTF_5 => {
-                current_block = BZ_X_MTF_5;
-            }
-            State::BZ_X_MTF_6 => {
-                current_block = BZ_X_MTF_6;
-            }
-            State::BZ_X_ENDHDR_2 => {
-                current_block = BZ_X_ENDHDR_2;
-            }
-            State::BZ_X_ENDHDR_3 => {
-                current_block = BZ_X_ENDHDR_3;
-            }
-            State::BZ_X_ENDHDR_4 => {
-                current_block = BZ_X_ENDHDR_4;
-            }
-            State::BZ_X_ENDHDR_5 => {
-                current_block = BZ_X_ENDHDR_5;
-            }
-            State::BZ_X_ENDHDR_6 => {
-                current_block = BZ_X_ENDHDR_6;
-            }
-            State::BZ_X_CCRC_1 => {
-                current_block = BZ_X_CCRC_1;
-            }
-            State::BZ_X_CCRC_2 => {
-                current_block = BZ_X_CCRC_2;
-            }
-            State::BZ_X_CCRC_3 => {
-                current_block = BZ_X_CCRC_3;
-            }
-            State::BZ_X_CCRC_4 => {
-                current_block = BZ_X_CCRC_4;
-            }
+            State::BZ_X_MAGIC_2 => current_block = BZ_X_MAGIC_2,
+            State::BZ_X_MAGIC_3 => current_block = BZ_X_MAGIC_3,
+            State::BZ_X_MAGIC_4 => current_block = BZ_X_MAGIC_4,
+            State::BZ_X_BLKHDR_1 => current_block = BZ_X_BLKHDR_1,
+            State::BZ_X_BLKHDR_2 => current_block = BZ_X_BLKHDR_2,
+            State::BZ_X_BLKHDR_3 => current_block = BZ_X_BLKHDR_3,
+            State::BZ_X_BLKHDR_4 => current_block = BZ_X_BLKHDR_4,
+            State::BZ_X_BLKHDR_5 => current_block = BZ_X_BLKHDR_5,
+            State::BZ_X_BLKHDR_6 => current_block = BZ_X_BLKHDR_6,
+            State::BZ_X_BCRC_1 => current_block = BZ_X_BCRC_1,
+            State::BZ_X_BCRC_2 => current_block = BZ_X_BCRC_2,
+            State::BZ_X_BCRC_3 => current_block = BZ_X_BCRC_3,
+            State::BZ_X_BCRC_4 => current_block = BZ_X_BCRC_4,
+            State::BZ_X_RANDBIT => current_block = BZ_X_RANDBIT,
+            State::BZ_X_ORIGPTR_1 => current_block = BZ_X_ORIGPTR_1,
+            State::BZ_X_ORIGPTR_2 => current_block = BZ_X_ORIGPTR_2,
+            State::BZ_X_ORIGPTR_3 => current_block = BZ_X_ORIGPTR_3,
+            State::BZ_X_MAPPING_1 => current_block = BZ_X_MAPPING_1,
+            State::BZ_X_MAPPING_2 => current_block = BZ_X_MAPPING_2,
+            State::BZ_X_SELECTOR_1 => current_block = BZ_X_SELECTOR_1,
+            State::BZ_X_SELECTOR_2 => current_block = BZ_X_SELECTOR_2,
+            State::BZ_X_SELECTOR_3 => current_block = BZ_X_SELECTOR_3,
+            State::BZ_X_CODING_1 => current_block = BZ_X_CODING_1,
+            State::BZ_X_CODING_2 => current_block = BZ_X_CODING_2,
+            State::BZ_X_CODING_3 => current_block = BZ_X_CODING_3,
+            State::BZ_X_MTF_1 => current_block = BZ_X_MTF_1,
+            State::BZ_X_MTF_2 => current_block = BZ_X_MTF_2,
+            State::BZ_X_MTF_3 => current_block = BZ_X_MTF_3,
+            State::BZ_X_MTF_4 => current_block = BZ_X_MTF_4,
+            State::BZ_X_MTF_5 => current_block = BZ_X_MTF_5,
+            State::BZ_X_MTF_6 => current_block = BZ_X_MTF_6,
+            State::BZ_X_ENDHDR_2 => current_block = BZ_X_ENDHDR_2,
+            State::BZ_X_ENDHDR_3 => current_block = BZ_X_ENDHDR_3,
+            State::BZ_X_ENDHDR_4 => current_block = BZ_X_ENDHDR_4,
+            State::BZ_X_ENDHDR_5 => current_block = BZ_X_ENDHDR_5,
+            State::BZ_X_ENDHDR_6 => current_block = BZ_X_ENDHDR_6,
+            State::BZ_X_CCRC_1 => current_block = BZ_X_CCRC_1,
+            State::BZ_X_CCRC_2 => current_block = BZ_X_CCRC_2,
+            State::BZ_X_CCRC_3 => current_block = BZ_X_CCRC_3,
+            State::BZ_X_CCRC_4 => current_block = BZ_X_CCRC_4,
             State::BZ_X_IDLE | State::BZ_X_OUTPUT => unreachable!(),
         }
         if current_block == BZ_X_MAGIC_2 {
