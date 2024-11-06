@@ -18,8 +18,6 @@ macro_rules! assert_eq_rs_c {
     ($tt:tt) => {{
         #[cfg(not(miri))]
         #[allow(clippy::macro_metavars_in_unsafe)]
-        #[allow(unused_braces)]
-        #[allow(unused_unsafe)]
         let _ng = unsafe {
             use bzip2_sys::*;
             use compress_c as compress;
@@ -29,8 +27,6 @@ macro_rules! assert_eq_rs_c {
         };
 
         #[allow(clippy::macro_metavars_in_unsafe)]
-        #[allow(unused_braces)]
-        #[allow(unused_unsafe)]
         let _rs = unsafe {
             use compress_rs as compress;
             use decompress_rs as decompress;
@@ -595,7 +591,7 @@ pub unsafe fn compress_rs(
 
 #[rustfmt::skip]
 mod bzip2_testfiles {
-    #![allow(non_snake_case, unused_imports)]
+    #![allow(non_snake_case)]
 
     use super::*;
 
