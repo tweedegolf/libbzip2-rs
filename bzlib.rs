@@ -2482,30 +2482,35 @@ pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut c_void) -> c_int {
 pub unsafe extern "C" fn BZ2_bzclose(b: *mut libc::c_void) {
     let mut bzerr: libc::c_int = 0;
 
-    if b.is_null() {
-        return;
-    }
-    let fp: *mut FILE = (*(b as *mut bzFile)).handle;
-    if (*(b as *mut bzFile)).writing {
+    let (fp, writing) = {
+        let Some(bzf) = (b as *mut bzFile).as_mut() else {
+            return;
+        };
+
+        (bzf.handle, bzf.writing)
+    };
+
+    if writing {
         BZ2_bzWriteClose(
             &mut bzerr,
             b,
-            0 as libc::c_int,
-            std::ptr::null_mut::<libc::c_uint>(),
-            std::ptr::null_mut::<libc::c_uint>(),
+            false as i32,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
         );
-        if bzerr != 0 as libc::c_int {
+        if bzerr != 0 {
             BZ2_bzWriteClose(
-                std::ptr::null_mut::<libc::c_int>(),
+                std::ptr::null_mut(),
                 b,
-                1 as libc::c_int,
-                std::ptr::null_mut::<libc::c_uint>(),
-                std::ptr::null_mut::<libc::c_uint>(),
+                true as i32,
+                core::ptr::null_mut(),
+                core::ptr::null_mut(),
             );
         }
     } else {
         BZ2_bzReadClose(&mut bzerr, b);
     }
+
     if fp != stdin && fp != stdout {
         fclose(fp);
     }
