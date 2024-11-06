@@ -34,7 +34,7 @@ macro_rules! assert_eq_rs_c {
         let _rs = unsafe {
             use compress_rs as compress;
             use decompress_rs as decompress;
-            use libbzip2_rs_sys::bzlib::*;
+            use libbzip2_rs_sys::*;
 
             $tt
         };
@@ -92,7 +92,7 @@ macro_rules! assert_eq_compress {
 
 #[test]
 fn version() {
-    let ptr = libbzip2_rs_sys::bzlib::BZ2_bzlibVersion();
+    let ptr = libbzip2_rs_sys::BZ2_bzlibVersion();
     let cstr = unsafe { core::ffi::CStr::from_ptr(ptr) };
     let string = cstr.to_str().unwrap();
 
@@ -111,7 +111,7 @@ fn miri_buff_to_buff_compress_small() {
     let mut dest_len = dest.len() as core::ffi::c_uint;
 
     let err = unsafe {
-        libbzip2_rs_sys::bzlib::BZ2_bzBuffToBuffCompress(
+        libbzip2_rs_sys::BZ2_bzBuffToBuffCompress(
             dest.as_mut_ptr().cast::<core::ffi::c_char>(),
             &mut dest_len,
             input.as_ptr() as *mut _,
@@ -135,7 +135,7 @@ fn buff_to_buff_compress() {
     let mut dest_len = dest.len() as core::ffi::c_uint;
 
     let err = unsafe {
-        libbzip2_rs_sys::bzlib::BZ2_bzBuffToBuffCompress(
+        libbzip2_rs_sys::BZ2_bzBuffToBuffCompress(
             dest.as_mut_ptr().cast::<core::ffi::c_char>(),
             &mut dest_len,
             SAMPLE1_REF.as_ptr() as *mut _,
@@ -155,7 +155,7 @@ fn buff_to_buff_decompress() {
     let mut dest_len = dest.len() as core::ffi::c_uint;
 
     let err = unsafe {
-        libbzip2_rs_sys::bzlib::BZ2_bzBuffToBuffDecompress(
+        libbzip2_rs_sys::BZ2_bzBuffToBuffDecompress(
             dest.as_mut_ptr().cast::<core::ffi::c_char>(),
             &mut dest_len,
             SAMPLE1_BZ2.as_ptr() as *mut _,
@@ -173,7 +173,7 @@ fn buff_to_buff_decompress_helper(input: &[u8], buffer_size: usize, is_small: bo
     let mut dest_len = dest.len() as core::ffi::c_uint;
 
     let err = unsafe {
-        libbzip2_rs_sys::bzlib::BZ2_bzBuffToBuffDecompress(
+        libbzip2_rs_sys::BZ2_bzBuffToBuffDecompress(
             dest.as_mut_ptr().cast::<core::ffi::c_char>(),
             &mut dest_len,
             input.as_ptr() as *mut _,
@@ -340,7 +340,7 @@ pub unsafe fn decompress_rs(
     source: *const u8,
     source_len: libc::c_uint,
 ) -> i32 {
-    use libbzip2_rs_sys::bzlib::*;
+    use libbzip2_rs_sys::*;
 
     pub unsafe fn BZ2_bzBuffToBuffDecompress(
         dest: *mut libc::c_char,
@@ -510,7 +510,7 @@ pub unsafe fn compress_rs(
     source: *const u8,
     source_len: libc::c_uint,
 ) -> i32 {
-    use libbzip2_rs_sys::bzlib::*;
+    use libbzip2_rs_sys::*;
 
     pub unsafe fn BZ2_bzBuffToBuffCompress(
         dest: *mut libc::c_char,
@@ -809,7 +809,7 @@ fn decompress_end_edge_cases() {
 
     // bzfree is NULL
     unsafe {
-        use libbzip2_rs_sys::bzlib::*;
+        use libbzip2_rs_sys::*;
 
         let mut strm = MaybeUninit::zeroed();
         assert_eq!(BZ_OK, BZ2_bzDecompressInit(strm.as_mut_ptr(), 0, 0));
@@ -1288,7 +1288,7 @@ fn compress_end_edge_cases() {
 
     // bzfree is NULL
     unsafe {
-        use libbzip2_rs_sys::bzlib::*;
+        use libbzip2_rs_sys::*;
 
         let mut strm = MaybeUninit::zeroed();
         assert_eq!(
@@ -1312,7 +1312,7 @@ mod high_level_interface {
 
     #[test]
     fn high_level_read() {
-        use libbzip2_rs_sys::bzlib::*;
+        use libbzip2_rs_sys::*;
 
         let p = std::env::current_dir().unwrap();
 
@@ -1378,7 +1378,7 @@ mod high_level_interface {
 
     #[test]
     fn high_level_write() {
-        use libbzip2_rs_sys::bzlib::*;
+        use libbzip2_rs_sys::*;
 
         let block_size = 9; // Maximum compression level (1-9)
         let verbosity = 0; // Quiet operation
@@ -1461,7 +1461,7 @@ mod high_level_interface {
     #[test]
     fn test_bzflush() {
         assert_eq!(
-            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzflush(core::ptr::null_mut()) },
+            unsafe { libbzip2_rs_sys::BZ2_bzflush(core::ptr::null_mut()) },
             0
         );
     }
@@ -1474,7 +1474,7 @@ mod high_level_interface {
         const WB: *const c_char = b"wb\0".as_ptr().cast::<c_char>();
 
         // make sure this branch is hit
-        unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(core::ptr::null_mut()) };
+        unsafe { libbzip2_rs_sys::BZ2_bzclose(core::ptr::null_mut()) };
 
         let open_file = || {
             std::fs::OpenOptions::new()
@@ -1489,41 +1489,40 @@ mod high_level_interface {
         {
             let file = open_file();
 
-            let ptr =
-                unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.as_raw_fd(), core::ptr::null()) };
+            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzdopen(file.as_raw_fd(), core::ptr::null()) };
             assert!(ptr.is_null());
         }
 
         {
             let file = open_file();
 
-            let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.into_raw_fd(), RB) };
+            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzdopen(file.into_raw_fd(), RB) };
             assert!(!ptr.is_null());
-            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+            unsafe { libbzip2_rs_sys::BZ2_bzclose(ptr) };
         }
 
         {
             let file = open_file();
 
-            let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzdopen(file.into_raw_fd(), WB) };
+            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzdopen(file.into_raw_fd(), WB) };
             assert!(!ptr.is_null());
-            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+            unsafe { libbzip2_rs_sys::BZ2_bzclose(ptr) };
         }
 
         let path_as_cstring = p.with_extension("bz2\0").display().to_string();
 
         {
             let path = path_as_cstring.as_ptr().cast();
-            let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzopen(path, RB) };
+            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzopen(path, RB) };
             assert!(!ptr.is_null());
-            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+            unsafe { libbzip2_rs_sys::BZ2_bzclose(ptr) };
         }
 
         {
             let path = path_as_cstring.as_ptr().cast();
-            let ptr = unsafe { libbzip2_rs_sys::bzlib::BZ2_bzopen(path, WB) };
+            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzopen(path, WB) };
             assert!(!ptr.is_null());
-            unsafe { libbzip2_rs_sys::bzlib::BZ2_bzclose(ptr) };
+            unsafe { libbzip2_rs_sys::BZ2_bzclose(ptr) };
         }
 
         // so it does not get dropped prematurely

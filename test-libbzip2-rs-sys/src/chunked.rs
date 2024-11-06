@@ -1,7 +1,7 @@
 use crate::{compress_c, decompress_c, SAMPLE1_BZ2, SAMPLE1_REF};
 
 fn decompress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<&'a mut [u8], i32> {
-    use libbzip2_rs_sys::bzlib::*;
+    use libbzip2_rs_sys::*;
 
     let mut dest_len = dest.len() as _;
 
@@ -70,7 +70,7 @@ fn decompress_chunked_input() {
 }
 
 fn compress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<&'a mut [u8], i32> {
-    use libbzip2_rs_sys::bzlib::*;
+    use libbzip2_rs_sys::*;
 
     let mut dest_len = dest.len() as _;
 
@@ -155,7 +155,7 @@ fn decompress_rs_chunked_output<'a>(
     dest: &'a mut [u8],
     source: &[u8],
 ) -> Result<&'a mut [u8], i32> {
-    use libbzip2_rs_sys::bzlib::*;
+    use libbzip2_rs_sys::*;
 
     let mut dest_len = dest.len() as core::ffi::c_uint;
 
@@ -224,7 +224,7 @@ fn decompress_chunked_output() {
 }
 
 fn compress_rs_chunked_output<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<&'a mut [u8], i32> {
-    use libbzip2_rs_sys::bzlib::*;
+    use libbzip2_rs_sys::*;
 
     let mut dest_len = dest.len() as core::ffi::c_uint;
 
