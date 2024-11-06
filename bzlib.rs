@@ -28,6 +28,29 @@ pub(crate) const BZ_RUNB: u16 = 1;
 
 pub(crate) const BZ_MAX_UNUSED: u32 = 5000;
 
+#[cfg(doc)]
+use crate::{
+    // return codes
+    BZ_CONFIG_ERROR,
+    BZ_DATA_ERROR,
+    BZ_DATA_ERROR_MAGIC,
+    BZ_FINISH,
+    BZ_FINISH_OK,
+    BZ_FLUSH,
+    BZ_FLUSH_OK,
+    BZ_IO_ERROR,
+    BZ_MEM_ERROR,
+    BZ_OK,
+    BZ_OUTBUFF_FULL,
+    BZ_PARAM_ERROR,
+    // compress actions
+    BZ_RUN,
+    BZ_RUN_OK,
+    BZ_SEQUENCE_ERROR,
+    BZ_STREAM_END,
+    BZ_UNEXPECTED_EOF,
+};
+
 #[cfg(feature = "custom-prefix")]
 macro_rules! prefix {
     ($name:expr) => {
@@ -78,6 +101,29 @@ pub extern "C" fn BZ2_bzlibVersion() -> *const core::ffi::c_char {
 type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
 type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
 
+/// # Custom allocators
+///
+/// The low-level API supports passing in a custom allocator as part of the [`bz_stream`]:
+///
+/// ```no_check
+/// struct bz_stream {
+///     // ...
+///     pub bzalloc: Option<unsafe extern "C" fn(_: *mut c_void, _: c_int, _: c_int) -> *mut c_void>,
+///     pub bzfree: Option<unsafe extern "C" fn(_: *mut c_void, _: *mut c_void)>,
+///     pub opaque: *mut c_void,
+/// }
+/// ```
+/// The `strm.opaque` value is passed to as the first argument to all calls to `bzalloc`
+/// and `bzfree`, but is otherwise ignored by the library.
+///
+/// When these fields are `NULL` and zero, the initialization functions will put in a default
+/// allocator (currently based on `malloc` and `free`).
+///
+/// When custom functions are given, they must adhere to the following contract to be safe:
+///
+/// - a call `bzalloc(opaque, n, m)` must return a pointer `p` to `n * m` bytes of memory, or
+///     `NULL` if out of memory
+/// - a call `free(opaque, p)` must free that memory
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -134,8 +180,6 @@ pub enum ReturnCode {
     BZ_OUTBUFF_FULL = -8,
     BZ_CONFIG_ERROR = -9,
 }
-
-use ReturnCode::*;
 
 #[repr(i32)]
 #[derive(Copy, Clone)]
@@ -582,7 +626,7 @@ pub unsafe fn bzalloc_array<T>(
 /// * Either
 ///     - `strm` is `NULL`
 ///     - `strm` satisfies the requirements of `&mut *strm`
-/// * The `bzalloc`, `bzfree` and `opaque` fields form a [valid allocator](allocator-safety).
+/// * The `bzalloc`, `bzfree` and `opaque` fields form a [valid allocator](bz_stream#custom-allocators).
 #[export_name = prefix!(BZ2_bzCompressInit)]
 pub unsafe extern "C" fn BZ2_bzCompressInit(
     strm: *mut bz_stream,
@@ -915,7 +959,7 @@ impl TryFrom<i32> for Action {
 #[export_name = prefix!(BZ2_bzCompress)]
 pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: c_int) -> c_int {
     let Some(strm) = strm.as_mut() else {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
     BZ2_bzCompressHelp(strm, action) as c_int
@@ -923,11 +967,11 @@ pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: c_int) -> 
 
 unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, action: i32) -> ReturnCode {
     let Some(s) = (strm.state as *mut EState).as_mut() else {
-        return BZ_PARAM_ERROR;
+        return ReturnCode::BZ_PARAM_ERROR;
     };
 
     if s.strm != strm {
-        return BZ_PARAM_ERROR;
+        return ReturnCode::BZ_PARAM_ERROR;
     }
 
     BZ2_bzCompressLoop(strm, s, action)
@@ -936,11 +980,15 @@ unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, action: i32) -> ReturnCode {
 unsafe fn BZ2_bzCompressLoop(strm: &mut bz_stream, s: &mut EState, action: i32) -> ReturnCode {
     loop {
         match s.mode {
-            Mode::Idle => return BZ_SEQUENCE_ERROR,
+            Mode::Idle => return ReturnCode::BZ_SEQUENCE_ERROR,
             Mode::Running => match Action::try_from(action) {
                 Ok(Action::Run) => {
                     let progress = handle_compress(strm, s);
-                    return if progress { BZ_RUN_OK } else { BZ_PARAM_ERROR };
+                    return if progress {
+                        ReturnCode::BZ_RUN_OK
+                    } else {
+                        ReturnCode::BZ_PARAM_ERROR
+                    };
                 }
                 Ok(Action::Flush) => {
                     s.avail_in_expect = strm.avail_in;
@@ -951,47 +999,47 @@ unsafe fn BZ2_bzCompressLoop(strm: &mut bz_stream, s: &mut EState, action: i32) 
                     s.mode = Mode::Finishing;
                 }
                 Err(()) => {
-                    return BZ_PARAM_ERROR;
+                    return ReturnCode::BZ_PARAM_ERROR;
                 }
             },
             Mode::Flushing => {
                 let Ok(Action::Flush) = Action::try_from(action) else {
-                    return BZ_SEQUENCE_ERROR;
+                    return ReturnCode::BZ_SEQUENCE_ERROR;
                 };
                 if s.avail_in_expect != strm.avail_in {
-                    return BZ_SEQUENCE_ERROR;
+                    return ReturnCode::BZ_SEQUENCE_ERROR;
                 }
                 handle_compress(strm, s);
                 if s.avail_in_expect > 0
                     || !isempty_RL(&mut *s)
                     || s.state_out_pos < s.writer.num_z as i32
                 {
-                    return BZ_FLUSH_OK;
+                    return ReturnCode::BZ_FLUSH_OK;
                 }
                 s.mode = Mode::Running;
-                return BZ_RUN_OK;
+                return ReturnCode::BZ_RUN_OK;
             }
             Mode::Finishing => {
                 let Ok(Action::Finish) = Action::try_from(action) else {
                     // unreachable in practice
-                    return BZ_SEQUENCE_ERROR;
+                    return ReturnCode::BZ_SEQUENCE_ERROR;
                 };
                 if s.avail_in_expect != strm.avail_in {
                     // unreachable in practice
-                    return BZ_SEQUENCE_ERROR;
+                    return ReturnCode::BZ_SEQUENCE_ERROR;
                 }
                 let progress = handle_compress(strm, s);
                 if !progress {
-                    return BZ_SEQUENCE_ERROR;
+                    return ReturnCode::BZ_SEQUENCE_ERROR;
                 }
                 if s.avail_in_expect > 0
                     || !isempty_RL(s)
                     || s.state_out_pos < s.writer.num_z as i32
                 {
-                    return BZ_FINISH_OK;
+                    return ReturnCode::BZ_FINISH_OK;
                 }
                 s.mode = Mode::Idle;
-                return BZ_STREAM_END;
+                return ReturnCode::BZ_STREAM_END;
             }
         }
     }
@@ -1014,19 +1062,19 @@ unsafe fn BZ2_bzCompressLoop(strm: &mut bz_stream, s: &mut EState, action: i32) 
 #[export_name = prefix!(BZ2_bzCompressEnd)]
 pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
     let Some(s) = (strm.state as *mut EState).as_mut() else {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
     if s.strm != strm {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
     let Some(bzfree) = strm.bzfree else {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
     if !(s.arr1).is_empty() {
@@ -1075,7 +1123,7 @@ pub enum DecompressMode {
 /// * Either
 ///     - `strm` is `NULL`
 ///     - `strm` satisfies the requirements of `&mut *strm`
-/// * The `bzalloc`, `bzfree` and `opaque` fields form a [valid allocator](allocator-safety).
+/// * The `bzalloc`, `bzfree` and `opaque` fields form a [valid allocator](bz_stream#custom-allocators).
 #[export_name = prefix!(BZ2_bzDecompressInit)]
 pub unsafe extern "C" fn BZ2_bzDecompressInit(
     strm: *mut bz_stream,
@@ -1091,21 +1139,21 @@ unsafe fn BZ2_bzDecompressInitHelp(
     small: c_int,
 ) -> ReturnCode {
     if strm.is_null() {
-        return BZ_PARAM_ERROR;
+        return ReturnCode::BZ_PARAM_ERROR;
     }
     let decompress_mode = match small {
         0 => DecompressMode::Fast,
         1 => DecompressMode::Small,
-        _ => return BZ_PARAM_ERROR,
+        _ => return ReturnCode::BZ_PARAM_ERROR,
     };
     if !(0..=4).contains(&verbosity) {
-        return BZ_PARAM_ERROR;
+        return ReturnCode::BZ_PARAM_ERROR;
     }
     let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
     let _bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
 
     let Some(s) = bzalloc_array::<DState>(*bzalloc, (*strm).opaque, 1) else {
-        return BZ_MEM_ERROR;
+        return ReturnCode::BZ_MEM_ERROR;
     };
 
     // this `s.strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
@@ -1131,7 +1179,7 @@ unsafe fn BZ2_bzDecompressInitHelp(
     (*strm).total_out_lo32 = 0;
     (*strm).total_out_hi32 = 0;
 
-    BZ_OK
+    ReturnCode::BZ_OK
 }
 
 macro_rules! BZ_RAND_MASK {
@@ -1629,7 +1677,7 @@ unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bo
 #[export_name = prefix!(BZ2_bzDecompress)]
 pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
     BZ2_bzDecompressHelp(strm) as c_int
@@ -1637,16 +1685,16 @@ pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
 
 unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
     let Some(s) = (strm.state as *mut DState).as_mut() else {
-        return BZ_PARAM_ERROR;
+        return ReturnCode::BZ_PARAM_ERROR;
     };
 
     if s.strm != strm {
-        return BZ_PARAM_ERROR;
+        return ReturnCode::BZ_PARAM_ERROR;
     }
 
     loop {
         if let decompress::State::BZ_X_IDLE = s.state {
-            return BZ_SEQUENCE_ERROR;
+            return ReturnCode::BZ_SEQUENCE_ERROR;
         }
         if let decompress::State::BZ_X_OUTPUT = s.state {
             let corrupt = match s.smallDecompress {
@@ -1655,7 +1703,7 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
             };
 
             if corrupt {
-                return BZ_DATA_ERROR;
+                return ReturnCode::BZ_DATA_ERROR;
             }
 
             if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
@@ -1670,20 +1718,20 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
                     eprint!("]");
                 }
                 if s.calculatedBlockCRC != s.storedBlockCRC {
-                    return BZ_DATA_ERROR;
+                    return ReturnCode::BZ_DATA_ERROR;
                 }
                 s.calculatedCombinedCRC = s.calculatedCombinedCRC.rotate_left(1);
                 s.calculatedCombinedCRC ^= s.calculatedBlockCRC;
                 s.state = decompress::State::BZ_X_BLKHDR_1;
             } else {
-                return BZ_OK;
+                return ReturnCode::BZ_OK;
             }
         }
 
         match s.state {
             decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT => continue,
             _ => match BZ2_decompress(strm, s) {
-                BZ_STREAM_END => {
+                ReturnCode::BZ_STREAM_END => {
                     if s.verbosity >= 3 {
                         eprint!(
                             "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
@@ -1691,7 +1739,7 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
                         );
                     }
                     if s.calculatedCombinedCRC != s.storedCombinedCRC {
-                        return BZ_DATA_ERROR;
+                        return ReturnCode::BZ_DATA_ERROR;
                     }
                     return ReturnCode::BZ_STREAM_END;
                 }
@@ -1721,19 +1769,19 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
 #[export_name = prefix!(BZ2_bzDecompressEnd)]
 pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_int {
     let Some(strm) = strm.as_mut() else {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
     let Some(s) = (strm.state as *mut DState).as_mut() else {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
     if s.strm != strm {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
     let Some(bzfree) = strm.bzfree else {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
     s.tt.dealloc(bzfree, strm.opaque);
@@ -1743,7 +1791,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> libc::c_in
     (bzfree)(strm.opaque, strm.state.cast::<c_void>());
     strm.state = std::ptr::null_mut::<libc::c_void>();
 
-    BZ_OK as libc::c_int
+    ReturnCode::BZ_OK as libc::c_int
 }
 
 unsafe fn myfeof(f: *mut FILE) -> bool {
@@ -1976,7 +2024,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
             bzf.strm.avail_out = BZ_MAX_UNUSED;
             bzf.strm.next_out = (bzf.buf).as_mut_ptr().cast::<c_char>();
             match BZ2_bzCompressHelp(&mut bzf.strm, 2 as libc::c_int) {
-                ret @ (BZ_FINISH_OK | BZ_STREAM_END) => {
+                ret @ (ReturnCode::BZ_FINISH_OK | ReturnCode::BZ_STREAM_END) => {
                     if bzf.strm.avail_out < BZ_MAX_UNUSED {
                         let n1 = BZ_MAX_UNUSED.wrapping_sub(bzf.strm.avail_out) as usize;
                         let n2 = fwrite(
@@ -2247,7 +2295,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     let mut strm: bz_stream = bz_stream::zeroed();
 
     if dest.is_null() || destLen.is_null() || source.is_null() {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
     match BZ2_bzCompressInitHelp(&mut strm, blockSize100k, verbosity, workFactor) {
@@ -2289,7 +2337,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     verbosity: libc::c_int,
 ) -> libc::c_int {
     if dest.is_null() || destLen.is_null() || source.is_null() {
-        return BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
     let mut strm: bz_stream = bz_stream::zeroed();
@@ -2309,15 +2357,15 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
             BZ2_bzDecompressEnd(&mut strm);
 
             match strm.avail_out {
-                0 => BZ_OUTBUFF_FULL as c_int,
-                _ => BZ_UNEXPECTED_EOF as c_int,
+                0 => ReturnCode::BZ_OUTBUFF_FULL as c_int,
+                _ => ReturnCode::BZ_UNEXPECTED_EOF as c_int,
             }
         }
         ReturnCode::BZ_STREAM_END => {
             *destLen = (*destLen).wrapping_sub(strm.avail_out);
             BZ2_bzDecompressEnd(&mut strm);
 
-            BZ_OK as c_int
+            ReturnCode::BZ_OK as c_int
         }
         error => {
             BZ2_bzDecompressEnd(&mut strm);
@@ -2597,20 +2645,20 @@ mod tests {
             let msg = cstr.to_str().unwrap();
 
             let expected = match return_code {
-                BZ_OK => "OK",
-                BZ_RUN_OK => "OK",
-                BZ_FLUSH_OK => "OK",
-                BZ_FINISH_OK => "OK",
-                BZ_STREAM_END => "OK",
-                BZ_SEQUENCE_ERROR => "SEQUENCE_ERROR",
-                BZ_PARAM_ERROR => "PARAM_ERROR",
-                BZ_MEM_ERROR => "MEM_ERROR",
-                BZ_DATA_ERROR => "DATA_ERROR",
-                BZ_DATA_ERROR_MAGIC => "DATA_ERROR_MAGIC",
-                BZ_IO_ERROR => "IO_ERROR",
-                BZ_UNEXPECTED_EOF => "UNEXPECTED_EOF",
-                BZ_OUTBUFF_FULL => "OUTBUFF_FULL",
-                BZ_CONFIG_ERROR => "CONFIG_ERROR",
+                ReturnCode::BZ_OK => "OK",
+                ReturnCode::BZ_RUN_OK => "OK",
+                ReturnCode::BZ_FLUSH_OK => "OK",
+                ReturnCode::BZ_FINISH_OK => "OK",
+                ReturnCode::BZ_STREAM_END => "OK",
+                ReturnCode::BZ_SEQUENCE_ERROR => "SEQUENCE_ERROR",
+                ReturnCode::BZ_PARAM_ERROR => "PARAM_ERROR",
+                ReturnCode::BZ_MEM_ERROR => "MEM_ERROR",
+                ReturnCode::BZ_DATA_ERROR => "DATA_ERROR",
+                ReturnCode::BZ_DATA_ERROR_MAGIC => "DATA_ERROR_MAGIC",
+                ReturnCode::BZ_IO_ERROR => "IO_ERROR",
+                ReturnCode::BZ_UNEXPECTED_EOF => "UNEXPECTED_EOF",
+                ReturnCode::BZ_OUTBUFF_FULL => "OUTBUFF_FULL",
+                ReturnCode::BZ_CONFIG_ERROR => "CONFIG_ERROR",
             };
 
             assert_eq!(msg, expected);
