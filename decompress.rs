@@ -56,6 +56,70 @@ pub enum State {
     BZ_X_CCRC_4 = 50,
 }
 
+#[derive(Eq, PartialEq)]
+enum Block {
+    Block1,
+    Block2,
+    Block3,
+    Block4,
+    Block5,
+    Block6,
+    Block7,
+    Block8,
+    Block9,
+    Block10,
+    Block11,
+    Block12,
+    Block13,
+    Block14,
+    Block15,
+    Block16,
+    Block17,
+    Block18,
+    Block19,
+    Block20,
+    Block21,
+    Block22,
+    Block23,
+    Block24,
+    Block25,
+    Block26,
+    Block27,
+    Block28,
+    Block29,
+    Block30,
+    Block31,
+    Block32,
+    Block33,
+    Block34,
+    Block35,
+    Block36,
+    Block37,
+    Block38,
+    Block39,
+    Block40,
+    Block41,
+    Block42,
+    Block43,
+    Block44,
+    Block45,
+    Block46,
+    Block47,
+    Block48,
+    Block49,
+    Block50,
+    Block51,
+    Block52,
+    Block53,
+    Block54,
+    Block55,
+    Block56,
+    Block57,
+    Block58,
+    Block59,
+}
+use Block::*;
+
 fn makeMaps_d(s: &mut DState) {
     s.nInUse = 0;
     for (i, in_use) in s.inUse.iter().enumerate() {
@@ -89,7 +153,7 @@ impl GetBitsConvert for i32 {
 }
 
 pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
-    let mut current_block: u64;
+    let mut current_block: Block;
     let mut uc: u8;
     let mut retVal: ReturnCode;
     let mut minLen: i32;
@@ -174,7 +238,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     gPerm = s.save_gPerm;
 
     retVal = ReturnCode::BZ_OK;
-    const SAVE_STATE_AND_RETURN: u64 = 3350591128142761507;
+    const SAVE_STATE_AND_RETURN: Block = Block38;
 
     'save_state_and_return: {
         macro_rules! GET_UCHAR {
@@ -250,131 +314,131 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = 15360092558900836893;
+                current_block = Block17;
             }
             State::BZ_X_MAGIC_2 => {
-                current_block = 15360092558900836893;
+                current_block = Block17;
             }
             State::BZ_X_MAGIC_3 => {
-                current_block = 15953825877604003206;
+                current_block = Block21;
             }
             State::BZ_X_MAGIC_4 => {
-                current_block = 1137006006685247392;
+                current_block = Block6;
             }
             State::BZ_X_BLKHDR_1 => {
-                current_block = 16838365919992687769;
+                current_block = Block27;
             }
             State::BZ_X_BLKHDR_2 => {
-                current_block = 5889181040567946013;
+                current_block = Block48;
             }
             State::BZ_X_BLKHDR_3 => {
-                current_block = 887841530443712878;
+                current_block = Block54;
             }
             State::BZ_X_BLKHDR_4 => {
-                current_block = 17767742176799939193;
+                current_block = Block31;
             }
             State::BZ_X_BLKHDR_5 => {
-                current_block = 16325921850189496668;
+                current_block = Block23;
             }
             State::BZ_X_BLKHDR_6 => {
-                current_block = 3202472413399101603;
+                current_block = Block36;
             }
             State::BZ_X_BCRC_1 => {
-                current_block = 5821827988509819404;
+                current_block = Block47;
             }
             State::BZ_X_BCRC_2 => {
-                current_block = 5023088878038355716;
+                current_block = Block44;
             }
             State::BZ_X_BCRC_3 => {
-                current_block = 8515868523999336537;
+                current_block = Block53;
             }
             State::BZ_X_BCRC_4 => {
-                current_block = 18234918597811156654;
+                current_block = Block32;
             }
             State::BZ_X_RANDBIT => {
-                current_block = 12310871532727186508;
+                current_block = Block10;
             }
             State::BZ_X_ORIGPTR_1 => {
-                current_block = 3338455798814466984;
+                current_block = Block37;
             }
             State::BZ_X_ORIGPTR_2 => {
-                current_block = 10262367570716242252;
+                current_block = Block3;
             }
             State::BZ_X_ORIGPTR_3 => {
-                current_block = 17024493544560437554;
+                current_block = Block29;
             }
             State::BZ_X_MAPPING_1 => {
-                current_block = 1154520408629132897;
+                current_block = Block7;
             }
             State::BZ_X_MAPPING_2 => {
-                current_block = 15451013008180677144;
+                current_block = Block19;
             }
             State::BZ_X_SELECTOR_1 => {
-                current_block = 9434444550647791986;
+                current_block = Block59;
             }
             State::BZ_X_SELECTOR_2 => {
-                current_block = 14590825336193814119;
+                current_block = Block14;
             }
             State::BZ_X_SELECTOR_3 => {
-                current_block = 15957329598978927534;
+                current_block = Block22;
             }
             State::BZ_X_CODING_1 => {
-                current_block = 11569294379105328467;
+                current_block = Block8;
             }
             State::BZ_X_CODING_2 => {
-                current_block = 17216244326479313607;
+                current_block = Block30;
             }
             State::BZ_X_CODING_3 => {
-                current_block = 7191958063352112897;
+                current_block = Block49;
             }
             State::BZ_X_MTF_1 => {
-                current_block = 13155828021133314705;
+                current_block = Block12;
             }
             State::BZ_X_MTF_2 => {
-                current_block = 1010107409739284736;
+                current_block = Block2;
             }
             State::BZ_X_MTF_3 => {
-                current_block = 9335356017384149594;
+                current_block = Block57;
             }
             State::BZ_X_MTF_4 => {
-                current_block = 12127014564286193091;
+                current_block = Block9;
             }
             State::BZ_X_MTF_5 => {
-                current_block = 9050093969003559074;
+                current_block = Block55;
             }
             State::BZ_X_MTF_6 => {
-                current_block = 10797958389266113496;
+                current_block = Block5;
             }
             State::BZ_X_ENDHDR_2 => {
-                current_block = 14366592556287126287;
+                current_block = Block13;
             }
             State::BZ_X_ENDHDR_3 => {
-                current_block = 7651522734817633728;
+                current_block = Block50;
             }
             State::BZ_X_ENDHDR_4 => {
-                current_block = 15818849443713787272;
+                current_block = Block20;
             }
             State::BZ_X_ENDHDR_5 => {
-                current_block = 15153555825877660840;
+                current_block = Block16;
             }
             State::BZ_X_ENDHDR_6 => {
-                current_block = 1857046018890652364;
+                current_block = Block34;
             }
             State::BZ_X_CCRC_1 => {
-                current_block = 10292318171587122742;
+                current_block = Block4;
             }
             State::BZ_X_CCRC_2 => {
-                current_block = 14748314904637597825;
+                current_block = Block15;
             }
             State::BZ_X_CCRC_3 => {
-                current_block = 4092966239614665407;
+                current_block = Block42;
             }
             State::BZ_X_CCRC_4 => {
-                current_block = 18389040574536762539;
+                current_block = Block33;
             }
             State::BZ_X_IDLE | State::BZ_X_OUTPUT => unreachable!(),
         }
-        if current_block == 15360092558900836893 {
+        if current_block == Block17 {
             s.state = State::BZ_X_MAGIC_2;
 
             GET_UCHAR!(strm, s, uc);
@@ -384,9 +448,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 break 'save_state_and_return;
             }
 
-            current_block = 15953825877604003206;
+            current_block = Block21;
         }
-        if current_block == 15953825877604003206 {
+        if current_block == Block21 {
             s.state = State::BZ_X_MAGIC_3;
 
             GET_UCHAR!(strm, s, uc);
@@ -396,9 +460,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 break 'save_state_and_return;
             }
 
-            current_block = 1137006006685247392;
+            current_block = Block6;
         }
-        if current_block == 1137006006685247392 {
+        if current_block == Block6 {
             s.state = State::BZ_X_MAGIC_4;
 
             GET_BITS!(strm, s, s.blockSize100k, 8);
@@ -448,25 +512,25 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 }
             }
 
-            current_block = 16838365919992687769;
+            current_block = Block27;
         }
-        if current_block == 16838365919992687769 {
+        if current_block == Block27 {
             s.state = State::BZ_X_BLKHDR_1;
 
             GET_UCHAR!(strm, s, uc);
 
             if uc == 0x17 {
                 // skips to `State::BZ_X_ENDHDR_2`
-                current_block = 14366592556287126287;
+                current_block = Block13;
             } else if uc != 0x31 {
                 retVal = ReturnCode::BZ_DATA_ERROR;
                 break 'save_state_and_return;
             } else {
-                current_block = 5889181040567946013;
+                current_block = Block48;
             }
         }
         match current_block {
-            14366592556287126287 => {
+            Block13 => {
                 s.state = State::BZ_X_ENDHDR_2;
 
                 GET_UCHAR!(strm, s, uc);
@@ -476,9 +540,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = 7651522734817633728;
+                current_block = Block50;
             }
-            5889181040567946013 => {
+            Block48 => {
                 s.state = State::BZ_X_BLKHDR_2;
 
                 GET_UCHAR!(strm, s, uc);
@@ -487,12 +551,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     retVal = ReturnCode::BZ_DATA_ERROR;
                     break 'save_state_and_return;
                 }
-                current_block = 887841530443712878;
+                current_block = Block54;
             }
             _ => {}
         }
         match current_block {
-            7651522734817633728 => {
+            Block50 => {
                 s.state = State::BZ_X_ENDHDR_3;
 
                 GET_UCHAR!(strm, s, uc);
@@ -502,9 +566,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = 15818849443713787272;
+                current_block = Block20;
             }
-            887841530443712878 => {
+            Block54 => {
                 s.state = State::BZ_X_BLKHDR_3;
 
                 GET_UCHAR!(strm, s, uc);
@@ -514,12 +578,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = 17767742176799939193;
+                current_block = Block31;
             }
             _ => {}
         }
         match current_block {
-            15818849443713787272 => {
+            Block20 => {
                 s.state = State::BZ_X_ENDHDR_4;
 
                 GET_UCHAR!(strm, s, uc);
@@ -529,9 +593,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = 15153555825877660840;
+                current_block = Block16;
             }
-            17767742176799939193 => {
+            Block31 => {
                 s.state = State::BZ_X_BLKHDR_4;
 
                 GET_UCHAR!(strm, s, uc);
@@ -541,12 +605,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = 16325921850189496668;
+                current_block = Block23;
             }
             _ => {}
         }
         match current_block {
-            15153555825877660840 => {
+            Block16 => {
                 s.state = State::BZ_X_ENDHDR_5;
 
                 GET_UCHAR!(strm, s, uc);
@@ -556,9 +620,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = 1857046018890652364;
+                current_block = Block34;
             }
-            16325921850189496668 => {
+            Block23 => {
                 s.state = State::BZ_X_BLKHDR_5;
 
                 GET_UCHAR!(strm, s, uc);
@@ -568,12 +632,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     break 'save_state_and_return;
                 }
 
-                current_block = 3202472413399101603;
+                current_block = Block36;
             }
             _ => {}
         }
         match current_block {
-            1857046018890652364 => {
+            Block34 => {
                 s.state = State::BZ_X_ENDHDR_6;
 
                 GET_UCHAR!(strm, s, uc);
@@ -584,9 +648,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 }
 
                 s.storedCombinedCRC = 0_u32;
-                current_block = 10292318171587122742;
+                current_block = Block4;
             }
-            3202472413399101603 => {
+            Block36 => {
                 s.state = State::BZ_X_BLKHDR_6;
 
                 GET_UCHAR!(strm, s, uc);
@@ -601,77 +665,77 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     eprint!("\n    [{}: huff+mtf ", s.currBlockNo);
                 }
                 s.storedBlockCRC = 0_u32;
-                current_block = 5821827988509819404;
+                current_block = Block47;
             }
             _ => {}
         }
         match current_block {
-            10292318171587122742 => {
+            Block4 => {
                 s.state = State::BZ_X_CCRC_1;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                current_block = 14748314904637597825;
+                current_block = Block15;
             }
-            5821827988509819404 => {
+            Block47 => {
                 s.state = State::BZ_X_BCRC_1;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                current_block = 5023088878038355716;
+                current_block = Block44;
             }
             _ => {}
         }
         match current_block {
-            14748314904637597825 => {
+            Block15 => {
                 s.state = State::BZ_X_CCRC_2;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                current_block = 4092966239614665407;
+                current_block = Block42;
             }
-            5023088878038355716 => {
+            Block44 => {
                 s.state = State::BZ_X_BCRC_2;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                current_block = 8515868523999336537;
+                current_block = Block53;
             }
             _ => {}
         }
         match current_block {
-            4092966239614665407 => {
+            Block42 => {
                 s.state = State::BZ_X_CCRC_3;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
-                current_block = 18389040574536762539;
+                current_block = Block33;
             }
-            8515868523999336537 => {
+            Block53 => {
                 s.state = State::BZ_X_BCRC_3;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                current_block = 18234918597811156654;
+                current_block = Block32;
             }
             _ => {}
         }
         match current_block {
-            18234918597811156654 => {
+            Block32 => {
                 s.state = State::BZ_X_BCRC_4;
 
                 GET_UCHAR!(strm, s, uc);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
-                current_block = 12310871532727186508;
+                current_block = Block10;
             }
-            18389040574536762539 => {
+            Block33 => {
                 s.state = State::BZ_X_CCRC_4;
 
                 GET_UCHAR!(strm, s, uc);
@@ -683,31 +747,31 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
             }
             _ => {}
         }
-        if current_block == 12310871532727186508 {
+        if current_block == Block10 {
             s.state = State::BZ_X_RANDBIT;
 
             GET_BITS!(strm, s, s.blockRandomised, 1);
 
             s.origPtr = 0;
-            current_block = 3338455798814466984;
+            current_block = Block37;
         }
-        if current_block == 3338455798814466984 {
+        if current_block == Block37 {
             s.state = State::BZ_X_ORIGPTR_1;
 
             GET_UCHAR!(strm, s, uc);
 
             s.origPtr = s.origPtr << 8 | uc as i32;
-            current_block = 10262367570716242252;
+            current_block = Block3;
         }
-        if current_block == 10262367570716242252 {
+        if current_block == Block3 {
             s.state = State::BZ_X_ORIGPTR_2;
 
             GET_UCHAR!(strm, s, uc);
 
             s.origPtr = s.origPtr << 8 | uc as i32;
-            current_block = 17024493544560437554;
+            current_block = Block29;
         }
-        if current_block == 17024493544560437554 {
+        if current_block == Block29 {
             s.state = State::BZ_X_ORIGPTR_3;
 
             GET_UCHAR!(strm, s, uc);
@@ -719,7 +783,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
             }
 
             i = 0;
-            current_block = 454873545234741267;
+            current_block = Block43;
         }
 
         // mutable because they need to be reborrowed
@@ -733,44 +797,44 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     s.save_i = i;
                     break;
                 }
-                9050093969003559074 => {
+                Block55 => {
                     s.state = State::BZ_X_MTF_5;
 
                     GET_BITS!(strm, s, zvec, zn);
 
-                    current_block = 16348713635569416413;
+                    current_block = Block24;
                 }
-                12127014564286193091 => {
+                Block9 => {
                     s.state = State::BZ_X_MTF_4;
 
                     GET_BIT!(strm, s, zj);
 
                     zvec = zvec << 1 | zj;
-                    current_block = 7923635230025172457;
+                    current_block = Block52;
                 }
-                9335356017384149594 => {
+                Block57 => {
                     s.state = State::BZ_X_MTF_3;
 
                     GET_BITS!(strm, s, zvec, zn);
 
-                    current_block = 7923635230025172457;
+                    current_block = Block52;
                 }
-                1010107409739284736 => {
+                Block2 => {
                     s.state = State::BZ_X_MTF_2;
 
                     GET_BIT!(strm, s, zj);
 
                     zvec = zvec << 1 | zj;
-                    current_block = 9186389159759284570;
+                    current_block = Block56;
                 }
-                13155828021133314705 => {
+                Block12 => {
                     s.state = State::BZ_X_MTF_1;
 
                     GET_BITS!(strm, s, zvec, zn);
 
-                    current_block = 9186389159759284570;
+                    current_block = Block56;
                 }
-                7191958063352112897 => {
+                Block49 => {
                     s.state = State::BZ_X_CODING_3;
 
                     GET_BIT!(strm, s, uc);
@@ -781,45 +845,45 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         curr -= 1;
                     }
 
-                    current_block = 5533056661327372531;
+                    current_block = Block45;
                 }
-                17216244326479313607 => {
+                Block30 => {
                     s.state = State::BZ_X_CODING_2;
 
                     GET_BIT!(strm, s, uc);
 
                     if uc != 0 {
-                        current_block = 7191958063352112897;
+                        current_block = Block49;
                         continue;
                     }
-                    current_block = 7746242308555130918;
+                    current_block = Block51;
                 }
-                11569294379105328467 => {
+                Block8 => {
                     s.state = State::BZ_X_CODING_1;
 
                     GET_BITS!(strm, s, curr, 5);
 
                     i = 0;
-                    current_block = 16642413284942005565;
+                    current_block = Block26;
                 }
-                15957329598978927534 => {
+                Block22 => {
                     s.state = State::BZ_X_SELECTOR_3;
 
                     GET_BIT!(strm, s, uc);
 
                     if uc == 0 {
-                        current_block = 10081471997089450706;
+                        current_block = Block1;
                     } else {
                         j += 1;
                         if j >= nGroups {
                             retVal = ReturnCode::BZ_DATA_ERROR;
                             break 'save_state_and_return;
                         } else {
-                            current_block = 16531797892856733396;
+                            current_block = Block25;
                         }
                     }
                 }
-                14590825336193814119 => {
+                Block14 => {
                     s.state = State::BZ_X_SELECTOR_2;
 
                     GET_BITS!(strm, s, nSelectors, 15);
@@ -830,21 +894,21 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     } else {
                         i = 0;
                     }
-                    current_block = 3503188808869013853;
+                    current_block = Block39;
                 }
-                9434444550647791986 => {
+                Block59 => {
                     s.state = State::BZ_X_SELECTOR_1;
 
                     GET_BITS!(strm, s, nGroups, 3);
 
                     if (2..=6).contains(&nGroups) {
-                        current_block = 14590825336193814119;
+                        current_block = Block14;
                         continue;
                     }
                     retVal = ReturnCode::BZ_DATA_ERROR;
                     break 'save_state_and_return;
                 }
-                15451013008180677144 => {
+                Block19 => {
                     s.state = State::BZ_X_MAPPING_2;
 
                     GET_BIT!(strm, s, uc);
@@ -853,11 +917,11 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         s.inUse[(i * 16 + j) as usize] = true;
                     }
                     j += 1;
-                    current_block = 16953886395775657100;
+                    current_block = Block28;
                 }
-                454873545234741267 => {
+                Block43 => {
                     if i < 16 {
-                        current_block = 1154520408629132897;
+                        current_block = Block7;
                         continue;
                     }
                     i = 0;
@@ -866,16 +930,16 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         i += 1;
                     }
                     i = 0;
-                    current_block = 15415362524153386998;
+                    current_block = Block18;
                 }
-                1154520408629132897 => {
+                Block7 => {
                     s.state = State::BZ_X_MAPPING_1;
 
                     GET_BIT!(strm, s, uc);
 
                     s.inUse16[i as usize] = uc == 1;
                     i += 1;
-                    current_block = 454873545234741267;
+                    current_block = Block43;
                     continue;
                 }
                 _ => {
@@ -884,11 +948,11 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     GET_BIT!(strm, s, zj);
 
                     zvec = zvec << 1 | zj;
-                    current_block = 16348713635569416413;
+                    current_block = Block24;
                 }
             }
             match current_block {
-                16348713635569416413 => {
+                Block24 => {
                     if zn > 20 {
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
@@ -902,12 +966,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         }
                     } else {
                         zn += 1;
-                        current_block = 10797958389266113496;
+                        current_block = Block5;
                         continue;
                     }
-                    current_block = 3575340618357869479;
+                    current_block = Block40;
                 }
-                7923635230025172457 => {
+                Block52 => {
                     if zn > 20 {
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
@@ -919,7 +983,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             nextSym = s.perm[gPerm as usize]
                                 [(zvec - s.base[gBase as usize][zn as usize]) as usize];
                             if nextSym == 0 || nextSym == 1 {
-                                current_block = 5649595406143318745;
+                                current_block = Block46;
                             } else {
                                 es += 1;
                                 uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
@@ -950,16 +1014,16 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                         }
                                     }
                                 }
-                                current_block = 3575340618357869479;
+                                current_block = Block40;
                             }
                         }
                     } else {
                         zn += 1;
-                        current_block = 12127014564286193091;
+                        current_block = Block9;
                         continue;
                     }
                 }
-                9186389159759284570 => {
+                Block56 => {
                     if zn > 20 {
                         retVal = ReturnCode::BZ_DATA_ERROR;
                         break 'save_state_and_return;
@@ -973,17 +1037,17 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         }
                     } else {
                         zn += 1;
-                        current_block = 1010107409739284736;
+                        current_block = Block2;
                         continue;
                     }
-                    current_block = 3575340618357869479;
+                    current_block = Block40;
                 }
                 _ => {}
             }
-            if current_block == 3575340618357869479 {
+            if current_block == Block40 {
                 if 1 != 0 {
                     if nextSym == EOB {
-                        current_block = 4069074773319880902;
+                        current_block = Block41;
                     } else {
                         if nextSym == 0 || nextSym == 1 {
                             es = -1;
@@ -1064,16 +1128,16 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             nblock += 1;
                             update_group_pos!(s);
                             zn = gMinlen;
-                            current_block = 9050093969003559074;
+                            current_block = Block55;
                             continue;
                         }
-                        current_block = 5649595406143318745;
+                        current_block = Block46;
                     }
                 } else {
-                    current_block = 4069074773319880902;
+                    current_block = Block41;
                 }
                 match current_block {
-                    5649595406143318745 => {}
+                    Block46 => {}
                     _ => {
                         if s.origPtr < 0 || s.origPtr >= nblock {
                             retVal = ReturnCode::BZ_DATA_ERROR;
@@ -1276,7 +1340,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     }
                 }
             }
-            if current_block == 5649595406143318745 {
+            if current_block == Block46 {
                 if N >= 2 * 1024 * 1024 {
                     retVal = ReturnCode::BZ_DATA_ERROR;
                     break 'save_state_and_return;
@@ -1289,22 +1353,22 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     N *= 2;
                     update_group_pos!(s);
                     zn = gMinlen;
-                    current_block = 9335356017384149594;
+                    current_block = Block57;
                     continue;
                 }
             }
             loop {
                 match current_block {
-                    16953886395775657100 => {
+                    Block28 => {
                         if j < 16 {
-                            current_block = 15451013008180677144;
+                            current_block = Block19;
                             continue 'c_10064;
                         }
                     }
-                    3503188808869013853 => {
+                    Block39 => {
                         if i < nSelectors {
                             j = 0;
-                            current_block = 16531797892856733396;
+                            current_block = Block25;
                             continue;
                         } else {
                             if nSelectors > 2 + 900000 / 50 {
@@ -1331,15 +1395,15 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                 i += 1;
                             }
                             t = 0;
-                            current_block = 2488856075421756534;
+                            current_block = Block35;
                             break;
                         }
                     }
-                    15415362524153386998 => {
+                    Block18 => {
                         if i < 16 {
                             if s.inUse16[i as usize] {
                                 j = 0;
-                                current_block = 16953886395775657100;
+                                current_block = Block28;
                                 continue;
                             }
                         } else {
@@ -1351,53 +1415,53 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             ll4 = s.ll4.as_mut_slice();
 
                             if s.nInUse == 0 {
-                                current_block = 12571193857528100212;
+                                current_block = Block11;
                                 break;
                             } else {
-                                current_block = 9416928054198617439;
+                                current_block = Block58;
                                 break;
                             }
                         }
                     }
-                    7746242308555130918 => {
+                    Block51 => {
                         s.len[t as usize][i as usize] = curr as u8;
                         i += 1;
-                        current_block = 16642413284942005565;
+                        current_block = Block26;
                         continue;
                     }
-                    16642413284942005565 => {
+                    Block26 => {
                         if i < alphaSize {
-                            current_block = 5533056661327372531;
+                            current_block = Block45;
                             continue;
                         }
                         t += 1;
-                        current_block = 2488856075421756534;
+                        current_block = Block35;
                         break;
                     }
-                    10081471997089450706 => {
+                    Block1 => {
                         if i < 2 + 900000 / 50 {
                             s.selectorMtf[i as usize] = j as u8;
                         }
                         i += 1;
-                        current_block = 3503188808869013853;
+                        current_block = Block39;
                         continue;
                     }
-                    16531797892856733396 => {
+                    Block25 => {
                         if 1 != 0 {
-                            current_block = 15957329598978927534;
+                            current_block = Block22;
                             continue 'c_10064;
                         } else {
-                            current_block = 10081471997089450706;
+                            current_block = Block1;
                             continue;
                         }
                     }
                     _ => {
                         if false {
-                            current_block = 7746242308555130918;
+                            current_block = Block51;
                             continue;
                         }
                         if (1..=20).contains(&curr) {
-                            current_block = 17216244326479313607;
+                            current_block = Block30;
                             continue 'c_10064;
                         }
                         retVal = ReturnCode::BZ_DATA_ERROR;
@@ -1405,20 +1469,20 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     }
                 }
                 i += 1;
-                current_block = 15415362524153386998;
+                current_block = Block18;
             }
             match current_block {
-                9416928054198617439 => {
+                Block58 => {
                     alphaSize = s.nInUse + 2;
-                    current_block = 9434444550647791986;
+                    current_block = Block59;
                 }
-                12571193857528100212 => {
+                Block11 => {
                     retVal = ReturnCode::BZ_DATA_ERROR;
                     break 'save_state_and_return;
                 }
                 _ => {
                     if t < nGroups {
-                        current_block = 11569294379105328467;
+                        current_block = Block8;
                         continue;
                     }
 
@@ -1466,7 +1530,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                     update_group_pos!(s);
 
                     zn = gMinlen;
-                    current_block = 13155828021133314705;
+                    current_block = Block12;
                 }
             }
         }
