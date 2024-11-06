@@ -368,12 +368,6 @@ jobs:
           tool: cargo-nextest
       - name: Test public C api with miri
         run: |
-          cargo +nightly miri nextest run -j4 -p test-libbzip2-rs-sys -- \
-            --skip buff_to_buff_ --skip bzip2_testfiles::commons_compress_zip64support \
-            --skip bzip2_testfiles::dotnetzip_ --skip bzip2_testfiles::go \
-            --skip bzip2_testfiles::lbzip2_ch255 --skip bzip2_testfiles::lbzip2_fib \
-            --skip bzip2_testfiles::lbzip2_idx899999 --skip bzip2_testfiles::lbzip2_repet \
-            --skip bzip2_testfiles::pyflate_45MB_ --skip chunked:: --skip compress_sample1 \
-            --skip compress_sample2 --skip decompress_sample1 --skip decompress_sample2
+          cargo +nightly miri nextest run -j4 -p test-libbzip2-rs-sys miri_
       - name: Run unit tests with miri
         run: "cargo +nightly miri nextest run -j4 -p libbzip2-rs-sys"
