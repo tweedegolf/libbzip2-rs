@@ -116,7 +116,7 @@ impl bz_stream {
 }
 
 #[repr(i32)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum ReturnCode {
     BZ_OK = 0,
@@ -439,7 +439,7 @@ pub struct bzFile {
     pub buf: [i8; BZ_MAX_UNUSED as usize],
     pub bufN: i32,
     pub strm: bz_stream,
-    pub lastErr: i32,
+    pub lastErr: ReturnCode,
     pub operation: Operation,
     pub initialisedOk: bool,
 }
@@ -1764,7 +1764,7 @@ macro_rules! BZ_SETERR_RAW {
         }
 
         if let Some(bzf) = $bzf.as_mut() {
-            bzf.lastErr = $return_code as libc::c_int;
+            bzf.lastErr = $return_code;
         }
     };
 }
@@ -1775,7 +1775,7 @@ macro_rules! BZ_SETERR {
             *bzerror = $return_code;
         }
 
-        $bzf.lastErr = $return_code as libc::c_int;
+        $bzf.lastErr = $return_code;
     };
 }
 
@@ -1971,7 +1971,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
         *nbytes_out_hi32 = 0;
     }
 
-    if abandon == 0 && bzf.lastErr == 0 as libc::c_int {
+    if abandon == 0 && bzf.lastErr == ReturnCode::BZ_OK {
         loop {
             bzf.strm.avail_out = BZ_MAX_UNUSED;
             bzf.strm.next_out = (bzf.buf).as_mut_ptr().cast::<c_char>();
@@ -2218,7 +2218,7 @@ pub unsafe extern "C" fn BZ2_bzReadGetUnused(
         return;
     };
 
-    if bzf.lastErr != ReturnCode::BZ_STREAM_END as c_int {
+    if bzf.lastErr != ReturnCode::BZ_STREAM_END {
         BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_SEQUENCE_ERROR);
         return;
     }
@@ -2452,7 +2452,7 @@ pub unsafe extern "C" fn BZ2_bzdopen(fd: c_int, mode: *const c_char) -> *mut c_v
 pub unsafe extern "C" fn BZ2_bzread(b: *mut c_void, buf: *mut c_void, len: c_int) -> c_int {
     let mut bzerr = 0;
 
-    if (*(b as *mut bzFile)).lastErr == ReturnCode::BZ_STREAM_END as i32 {
+    if (*(b as *mut bzFile)).lastErr == ReturnCode::BZ_STREAM_END {
         return 0;
     }
     let nread: libc::c_int = BZ2_bzRead(&mut bzerr, b, buf, len);
@@ -2542,7 +2542,7 @@ const BZERRORSTRINGS: [&str; 16] = [
 
 #[export_name = prefix!(BZ2_bzerror)]
 pub unsafe extern "C" fn BZ2_bzerror(b: *const c_void, errnum: *mut c_int) -> *const c_char {
-    let err = Ord::min(0, (*(b as *const bzFile)).lastErr);
+    let err = Ord::min(0, (*(b as *const bzFile)).lastErr as c_int);
     if !errnum.is_null() {
         *errnum = err;
     }
@@ -2564,35 +2564,62 @@ mod tests {
             buf: [0; 5000],
             bufN: 0,
             strm: bz_stream::zeroed(),
-            lastErr: 0,
+            lastErr: ReturnCode::BZ_OK,
             operation: Operation::Reading,
             initialisedOk: false,
         };
 
-        for i in -17..1 {
-            bz_file.lastErr = i;
+        let return_codes = [
+            ReturnCode::BZ_OK,
+            ReturnCode::BZ_RUN_OK,
+            ReturnCode::BZ_FLUSH_OK,
+            ReturnCode::BZ_FINISH_OK,
+            ReturnCode::BZ_STREAM_END,
+            ReturnCode::BZ_SEQUENCE_ERROR,
+            ReturnCode::BZ_PARAM_ERROR,
+            ReturnCode::BZ_MEM_ERROR,
+            ReturnCode::BZ_DATA_ERROR,
+            ReturnCode::BZ_DATA_ERROR_MAGIC,
+            ReturnCode::BZ_IO_ERROR,
+            ReturnCode::BZ_UNEXPECTED_EOF,
+            ReturnCode::BZ_OUTBUFF_FULL,
+            ReturnCode::BZ_CONFIG_ERROR,
+        ];
+
+        for return_code in return_codes {
+            bz_file.lastErr = return_code;
 
             let mut errnum = 0;
             let ptr = unsafe { BZ2_bzerror(&bz_file as *const _ as *const c_void, &mut errnum) };
             assert!(!ptr.is_null());
             let cstr = unsafe { CStr::from_ptr(ptr) };
 
-            match i {
-                1 => assert_eq!(cstr.to_str(), Ok("OK")),
-                0 => assert_eq!(cstr.to_str(), Ok("OK")),
-                -1 => assert_eq!(cstr.to_str(), Ok("SEQUENCE_ERROR")),
-                -2 => assert_eq!(cstr.to_str(), Ok("PARAM_ERROR")),
-                -3 => assert_eq!(cstr.to_str(), Ok("MEM_ERROR")),
-                -4 => assert_eq!(cstr.to_str(), Ok("DATA_ERROR")),
-                -5 => assert_eq!(cstr.to_str(), Ok("DATA_ERROR_MAGIC")),
-                -6 => assert_eq!(cstr.to_str(), Ok("IO_ERROR")),
-                -7 => assert_eq!(cstr.to_str(), Ok("UNEXPECTED_EOF")),
-                -8 => assert_eq!(cstr.to_str(), Ok("OUTBUFF_FULL")),
-                -9 => assert_eq!(cstr.to_str(), Ok("CONFIG_ERROR")),
-                _ => assert_eq!(cstr.to_str(), Ok("???")),
-            }
+            let msg = cstr.to_str().unwrap();
 
-            assert_eq!(i, errnum);
+            let expected = match return_code {
+                BZ_OK => "OK",
+                BZ_RUN_OK => "OK",
+                BZ_FLUSH_OK => "OK",
+                BZ_FINISH_OK => "OK",
+                BZ_STREAM_END => "OK",
+                BZ_SEQUENCE_ERROR => "SEQUENCE_ERROR",
+                BZ_PARAM_ERROR => "PARAM_ERROR",
+                BZ_MEM_ERROR => "MEM_ERROR",
+                BZ_DATA_ERROR => "DATA_ERROR",
+                BZ_DATA_ERROR_MAGIC => "DATA_ERROR_MAGIC",
+                BZ_IO_ERROR => "IO_ERROR",
+                BZ_UNEXPECTED_EOF => "UNEXPECTED_EOF",
+                BZ_OUTBUFF_FULL => "OUTBUFF_FULL",
+                BZ_CONFIG_ERROR => "CONFIG_ERROR",
+            };
+
+            assert_eq!(msg, expected);
+
+            if (return_code as i32) < 0 {
+                assert_eq!(return_code as i32, errnum);
+            } else {
+                assert_eq!(0, errnum);
+            }
         }
     }
 }
