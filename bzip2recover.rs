@@ -116,57 +116,68 @@ impl BitStream {
     }
 }
 
-fn emit_read_error(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
-    eprintln!(
-        "{}: I/O error reading `{}', possible reason follows.",
-        program_name.display(),
-        in_filename.display(),
-    );
-
-    eprintln!("{}", io_error);
-
-    eprintln!(
-        "{}: warning: output file(s) may be incomplete.",
-        program_name.display(),
-    );
-
-    ExitCode::FAILURE
+struct EmitError<'a> {
+    program_name: &'a Path,
+    in_filename: &'a Path,
+    error: Error,
 }
 
-fn emit_write_error(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
-    eprintln!(
-        "{}: I/O error writing `{}', possible reason follows.",
-        program_name.display(),
-        in_filename.display(),
-    );
+impl core::fmt::Display for EmitError<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.error {
+            Error::Reading(ref io_error) => {
+                f.write_fmt(format_args!(
+                    "{}: I/O error reading `{}', possible reason follows.\n",
+                    self.program_name.display(),
+                    self.in_filename.display(),
+                ))?;
 
-    eprintln!("{}", io_error);
+                f.write_fmt(format_args!("{}\n", io_error))?;
 
-    eprintln!(
-        "{}: warning: output file(s) may be incomplete.",
-        program_name.display()
-    );
+                f.write_fmt(format_args!(
+                    "{}: warning: output file(s) may be incomplete.\n",
+                    self.program_name.display(),
+                ))?;
 
-    ExitCode::FAILURE
-}
+                Ok(())
+            }
+            Error::Writing(ref io_error) => {
+                f.write_fmt(format_args!(
+                    "{}: I/O error writing `{}', possible reason follows.\n",
+                    self.program_name.display(),
+                    self.in_filename.display(),
+                ))?;
 
-fn emit_too_many_blocks(
-    program_name: &Path,
-    in_filename: &Path,
-    max_handled_blocks: usize,
-) -> ExitCode {
-    let program_name = program_name.display();
+                f.write_fmt(format_args!("{}\n", io_error))?;
 
-    eprintln!(
-        "{}: `{}' appears to contain more than {max_handled_blocks} blocks",
-        program_name,
-        in_filename.display(),
-    );
+                f.write_fmt(format_args!(
+                    "{}: warning: output file(s) may be incomplete.\n",
+                    self.program_name.display(),
+                ))?;
 
-    eprintln!("{program_name}: and cannot be handled.  To fix, increase");
-    eprintln!("{program_name}: BZ_MAX_HANDLED_BLOCKS in bzip2recover.rs, and recompile.");
+                Ok(())
+            }
+            Error::TooManyBlocks(max_handled_blocks) => {
+                let program_name = self.program_name.display();
 
-    ExitCode::FAILURE
+                f.write_fmt(format_args!(
+                    "{}: `{}' appears to contain more than {max_handled_blocks} blocks\n",
+                    program_name,
+                    self.in_filename.display(),
+                ))?;
+
+                f.write_fmt(format_args!(
+                    "{program_name}: and cannot be handled.  To fix, increase\n"
+                ))?;
+                f.write_fmt(format_args!(
+                    "{program_name}: BZ_MAX_HANDLED_BLOCKS in bzip2recover.rs, and recompile.\n"
+                ))?;
+
+                Ok(())
+            }
+            Error::Fatal => Ok(()),
+        }
+    }
 }
 
 fn main_help(program_name: &Path, in_filename: &Path) -> Result<(), Error> {
@@ -387,13 +398,101 @@ pub fn main() -> ExitCode {
 
     match main_help(&program_name, &in_filename) {
         Ok(()) => ExitCode::SUCCESS,
-        Err(error) => match error {
-            Error::Reading(io_error) => emit_read_error(&program_name, &in_filename, io_error),
-            Error::Writing(io_error) => emit_write_error(&program_name, &in_filename, io_error),
-            Error::TooManyBlocks(handled) => {
-                emit_too_many_blocks(&program_name, &in_filename, handled)
-            }
-            Error::Fatal => ExitCode::FAILURE,
-        },
+        Err(error) => {
+            let emit_error = EmitError {
+                program_name: &program_name,
+                in_filename: &in_filename,
+                error,
+            };
+
+            eprint!("{}", emit_error);
+
+            ExitCode::FAILURE
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn read_error() {
+        use std::fmt::Write;
+
+        let program_name = Path::new("/foo/bar/bzip2recover");
+        let in_filename = Path::new("$garbage");
+
+        let io_error = std::fs::File::open(in_filename).unwrap_err();
+        let emit_error = EmitError {
+            program_name,
+            in_filename,
+            error: Error::Reading(io_error),
+        };
+
+        let mut buf = String::new();
+        write!(&mut buf, "{}", emit_error).unwrap();
+
+        assert_eq!(
+            buf,
+            concat!(
+                "/foo/bar/bzip2recover: I/O error reading `$garbage', possible reason follows.\n",
+                "No such file or directory (os error 2)\n",
+                "/foo/bar/bzip2recover: warning: output file(s) may be incomplete.\n"
+            )
+        );
+    }
+
+    #[test]
+    fn write() {
+        use std::fmt::Write;
+
+        let program_name = Path::new("/foo/bar/bzip2recover");
+        let in_filename = Path::new("$garbage");
+
+        let io_error = std::fs::File::open(in_filename).unwrap_err();
+        let emit_error = EmitError {
+            program_name,
+            in_filename,
+            error: Error::Writing(io_error),
+        };
+
+        let mut buf = String::new();
+        write!(&mut buf, "{}", emit_error).unwrap();
+
+        assert_eq!(
+            buf,
+            concat!(
+                "/foo/bar/bzip2recover: I/O error writing `$garbage', possible reason follows.\n",
+                "No such file or directory (os error 2)\n",
+                "/foo/bar/bzip2recover: warning: output file(s) may be incomplete.\n"
+            )
+        );
+    }
+
+    #[test]
+    fn too_many_blocks() {
+        use std::fmt::Write;
+
+        let program_name = Path::new("/foo/bar/bzip2recover");
+        let in_filename = Path::new("$garbage");
+
+        let emit_error = EmitError {
+            program_name,
+            in_filename,
+            error: Error::TooManyBlocks(42),
+        };
+
+        let mut buf = String::new();
+        write!(&mut buf, "{}", emit_error).unwrap();
+
+        assert_eq!(
+            buf,
+            concat!(
+                "/foo/bar/bzip2recover: `$garbage' appears to contain more than 42 blocks\n",
+                "/foo/bar/bzip2recover: and cannot be handled.  To fix, increase\n",
+                "/foo/bar/bzip2recover: BZ_MAX_HANDLED_BLOCKS in bzip2recover.rs, and recompile.\n"
+            )
+        );
     }
 }
