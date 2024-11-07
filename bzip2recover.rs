@@ -1,15 +1,13 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::ffi::{c_char, CString};
+use std::ffi::CString;
 use std::fs::File;
 use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-
-use libc::strncpy;
 
 const BZ_MAX_HANDLED_BLOCKS: usize = 50000;
 
@@ -28,7 +26,6 @@ pub struct BitStream {
     pub buffLive: i32,
     pub mode: u8,
 }
-pub static mut PROGNAME: [c_char; 2000] = [0; 2000];
 pub static mut BYTES_OUT: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 pub static mut BYTES_IN: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 
@@ -180,19 +177,6 @@ pub static mut B_END: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_END: [MaybeUInt64; 50000] = [0; 50000];
 unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
-    let program_name_cstr = CString::new(program_name.to_string_lossy().as_bytes())
-        .unwrap()
-        .into_raw();
-
-    let in_filename_cstr = CString::new(in_filename.to_string_lossy().as_bytes()).unwrap();
-
-    strncpy(
-        PROGNAME.as_mut_ptr(),
-        program_name_cstr,
-        (2000 as libc::c_int - 1 as libc::c_int) as usize,
-    );
-    PROGNAME[(2000 as libc::c_int - 1 as libc::c_int) as usize] = '\0' as i32 as c_char;
-
     let progname = program_name.display();
 
     if in_filename.as_os_str().len() >= (2000 - 20) as usize {
@@ -377,8 +361,6 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Er
             }
         }
     }
-
-    drop(in_filename_cstr);
 
     eprintln!("{}: finished", progname);
 
