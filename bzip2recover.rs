@@ -7,8 +7,7 @@ use std::path::{Path, PathBuf};
 use libc::FILE;
 
 use libc::{
-    __errno_location, close, fclose, fdopen, fflush, fopen, open, perror, sprintf, strcat, strcpy,
-    strlen, strncpy, strrchr,
+    __errno_location, close, fclose, fdopen, fflush, fopen, open, perror, strcpy, strlen, strncpy,
 };
 
 extern "C" {
@@ -25,7 +24,6 @@ pub struct BitStream {
     pub mode: u8,
 }
 pub static mut IN_FILENAME: [c_char; 2000] = [0; 2000];
-pub static mut OUT_FILENAME: [c_char; 2000] = [0; 2000];
 pub static mut PROGNAME: [c_char; 2000] = [0; 2000];
 pub static mut BYTES_OUT: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 pub static mut BYTES_IN: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
@@ -174,16 +172,6 @@ unsafe fn bsPutUInt32(bs: &mut BitStream, c: u32) {
         i -= 1;
     }
 }
-unsafe fn endsInBz2(name: *mut c_char) -> Bool {
-    let n: i32 = strlen(name) as i32;
-    if n <= 4 as libc::c_int {
-        return 0 as Bool;
-    }
-    (*name.offset((n - 4 as libc::c_int) as isize) as libc::c_int == '.' as i32
-        && *name.offset((n - 3 as libc::c_int) as isize) as libc::c_int == 'b' as i32
-        && *name.offset((n - 2 as libc::c_int) as isize) as libc::c_int == 'z' as i32
-        && *name.offset((n - 1 as libc::c_int) as isize) as libc::c_int == '2' as i32) as Bool
-}
 unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *mut FILE {
     let fh = open(
         name,
@@ -216,8 +204,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
         (2000 as libc::c_int - 1 as libc::c_int) as usize,
     );
     PROGNAME[(2000 as libc::c_int - 1 as libc::c_int) as usize] = '\0' as i32 as c_char;
-    OUT_FILENAME[0 as libc::c_int as usize] = 0 as libc::c_int as c_char;
-    IN_FILENAME[0 as libc::c_int as usize] = OUT_FILENAME[0 as libc::c_int as usize];
+    IN_FILENAME[0 as libc::c_int as usize] = 0;
 
     let progname = program_name.display();
 
@@ -232,14 +219,12 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
     }
     strcpy(IN_FILENAME.as_mut_ptr(), in_filename_cstr.as_ptr());
 
-    let in_filename = in_filename.display();
-
     let mut inFile = fopen(
         in_filename_cstr.as_ptr().cast_mut(),
         b"rb\0" as *const u8 as *const libc::c_char,
     );
     if inFile.is_null() {
-        eprintln!("{}: can't read `{}'", progname, in_filename);
+        eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
         std::process::exit(1)
     }
@@ -316,7 +301,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
         b"rb\0" as *const u8 as *const libc::c_char,
     );
     if inFile.is_null() {
-        eprintln!("{}: can't open `{}'", progname, in_filename,);
+        eprintln!("{}: can't open `{}'", progname, in_filename.display(),);
 
         std::process::exit(1)
     }
@@ -367,62 +352,31 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
             }
             wrBlock += 1;
         } else if bitsRead == RB_START[wrBlock as usize] {
-            let mut k = 0 as libc::c_int;
-            while k < 2000 as libc::c_int {
-                OUT_FILENAME[k as usize] = 0 as libc::c_int as c_char;
-                k += 1;
-            }
-            strcpy(
-                OUT_FILENAME.as_mut_ptr(),
-                in_filename_cstr.as_ptr().cast_mut(),
-            );
-            let mut split = strrchr(OUT_FILENAME.as_mut_ptr(), '/' as i32);
-            if split.is_null() {
-                split = OUT_FILENAME.as_mut_ptr();
-            } else {
-                split = split.offset(1);
-            }
-            let ofs = split.offset_from(OUT_FILENAME.as_mut_ptr()) as libc::c_long as i32;
-            sprintf(
-                split,
-                b"rec%5d\0" as *const u8 as *const libc::c_char,
-                wrBlock + 1 as libc::c_int,
-            );
-            let mut p = split;
-            while *p != 0 {
-                if *p as libc::c_int == ' ' as i32 {
-                    *p = '0' as i32 as c_char;
-                }
-                p = p.offset(1);
-            }
-            strcat(
-                OUT_FILENAME.as_mut_ptr(),
-                in_filename_cstr.as_ptr().cast_mut().offset(ofs as isize),
-            );
-            if endsInBz2(OUT_FILENAME.as_mut_ptr()) == 0 {
-                strcat(
-                    OUT_FILENAME.as_mut_ptr(),
-                    b".bz2\0" as *const u8 as *const libc::c_char,
-                );
-            }
+            // we've been able to open this file, so there must be a file name
+            let filename = in_filename.file_name().unwrap();
 
-            let out_filename =
-                CStr::from_ptr(OUT_FILENAME.as_ptr() as *const c_char).to_string_lossy();
+            let filename = format!("rec{:05}{}", wrBlock + 1, filename.to_string_lossy());
+
+            let out_filename = in_filename.with_file_name(&filename).with_extension("bz2");
+
+            let out_filename_cstr =
+                CString::new(out_filename.to_string_lossy().as_bytes()).unwrap();
 
             eprintln!(
                 "   writing block {} to `{}' ...",
                 wrBlock + 1 as libc::c_int,
-                out_filename,
+                out_filename.display(),
             );
             outFile = fopen_output_safely(
-                OUT_FILENAME.as_mut_ptr(),
+                out_filename_cstr.as_ptr().cast_mut(),
                 b"wb\0" as *const u8 as *const libc::c_char,
             );
             if outFile.is_null() {
-                eprintln!("{}: can't write `{}'", progname, out_filename,);
+                eprintln!("{}: can't write `{}'", progname, out_filename.display());
 
                 std::process::exit(1)
             }
+            drop(out_filename_cstr);
             bsWr = {
                 let mut bsWr = bsOpenWriteStream(outFile);
                 bsPutUChar(&mut bsWr, 0x42 as libc::c_int as u8);
@@ -439,6 +393,9 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
             }
         }
     }
+
+    drop(in_filename_cstr);
+
     eprintln!("{}: finished", progname);
     0 as libc::c_int
 }
@@ -447,7 +404,7 @@ pub fn main() {
     let mut it = ::std::env::args_os();
 
     let program_name = PathBuf::from(it.next().unwrap());
-    let opt_in_filename = it.next().map(|path| PathBuf::from(path));
+    let opt_in_filename = it.next().map(PathBuf::from);
 
     eprintln!("bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.");
 
