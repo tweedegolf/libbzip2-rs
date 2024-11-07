@@ -171,11 +171,12 @@ fn bsPutUInt32(bs: &mut BitStream, c: u32) -> Result<(), Error> {
     Ok(())
 }
 
-pub static mut B_START: [u64; 50000] = [0; 50000];
-pub static mut B_END: [u64; 50000] = [0; 50000];
-pub static mut RB_START: [u64; 50000] = [0; 50000];
-pub static mut RB_END: [u64; 50000] = [0; 50000];
-unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
+fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
+    let mut B_START = [0u64; 50000];
+    let mut B_END = [0u64; 50000];
+    let mut RB_START = [0u64; 50000];
+    let mut RB_END = [0u64; 50000];
+
     let progname = program_name.display();
 
     if in_filename.as_os_str().len() >= (2000 - 20) as usize {
@@ -395,7 +396,7 @@ pub fn main() -> ExitCode {
         return ExitCode::FAILURE;
     };
 
-    match unsafe { main_0(&program_name, &in_filename) } {
+    match main_0(&program_name, &in_filename) {
         Ok(exit_code) => exit_code,
         Err(error) => match error {
             Error::Reading(io_error) => readError(&program_name, &in_filename, io_error),
