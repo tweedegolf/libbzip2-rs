@@ -203,7 +203,7 @@ pub static mut B_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut B_END: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_END: [MaybeUInt64; 50000] = [0; 50000];
-unsafe fn main_0(program_name_cstr: *mut c_char, opt_in_filename_cstr: Option<*mut c_char>) -> i32 {
+unsafe fn main_0(program_name_cstr: *mut c_char, in_filename_cstr: *mut c_char) -> i32 {
     strncpy(
         PROGNAME.as_mut_ptr(),
         program_name_cstr,
@@ -214,27 +214,6 @@ unsafe fn main_0(program_name_cstr: *mut c_char, opt_in_filename_cstr: Option<*m
     IN_FILENAME[0 as libc::c_int as usize] = OUT_FILENAME[0 as libc::c_int as usize];
 
     let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
-
-    eprintln!("bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.");
-    let Some(in_filename_cstr) = opt_in_filename_cstr else {
-        eprintln!("{}: usage is `{} damaged_file_name'.", progname, progname,);
-        match core::mem::size_of::<MaybeUInt64>() as libc::c_ulong {
-            8 => {
-                eprintln!("\trestrictions on size of recovered file: None");
-            }
-            4 => {
-                eprintln!("\trestrictions on size of recovered file: 512 MB");
-                eprintln!(
-                    "\tto circumvent, recompile with MaybeUInt64 as an\n\tunsigned 64-bit int."
-                );
-            }
-            _ => {
-                eprintln!("\tsizeof::<MaybeUInt64> is not 4 or 8 -- configuration error.");
-            }
-        }
-
-        std::process::exit(1)
-    };
 
     if strlen(in_filename_cstr) >= (2000 as libc::c_int - 20 as libc::c_int) as usize {
         eprintln!(
@@ -461,15 +440,38 @@ pub fn main() {
     let program_name = PathBuf::from(it.next().unwrap());
     let opt_in_filename = it.next().map(|path| PathBuf::from(path));
 
+    eprintln!("bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.");
+
+    let Some(in_filename) = opt_in_filename else {
+        eprintln!(
+            "{program_name}: usage is `{program_name} damaged_file_name'.",
+            program_name = program_name.display()
+        );
+        match core::mem::size_of::<MaybeUInt64>() as libc::c_ulong {
+            8 => {
+                eprintln!("\trestrictions on size of recovered file: None");
+            }
+            4 => {
+                eprintln!("\trestrictions on size of recovered file: 512 MB");
+                eprintln!(
+                    "\tto circumvent, recompile with MaybeUInt64 as an\n\tunsigned 64-bit int."
+                );
+            }
+            _ => {
+                eprintln!("\tsizeof::<MaybeUInt64> is not 4 or 8 -- configuration error.");
+            }
+        }
+
+        std::process::exit(1)
+    };
+
     let program_name = CString::new(program_name.to_string_lossy().as_bytes())
         .unwrap()
         .into_raw();
 
-    let opt_in_filename = opt_in_filename.map(|in_filename| {
-        CString::new(in_filename.to_string_lossy().as_bytes())
-            .unwrap()
-            .into_raw()
-    });
+    let in_filename = CString::new(in_filename.to_string_lossy().as_bytes())
+        .unwrap()
+        .into_raw();
 
-    unsafe { ::std::process::exit(main_0(program_name, opt_in_filename)) }
+    unsafe { ::std::process::exit(main_0(program_name, in_filename)) }
 }
