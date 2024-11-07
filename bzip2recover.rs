@@ -82,7 +82,7 @@ fn tooManyBlocks(program_name: &Path, in_filename: &Path, max_handled_blocks: us
     ExitCode::FAILURE
 }
 
-unsafe fn bsOpenReadStream(stream: File) -> BitStream {
+fn bsOpenReadStream(stream: File) -> BitStream {
     BitStream {
         handle: stream,
         buffer: 0,
@@ -91,7 +91,7 @@ unsafe fn bsOpenReadStream(stream: File) -> BitStream {
     }
 }
 
-unsafe fn bsOpenWriteStream(stream: File) -> BitStream {
+fn bsOpenWriteStream(stream: File) -> BitStream {
     BitStream {
         handle: stream,
         buffer: 0,
@@ -116,7 +116,7 @@ unsafe fn bsPutBit(bs: &mut BitStream, bit: i32) -> Result<(), Error> {
     Ok(())
 }
 
-unsafe fn bsGetBit(bs: &mut BitStream) -> Result<i32, Error> {
+fn bsGetBit(bs: &mut BitStream) -> Result<i32, Error> {
     if bs.buffLive > 0 as libc::c_int {
         bs.buffLive -= 1;
 
