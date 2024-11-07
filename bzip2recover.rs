@@ -3,6 +3,7 @@
 
 use std::ffi::{c_char, CStr, CString};
 use std::fs::File;
+use std::io::{Read, Write};
 use std::os::fd::IntoRawFd;
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
@@ -20,7 +21,7 @@ pub type MaybeUInt64 = libc::c_ulonglong;
 pub type Bool = libc::c_uchar;
 #[repr(C)]
 pub struct BitStream {
-    pub handle: *mut FILE,
+    pub handle: File,
     pub buffer: i32,
     pub buffLive: i32,
     pub mode: u8,
@@ -80,9 +81,6 @@ unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ! {
 }
 
 unsafe fn bsOpenReadStream(stream: File) -> BitStream {
-    let fd = stream.into_raw_fd();
-    let stream = libc::fdopen(fd, c"rb".as_ptr());
-
     BitStream {
         handle: stream,
         buffer: 0,
@@ -92,9 +90,6 @@ unsafe fn bsOpenReadStream(stream: File) -> BitStream {
 }
 
 unsafe fn bsOpenWriteStream(stream: File) -> BitStream {
-    let fd = stream.into_raw_fd();
-    let stream = libc::fdopen(fd, c"wb".as_ptr());
-
     BitStream {
         handle: stream,
         buffer: 0,
@@ -105,10 +100,11 @@ unsafe fn bsOpenWriteStream(stream: File) -> BitStream {
 
 unsafe fn bsPutBit(bs: &mut BitStream, bit: i32) {
     if bs.buffLive == 8 as libc::c_int {
-        let retVal: i32 = putc(bs.buffer as u8 as libc::c_int, bs.handle);
-        if retVal == -1 as libc::c_int {
-            writeError();
-        }
+        bs.handle.write_all(&[bs.buffer as u8]).unwrap();
+        //        let retVal: i32 = putc( as libc::c_int, bs.handle);
+        //        if retVal == -1 as libc::c_int {
+        //            writeError();
+        //        }
         BYTES_OUT = BYTES_OUT.wrapping_add(1);
         bs.buffLive = 1 as libc::c_int;
         bs.buffer = bit & 0x1 as libc::c_int;
@@ -122,16 +118,22 @@ unsafe fn bsGetBit(bs: &mut BitStream) -> i32 {
         bs.buffLive -= 1;
         bs.buffer >> bs.buffLive & 0x1 as libc::c_int
     } else {
-        let retVal: i32 = getc(bs.handle);
-        if retVal == -1 as libc::c_int {
-            if *__errno_location() != 0 as libc::c_int {
-                readError()
-            } else {
-                return 2;
-            }
+        let mut retVal = [0u8];
+        let n = bs.handle.read(&mut retVal).unwrap();
+
+        if n == 0 {
+            return 2;
         }
+        //        let retVal: i32 = getc(bs.handle);
+        //        if retVal == -1 as libc::c_int {
+        //            if *__errno_location() != 0 as libc::c_int {
+        //                readError()
+        //            } else {
+        //                return 2;
+        //            }
+        //        }
         bs.buffLive = 7 as libc::c_int;
-        bs.buffer = retVal;
+        bs.buffer = retVal[0] as i32;
         bs.buffer >> 7 as libc::c_int & 0x1 as libc::c_int
     }
 }
@@ -142,27 +144,27 @@ unsafe fn bsClose(mut bs: BitStream) {
             bs.buffLive += 1;
             bs.buffer <<= 1 as libc::c_int;
         }
-        retVal = putc(bs.buffer as u8 as libc::c_int, bs.handle);
-        if retVal == -1 as libc::c_int {
-            writeError();
-        }
+        bs.handle.write_all(&[bs.buffer as u8]).unwrap();
+        //        retVal = putc(bs.buffer as u8 as libc::c_int, bs.handle);
+        //        if retVal == -1 as libc::c_int {
+        //            writeError();
+        //        }
         BYTES_OUT = BYTES_OUT.wrapping_add(1);
-        retVal = fflush(bs.handle);
-        if retVal == -1 as libc::c_int {
-            writeError();
-        }
+        //        retVal = fflush(bs.handle);
+        //        if retVal == -1 as libc::c_int {
+        //            writeError();
+        //        }
+        bs.handle.flush().unwrap();
     }
 
-    retVal = fclose(bs.handle);
-    if retVal == -1 as libc::c_int {
-        if bs.mode == b'w' {
-            writeError();
-        } else {
-            readError();
-        }
-    }
-
-    drop(bs)
+    //    retVal = fclose(bs.handle);
+    //    if retVal == -1 as libc::c_int {
+    //        if bs.mode == b'w' {
+    //            writeError();
+    //        } else {
+    //            readError();
+    //        }
+    //    }
 }
 
 unsafe fn bsPutUChar(bs: &mut BitStream, c: u8) {
