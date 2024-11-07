@@ -17,8 +17,6 @@ enum Error {
     TooManyBlocks(usize),
 }
 
-pub type MaybeUInt64 = libc::c_ulonglong;
-pub type Bool = libc::c_uchar;
 #[repr(C)]
 pub struct BitStream {
     pub handle: File,
@@ -26,8 +24,8 @@ pub struct BitStream {
     pub buffLive: i32,
     pub mode: u8,
 }
-pub static mut BYTES_OUT: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
-pub static mut BYTES_IN: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
+pub static mut BYTES_OUT: u64 = 0 as libc::c_int as u64;
+pub static mut BYTES_IN: u64 = 0 as libc::c_int as u64;
 
 fn readError(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
     eprintln!(
@@ -172,10 +170,10 @@ unsafe fn bsPutUInt32(bs: &mut BitStream, c: u32) -> Result<(), Error> {
     Ok(())
 }
 
-pub static mut B_START: [MaybeUInt64; 50000] = [0; 50000];
-pub static mut B_END: [MaybeUInt64; 50000] = [0; 50000];
-pub static mut RB_START: [MaybeUInt64; 50000] = [0; 50000];
-pub static mut RB_END: [MaybeUInt64; 50000] = [0; 50000];
+pub static mut B_START: [u64; 50000] = [0; 50000];
+pub static mut B_END: [u64; 50000] = [0; 50000];
+pub static mut RB_START: [u64; 50000] = [0; 50000];
+pub static mut RB_END: [u64; 50000] = [0; 50000];
 unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
     let progname = program_name.display();
 
@@ -197,11 +195,11 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Er
 
     let mut bsIn = bsOpenReadStream(inFile);
     eprintln!("{}: searching for block boundaries ...", progname);
-    let mut bitsRead = 0 as libc::c_int as MaybeUInt64;
+    let mut bitsRead = 0 as libc::c_int as u64;
     let mut buffLo = 0 as libc::c_int as u32;
     let mut buffHi = buffLo;
     let mut currBlock = 0 as libc::c_int;
-    B_START[currBlock as usize] = 0 as libc::c_int as MaybeUInt64;
+    B_START[currBlock as usize] = 0 as libc::c_int as u64;
     let mut rbCtr = 0 as libc::c_int;
     loop {
         let b = bsGetBit(&mut bsIn)?;
@@ -232,7 +230,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Er
                     B_END[currBlock as usize] =
                         bitsRead.wrapping_sub(49 as libc::c_int as libc::c_ulonglong);
                 } else {
-                    B_END[currBlock as usize] = 0 as libc::c_int as MaybeUInt64;
+                    B_END[currBlock as usize] = 0 as libc::c_int as u64;
                 }
                 if currBlock > 0 as libc::c_int
                     && (B_END[currBlock as usize]).wrapping_sub(B_START[currBlock as usize])
@@ -273,7 +271,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Er
     bsIn = bsOpenReadStream(inFile);
     let mut blockCRC = 0 as libc::c_int as u32;
     let mut bsWr: Option<BitStream> = None;
-    bitsRead = 0 as libc::c_int as MaybeUInt64;
+    bitsRead = 0 as libc::c_int as u64;
     let mut wrBlock = 0 as libc::c_int;
     loop {
         let b = bsGetBit(&mut bsIn)?;
@@ -380,18 +378,16 @@ pub fn main() -> ExitCode {
             "{program_name}: usage is `{program_name} damaged_file_name'.",
             program_name = program_name.display()
         );
-        match core::mem::size_of::<MaybeUInt64>() as libc::c_ulong {
+        match core::mem::size_of::<u64>() as libc::c_ulong {
             8 => {
                 eprintln!("\trestrictions on size of recovered file: None");
             }
             4 => {
                 eprintln!("\trestrictions on size of recovered file: 512 MB");
-                eprintln!(
-                    "\tto circumvent, recompile with MaybeUInt64 as an\n\tunsigned 64-bit int."
-                );
+                eprintln!("\tto circumvent, recompile with u64 as an\n\tunsigned 64-bit int.");
             }
             _ => {
-                eprintln!("\tsizeof::<MaybeUInt64> is not 4 or 8 -- configuration error.");
+                eprintln!("\tsizeof::<u64> is not 4 or 8 -- configuration error.");
             }
         }
 
