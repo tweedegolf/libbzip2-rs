@@ -100,10 +100,10 @@ fn bsPutBit(bs: &mut BitStream, bit: i32) -> Result<(), Error> {
             .write_all(&[bs.buffer as u8])
             .map_err(Error::Writing)?;
         BYTES_OUT.fetch_add(1, Ordering::Relaxed);
-        bs.buffLive = 1 as libc::c_int;
-        bs.buffer = bit & 0x1 as libc::c_int;
+        bs.buffLive = 1;
+        bs.buffer = bit & 0x1;
     } else {
-        bs.buffer = bs.buffer << 1 as libc::c_int | bit & 0x1 as libc::c_int;
+        bs.buffer = bs.buffer << 1 | bit & 0x1;
         bs.buffLive += 1;
     }
 
@@ -111,10 +111,10 @@ fn bsPutBit(bs: &mut BitStream, bit: i32) -> Result<(), Error> {
 }
 
 fn bsGetBit(bs: &mut BitStream) -> Result<i32, Error> {
-    if bs.buffLive > 0 as libc::c_int {
+    if bs.buffLive > 0 {
         bs.buffLive -= 1;
 
-        Ok(bs.buffer >> bs.buffLive & 0x1 as libc::c_int)
+        Ok(bs.buffer >> bs.buffLive & 0x1)
     } else {
         let mut retVal = [0u8];
         let n = bs.handle.read(&mut retVal).map_err(Error::Reading)?;
@@ -124,10 +124,10 @@ fn bsGetBit(bs: &mut BitStream) -> Result<i32, Error> {
             return Ok(2);
         }
 
-        bs.buffLive = 7 as libc::c_int;
+        bs.buffLive = 7;
         bs.buffer = retVal[0] as i32;
 
-        Ok(bs.buffer >> 7 as libc::c_int & 0x1 as libc::c_int)
+        Ok(bs.buffer >> 7 & 0x1)
     }
 }
 
@@ -135,7 +135,7 @@ fn bsClose(mut bs: BitStream) -> Result<(), Error> {
     if bs.mode == b'w' {
         while bs.buffLive < 8 as libc::c_int {
             bs.buffLive += 1;
-            bs.buffer <<= 1 as libc::c_int;
+            bs.buffer <<= 1;
         }
         bs.handle
             .write_all(&[bs.buffer as u8])
@@ -148,23 +148,16 @@ fn bsClose(mut bs: BitStream) -> Result<(), Error> {
 }
 
 fn bsPutUChar(bs: &mut BitStream, c: u8) -> Result<(), Error> {
-    let mut i: i32 = 7;
-    while i >= 0 {
-        bsPutBit(
-            bs,
-            (c as u32 >> i & 0x1 as libc::c_int as libc::c_uint) as i32,
-        )?;
-        i -= 1;
+    for i in (0..8).rev() {
+        bsPutBit(bs, (c as u32 >> i & 0x1) as i32)?;
     }
 
     Ok(())
 }
 
 fn bsPutUInt32(bs: &mut BitStream, c: u32) -> Result<(), Error> {
-    let mut i: i32 = 31;
-    while i >= 0 {
-        bsPutBit(bs, (c >> i & 0x1 as libc::c_int as libc::c_uint) as i32)?;
-        i -= 1;
+    for i in (0..32).rev() {
+        bsPutBit(bs, (c >> i & 0x1) as i32)?;
     }
 
     Ok(())
