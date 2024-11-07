@@ -1,6 +1,3 @@
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-
 use std::fs::File;
 use std::io::{Read, Write};
 #[cfg(unix)]
@@ -27,7 +24,7 @@ enum Error {
 struct BitStream {
     handle: File,
     buffer: i32,
-    buffLive: i32,
+    buff_live: i32,
     mode: u8,
 }
 
@@ -36,7 +33,7 @@ impl BitStream {
         Self {
             handle: stream,
             buffer: 0,
-            buffLive: 0,
+            buff_live: 0,
             mode: b'r',
         }
     }
@@ -45,15 +42,15 @@ impl BitStream {
         Self {
             handle: stream,
             buffer: 0,
-            buffLive: 0,
+            buff_live: 0,
             mode: b'w',
         }
     }
 
     fn close(mut self) -> Result<(), Error> {
         if self.mode == b'w' {
-            while self.buffLive < 8 {
-                self.buffLive += 1;
+            while self.buff_live < 8 {
+                self.buff_live += 1;
                 self.buffer <<= 1;
             }
             self.handle
@@ -66,36 +63,36 @@ impl BitStream {
     }
 
     fn get_bit(&mut self) -> Result<Option<bool>, Error> {
-        if self.buffLive > 0 {
-            self.buffLive -= 1;
+        if self.buff_live > 0 {
+            self.buff_live -= 1;
 
-            Ok(Some(self.buffer >> self.buffLive & 0x1 != 0))
+            Ok(Some(self.buffer >> self.buff_live & 0x1 != 0))
         } else {
-            let mut retVal = [0u8];
-            let n = self.handle.read(&mut retVal).map_err(Error::Reading)?;
+            let mut ret_val = [0u8];
+            let n = self.handle.read(&mut ret_val).map_err(Error::Reading)?;
 
             // EOF
             if n == 0 {
                 return Ok(None);
             }
 
-            self.buffLive = 7;
-            self.buffer = retVal[0] as i32;
+            self.buff_live = 7;
+            self.buffer = ret_val[0] as i32;
 
             Ok(Some(self.buffer >> 7 & 0x1 != 0))
         }
     }
 
     fn put_bit(&mut self, bit: i32) -> Result<(), Error> {
-        if self.buffLive == 8 {
+        if self.buff_live == 8 {
             self.handle
                 .write_all(&[self.buffer as u8])
                 .map_err(Error::Writing)?;
-            self.buffLive = 1;
+            self.buff_live = 1;
             self.buffer = bit & 0x1;
         } else {
             self.buffer = self.buffer << 1 | bit & 0x1;
-            self.buffLive += 1;
+            self.buff_live += 1;
         }
 
         Ok(())
@@ -118,7 +115,7 @@ impl BitStream {
     }
 }
 
-fn readError(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
+fn emit_read_error(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
     eprintln!(
         "{}: I/O error reading `{}', possible reason follows.",
         program_name.display(),
@@ -135,7 +132,7 @@ fn readError(program_name: &Path, in_filename: &Path, io_error: std::io::Error) 
     ExitCode::FAILURE
 }
 
-fn writeError(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
+fn emit_write_error(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
     eprintln!(
         "{}: I/O error writing `{}', possible reason follows.",
         program_name.display(),
@@ -152,7 +149,11 @@ fn writeError(program_name: &Path, in_filename: &Path, io_error: std::io::Error)
     ExitCode::FAILURE
 }
 
-fn tooManyBlocks(program_name: &Path, in_filename: &Path, max_handled_blocks: usize) -> ExitCode {
+fn emit_too_many_blocks(
+    program_name: &Path,
+    in_filename: &Path,
+    max_handled_blocks: usize,
+) -> ExitCode {
     let program_name = program_name.display();
 
     eprintln!(
@@ -185,77 +186,80 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
         return Ok(ExitCode::FAILURE);
     }
 
-    let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
+    let Ok(input_file) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
         return Ok(ExitCode::FAILURE);
     };
 
-    let mut bsIn = BitStream::open_read_stream(inFile);
+    let mut input_bitstream = BitStream::open_read_stream(input_file);
     eprintln!("{}: searching for block boundaries ...", progname);
 
-    let mut bitsRead: u64 = 0;
-    let mut buffLo: u32 = 0;
-    let mut buffHi = buffLo;
-    let mut currBlock = 0;
-    b_start[currBlock] = 0;
-    let mut rbCtr = 0;
+    let mut bits_read: u64 = 0;
+    let mut buff_lo: u32 = 0;
+    let mut buff_hi = buff_lo;
+    let mut current_block = 0;
+    b_start[current_block] = 0;
+    let mut rb_ctr = 0;
 
     loop {
-        let b = bsIn.get_bit()?;
-        bitsRead = bitsRead.wrapping_add(1);
+        let b = input_bitstream.get_bit()?;
+        bits_read = bits_read.wrapping_add(1);
         match b {
             None => {
-                if bitsRead >= b_start[currBlock] && bitsRead.wrapping_sub(b_start[currBlock]) >= 40
+                if bits_read >= b_start[current_block]
+                    && bits_read.wrapping_sub(b_start[current_block]) >= 40
                 {
-                    b_end[currBlock] = bitsRead.wrapping_sub(1);
-                    if currBlock > 0 {
+                    b_end[current_block] = bits_read.wrapping_sub(1);
+                    if current_block > 0 {
                         eprintln!(
                             "   block {} runs from {} to {} (incomplete)",
-                            currBlock, b_start[currBlock], b_end[currBlock],
+                            current_block, b_start[current_block], b_end[current_block],
                         );
                     }
                 }
                 break;
             }
             Some(b) => {
-                buffHi = buffHi << 1 | buffLo >> 31;
-                buffLo = buffLo << 1 | b as u32;
-                if (buffHi & 0xffff) == BLOCK_HEADER_HI && buffLo == BLOCK_HEADER_LO
-                    || (buffHi & 0xffff) == BLOCK_ENDMARK_HI && buffLo == BLOCK_ENDMARK_LO
+                buff_hi = buff_hi << 1 | buff_lo >> 31;
+                buff_lo = buff_lo << 1 | b as u32;
+                if (buff_hi & 0xffff) == BLOCK_HEADER_HI && buff_lo == BLOCK_HEADER_LO
+                    || (buff_hi & 0xffff) == BLOCK_ENDMARK_HI && buff_lo == BLOCK_ENDMARK_LO
                 {
-                    b_end[currBlock] = if bitsRead > 49 {
-                        bitsRead.wrapping_sub(49)
+                    b_end[current_block] = if bits_read > 49 {
+                        bits_read.wrapping_sub(49)
                     } else {
                         0
                     };
 
-                    if currBlock > 0 && (b_end[currBlock]).wrapping_sub(b_start[currBlock]) >= 130 {
+                    if current_block > 0
+                        && (b_end[current_block]).wrapping_sub(b_start[current_block]) >= 130
+                    {
                         eprintln!(
                             "   block {} runs from {} to {}",
-                            rbCtr + 1,
-                            b_start[currBlock],
-                            b_end[currBlock],
+                            rb_ctr + 1,
+                            b_start[current_block],
+                            b_end[current_block],
                         );
-                        rb_start[rbCtr] = b_start[currBlock];
-                        rb_end[rbCtr] = b_end[currBlock];
-                        rbCtr += 1;
+                        rb_start[rb_ctr] = b_start[current_block];
+                        rb_end[rb_ctr] = b_end[current_block];
+                        rb_ctr += 1;
                     }
-                    if currBlock >= BZ_MAX_HANDLED_BLOCKS {
+                    if current_block >= BZ_MAX_HANDLED_BLOCKS {
                         return Err(Error::TooManyBlocks(BZ_MAX_HANDLED_BLOCKS));
                     }
-                    currBlock += 1;
-                    b_start[currBlock] = bitsRead;
+                    current_block += 1;
+                    b_start[current_block] = bits_read;
                 }
             }
         }
     }
 
-    bsIn.close()?;
+    input_bitstream.close()?;
 
     /*-- identified blocks run from 1 to rbCtr inclusive. --*/
 
-    if rbCtr < 1 {
+    if rb_ctr < 1 {
         eprintln!("{}: sorry, I couldn't find any block boundaries.", progname);
 
         return Ok(ExitCode::FAILURE);
@@ -263,64 +267,64 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
 
     eprintln!("{}: splitting into blocks", progname);
 
-    let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
+    let Ok(input_file) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
         return Ok(ExitCode::FAILURE);
     };
-    bsIn = BitStream::open_read_stream(inFile);
+    input_bitstream = BitStream::open_read_stream(input_file);
 
-    let mut blockCRC: u32 = 0;
-    let mut bsWr: Option<BitStream> = None;
-    let mut wrBlock = 0;
+    let mut block_crc: u32 = 0;
+    let mut output_bitstream: Option<BitStream> = None;
+    let mut wr_block = 0;
 
-    bitsRead = 0;
+    bits_read = 0;
 
     loop {
-        let Some(b) = bsIn.get_bit()? else {
+        let Some(b) = input_bitstream.get_bit()? else {
             // EOF
             break;
         };
 
-        buffHi = buffHi << 1 | buffLo >> 31;
-        buffLo = buffLo << 1 | b as u32;
+        buff_hi = buff_hi << 1 | buff_lo >> 31;
+        buff_lo = buff_lo << 1 | b as u32;
 
-        if bitsRead == 47u64.wrapping_add(rb_start[wrBlock]) {
-            blockCRC = buffHi << 16 | buffLo >> 16;
+        if bits_read == 47u64.wrapping_add(rb_start[wr_block]) {
+            block_crc = buff_hi << 16 | buff_lo >> 16;
         }
-        if bitsRead >= rb_start[wrBlock] && bitsRead <= rb_end[wrBlock] {
-            if let Some(bsWr) = bsWr.as_mut() {
-                bsWr.put_bit(b as i32)?;
+        if bits_read >= rb_start[wr_block] && bits_read <= rb_end[wr_block] {
+            if let Some(output_bitstream) = output_bitstream.as_mut() {
+                output_bitstream.put_bit(b as i32)?;
             }
         }
-        bitsRead = bitsRead.wrapping_add(1);
-        if bitsRead == (rb_end[wrBlock]).wrapping_add(1) {
-            if let Some(mut bsWr) = bsWr.take() {
-                bsWr.put_u8(0x17)?;
-                bsWr.put_u8(0x72)?;
-                bsWr.put_u8(0x45)?;
-                bsWr.put_u8(0x38)?;
-                bsWr.put_u8(0x50)?;
-                bsWr.put_u8(0x90)?;
-                bsWr.put_u32(blockCRC)?;
-                bsWr.close()?;
+        bits_read = bits_read.wrapping_add(1);
+        if bits_read == (rb_end[wr_block]).wrapping_add(1) {
+            if let Some(mut output_bitstream) = output_bitstream.take() {
+                output_bitstream.put_u8(0x17)?;
+                output_bitstream.put_u8(0x72)?;
+                output_bitstream.put_u8(0x45)?;
+                output_bitstream.put_u8(0x38)?;
+                output_bitstream.put_u8(0x50)?;
+                output_bitstream.put_u8(0x90)?;
+                output_bitstream.put_u32(block_crc)?;
+                output_bitstream.close()?;
             }
 
-            if wrBlock >= rbCtr {
+            if wr_block >= rb_ctr {
                 break;
             }
-            wrBlock += 1;
-        } else if bitsRead == rb_start[wrBlock] {
+            wr_block += 1;
+        } else if bits_read == rb_start[wr_block] {
             // we've been able to open this file, so there must be a file name
             let filename = in_filename.file_name().unwrap();
 
-            let filename = format!("rec{:05}{}", wrBlock + 1, filename.to_string_lossy());
+            let filename = format!("rec{:05}{}", wr_block + 1, filename.to_string_lossy());
 
             let out_filename = in_filename.with_file_name(&filename).with_extension("bz2");
 
             eprintln!(
                 "   writing block {} to `{}' ...",
-                wrBlock + 1,
+                wr_block + 1,
                 out_filename.display(),
             );
 
@@ -333,25 +337,25 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
             #[cfg(unix)]
             options.custom_flags(libc::O_EXCL);
 
-            let Ok(outFile) = options.open(&out_filename) else {
+            let Ok(output_file) = options.open(&out_filename) else {
                 eprintln!("{}: can't write `{}'", progname, out_filename.display());
 
                 return Ok(ExitCode::FAILURE);
             };
 
-            bsWr = {
-                let mut bsWr = BitStream::open_write_stream(outFile);
-                bsWr.put_u8(0x42)?;
-                bsWr.put_u8(0x5a)?;
-                bsWr.put_u8(0x68)?;
-                bsWr.put_u8(0x30 + 9)?;
-                bsWr.put_u8(0x31)?;
-                bsWr.put_u8(0x41)?;
-                bsWr.put_u8(0x59)?;
-                bsWr.put_u8(0x26)?;
-                bsWr.put_u8(0x53)?;
-                bsWr.put_u8(0x59)?;
-                Some(bsWr)
+            output_bitstream = {
+                let mut output_bitstream = BitStream::open_write_stream(output_file);
+                output_bitstream.put_u8(0x42)?;
+                output_bitstream.put_u8(0x5a)?;
+                output_bitstream.put_u8(0x68)?;
+                output_bitstream.put_u8(0x30 + 9)?;
+                output_bitstream.put_u8(0x31)?;
+                output_bitstream.put_u8(0x41)?;
+                output_bitstream.put_u8(0x59)?;
+                output_bitstream.put_u8(0x26)?;
+                output_bitstream.put_u8(0x53)?;
+                output_bitstream.put_u8(0x59)?;
+                Some(output_bitstream)
             }
         }
     }
@@ -383,9 +387,11 @@ pub fn main() -> ExitCode {
     match main_help(&program_name, &in_filename) {
         Ok(exit_code) => exit_code,
         Err(error) => match error {
-            Error::Reading(io_error) => readError(&program_name, &in_filename, io_error),
-            Error::Writing(io_error) => writeError(&program_name, &in_filename, io_error),
-            Error::TooManyBlocks(handled) => tooManyBlocks(&program_name, &in_filename, handled),
+            Error::Reading(io_error) => emit_read_error(&program_name, &in_filename, io_error),
+            Error::Writing(io_error) => emit_write_error(&program_name, &in_filename, io_error),
+            Error::TooManyBlocks(handled) => {
+                emit_too_many_blocks(&program_name, &in_filename, handled)
+            }
         },
     }
 }
