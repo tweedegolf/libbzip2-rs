@@ -31,6 +31,93 @@ struct BitStream {
     mode: u8,
 }
 
+impl BitStream {
+    fn open_read_stream(stream: File) -> Self {
+        Self {
+            handle: stream,
+            buffer: 0,
+            buffLive: 0,
+            mode: b'r',
+        }
+    }
+
+    fn open_write_stream(stream: File) -> Self {
+        Self {
+            handle: stream,
+            buffer: 0,
+            buffLive: 0,
+            mode: b'w',
+        }
+    }
+
+    fn close(mut self) -> Result<(), Error> {
+        if self.mode == b'w' {
+            while self.buffLive < 8 {
+                self.buffLive += 1;
+                self.buffer <<= 1;
+            }
+            self.handle
+                .write_all(&[self.buffer as u8])
+                .map_err(Error::Writing)?;
+            self.handle.flush().map_err(Error::Writing)?;
+        }
+
+        Ok(())
+    }
+
+    fn get_bit(&mut self) -> Result<Option<bool>, Error> {
+        if self.buffLive > 0 {
+            self.buffLive -= 1;
+
+            Ok(Some(self.buffer >> self.buffLive & 0x1 != 0))
+        } else {
+            let mut retVal = [0u8];
+            let n = self.handle.read(&mut retVal).map_err(Error::Reading)?;
+
+            // EOF
+            if n == 0 {
+                return Ok(None);
+            }
+
+            self.buffLive = 7;
+            self.buffer = retVal[0] as i32;
+
+            Ok(Some(self.buffer >> 7 & 0x1 != 0))
+        }
+    }
+
+    fn put_bit(&mut self, bit: i32) -> Result<(), Error> {
+        if self.buffLive == 8 {
+            self.handle
+                .write_all(&[self.buffer as u8])
+                .map_err(Error::Writing)?;
+            self.buffLive = 1;
+            self.buffer = bit & 0x1;
+        } else {
+            self.buffer = self.buffer << 1 | bit & 0x1;
+            self.buffLive += 1;
+        }
+
+        Ok(())
+    }
+
+    fn put_u8(&mut self, c: u8) -> Result<(), Error> {
+        for i in (0..8).rev() {
+            self.put_bit((c as u32 >> i & 0x1) as i32)?;
+        }
+
+        Ok(())
+    }
+
+    fn put_u32(&mut self, c: u32) -> Result<(), Error> {
+        for i in (0..32).rev() {
+            self.put_bit((c >> i & 0x1) as i32)?;
+        }
+
+        Ok(())
+    }
+}
+
 fn readError(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
     eprintln!(
         "{}: I/O error reading `{}', possible reason follows.",
@@ -80,91 +167,6 @@ fn tooManyBlocks(program_name: &Path, in_filename: &Path, max_handled_blocks: us
     ExitCode::FAILURE
 }
 
-fn bsOpenReadStream(stream: File) -> BitStream {
-    BitStream {
-        handle: stream,
-        buffer: 0,
-        buffLive: 0,
-        mode: b'r',
-    }
-}
-
-fn bsOpenWriteStream(stream: File) -> BitStream {
-    BitStream {
-        handle: stream,
-        buffer: 0,
-        buffLive: 0,
-        mode: b'w',
-    }
-}
-
-fn bsPutBit(bs: &mut BitStream, bit: i32) -> Result<(), Error> {
-    if bs.buffLive == 8 {
-        bs.handle
-            .write_all(&[bs.buffer as u8])
-            .map_err(Error::Writing)?;
-        bs.buffLive = 1;
-        bs.buffer = bit & 0x1;
-    } else {
-        bs.buffer = bs.buffer << 1 | bit & 0x1;
-        bs.buffLive += 1;
-    }
-
-    Ok(())
-}
-
-fn bsGetBit(bs: &mut BitStream) -> Result<Option<bool>, Error> {
-    if bs.buffLive > 0 {
-        bs.buffLive -= 1;
-
-        Ok(Some(bs.buffer >> bs.buffLive & 0x1 != 0))
-    } else {
-        let mut retVal = [0u8];
-        let n = bs.handle.read(&mut retVal).map_err(Error::Reading)?;
-
-        // EOF
-        if n == 0 {
-            return Ok(None);
-        }
-
-        bs.buffLive = 7;
-        bs.buffer = retVal[0] as i32;
-
-        Ok(Some(bs.buffer >> 7 & 0x1 != 0))
-    }
-}
-
-fn bsClose(mut bs: BitStream) -> Result<(), Error> {
-    if bs.mode == b'w' {
-        while bs.buffLive < 8 {
-            bs.buffLive += 1;
-            bs.buffer <<= 1;
-        }
-        bs.handle
-            .write_all(&[bs.buffer as u8])
-            .map_err(Error::Writing)?;
-        bs.handle.flush().map_err(Error::Writing)?;
-    }
-
-    Ok(())
-}
-
-fn bsPutUChar(bs: &mut BitStream, c: u8) -> Result<(), Error> {
-    for i in (0..8).rev() {
-        bsPutBit(bs, (c as u32 >> i & 0x1) as i32)?;
-    }
-
-    Ok(())
-}
-
-fn bsPutUInt32(bs: &mut BitStream, c: u32) -> Result<(), Error> {
-    for i in (0..32).rev() {
-        bsPutBit(bs, (c >> i & 0x1) as i32)?;
-    }
-
-    Ok(())
-}
-
 fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
     let mut b_start = vec![0u64; BZ_MAX_HANDLED_BLOCKS];
     let mut b_end = vec![0u64; BZ_MAX_HANDLED_BLOCKS];
@@ -189,7 +191,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
         return Ok(ExitCode::FAILURE);
     };
 
-    let mut bsIn = bsOpenReadStream(inFile);
+    let mut bsIn = BitStream::open_read_stream(inFile);
     eprintln!("{}: searching for block boundaries ...", progname);
 
     let mut bitsRead: u64 = 0;
@@ -200,7 +202,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
     let mut rbCtr = 0;
 
     loop {
-        let b = bsGetBit(&mut bsIn)?;
+        let b = bsIn.get_bit()?;
         bitsRead = bitsRead.wrapping_add(1);
         match b {
             None => {
@@ -249,7 +251,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
         }
     }
 
-    bsClose(bsIn)?;
+    bsIn.close()?;
 
     /*-- identified blocks run from 1 to rbCtr inclusive. --*/
 
@@ -266,7 +268,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
 
         return Ok(ExitCode::FAILURE);
     };
-    bsIn = bsOpenReadStream(inFile);
+    bsIn = BitStream::open_read_stream(inFile);
 
     let mut blockCRC: u32 = 0;
     let mut bsWr: Option<BitStream> = None;
@@ -275,7 +277,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
     bitsRead = 0;
 
     loop {
-        let Some(b) = bsGetBit(&mut bsIn)? else {
+        let Some(b) = bsIn.get_bit()? else {
             // EOF
             break;
         };
@@ -286,20 +288,22 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
         if bitsRead == 47u64.wrapping_add(rb_start[wrBlock]) {
             blockCRC = buffHi << 16 | buffLo >> 16;
         }
-        if bsWr.is_some() && bitsRead >= rb_start[wrBlock] && bitsRead <= rb_end[wrBlock] {
-            bsPutBit(bsWr.as_mut().unwrap(), b as i32)?;
+        if bitsRead >= rb_start[wrBlock] && bitsRead <= rb_end[wrBlock] {
+            if let Some(bsWr) = bsWr.as_mut() {
+                bsWr.put_bit(b as i32)?;
+            }
         }
         bitsRead = bitsRead.wrapping_add(1);
         if bitsRead == (rb_end[wrBlock]).wrapping_add(1) {
             if let Some(mut bsWr) = bsWr.take() {
-                bsPutUChar(&mut bsWr, 0x17)?;
-                bsPutUChar(&mut bsWr, 0x72)?;
-                bsPutUChar(&mut bsWr, 0x45)?;
-                bsPutUChar(&mut bsWr, 0x38)?;
-                bsPutUChar(&mut bsWr, 0x50)?;
-                bsPutUChar(&mut bsWr, 0x90)?;
-                bsPutUInt32(&mut bsWr, blockCRC)?;
-                bsClose(bsWr)?;
+                bsWr.put_u8(0x17)?;
+                bsWr.put_u8(0x72)?;
+                bsWr.put_u8(0x45)?;
+                bsWr.put_u8(0x38)?;
+                bsWr.put_u8(0x50)?;
+                bsWr.put_u8(0x90)?;
+                bsWr.put_u32(blockCRC)?;
+                bsWr.close()?;
             }
 
             if wrBlock >= rbCtr {
@@ -336,17 +340,17 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
             };
 
             bsWr = {
-                let mut bsWr = bsOpenWriteStream(outFile);
-                bsPutUChar(&mut bsWr, 0x42)?;
-                bsPutUChar(&mut bsWr, 0x5a)?;
-                bsPutUChar(&mut bsWr, 0x68)?;
-                bsPutUChar(&mut bsWr, 0x30 + 9)?;
-                bsPutUChar(&mut bsWr, 0x31)?;
-                bsPutUChar(&mut bsWr, 0x41)?;
-                bsPutUChar(&mut bsWr, 0x59)?;
-                bsPutUChar(&mut bsWr, 0x26)?;
-                bsPutUChar(&mut bsWr, 0x53)?;
-                bsPutUChar(&mut bsWr, 0x59)?;
+                let mut bsWr = BitStream::open_write_stream(outFile);
+                bsWr.put_u8(0x42)?;
+                bsWr.put_u8(0x5a)?;
+                bsWr.put_u8(0x68)?;
+                bsWr.put_u8(0x30 + 9)?;
+                bsWr.put_u8(0x31)?;
+                bsWr.put_u8(0x41)?;
+                bsWr.put_u8(0x59)?;
+                bsWr.put_u8(0x26)?;
+                bsWr.put_u8(0x53)?;
+                bsWr.put_u8(0x59)?;
                 Some(bsWr)
             }
         }
