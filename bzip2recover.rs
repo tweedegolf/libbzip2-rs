@@ -6,8 +6,8 @@ use std::ffi::c_char;
 use libc::{fprintf, FILE};
 
 use libc::{
-    close, exit, fclose, fdopen, fflush, fopen, free, malloc, open, perror, sprintf, strcat,
-    strcpy, strlen, strncpy, strrchr,
+    __errno_location, close, exit, fclose, fdopen, fflush, fopen, free, malloc, open, perror,
+    sprintf, strcat, strcpy, strlen, strncpy, strrchr,
 };
 
 extern "C" {
@@ -140,8 +140,11 @@ unsafe fn bsGetBit(bs: *mut BitStream) -> i32 {
     } else {
         let retVal: i32 = getc((*bs).handle);
         if retVal == -1 as libc::c_int {
-            readError();
-            return 2 as libc::c_int;
+            if *__errno_location() != 0 as libc::c_int {
+                readError()
+            } else {
+                return 2;
+            }
         }
         (*bs).buffLive = 7 as libc::c_int;
         (*bs).buffer = retVal;
@@ -424,7 +427,8 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
             bsPutBit(bsWr, b);
         }
         bitsRead = bitsRead.wrapping_add(1);
-        if bitsRead == (RB_END[wrBlock as usize]).wrapping_add(1 as libc::c_int as libc::c_ulonglong)
+        if bitsRead
+            == (RB_END[wrBlock as usize]).wrapping_add(1 as libc::c_int as libc::c_ulonglong)
         {
             if !outFile.is_null() {
                 bsPutUChar(bsWr, 0x17 as libc::c_int as u8);
