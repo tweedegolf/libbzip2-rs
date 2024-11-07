@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::ffi::{c_char, CStr, CString};
+use std::ffi::{c_char, CString};
 use std::fs::File;
 use std::io::{Read, Write};
 #[cfg(unix)]
@@ -11,9 +11,12 @@ use std::process::ExitCode;
 
 use libc::{strcpy, strncpy};
 
+const BZ_MAX_HANDLED_BLOCKS: usize = 50000;
+
 enum Error {
     Reading(std::io::Error),
     Writing(std::io::Error),
+    TooManyBlocks(usize),
 }
 
 pub type MaybeUInt64 = libc::c_ulonglong;
@@ -64,15 +67,17 @@ fn writeError(program_name: &Path, in_filename: &Path, io_error: std::io::Error)
     ExitCode::FAILURE
 }
 
-unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ExitCode {
-    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
-    let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char).to_string_lossy();
+fn tooManyBlocks(program_name: &Path, in_filename: &Path, max_handled_blocks: usize) -> ExitCode {
+    let program_name = program_name.display();
 
     eprintln!(
-        "{progname}: `{in_filename}' appears to contain more than {max_handled_blocks} blocks",
+        "{}: `{}' appears to contain more than {max_handled_blocks} blocks",
+        program_name,
+        in_filename.display(),
     );
-    eprintln!("{progname}: and cannot be handled.  To fix, increase");
-    eprintln!("{progname}: BZ_MAX_HANDLED_BLOCKS in bzip2recover.rs, and recompile.");
+
+    eprintln!("{program_name}: and cannot be handled.  To fix, increase");
+    eprintln!("{program_name}: BZ_MAX_HANDLED_BLOCKS in bzip2recover.rs, and recompile.");
 
     ExitCode::FAILURE
 }
@@ -262,8 +267,8 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Er
                     RB_END[rbCtr as usize] = B_END[currBlock as usize];
                     rbCtr += 1;
                 }
-                if currBlock >= 50000 as libc::c_int {
-                    return Ok(tooManyBlocks(50000 as libc::c_int));
+                if currBlock >= BZ_MAX_HANDLED_BLOCKS as libc::c_int {
+                    return Err(Error::TooManyBlocks(BZ_MAX_HANDLED_BLOCKS));
                 }
                 currBlock += 1;
                 B_START[currBlock as usize] = bitsRead;
@@ -419,6 +424,7 @@ pub fn main() -> ExitCode {
         Err(error) => match error {
             Error::Reading(io_error) => readError(&program_name, &in_filename, io_error),
             Error::Writing(io_error) => writeError(&program_name, &in_filename, io_error),
+            Error::TooManyBlocks(handled) => tooManyBlocks(&program_name, &in_filename, handled),
         },
     }
 }
