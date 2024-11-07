@@ -2,13 +2,13 @@
 #![allow(non_snake_case)]
 
 use std::ffi::{c_char, CStr, CString};
+use std::fs::File;
+use std::os::fd::IntoRawFd;
 use std::path::{Path, PathBuf};
 
 use libc::FILE;
 
-use libc::{
-    __errno_location, close, fclose, fdopen, fflush, fopen, open, perror, strcpy, strlen, strncpy,
-};
+use libc::{__errno_location, close, fclose, fdopen, fflush, open, perror, strcpy, strncpy};
 
 extern "C" {
     fn getc(__stream: *mut FILE) -> libc::c_int;
@@ -77,7 +77,10 @@ unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ! {
     std::process::exit(1)
 }
 
-unsafe fn bsOpenReadStream(stream: *mut FILE) -> BitStream {
+unsafe fn bsOpenReadStream(stream: File) -> BitStream {
+    let fd = stream.into_raw_fd();
+    let stream = libc::fdopen(fd, c"rb".as_ptr());
+
     BitStream {
         handle: stream,
         buffer: 0,
@@ -86,6 +89,9 @@ unsafe fn bsOpenReadStream(stream: *mut FILE) -> BitStream {
     }
 }
 unsafe fn bsOpenWriteStream(stream: *mut FILE) -> BitStream {
+    // let fd = stream.into_raw_fd();
+    // let stream = libc::fdopen(fd, c"rb".as_ptr());
+
     BitStream {
         handle: stream,
         buffer: 0,
@@ -143,6 +149,7 @@ unsafe fn bsClose(mut bs: BitStream) {
             writeError();
         }
     }
+
     retVal = fclose(bs.handle);
     if retVal == -1 as libc::c_int {
         if bs.mode == b'w' {
@@ -219,15 +226,22 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
     }
     strcpy(IN_FILENAME.as_mut_ptr(), in_filename_cstr.as_ptr());
 
-    let mut inFile = fopen(
-        in_filename_cstr.as_ptr().cast_mut(),
-        b"rb\0" as *const u8 as *const libc::c_char,
-    );
-    if inFile.is_null() {
+    //    let mut inFile = fopen(
+    //        in_filename_cstr.as_ptr().cast_mut(),
+    //        b"rb\0" as *const u8 as *const libc::c_char,
+    //    );
+    //    if inFile.is_null() {
+    //        eprintln!("{}: can't read `{}'", progname, in_filename.display());
+    //
+    //        std::process::exit(1)
+    //    }
+
+    let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
         std::process::exit(1)
-    }
+    };
+
     let mut bsIn = bsOpenReadStream(inFile);
     eprintln!("{}: searching for block boundaries ...", progname);
     let mut bitsRead = 0 as libc::c_int as MaybeUInt64;
@@ -296,15 +310,23 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
         std::process::exit(1)
     }
     eprintln!("{}: splitting into blocks", progname);
-    inFile = fopen(
-        in_filename_cstr.as_ptr().cast_mut(),
-        b"rb\0" as *const u8 as *const libc::c_char,
-    );
-    if inFile.is_null() {
-        eprintln!("{}: can't open `{}'", progname, in_filename.display(),);
+
+    //    inFile = fopen(
+    //        in_filename_cstr.as_ptr().cast_mut(),
+    //        b"rb\0" as *const u8 as *const libc::c_char,
+    //    );
+    //    if inFile.is_null() {
+    //        eprintln!("{}: can't open `{}'", progname, in_filename.display(),);
+    //
+    //        std::process::exit(1)
+    //    }
+
+    let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
+        eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
         std::process::exit(1)
-    }
+    };
+
     bsIn = bsOpenReadStream(inFile);
     let mut blockCRC = 0 as libc::c_int as u32;
     let mut bsWr: Option<BitStream> = None;
@@ -367,6 +389,17 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
                 wrBlock + 1 as libc::c_int,
                 out_filename.display(),
             );
+
+            //            let Ok(outFile) = std::fs::File::options()
+            //                .write(true)
+            //                .create(true)
+            //                .open(&out_filename)
+            //            else {
+            //                eprintln!("{}: can't write `{}'", progname, out_filename.display());
+            //
+            //                std::process::exit(1)
+            //            };
+
             outFile = fopen_output_safely(
                 out_filename_cstr.as_ptr().cast_mut(),
                 b"wb\0" as *const u8 as *const libc::c_char,
@@ -376,6 +409,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
 
                 std::process::exit(1)
             }
+
             drop(out_filename_cstr);
             bsWr = {
                 let mut bsWr = bsOpenWriteStream(outFile);
