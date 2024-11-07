@@ -208,9 +208,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
         .unwrap()
         .into_raw();
 
-    let in_filename_cstr = CString::new(in_filename.to_string_lossy().as_bytes())
-        .unwrap()
-        .into_raw();
+    let in_filename_cstr = CString::new(in_filename.to_string_lossy().as_bytes()).unwrap();
 
     strncpy(
         PROGNAME.as_mut_ptr(),
@@ -223,21 +221,21 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
 
     let progname = program_name.display();
 
-    if strlen(in_filename_cstr) >= (2000 as libc::c_int - 20 as libc::c_int) as usize {
+    if in_filename.as_os_str().len() >= (2000 - 20) as usize {
         eprintln!(
             "{}: supplied filename is suspiciously (>= {} chars) long.  Bye!",
-            progname,
-            strlen(in_filename_cstr) as libc::c_int,
+            program_name.display(),
+            in_filename.as_os_str().len(),
         );
 
         std::process::exit(1)
     }
-    strcpy(IN_FILENAME.as_mut_ptr(), in_filename_cstr);
+    strcpy(IN_FILENAME.as_mut_ptr(), in_filename_cstr.as_ptr());
 
     let in_filename = in_filename.display();
 
     let mut inFile = fopen(
-        IN_FILENAME.as_mut_ptr(),
+        in_filename_cstr.as_ptr().cast_mut(),
         b"rb\0" as *const u8 as *const libc::c_char,
     );
     if inFile.is_null() {
@@ -314,7 +312,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
     }
     eprintln!("{}: splitting into blocks", progname);
     inFile = fopen(
-        IN_FILENAME.as_mut_ptr(),
+        in_filename_cstr.as_ptr().cast_mut(),
         b"rb\0" as *const u8 as *const libc::c_char,
     );
     if inFile.is_null() {
@@ -374,7 +372,10 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
                 OUT_FILENAME[k as usize] = 0 as libc::c_int as c_char;
                 k += 1;
             }
-            strcpy(OUT_FILENAME.as_mut_ptr(), IN_FILENAME.as_mut_ptr());
+            strcpy(
+                OUT_FILENAME.as_mut_ptr(),
+                in_filename_cstr.as_ptr().cast_mut(),
+            );
             let mut split = strrchr(OUT_FILENAME.as_mut_ptr(), '/' as i32);
             if split.is_null() {
                 split = OUT_FILENAME.as_mut_ptr();
@@ -396,7 +397,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
             }
             strcat(
                 OUT_FILENAME.as_mut_ptr(),
-                IN_FILENAME.as_mut_ptr().offset(ofs as isize),
+                in_filename_cstr.as_ptr().cast_mut().offset(ofs as isize),
             );
             if endsInBz2(OUT_FILENAME.as_mut_ptr()) == 0 {
                 strcat(
