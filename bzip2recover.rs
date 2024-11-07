@@ -8,10 +8,16 @@ use std::os::fd::IntoRawFd;
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
+use std::process::ExitCode;
 
 use libc::FILE;
 
 use libc::{__errno_location, fclose, fflush, perror, strcpy, strncpy};
+
+enum Error {
+    Reading(std::io::Error),
+    Writing(std::io::Error),
+}
 
 extern "C" {
     fn getc(__stream: *mut FILE) -> libc::c_int;
@@ -31,40 +37,38 @@ pub static mut PROGNAME: [c_char; 2000] = [0; 2000];
 pub static mut BYTES_OUT: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 pub static mut BYTES_IN: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 
-unsafe fn readError() -> ! {
-    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char);
-    let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char);
-
+fn readError(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
     eprintln!(
         "{}: I/O error reading `{}', possible reason follows.",
-        progname.to_string_lossy(),
-        in_filename.to_string_lossy(),
+        program_name.display(),
+        in_filename.display(),
     );
 
-    perror(PROGNAME.as_mut_ptr());
+    eprintln!("{}", io_error);
 
     eprintln!(
         "{}: warning: output file(s) may be incomplete.",
-        progname.to_string_lossy(),
+        program_name.display(),
     );
 
-    std::process::exit(1)
+    ExitCode::FAILURE
 }
 
-unsafe fn writeError() -> ! {
-    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
-    let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char).to_string_lossy();
-
+fn writeError(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
     eprintln!(
         "{}: I/O error writing `{}', possible reason follows.",
-        progname, in_filename,
+        program_name.display(),
+        in_filename.display(),
     );
 
-    perror(PROGNAME.as_mut_ptr());
+    eprintln!("{}", io_error);
 
-    eprintln!("{}: warning: output file(s) may be incomplete.", progname,);
+    eprintln!(
+        "{}: warning: output file(s) may be incomplete.",
+        program_name.display()
+    );
 
-    std::process::exit(1)
+    ExitCode::FAILURE
 }
 
 unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ! {
@@ -137,34 +141,21 @@ unsafe fn bsGetBit(bs: &mut BitStream) -> i32 {
         bs.buffer >> 7 as libc::c_int & 0x1 as libc::c_int
     }
 }
-unsafe fn bsClose(mut bs: BitStream) {
-    let mut retVal: i32;
+
+unsafe fn bsClose(mut bs: BitStream) -> Result<(), Error> {
     if bs.mode == b'w' {
         while bs.buffLive < 8 as libc::c_int {
             bs.buffLive += 1;
             bs.buffer <<= 1 as libc::c_int;
         }
-        bs.handle.write_all(&[bs.buffer as u8]).unwrap();
-        //        retVal = putc(bs.buffer as u8 as libc::c_int, bs.handle);
-        //        if retVal == -1 as libc::c_int {
-        //            writeError();
-        //        }
+        bs.handle
+            .write_all(&[bs.buffer as u8])
+            .map_err(Error::Writing)?;
         BYTES_OUT = BYTES_OUT.wrapping_add(1);
-        //        retVal = fflush(bs.handle);
-        //        if retVal == -1 as libc::c_int {
-        //            writeError();
-        //        }
-        bs.handle.flush().unwrap();
+        bs.handle.flush().map_err(Error::Writing)?;
     }
 
-    //    retVal = fclose(bs.handle);
-    //    if retVal == -1 as libc::c_int {
-    //        if bs.mode == b'w' {
-    //            writeError();
-    //        } else {
-    //            readError();
-    //        }
-    //    }
+    Ok(())
 }
 
 unsafe fn bsPutUChar(bs: &mut BitStream, c: u8) {
@@ -188,7 +179,7 @@ pub static mut B_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut B_END: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_END: [MaybeUInt64; 50000] = [0; 50000];
-unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
+unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> {
     let program_name_cstr = CString::new(program_name.to_string_lossy().as_bytes())
         .unwrap()
         .into_raw();
@@ -283,7 +274,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
             }
         }
     }
-    bsClose(bsIn);
+    bsClose(bsIn)?;
     if rbCtr < 1 as libc::c_int {
         eprintln!("{}: sorry, I couldn't find any block boundaries.", progname);
 
@@ -332,7 +323,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
                 bsPutUChar(&mut bsWr, 0x50 as libc::c_int as u8);
                 bsPutUChar(&mut bsWr, 0x90 as libc::c_int as u8);
                 bsPutUInt32(&mut bsWr, blockCRC);
-                bsClose(bsWr);
+                bsClose(bsWr)?;
             }
 
             if wrBlock >= rbCtr {
@@ -392,10 +383,11 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
     drop(in_filename_cstr);
 
     eprintln!("{}: finished", progname);
-    0 as libc::c_int
+
+    Ok(0)
 }
 
-pub fn main() {
+pub fn main() -> ExitCode {
     let mut it = ::std::env::args_os();
 
     let program_name = PathBuf::from(it.next().unwrap());
@@ -426,5 +418,11 @@ pub fn main() {
         std::process::exit(1)
     };
 
-    unsafe { ::std::process::exit(main_0(&program_name, &in_filename)) }
+    match unsafe { main_0(&program_name, &in_filename) } {
+        Ok(exit_code) => ::std::process::exit(exit_code),
+        Err(error) => match error {
+            Error::Reading(io_error) => readError(&program_name, &in_filename, io_error),
+            Error::Writing(io_error) => writeError(&program_name, &in_filename, io_error),
+        },
+    }
 }
