@@ -9,7 +9,7 @@ use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use libc::{strcpy, strncpy};
+use libc::strncpy;
 
 const BZ_MAX_HANDLED_BLOCKS: usize = 50000;
 
@@ -28,7 +28,6 @@ pub struct BitStream {
     pub buffLive: i32,
     pub mode: u8,
 }
-pub static mut IN_FILENAME: [c_char; 2000] = [0; 2000];
 pub static mut PROGNAME: [c_char; 2000] = [0; 2000];
 pub static mut BYTES_OUT: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 pub static mut BYTES_IN: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
@@ -193,7 +192,6 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Er
         (2000 as libc::c_int - 1 as libc::c_int) as usize,
     );
     PROGNAME[(2000 as libc::c_int - 1 as libc::c_int) as usize] = '\0' as i32 as c_char;
-    IN_FILENAME[0 as libc::c_int as usize] = 0;
 
     let progname = program_name.display();
 
@@ -206,7 +204,6 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Er
 
         return Ok(ExitCode::FAILURE);
     }
-    strcpy(IN_FILENAME.as_mut_ptr(), in_filename_cstr.as_ptr());
 
     let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
