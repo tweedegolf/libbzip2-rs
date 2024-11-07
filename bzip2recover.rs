@@ -1,9 +1,9 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::ffi::c_char;
+use std::ffi::{c_char, CStr};
 
-use libc::{fprintf, FILE};
+use libc::FILE;
 
 use libc::{
     __errno_location, close, fclose, fdopen, fflush, fopen, free, malloc, open, perror, sprintf,
@@ -11,7 +11,6 @@ use libc::{
 };
 
 extern "C" {
-    static mut stderr: *mut FILE;
     fn getc(__stream: *mut FILE) -> libc::c_int;
     fn putc(__c: libc::c_int, __stream: *mut FILE) -> libc::c_int;
 }
@@ -32,79 +31,63 @@ pub static mut BYTES_OUT: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 pub static mut BYTES_IN: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 
 unsafe fn readError() -> ! {
-    fprintf(
-        stderr,
-        b"%s: I/O error reading `%s', possible reason follows.\n\0" as *const u8
-            as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-        IN_FILENAME.as_mut_ptr(),
+    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char);
+    let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char);
+
+    eprintln!(
+        "{}: I/O error reading `{}', possible reason follows.",
+        progname.to_string_lossy(),
+        in_filename.to_string_lossy(),
     );
+
     perror(PROGNAME.as_mut_ptr());
-    fprintf(
-        stderr,
-        b"%s: warning: output file(s) may be incomplete.\n\0" as *const u8 as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
+
+    eprintln!(
+        "{}: warning: output file(s) may be incomplete.",
+        progname.to_string_lossy(),
     );
 
     std::process::exit(1)
 }
 
 unsafe fn writeError() -> ! {
-    fprintf(
-        stderr,
-        b"%s: I/O error reading `%s', possible reason follows.\n\0" as *const u8
-            as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-        IN_FILENAME.as_mut_ptr(),
+    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
+    let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char).to_string_lossy();
+
+    eprintln!(
+        "{}: I/O error writing `{}', possible reason follows.",
+        progname, in_filename,
     );
+
     perror(PROGNAME.as_mut_ptr());
-    fprintf(
-        stderr,
-        b"%s: warning: output file(s) may be incomplete.\n\0" as *const u8 as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-    );
+
+    eprintln!("{}: warning: output file(s) may be incomplete.", progname,);
 
     std::process::exit(1)
 }
 
 unsafe fn mallocFail(n: i32) -> ! {
-    fprintf(
-        stderr,
-        b"%s: malloc failed on request for %d bytes.\n\0" as *const u8 as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-        n,
-    );
-    fprintf(
-        stderr,
-        b"%s: warning: output file(s) may be incomplete.\n\0" as *const u8 as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-    );
+    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
+
+    eprintln!("{progname}: malloc failed on request for {n} bytes.",);
+    eprintln!("{progname}: warning: output file(s) may be incomplete.",);
 
     std::process::exit(1)
 }
 
-unsafe fn tooManyBlocks(max_handled_blocks: i32) {
-    fprintf(
-        stderr,
-        b"%s: `%s' appears to contain more than %d blocks\n\0" as *const u8 as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-        IN_FILENAME.as_mut_ptr(),
-        max_handled_blocks,
+unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ! {
+    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
+    let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char).to_string_lossy();
+
+    eprintln!(
+        "{progname}: `{in_filename}' appears to contain more than {max_handled_blocks} blocks",
     );
-    fprintf(
-        stderr,
-        b"%s: and cannot be handled.  To fix, increase\n\0" as *const u8 as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-    );
-    fprintf(
-        stderr,
-        b"%s: BZ_MAX_HANDLED_BLOCKS in bzip2recover.c, and recompile.\n\0" as *const u8
-            as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-    );
+    eprintln!("{progname}: and cannot be handled.  To fix, increase");
+    eprintln!("{progname}: BZ_MAX_HANDLED_BLOCKS in bzip2recover.rs, and recompile.");
 
     std::process::exit(1)
 }
+
 unsafe fn bsOpenReadStream(stream: *mut FILE) -> *mut BitStream {
     let bs: *mut BitStream = malloc(core::mem::size_of::<BitStream>()) as *mut BitStream;
     if bs.is_null() {
@@ -241,44 +224,24 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
     PROGNAME[(2000 as libc::c_int - 1 as libc::c_int) as usize] = '\0' as i32 as c_char;
     OUT_FILENAME[0 as libc::c_int as usize] = 0 as libc::c_int as c_char;
     IN_FILENAME[0 as libc::c_int as usize] = OUT_FILENAME[0 as libc::c_int as usize];
-    fprintf(
-        stderr,
-        b"bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n\0" as *const u8
-            as *const libc::c_char,
-    );
+
+    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
+
+    eprintln!("bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.");
     if argc != 2 as libc::c_int {
-        fprintf(
-            stderr,
-            b"%s: usage is `%s damaged_file_name'.\n\0" as *const u8 as *const libc::c_char,
-            PROGNAME.as_mut_ptr(),
-            PROGNAME.as_mut_ptr(),
-        );
+        eprintln!("{}: usage is `{} damaged_file_name'.", progname, progname,);
         match core::mem::size_of::<MaybeUInt64>() as libc::c_ulong {
             8 => {
-                fprintf(
-                    stderr,
-                    b"\trestrictions on size of recovered file: None\n\0" as *const u8
-                        as *const libc::c_char,
-                );
+                eprintln!("\trestrictions on size of recovered file: None");
             }
             4 => {
-                fprintf(
-                    stderr,
-                    b"\trestrictions on size of recovered file: 512 MB\n\0" as *const u8
-                        as *const libc::c_char,
-                );
-                fprintf(
-                    stderr,
-                    b"\tto circumvent, recompile with MaybeUInt64 as an\n\tunsigned 64-bit int.\n\0"
-                        as *const u8 as *const libc::c_char,
+                eprintln!("\trestrictions on size of recovered file: 512 MB");
+                eprintln!(
+                    "\tto circumvent, recompile with MaybeUInt64 as an\n\tunsigned 64-bit int."
                 );
             }
             _ => {
-                fprintf(
-                    stderr,
-                    b"\tsizeof(MaybeUInt64) is not 4 or 8 -- configuration error.\n\0" as *const u8
-                        as *const libc::c_char,
-                );
+                eprintln!("\tsizeof::<MaybeUInt64> is not 4 or 8 -- configuration error.");
             }
         }
 
@@ -287,11 +250,9 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
     if strlen(*argv.offset(1 as libc::c_int as isize))
         >= (2000 as libc::c_int - 20 as libc::c_int) as usize
     {
-        fprintf(
-            stderr,
-            b"%s: supplied filename is suspiciously (>= %d chars) long.  Bye!\n\0" as *const u8
-                as *const libc::c_char,
-            PROGNAME.as_mut_ptr(),
+        eprintln!(
+            "{}: supplied filename is suspiciously (>= {} chars) long.  Bye!",
+            progname,
             strlen(*argv.offset(1 as libc::c_int as isize)) as libc::c_int,
         );
 
@@ -301,26 +262,20 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
         IN_FILENAME.as_mut_ptr(),
         *argv.offset(1 as libc::c_int as isize),
     );
+
+    let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char).to_string_lossy();
+
     let mut inFile = fopen(
         IN_FILENAME.as_mut_ptr(),
         b"rb\0" as *const u8 as *const libc::c_char,
     );
     if inFile.is_null() {
-        fprintf(
-            stderr,
-            b"%s: can't read `%s'\n\0" as *const u8 as *const libc::c_char,
-            PROGNAME.as_mut_ptr(),
-            IN_FILENAME.as_mut_ptr(),
-        );
+        eprintln!("{}: can't read `{}'", progname, in_filename);
 
         std::process::exit(1)
     }
     let mut bsIn = bsOpenReadStream(inFile);
-    fprintf(
-        stderr,
-        b"%s: searching for block boundaries ...\n\0" as *const u8 as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-    );
+    eprintln!("{}: searching for block boundaries ...", progname);
     let mut bitsRead = 0 as libc::c_int as MaybeUInt64;
     let mut buffLo = 0 as libc::c_int as u32;
     let mut buffHi = buffLo;
@@ -338,13 +293,9 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
                 B_END[currBlock as usize] =
                     bitsRead.wrapping_sub(1 as libc::c_int as libc::c_ulonglong);
                 if currBlock > 0 as libc::c_int {
-                    fprintf(
-                        stderr,
-                        b"   block %d runs from %Lu to %Lu (incomplete)\n\0" as *const u8
-                            as *const libc::c_char,
-                        currBlock,
-                        B_START[currBlock as usize],
-                        B_END[currBlock as usize],
+                    eprintln!(
+                        "   block {} runs from {} to {} (incomplete)",
+                        currBlock, B_START[currBlock as usize], B_END[currBlock as usize],
                     );
                 }
             }
@@ -366,9 +317,8 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
                     && (B_END[currBlock as usize]).wrapping_sub(B_START[currBlock as usize])
                         >= 130 as libc::c_int as libc::c_ulonglong
                 {
-                    fprintf(
-                        stderr,
-                        b"   block %d runs from %Lu to %Lu\n\0" as *const u8 as *const libc::c_char,
+                    eprintln!(
+                        "   block {} runs from {} to {}",
                         rbCtr + 1 as libc::c_int,
                         B_START[currBlock as usize],
                         B_END[currBlock as usize],
@@ -387,31 +337,17 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
     }
     bsClose(bsIn);
     if rbCtr < 1 as libc::c_int {
-        fprintf(
-            stderr,
-            b"%s: sorry, I couldn't find any block boundaries.\n\0" as *const u8
-                as *const libc::c_char,
-            PROGNAME.as_mut_ptr(),
-        );
+        eprintln!("{}: sorry, I couldn't find any block boundaries.", progname);
 
         std::process::exit(1)
     }
-    fprintf(
-        stderr,
-        b"%s: splitting into blocks\n\0" as *const u8 as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-    );
+    eprintln!("{}: splitting into blocks", progname);
     inFile = fopen(
         IN_FILENAME.as_mut_ptr(),
         b"rb\0" as *const u8 as *const libc::c_char,
     );
     if inFile.is_null() {
-        fprintf(
-            stderr,
-            b"%s: can't open `%s'\n\0" as *const u8 as *const libc::c_char,
-            PROGNAME.as_mut_ptr(),
-            IN_FILENAME.as_mut_ptr(),
-        );
+        eprintln!("{}: can't open `{}'", progname, in_filename,);
 
         std::process::exit(1)
     }
@@ -494,23 +430,21 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
                     b".bz2\0" as *const u8 as *const libc::c_char,
                 );
             }
-            fprintf(
-                stderr,
-                b"   writing block %d to `%s' ...\n\0" as *const u8 as *const libc::c_char,
+
+            let out_filename =
+                CStr::from_ptr(OUT_FILENAME.as_ptr() as *const c_char).to_string_lossy();
+
+            eprintln!(
+                "   writing block {} to `{}' ...",
                 wrBlock + 1 as libc::c_int,
-                OUT_FILENAME.as_mut_ptr(),
+                out_filename,
             );
             outFile = fopen_output_safely(
                 OUT_FILENAME.as_mut_ptr(),
                 b"wb\0" as *const u8 as *const libc::c_char,
             );
             if outFile.is_null() {
-                fprintf(
-                    stderr,
-                    b"%s: can't write `%s'\n\0" as *const u8 as *const libc::c_char,
-                    PROGNAME.as_mut_ptr(),
-                    OUT_FILENAME.as_mut_ptr(),
-                );
+                eprintln!("{}: can't write `{}'", progname, out_filename,);
 
                 std::process::exit(1)
             }
@@ -527,13 +461,10 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
             bsPutUChar(bsWr, 0x59 as libc::c_int as u8);
         }
     }
-    fprintf(
-        stderr,
-        b"%s: finished\n\0" as *const u8 as *const libc::c_char,
-        PROGNAME.as_mut_ptr(),
-    );
+    eprintln!("{}: finished", progname);
     0 as libc::c_int
 }
+
 pub fn main() {
     let mut args: Vec<*mut libc::c_char> = Vec::new();
     for arg in ::std::env::args() {
