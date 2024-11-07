@@ -18,6 +18,7 @@ enum Error {
     Reading(std::io::Error),
     Writing(std::io::Error),
     TooManyBlocks(usize),
+    Fatal,
 }
 
 #[repr(C)]
@@ -168,7 +169,7 @@ fn emit_too_many_blocks(
     ExitCode::FAILURE
 }
 
-fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
+fn main_help(program_name: &Path, in_filename: &Path) -> Result<(), Error> {
     let mut b_start = vec![0u64; BZ_MAX_HANDLED_BLOCKS];
     let mut b_end = vec![0u64; BZ_MAX_HANDLED_BLOCKS];
     let mut rb_start = vec![0u64; BZ_MAX_HANDLED_BLOCKS];
@@ -183,13 +184,13 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
             in_filename.as_os_str().len(),
         );
 
-        return Ok(ExitCode::FAILURE);
+        return Err(Error::Fatal);
     }
 
     let Ok(input_file) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
-        return Ok(ExitCode::FAILURE);
+        return Err(Error::Fatal);
     };
 
     let mut input_bitstream = BitStream::open_read_stream(input_file);
@@ -262,7 +263,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
     if rb_ctr < 1 {
         eprintln!("{}: sorry, I couldn't find any block boundaries.", progname);
 
-        return Ok(ExitCode::FAILURE);
+        return Err(Error::Fatal);
     }
 
     eprintln!("{}: splitting into blocks", progname);
@@ -270,7 +271,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
     let Ok(input_file) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
-        return Ok(ExitCode::FAILURE);
+        return Err(Error::Fatal);
     };
     input_bitstream = BitStream::open_read_stream(input_file);
 
@@ -340,7 +341,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
             let Ok(output_file) = options.open(&out_filename) else {
                 eprintln!("{}: can't write `{}'", progname, out_filename.display());
 
-                return Ok(ExitCode::FAILURE);
+                return Err(Error::Fatal);
             };
 
             output_bitstream = {
@@ -362,7 +363,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
 
     eprintln!("{}: finished", progname);
 
-    Ok(ExitCode::SUCCESS)
+    Ok(())
 }
 
 pub fn main() -> ExitCode {
@@ -385,13 +386,14 @@ pub fn main() -> ExitCode {
     };
 
     match main_help(&program_name, &in_filename) {
-        Ok(exit_code) => exit_code,
+        Ok(()) => ExitCode::SUCCESS,
         Err(error) => match error {
             Error::Reading(io_error) => emit_read_error(&program_name, &in_filename, io_error),
             Error::Writing(io_error) => emit_write_error(&program_name, &in_filename, io_error),
             Error::TooManyBlocks(handled) => {
                 emit_too_many_blocks(&program_name, &in_filename, handled)
             }
+            Error::Fatal => ExitCode::FAILURE,
         },
     }
 }
