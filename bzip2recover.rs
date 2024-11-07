@@ -8,6 +8,7 @@ use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 const BZ_MAX_HANDLED_BLOCKS: usize = 50000;
 
@@ -24,8 +25,8 @@ pub struct BitStream {
     pub buffLive: i32,
     pub mode: u8,
 }
-pub static mut BYTES_OUT: u64 = 0 as libc::c_int as u64;
-pub static mut BYTES_IN: u64 = 0 as libc::c_int as u64;
+
+static BYTES_OUT: AtomicU64 = AtomicU64::new(0);
 
 fn readError(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
     eprintln!(
@@ -94,12 +95,12 @@ fn bsOpenWriteStream(stream: File) -> BitStream {
     }
 }
 
-unsafe fn bsPutBit(bs: &mut BitStream, bit: i32) -> Result<(), Error> {
+fn bsPutBit(bs: &mut BitStream, bit: i32) -> Result<(), Error> {
     if bs.buffLive == 8 as libc::c_int {
         bs.handle
             .write_all(&[bs.buffer as u8])
             .map_err(Error::Writing)?;
-        BYTES_OUT = BYTES_OUT.wrapping_add(1);
+        BYTES_OUT.fetch_add(1, Ordering::Relaxed);
         bs.buffLive = 1 as libc::c_int;
         bs.buffer = bit & 0x1 as libc::c_int;
     } else {
@@ -131,7 +132,7 @@ fn bsGetBit(bs: &mut BitStream) -> Result<i32, Error> {
     }
 }
 
-unsafe fn bsClose(mut bs: BitStream) -> Result<(), Error> {
+fn bsClose(mut bs: BitStream) -> Result<(), Error> {
     if bs.mode == b'w' {
         while bs.buffLive < 8 as libc::c_int {
             bs.buffLive += 1;
@@ -140,14 +141,14 @@ unsafe fn bsClose(mut bs: BitStream) -> Result<(), Error> {
         bs.handle
             .write_all(&[bs.buffer as u8])
             .map_err(Error::Writing)?;
-        BYTES_OUT = BYTES_OUT.wrapping_add(1);
+        BYTES_OUT.fetch_add(1, Ordering::Relaxed);
         bs.handle.flush().map_err(Error::Writing)?;
     }
 
     Ok(())
 }
 
-unsafe fn bsPutUChar(bs: &mut BitStream, c: u8) -> Result<(), Error> {
+fn bsPutUChar(bs: &mut BitStream, c: u8) -> Result<(), Error> {
     let mut i: i32 = 7;
     while i >= 0 {
         bsPutBit(
@@ -160,7 +161,7 @@ unsafe fn bsPutUChar(bs: &mut BitStream, c: u8) -> Result<(), Error> {
     Ok(())
 }
 
-unsafe fn bsPutUInt32(bs: &mut BitStream, c: u32) -> Result<(), Error> {
+fn bsPutUInt32(bs: &mut BitStream, c: u32) -> Result<(), Error> {
     let mut i: i32 = 31;
     while i >= 0 {
         bsPutBit(bs, (c >> i & 0x1 as libc::c_int as libc::c_uint) as i32)?;
