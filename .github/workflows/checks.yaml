@@ -87,7 +87,7 @@ jobs:
         env:
           RUST_BACKTRACE: 1
       - name: cargo test with llvm-cov
-        run: cargo llvm-cov --target ${{matrix.target}} ${{ matrix.features }} --lcov --output-path lcov.info --ignore-filename-regex "bzip2recover.rs|bzip2\.rs|test-libbzip2" --workspace
+        run: cargo llvm-cov --target ${{matrix.target}} ${{ matrix.features }} --lcov --output-path lcov.info --ignore-filename-regex "bzip2\.rs|test-libbzip2" --workspace
         env:
           RUST_BACKTRACE: 1
         if: matrix.os != 'windows-2022'
