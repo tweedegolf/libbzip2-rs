@@ -66,15 +66,6 @@ unsafe fn writeError() -> ! {
     std::process::exit(1)
 }
 
-unsafe fn mallocFail(n: i32) -> ! {
-    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
-
-    eprintln!("{progname}: malloc failed on request for {n} bytes.",);
-    eprintln!("{progname}: warning: output file(s) may be incomplete.",);
-
-    std::process::exit(1)
-}
-
 unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ! {
     let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
     let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char).to_string_lossy();
@@ -106,25 +97,25 @@ unsafe fn bsOpenWriteStream(stream: *mut FILE) -> Box<BitStream> {
 }
 
 unsafe fn bsPutBit(bs: &mut BitStream, bit: i32) {
-    if (*bs).buffLive == 8 as libc::c_int {
-        let retVal: i32 = putc((*bs).buffer as u8 as libc::c_int, (*bs).handle);
+    if bs.buffLive == 8 as libc::c_int {
+        let retVal: i32 = putc(bs.buffer as u8 as libc::c_int, bs.handle);
         if retVal == -1 as libc::c_int {
             writeError();
         }
         BYTES_OUT = BYTES_OUT.wrapping_add(1);
-        (*bs).buffLive = 1 as libc::c_int;
-        (*bs).buffer = bit & 0x1 as libc::c_int;
+        bs.buffLive = 1 as libc::c_int;
+        bs.buffer = bit & 0x1 as libc::c_int;
     } else {
-        (*bs).buffer = (*bs).buffer << 1 as libc::c_int | bit & 0x1 as libc::c_int;
-        (*bs).buffLive += 1;
+        bs.buffer = bs.buffer << 1 as libc::c_int | bit & 0x1 as libc::c_int;
+        bs.buffLive += 1;
     };
 }
 unsafe fn bsGetBit(bs: &mut BitStream) -> i32 {
-    if (*bs).buffLive > 0 as libc::c_int {
-        (*bs).buffLive -= 1;
-        (*bs).buffer >> (*bs).buffLive & 0x1 as libc::c_int
+    if bs.buffLive > 0 as libc::c_int {
+        bs.buffLive -= 1;
+        bs.buffer >> bs.buffLive & 0x1 as libc::c_int
     } else {
-        let retVal: i32 = getc((*bs).handle);
+        let retVal: i32 = getc(bs.handle);
         if retVal == -1 as libc::c_int {
             if *__errno_location() != 0 as libc::c_int {
                 readError()
@@ -132,31 +123,31 @@ unsafe fn bsGetBit(bs: &mut BitStream) -> i32 {
                 return 2;
             }
         }
-        (*bs).buffLive = 7 as libc::c_int;
-        (*bs).buffer = retVal;
-        (*bs).buffer >> 7 as libc::c_int & 0x1 as libc::c_int
+        bs.buffLive = 7 as libc::c_int;
+        bs.buffer = retVal;
+        bs.buffer >> 7 as libc::c_int & 0x1 as libc::c_int
     }
 }
 unsafe fn bsClose(mut bs: Box<BitStream>) {
     let mut retVal: i32;
-    if (*bs).mode == b'w' {
-        while (*bs).buffLive < 8 as libc::c_int {
-            (*bs).buffLive += 1;
-            (*bs).buffer <<= 1 as libc::c_int;
+    if bs.mode == b'w' {
+        while bs.buffLive < 8 as libc::c_int {
+            bs.buffLive += 1;
+            bs.buffer <<= 1 as libc::c_int;
         }
-        retVal = putc((*bs).buffer as u8 as libc::c_int, (*bs).handle);
+        retVal = putc(bs.buffer as u8 as libc::c_int, bs.handle);
         if retVal == -1 as libc::c_int {
             writeError();
         }
         BYTES_OUT = BYTES_OUT.wrapping_add(1);
-        retVal = fflush((*bs).handle);
+        retVal = fflush(bs.handle);
         if retVal == -1 as libc::c_int {
             writeError();
         }
     }
-    retVal = fclose((*bs).handle);
+    retVal = fclose(bs.handle);
     if retVal == -1 as libc::c_int {
-        if (*bs).mode == b'w' {
+        if bs.mode == b'w' {
             writeError();
         } else {
             readError();
