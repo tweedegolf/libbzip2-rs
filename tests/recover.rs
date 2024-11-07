@@ -1,0 +1,245 @@
+use std::env;
+use std::fs::File;
+use std::io::Write;
+use std::os::unix::fs::FileExt;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+
+/// Useful to test with the C binary
+fn bzip2recover_binary() -> &'static str {
+    env!("CARGO_BIN_EXE_bzip2recover")
+}
+
+fn run_bzip2recover(path: Option<&Path>) -> std::process::Output {
+    let mut cmd;
+    match env::var("RUNNER") {
+        Ok(runner) if !runner.is_empty() => {
+            let mut runner_args = runner.split(' ');
+            cmd = Command::new(runner_args.next().unwrap());
+            cmd.args(runner_args);
+            cmd.arg(bzip2recover_binary());
+        }
+        _ => cmd = Command::new(bzip2recover_binary()),
+    }
+
+    if let Some(path) = path {
+        cmd.arg(path.as_os_str()).stdout(Stdio::piped());
+    }
+
+    match cmd.output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    }
+}
+
+#[test]
+fn basic_valid_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let tmp_path_str = tmp.path().display().to_string();
+
+    let file_path = tmp.path().join("sample1.bz2");
+    let mut file = File::create(&file_path).unwrap();
+
+    file.write_all(include_bytes!("input/quick/sample2.bz2"))
+        .unwrap();
+
+    drop(file);
+
+    let output = run_bzip2recover(Some(&file_path));
+
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr)
+            .replace(&tmp_path_str, "$TEMPDIR")
+            .replace(bzip2recover_binary(), "bzip2recover"),
+        concat!(
+            "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
+            "bzip2recover: searching for block boundaries ...\n",
+            "   block 1 runs from 80 to 544887\n",
+            "   block 2 runs from 544936 to 589771\n",
+            "bzip2recover: splitting into blocks\n",
+            "   writing block 1 to `$TEMPDIR/rec00001sample1.bz2' ...\n",
+            "   writing block 2 to `$TEMPDIR/rec00002sample1.bz2' ...\n",
+            "bzip2recover: finished\n"
+        )
+    );
+}
+
+#[test]
+fn basic_invalid_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let tmp_path_str = tmp.path().display().to_string();
+
+    let file_path = tmp.path().join("sample1.bz2");
+    let mut file = File::create(&file_path).unwrap();
+
+    file.write_all(include_bytes!("input/quick/sample2.bz2"))
+        .unwrap();
+
+    // write some garbage data at the start of the second block
+    file.write_all_at(&[0xAA, 0xBB, 0xCC], 544936).unwrap();
+
+    drop(file);
+
+    let output = run_bzip2recover(Some(&file_path));
+
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr)
+            .replace(&tmp_path_str, "$TEMPDIR")
+            .replace(bzip2recover_binary(), "bzip2recover"),
+        concat!(
+            "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
+            "bzip2recover: searching for block boundaries ...\n",
+            "   block 1 runs from 80 to 544887\n",
+            "   block 2 runs from 544936 to 589771\n",
+            "   block 3 runs from 589820 to 4359512 (incomplete)\n",
+            "bzip2recover: splitting into blocks\n",
+            "   writing block 1 to `$TEMPDIR/rec00001sample1.bz2' ...\n",
+            "   writing block 2 to `$TEMPDIR/rec00002sample1.bz2' ...\n",
+            "bzip2recover: finished\n"
+        )
+    );
+}
+
+#[test]
+fn no_input_file() {
+    let output = run_bzip2recover(None);
+
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2recover_binary(), "bzip2recover"),
+        concat!(
+            "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
+            "bzip2recover: usage is `bzip2recover damaged_file_name'.\n",
+            "\trestrictions on size of recovered file: None\n"
+        )
+    );
+}
+
+#[test]
+fn nonexistent_input_file() {
+    let output = run_bzip2recover(Some(Path::new("does_not_exist.txt")));
+
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2recover_binary(), "bzip2recover"),
+        concat!(
+            "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
+            "bzip2recover: can't read `does_not_exist.txt'\n",
+        )
+    );
+}
+
+#[test]
+fn random_input_data() {
+    let tmp = tempfile::tempdir().unwrap();
+    let tmp_path_str = tmp.path().display().to_string();
+
+    let file_path = tmp.path().join("sample1.bz2");
+    let mut file = File::create(&file_path).unwrap();
+
+    file.write_all(include_bytes!("input/quick/sample1.ref"))
+        .unwrap();
+
+    drop(file);
+
+    let output = run_bzip2recover(Some(&file_path));
+
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr)
+            .replace(&tmp_path_str, "$TEMPDIR")
+            .replace(bzip2recover_binary(), "bzip2recover"),
+        concat!(
+            "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
+            "bzip2recover: searching for block boundaries ...\n",
+            "bzip2recover: sorry, I couldn't find any block boundaries.\n"
+        )
+    );
+}
+
+#[test]
+fn does_not_overwrite_recovered_files() {
+    let tmp = tempfile::tempdir().unwrap();
+    let tmp_path_str = tmp.path().display().to_string();
+
+    let file_path = tmp.path().join("sample1.bz2");
+    let mut file = File::create(&file_path).unwrap();
+
+    file.write_all(include_bytes!("input/quick/sample2.bz2"))
+        .unwrap();
+
+    drop(file);
+
+    let output = run_bzip2recover(Some(&file_path));
+
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr)
+            .replace(&tmp_path_str, "$TEMPDIR")
+            .replace(bzip2recover_binary(), "bzip2recover"),
+        concat!(
+            "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
+            "bzip2recover: searching for block boundaries ...\n",
+            "   block 1 runs from 80 to 544887\n",
+            "   block 2 runs from 544936 to 589771\n",
+            "bzip2recover: splitting into blocks\n",
+            "   writing block 1 to `$TEMPDIR/rec00001sample1.bz2' ...\n",
+            "   writing block 2 to `$TEMPDIR/rec00002sample1.bz2' ...\n",
+            "bzip2recover: finished\n"
+        )
+    );
+
+    // now we run the same command. The output files are only created when they don't already
+    // exist.
+
+    let output = run_bzip2recover(Some(&file_path));
+
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr)
+            .replace(&tmp_path_str, "$TEMPDIR")
+            .replace(bzip2recover_binary(), "bzip2recover"),
+        concat!(
+            "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
+            "bzip2recover: searching for block boundaries ...\n",
+            "   block 1 runs from 80 to 544887\n",
+            "   block 2 runs from 544936 to 589771\n",
+            "bzip2recover: splitting into blocks\n",
+            "   writing block 1 to `$TEMPDIR/rec00001sample1.bz2' ...\n",
+            "bzip2recover: can't write `$TEMPDIR/rec00001sample1.bz2'\n",
+        )
+    );
+}
+
+#[test]
+fn very_long_file_name() {
+    let file_path = PathBuf::from("NaN".repeat(1000) + " batman!.txt");
+    let output = run_bzip2recover(Some(&file_path));
+
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2recover_binary(), "bzip2recover"),
+        concat!(
+            "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
+            "bzip2recover: supplied filename is suspiciously (>= 3012 chars) long.  Bye!\n",
+        )
+    );
+}
