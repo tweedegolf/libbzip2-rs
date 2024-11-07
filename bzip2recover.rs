@@ -275,7 +275,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
 
     let mut blockCRC: u32 = 0;
     let mut bsWr: Option<BitStream> = None;
-    let mut wrBlock: i32 = 0;
+    let mut wrBlock = 0;
 
     bitsRead = 0;
 
@@ -288,17 +288,14 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
         buffHi = buffHi << 1 | buffLo >> 31;
         buffLo = buffLo << 1 | b as u32;
 
-        if bitsRead == 47u64.wrapping_add(RB_START[wrBlock as usize]) {
+        if bitsRead == 47u64.wrapping_add(RB_START[wrBlock]) {
             blockCRC = buffHi << 16 | buffLo >> 16;
         }
-        if bsWr.is_some()
-            && bitsRead >= RB_START[wrBlock as usize]
-            && bitsRead <= RB_END[wrBlock as usize]
-        {
+        if bsWr.is_some() && bitsRead >= RB_START[wrBlock] && bitsRead <= RB_END[wrBlock] {
             bsPutBit(bsWr.as_mut().unwrap(), b as i32)?;
         }
         bitsRead = bitsRead.wrapping_add(1);
-        if bitsRead == (RB_END[wrBlock as usize]).wrapping_add(1) {
+        if bitsRead == (RB_END[wrBlock]).wrapping_add(1) {
             if let Some(mut bsWr) = bsWr.take() {
                 bsPutUChar(&mut bsWr, 0x17)?;
                 bsPutUChar(&mut bsWr, 0x72)?;
@@ -314,7 +311,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
                 break;
             }
             wrBlock += 1;
-        } else if bitsRead == RB_START[wrBlock as usize] {
+        } else if bitsRead == RB_START[wrBlock] {
             // we've been able to open this file, so there must be a file name
             let filename = in_filename.file_name().unwrap();
 
