@@ -6,8 +6,8 @@ use std::ffi::{c_char, CStr};
 use libc::FILE;
 
 use libc::{
-    __errno_location, close, fclose, fdopen, fflush, fopen, free, malloc, open, perror, sprintf,
-    strcat, strcpy, strlen, strncpy, strrchr,
+    __errno_location, close, fclose, fdopen, fflush, fopen, open, perror, sprintf, strcat, strcpy,
+    strlen, strncpy, strrchr,
 };
 
 extern "C" {
@@ -89,27 +89,22 @@ unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ! {
 }
 
 unsafe fn bsOpenReadStream(stream: *mut FILE) -> *mut BitStream {
-    let bs: *mut BitStream = malloc(core::mem::size_of::<BitStream>()) as *mut BitStream;
-    if bs.is_null() {
-        mallocFail(::core::mem::size_of::<BitStream>() as libc::c_ulong as i32);
-    }
-    (*bs).handle = stream;
-    (*bs).buffer = 0 as libc::c_int;
-    (*bs).buffLive = 0 as libc::c_int;
-    (*bs).mode = b'r';
-    bs
+    Box::leak(Box::new(BitStream {
+        handle: stream,
+        buffer: 0,
+        buffLive: 0,
+        mode: b'r',
+    }))
 }
 unsafe fn bsOpenWriteStream(stream: *mut FILE) -> *mut BitStream {
-    let bs: *mut BitStream = malloc(core::mem::size_of::<BitStream>()) as *mut BitStream;
-    if bs.is_null() {
-        mallocFail(::core::mem::size_of::<BitStream>() as libc::c_ulong as i32);
-    }
-    (*bs).handle = stream;
-    (*bs).buffer = 0 as libc::c_int;
-    (*bs).buffLive = 0 as libc::c_int;
-    (*bs).mode = b'w';
-    bs
+    Box::leak(Box::new(BitStream {
+        handle: stream,
+        buffer: 0,
+        buffLive: 0,
+        mode: b'w',
+    }))
 }
+
 unsafe fn bsPutBit(bs: *mut BitStream, bit: i32) {
     if (*bs).buffLive == 8 as libc::c_int {
         let retVal: i32 = putc((*bs).buffer as u8 as libc::c_int, (*bs).handle);
@@ -167,8 +162,10 @@ unsafe fn bsClose(bs: *mut BitStream) {
             readError();
         }
     }
-    free(bs as *mut libc::c_void);
+
+    drop(Box::from_raw(bs))
 }
+
 unsafe fn bsPutUChar(bs: *mut BitStream, c: u8) {
     let mut i: i32 = 7;
     while i >= 0 {
