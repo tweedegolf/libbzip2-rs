@@ -18,11 +18,11 @@ enum Error {
 }
 
 #[repr(C)]
-pub struct BitStream {
-    pub handle: File,
-    pub buffer: i32,
-    pub buffLive: i32,
-    pub mode: u8,
+struct BitStream {
+    handle: File,
+    buffer: i32,
+    buffLive: i32,
+    mode: u8,
 }
 
 static BYTES_OUT: AtomicU64 = AtomicU64::new(0);
@@ -170,7 +170,7 @@ fn bsPutUInt32(bs: &mut BitStream, c: u32) -> Result<(), Error> {
     Ok(())
 }
 
-fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
+fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
     let mut B_START = [0u64; 50000];
     let mut B_END = [0u64; 50000];
     let mut RB_START = [0u64; 50000];
@@ -375,23 +375,13 @@ pub fn main() -> ExitCode {
             "{program_name}: usage is `{program_name} damaged_file_name'.",
             program_name = program_name.display()
         );
-        match core::mem::size_of::<u64>() as libc::c_ulong {
-            8 => {
-                eprintln!("\trestrictions on size of recovered file: None");
-            }
-            4 => {
-                eprintln!("\trestrictions on size of recovered file: 512 MB");
-                eprintln!("\tto circumvent, recompile with u64 as an\n\tunsigned 64-bit int.");
-            }
-            _ => {
-                eprintln!("\tsizeof::<u64> is not 4 or 8 -- configuration error.");
-            }
-        }
+
+        eprintln!("\trestrictions on size of recovered file: None");
 
         return ExitCode::FAILURE;
     };
 
-    match main_0(&program_name, &in_filename) {
+    match main_help(&program_name, &in_filename) {
         Ok(exit_code) => exit_code,
         Err(error) => match error {
             Error::Reading(io_error) => readError(&program_name, &in_filename, io_error),
