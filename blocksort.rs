@@ -138,13 +138,13 @@ fn fallbackQSort3(fmap: &mut [u32], eclass: &[u32], loSt: i32, hiSt: i32) {
 
             while unLo <= unHi {
                 match eclass[fmap[unLo as usize] as usize].cmp(&med) {
-                    Ordering::Greater => break,
+                    Ordering::Less => break,
                     Ordering::Equal => {
                         fmap.swap(unHi as usize, gtHi as usize);
                         gtHi -= 1;
                         unHi -= 1;
                     }
-                    Ordering::Less => {
+                    Ordering::Greater => {
                         unHi -= 1;
                     }
                 }
@@ -374,9 +374,9 @@ fn fallbackSort(
             ftabCopy[j] -= 1;
             eclass8[fmap[i as usize] as usize] = j as u8;
         }
-    }
 
-    assert_h!(j < 256, 1005);
+        assert_h!(j < 256, 1005);
+    }
 }
 
 #[inline]
@@ -1115,7 +1115,7 @@ fn mainSort(
                 sb = (ss << 8 as libc::c_int) + j;
                 if (!(ftab[sb as usize] & SETMASK)) != 0 {
                     let lo: i32 = (ftab[sb as usize] & CLEARMASK) as i32;
-                    let hi: i32 = ((ftab[sb as usize + 1] & CLEARMASK) - 1) as i32;
+                    let hi: i32 = ((ftab[sb as usize + 1] & CLEARMASK).wrapping_sub(1)) as i32;
 
                     if hi > lo {
                         if verb >= 4 as libc::c_int {
