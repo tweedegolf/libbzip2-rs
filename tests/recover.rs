@@ -32,6 +32,10 @@ fn run_bzip2recover(path: Option<&Path>) -> std::process::Output {
     }
 }
 
+fn checksum(path: &Path) -> u32 {
+    crc32fast::hash(&std::fs::read(path).unwrap())
+}
+
 #[test]
 fn basic_valid_file() {
     let tmp = tempfile::tempdir().unwrap();
@@ -65,6 +69,15 @@ fn basic_valid_file() {
             "bzip2recover: finished\n"
         )
     );
+
+    assert_eq!(
+        checksum(&tmp.path().join("rec00001sample1.bz2")),
+        2309536424
+    );
+    assert_eq!(
+        checksum(&tmp.path().join("rec00002sample1.bz2")),
+        1823861694
+    );
 }
 
 #[test]
@@ -79,7 +92,7 @@ fn basic_invalid_file() {
         .unwrap();
 
     // write some garbage data at the start of the second block
-    file.write_all_at(&[0xAA, 0xBB, 0xCC], 544936).unwrap();
+    file.write_all_at(&[0xAA, 0xBB, 0xCC], 544936 + 64).unwrap();
 
     drop(file);
 
@@ -97,13 +110,24 @@ fn basic_invalid_file() {
             "bzip2recover: searching for block boundaries ...\n",
             "   block 1 runs from 80 to 544887\n",
             "   block 2 runs from 544936 to 589771\n",
-            "   block 3 runs from 589820 to 4359512 (incomplete)\n",
+            "   block 3 runs from 589820 to 4360024 (incomplete)\n",
             "bzip2recover: splitting into blocks\n",
             "   writing block 1 to `$TEMPDIR/rec00001sample1.bz2' ...\n",
             "   writing block 2 to `$TEMPDIR/rec00002sample1.bz2' ...\n",
             "bzip2recover: finished\n"
         )
     );
+
+    assert_eq!(
+        checksum(&tmp.path().join("rec00001sample1.bz2")),
+        2309536424
+    );
+    assert_eq!(
+        checksum(&tmp.path().join("rec00002sample1.bz2")),
+        1823861694
+    );
+
+    assert!(!tmp.path().join("rec00003sample1.bz2").exists());
 }
 
 #[test]
