@@ -235,8 +235,8 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
                             B_START[currBlock],
                             B_END[currBlock],
                         );
-                        RB_START[rbCtr as usize] = B_START[currBlock];
-                        RB_END[rbCtr as usize] = B_END[currBlock];
+                        RB_START[rbCtr] = B_START[currBlock];
+                        RB_END[rbCtr] = B_END[currBlock];
                         rbCtr += 1;
                     }
                     if currBlock >= BZ_MAX_HANDLED_BLOCKS {
