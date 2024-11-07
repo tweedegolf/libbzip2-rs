@@ -4,25 +4,18 @@
 use std::ffi::{c_char, CStr, CString};
 use std::fs::File;
 use std::io::{Read, Write};
-use std::os::fd::IntoRawFd;
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use libc::FILE;
-
-use libc::{__errno_location, fclose, fflush, perror, strcpy, strncpy};
+use libc::{strcpy, strncpy};
 
 enum Error {
     Reading(std::io::Error),
     Writing(std::io::Error),
 }
 
-extern "C" {
-    fn getc(__stream: *mut FILE) -> libc::c_int;
-    fn putc(__c: libc::c_int, __stream: *mut FILE) -> libc::c_int;
-}
 pub type MaybeUInt64 = libc::c_ulonglong;
 pub type Bool = libc::c_uchar;
 #[repr(C)]
