@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 
 use std::ffi::{c_char, CStr, CString};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use libc::FILE;
 
@@ -203,7 +203,15 @@ pub static mut B_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut B_END: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_END: [MaybeUInt64; 50000] = [0; 50000];
-unsafe fn main_0(program_name_cstr: *mut c_char, in_filename_cstr: *mut c_char) -> i32 {
+unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
+    let program_name_cstr = CString::new(program_name.to_string_lossy().as_bytes())
+        .unwrap()
+        .into_raw();
+
+    let in_filename_cstr = CString::new(in_filename.to_string_lossy().as_bytes())
+        .unwrap()
+        .into_raw();
+
     strncpy(
         PROGNAME.as_mut_ptr(),
         program_name_cstr,
@@ -213,7 +221,7 @@ unsafe fn main_0(program_name_cstr: *mut c_char, in_filename_cstr: *mut c_char) 
     OUT_FILENAME[0 as libc::c_int as usize] = 0 as libc::c_int as c_char;
     IN_FILENAME[0 as libc::c_int as usize] = OUT_FILENAME[0 as libc::c_int as usize];
 
-    let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
+    let progname = program_name.display();
 
     if strlen(in_filename_cstr) >= (2000 as libc::c_int - 20 as libc::c_int) as usize {
         eprintln!(
@@ -226,7 +234,7 @@ unsafe fn main_0(program_name_cstr: *mut c_char, in_filename_cstr: *mut c_char) 
     }
     strcpy(IN_FILENAME.as_mut_ptr(), in_filename_cstr);
 
-    let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char).to_string_lossy();
+    let in_filename = in_filename.display();
 
     let mut inFile = fopen(
         IN_FILENAME.as_mut_ptr(),
@@ -465,13 +473,5 @@ pub fn main() {
         std::process::exit(1)
     };
 
-    let program_name = CString::new(program_name.to_string_lossy().as_bytes())
-        .unwrap()
-        .into_raw();
-
-    let in_filename = CString::new(in_filename.to_string_lossy().as_bytes())
-        .unwrap()
-        .into_raw();
-
-    unsafe { ::std::process::exit(main_0(program_name, in_filename)) }
+    unsafe { ::std::process::exit(main_0(&program_name, &in_filename)) }
 }
