@@ -71,7 +71,7 @@ fn writeError(program_name: &Path, in_filename: &Path, io_error: std::io::Error)
     ExitCode::FAILURE
 }
 
-unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ! {
+unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ExitCode {
     let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
     let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char).to_string_lossy();
 
@@ -81,7 +81,7 @@ unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ! {
     eprintln!("{progname}: and cannot be handled.  To fix, increase");
     eprintln!("{progname}: BZ_MAX_HANDLED_BLOCKS in bzip2recover.rs, and recompile.");
 
-    std::process::exit(1)
+    ExitCode::FAILURE
 }
 
 unsafe fn bsOpenReadStream(stream: File) -> BitStream {
@@ -182,7 +182,7 @@ pub static mut B_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut B_END: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_END: [MaybeUInt64; 50000] = [0; 50000];
-unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> {
+unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
     let program_name_cstr = CString::new(program_name.to_string_lossy().as_bytes())
         .unwrap()
         .into_raw();
@@ -206,14 +206,14 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> 
             in_filename.as_os_str().len(),
         );
 
-        std::process::exit(1)
+        return Ok(ExitCode::FAILURE);
     }
     strcpy(IN_FILENAME.as_mut_ptr(), in_filename_cstr.as_ptr());
 
     let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
-        std::process::exit(1)
+        return Ok(ExitCode::FAILURE);
     };
 
     let mut bsIn = bsOpenReadStream(inFile);
@@ -270,7 +270,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> 
                     rbCtr += 1;
                 }
                 if currBlock >= 50000 as libc::c_int {
-                    tooManyBlocks(50000 as libc::c_int);
+                    return Ok(tooManyBlocks(50000 as libc::c_int));
                 }
                 currBlock += 1;
                 B_START[currBlock as usize] = bitsRead;
@@ -281,14 +281,14 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> 
     if rbCtr < 1 as libc::c_int {
         eprintln!("{}: sorry, I couldn't find any block boundaries.", progname);
 
-        std::process::exit(1)
+        return Ok(ExitCode::FAILURE);
     }
     eprintln!("{}: splitting into blocks", progname);
 
     let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
-        std::process::exit(1)
+        return Ok(ExitCode::FAILURE);
     };
 
     bsIn = bsOpenReadStream(inFile);
@@ -362,7 +362,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> 
             let Ok(outFile) = options.open(&out_filename) else {
                 eprintln!("{}: can't write `{}'", progname, out_filename.display());
 
-                std::process::exit(1)
+                return Ok(ExitCode::FAILURE);
             };
 
             drop(out_filename_cstr);
@@ -387,7 +387,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> 
 
     eprintln!("{}: finished", progname);
 
-    Ok(0)
+    Ok(ExitCode::SUCCESS)
 }
 
 pub fn main() -> ExitCode {
@@ -418,11 +418,11 @@ pub fn main() -> ExitCode {
             }
         }
 
-        std::process::exit(1)
+        return ExitCode::FAILURE;
     };
 
     match unsafe { main_0(&program_name, &in_filename) } {
-        Ok(exit_code) => ::std::process::exit(exit_code),
+        Ok(exit_code) => exit_code,
         Err(error) => match error {
             Error::Reading(io_error) => readError(&program_name, &in_filename, io_error),
             Error::Writing(io_error) => writeError(&program_name, &in_filename, io_error),
