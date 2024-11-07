@@ -102,43 +102,40 @@ unsafe fn bsOpenWriteStream(stream: File) -> BitStream {
     }
 }
 
-unsafe fn bsPutBit(bs: &mut BitStream, bit: i32) {
+unsafe fn bsPutBit(bs: &mut BitStream, bit: i32) -> Result<(), Error> {
     if bs.buffLive == 8 as libc::c_int {
-        bs.handle.write_all(&[bs.buffer as u8]).unwrap();
-        //        let retVal: i32 = putc( as libc::c_int, bs.handle);
-        //        if retVal == -1 as libc::c_int {
-        //            writeError();
-        //        }
+        bs.handle
+            .write_all(&[bs.buffer as u8])
+            .map_err(Error::Writing)?;
         BYTES_OUT = BYTES_OUT.wrapping_add(1);
         bs.buffLive = 1 as libc::c_int;
         bs.buffer = bit & 0x1 as libc::c_int;
     } else {
         bs.buffer = bs.buffer << 1 as libc::c_int | bit & 0x1 as libc::c_int;
         bs.buffLive += 1;
-    };
+    }
+
+    Ok(())
 }
-unsafe fn bsGetBit(bs: &mut BitStream) -> i32 {
+
+unsafe fn bsGetBit(bs: &mut BitStream) -> Result<i32, Error> {
     if bs.buffLive > 0 as libc::c_int {
         bs.buffLive -= 1;
-        bs.buffer >> bs.buffLive & 0x1 as libc::c_int
+
+        Ok(bs.buffer >> bs.buffLive & 0x1 as libc::c_int)
     } else {
         let mut retVal = [0u8];
-        let n = bs.handle.read(&mut retVal).unwrap();
+        let n = bs.handle.read(&mut retVal).map_err(Error::Reading)?;
 
+        // EOF
         if n == 0 {
-            return 2;
+            return Ok(2);
         }
-        //        let retVal: i32 = getc(bs.handle);
-        //        if retVal == -1 as libc::c_int {
-        //            if *__errno_location() != 0 as libc::c_int {
-        //                readError()
-        //            } else {
-        //                return 2;
-        //            }
-        //        }
+
         bs.buffLive = 7 as libc::c_int;
         bs.buffer = retVal[0] as i32;
-        bs.buffer >> 7 as libc::c_int & 0x1 as libc::c_int
+
+        Ok(bs.buffer >> 7 as libc::c_int & 0x1 as libc::c_int)
     }
 }
 
@@ -158,23 +155,29 @@ unsafe fn bsClose(mut bs: BitStream) -> Result<(), Error> {
     Ok(())
 }
 
-unsafe fn bsPutUChar(bs: &mut BitStream, c: u8) {
+unsafe fn bsPutUChar(bs: &mut BitStream, c: u8) -> Result<(), Error> {
     let mut i: i32 = 7;
     while i >= 0 {
         bsPutBit(
             bs,
             (c as u32 >> i & 0x1 as libc::c_int as libc::c_uint) as i32,
-        );
+        )?;
         i -= 1;
     }
+
+    Ok(())
 }
-unsafe fn bsPutUInt32(bs: &mut BitStream, c: u32) {
+
+unsafe fn bsPutUInt32(bs: &mut BitStream, c: u32) -> Result<(), Error> {
     let mut i: i32 = 31;
     while i >= 0 {
-        bsPutBit(bs, (c >> i & 0x1 as libc::c_int as libc::c_uint) as i32);
+        bsPutBit(bs, (c >> i & 0x1 as libc::c_int as libc::c_uint) as i32)?;
         i -= 1;
     }
+
+    Ok(())
 }
+
 pub static mut B_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut B_END: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_START: [MaybeUInt64; 50000] = [0; 50000];
@@ -222,7 +225,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> 
     B_START[currBlock as usize] = 0 as libc::c_int as MaybeUInt64;
     let mut rbCtr = 0 as libc::c_int;
     loop {
-        let b = bsGetBit(&mut bsIn);
+        let b = bsGetBit(&mut bsIn)?;
         bitsRead = bitsRead.wrapping_add(1);
         if b == 2 {
             if bitsRead >= B_START[currBlock as usize]
@@ -294,7 +297,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> 
     bitsRead = 0 as libc::c_int as MaybeUInt64;
     let mut wrBlock = 0 as libc::c_int;
     loop {
-        let b = bsGetBit(&mut bsIn);
+        let b = bsGetBit(&mut bsIn)?;
         if b == 2 as libc::c_int {
             break;
         }
@@ -305,24 +308,24 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> 
         {
             blockCRC = buffHi << 16 as libc::c_int | buffLo >> 16 as libc::c_int;
         }
-        if !bsWr.is_none()
+        if bsWr.is_some()
             && bitsRead >= RB_START[wrBlock as usize]
             && bitsRead <= RB_END[wrBlock as usize]
         {
-            bsPutBit(bsWr.as_mut().unwrap(), b);
+            bsPutBit(bsWr.as_mut().unwrap(), b)?;
         }
         bitsRead = bitsRead.wrapping_add(1);
         if bitsRead
             == (RB_END[wrBlock as usize]).wrapping_add(1 as libc::c_int as libc::c_ulonglong)
         {
             if let Some(mut bsWr) = bsWr.take() {
-                bsPutUChar(&mut bsWr, 0x17 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x72 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x45 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x38 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x50 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x90 as libc::c_int as u8);
-                bsPutUInt32(&mut bsWr, blockCRC);
+                bsPutUChar(&mut bsWr, 0x17)?;
+                bsPutUChar(&mut bsWr, 0x72)?;
+                bsPutUChar(&mut bsWr, 0x45)?;
+                bsPutUChar(&mut bsWr, 0x38)?;
+                bsPutUChar(&mut bsWr, 0x50)?;
+                bsPutUChar(&mut bsWr, 0x90)?;
+                bsPutUInt32(&mut bsWr, blockCRC)?;
                 bsClose(bsWr)?;
             }
 
@@ -365,16 +368,16 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> Result<i32, Error> 
             drop(out_filename_cstr);
             bsWr = {
                 let mut bsWr = bsOpenWriteStream(outFile);
-                bsPutUChar(&mut bsWr, 0x42 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x5a as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x68 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, (0x30 as libc::c_int + 9 as libc::c_int) as u8);
-                bsPutUChar(&mut bsWr, 0x31 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x41 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x59 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x26 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x53 as libc::c_int as u8);
-                bsPutUChar(&mut bsWr, 0x59 as libc::c_int as u8);
+                bsPutUChar(&mut bsWr, 0x42)?;
+                bsPutUChar(&mut bsWr, 0x5a)?;
+                bsPutUChar(&mut bsWr, 0x68)?;
+                bsPutUChar(&mut bsWr, 0x30 + 9)?;
+                bsPutUChar(&mut bsWr, 0x31)?;
+                bsPutUChar(&mut bsWr, 0x41)?;
+                bsPutUChar(&mut bsWr, 0x59)?;
+                bsPutUChar(&mut bsWr, 0x26)?;
+                bsPutUChar(&mut bsWr, 0x53)?;
+                bsPutUChar(&mut bsWr, 0x59)?;
                 Some(bsWr)
             }
         }
