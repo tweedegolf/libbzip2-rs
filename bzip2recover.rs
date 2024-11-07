@@ -4,6 +4,8 @@
 use std::ffi::{c_char, CStr, CString};
 use std::fs::File;
 use std::os::fd::IntoRawFd;
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 
 use libc::FILE;
@@ -88,9 +90,10 @@ unsafe fn bsOpenReadStream(stream: File) -> BitStream {
         mode: b'r',
     }
 }
-unsafe fn bsOpenWriteStream(stream: *mut FILE) -> BitStream {
-    // let fd = stream.into_raw_fd();
-    // let stream = libc::fdopen(fd, c"rb".as_ptr());
+
+unsafe fn bsOpenWriteStream(stream: File) -> BitStream {
+    let fd = stream.into_raw_fd();
+    let stream = libc::fdopen(fd, c"wb".as_ptr());
 
     BitStream {
         handle: stream,
@@ -178,21 +181,6 @@ unsafe fn bsPutUInt32(bs: &mut BitStream, c: u32) {
         bsPutBit(bs, (c >> i & 0x1 as libc::c_int as libc::c_uint) as i32);
         i -= 1;
     }
-}
-unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *mut FILE {
-    let fh = open(
-        name,
-        0o1 as libc::c_int | 0o100 as libc::c_int | 0o200 as libc::c_int,
-        0o200 as libc::c_int | 0o400 as libc::c_int,
-    );
-    if fh == -1 as libc::c_int {
-        return std::ptr::null_mut::<FILE>();
-    }
-    let fp = fdopen(fh, mode);
-    if fp.is_null() {
-        close(fh);
-    }
-    fp
 }
 pub static mut B_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut B_END: [MaybeUInt64; 50000] = [0; 50000];
@@ -331,7 +319,6 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
     let mut blockCRC = 0 as libc::c_int as u32;
     let mut bsWr: Option<BitStream> = None;
     bitsRead = 0 as libc::c_int as MaybeUInt64;
-    let mut outFile = std::ptr::null_mut::<FILE>();
     let mut wrBlock = 0 as libc::c_int;
     loop {
         let b = bsGetBit(&mut bsIn);
@@ -345,7 +332,7 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
         {
             blockCRC = buffHi << 16 as libc::c_int | buffLo >> 16 as libc::c_int;
         }
-        if !outFile.is_null()
+        if !bsWr.is_none()
             && bitsRead >= RB_START[wrBlock as usize]
             && bitsRead <= RB_END[wrBlock as usize]
         {
@@ -355,20 +342,17 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
         if bitsRead
             == (RB_END[wrBlock as usize]).wrapping_add(1 as libc::c_int as libc::c_ulonglong)
         {
-            if !outFile.is_null() {
-                {
-                    let bsWr = bsWr.as_mut().unwrap();
-                    bsPutUChar(bsWr, 0x17 as libc::c_int as u8);
-                    bsPutUChar(bsWr, 0x72 as libc::c_int as u8);
-                    bsPutUChar(bsWr, 0x45 as libc::c_int as u8);
-                    bsPutUChar(bsWr, 0x38 as libc::c_int as u8);
-                    bsPutUChar(bsWr, 0x50 as libc::c_int as u8);
-                    bsPutUChar(bsWr, 0x90 as libc::c_int as u8);
-                    bsPutUInt32(bsWr, blockCRC);
-                }
-                bsClose(bsWr.take().unwrap());
-                outFile = std::ptr::null_mut::<FILE>();
+            if let Some(mut bsWr) = bsWr.take() {
+                bsPutUChar(&mut bsWr, 0x17 as libc::c_int as u8);
+                bsPutUChar(&mut bsWr, 0x72 as libc::c_int as u8);
+                bsPutUChar(&mut bsWr, 0x45 as libc::c_int as u8);
+                bsPutUChar(&mut bsWr, 0x38 as libc::c_int as u8);
+                bsPutUChar(&mut bsWr, 0x50 as libc::c_int as u8);
+                bsPutUChar(&mut bsWr, 0x90 as libc::c_int as u8);
+                bsPutUInt32(&mut bsWr, blockCRC);
+                bsClose(bsWr);
             }
+
             if wrBlock >= rbCtr {
                 break;
             }
@@ -390,25 +374,20 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
                 out_filename.display(),
             );
 
-            //            let Ok(outFile) = std::fs::File::options()
-            //                .write(true)
-            //                .create(true)
-            //                .open(&out_filename)
-            //            else {
-            //                eprintln!("{}: can't write `{}'", progname, out_filename.display());
-            //
-            //                std::process::exit(1)
-            //            };
+            let mut options = std::fs::File::options();
+            options.write(true).create(true);
 
-            outFile = fopen_output_safely(
-                out_filename_cstr.as_ptr().cast_mut(),
-                b"wb\0" as *const u8 as *const libc::c_char,
-            );
-            if outFile.is_null() {
+            #[cfg(unix)]
+            options.mode(libc::S_IWUSR | libc::S_IRUSR);
+
+            #[cfg(unix)]
+            options.custom_flags(libc::O_EXCL);
+
+            let Ok(outFile) = options.open(&out_filename) else {
                 eprintln!("{}: can't write `{}'", progname, out_filename.display());
 
                 std::process::exit(1)
-            }
+            };
 
             drop(out_filename_cstr);
             bsWr = {
