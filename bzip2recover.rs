@@ -10,6 +10,13 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 const BZ_MAX_HANDLED_BLOCKS: usize = 50000;
+const BZ_MAX_FILENAME: usize = 2000;
+
+const BLOCK_HEADER_HI: u32 = 0x00003141u32;
+const BLOCK_HEADER_LO: u32 = 0x59265359u32;
+
+const BLOCK_ENDMARK_HI: u32 = 0x00001772u32;
+const BLOCK_ENDMARK_LO: u32 = 0x45385090u32;
 
 enum Error {
     Reading(std::io::Error),
@@ -171,7 +178,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
 
     let progname = program_name.display();
 
-    if in_filename.as_os_str().len() >= (2000 - 20) as usize {
+    if in_filename.as_os_str().len() >= BZ_MAX_FILENAME - 20 {
         eprintln!(
             "{}: supplied filename is suspiciously (>= {} chars) long.  Bye!",
             program_name.display(),
@@ -189,71 +196,70 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
 
     let mut bsIn = bsOpenReadStream(inFile);
     eprintln!("{}: searching for block boundaries ...", progname);
-    let mut bitsRead = 0 as libc::c_int as u64;
-    let mut buffLo = 0 as libc::c_int as u32;
+
+    let mut bitsRead: u64 = 0;
+    let mut buffLo: u32 = 0;
     let mut buffHi = buffLo;
-    let mut currBlock = 0 as libc::c_int;
-    B_START[currBlock as usize] = 0 as libc::c_int as u64;
-    let mut rbCtr = 0 as libc::c_int;
+    let mut currBlock = 0;
+    B_START[currBlock] = 0;
+    let mut rbCtr = 0;
+
     loop {
         let b = bsGetBit(&mut bsIn)?;
         bitsRead = bitsRead.wrapping_add(1);
         if b == 2 {
-            if bitsRead >= B_START[currBlock as usize]
-                && bitsRead.wrapping_sub(B_START[currBlock as usize])
-                    >= 40 as libc::c_int as libc::c_ulonglong
-            {
-                B_END[currBlock as usize] =
-                    bitsRead.wrapping_sub(1 as libc::c_int as libc::c_ulonglong);
-                if currBlock > 0 as libc::c_int {
+            if bitsRead >= B_START[currBlock] && bitsRead.wrapping_sub(B_START[currBlock]) >= 40 {
+                B_END[currBlock] = bitsRead.wrapping_sub(1);
+                if currBlock > 0 {
                     eprintln!(
                         "   block {} runs from {} to {} (incomplete)",
-                        currBlock, B_START[currBlock as usize], B_END[currBlock as usize],
+                        currBlock, B_START[currBlock], B_END[currBlock],
                     );
                 }
             }
             break;
         } else {
-            buffHi = buffHi << 1 as libc::c_int | buffLo >> 31 as libc::c_int;
-            buffLo = buffLo << 1 as libc::c_int | (b & 1 as libc::c_int) as libc::c_uint;
-            if (buffHi & 0xffff as libc::c_int as libc::c_uint) == 0x3141 && buffLo == 0x59265359
-                || (buffHi & 0xffff as libc::c_int as libc::c_uint) == 0x1772
-                    && buffLo == 0x45385090
+            buffHi = buffHi << 1 | buffLo >> 31;
+            buffLo = buffLo << 1 | (b & 1) as u32;
+            if (buffHi & 0xffff) == BLOCK_HEADER_HI && buffLo == BLOCK_HEADER_LO
+                || (buffHi & 0xffff) == BLOCK_ENDMARK_HI && buffLo == BLOCK_ENDMARK_LO
             {
-                if bitsRead > 49 as libc::c_int as libc::c_ulonglong {
-                    B_END[currBlock as usize] =
-                        bitsRead.wrapping_sub(49 as libc::c_int as libc::c_ulonglong);
+                B_END[currBlock] = if bitsRead > 49 {
+                    bitsRead.wrapping_sub(49)
                 } else {
-                    B_END[currBlock as usize] = 0 as libc::c_int as u64;
-                }
-                if currBlock > 0 as libc::c_int
-                    && (B_END[currBlock as usize]).wrapping_sub(B_START[currBlock as usize])
-                        >= 130 as libc::c_int as libc::c_ulonglong
-                {
+                    0
+                };
+
+                if currBlock > 0 && (B_END[currBlock]).wrapping_sub(B_START[currBlock]) >= 130 {
                     eprintln!(
                         "   block {} runs from {} to {}",
-                        rbCtr + 1 as libc::c_int,
-                        B_START[currBlock as usize],
-                        B_END[currBlock as usize],
+                        rbCtr + 1,
+                        B_START[currBlock],
+                        B_END[currBlock],
                     );
-                    RB_START[rbCtr as usize] = B_START[currBlock as usize];
-                    RB_END[rbCtr as usize] = B_END[currBlock as usize];
+                    RB_START[rbCtr as usize] = B_START[currBlock];
+                    RB_END[rbCtr as usize] = B_END[currBlock];
                     rbCtr += 1;
                 }
-                if currBlock >= BZ_MAX_HANDLED_BLOCKS as libc::c_int {
+                if currBlock >= BZ_MAX_HANDLED_BLOCKS {
                     return Err(Error::TooManyBlocks(BZ_MAX_HANDLED_BLOCKS));
                 }
                 currBlock += 1;
-                B_START[currBlock as usize] = bitsRead;
+                B_START[currBlock] = bitsRead;
             }
         }
     }
+
     bsClose(bsIn)?;
-    if rbCtr < 1 as libc::c_int {
+
+    /*-- identified blocks run from 1 to rbCtr inclusive. --*/
+
+    if rbCtr < 1 {
         eprintln!("{}: sorry, I couldn't find any block boundaries.", progname);
 
         return Ok(ExitCode::FAILURE);
     }
+
     eprintln!("{}: splitting into blocks", progname);
 
     let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
@@ -261,12 +267,14 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
 
         return Ok(ExitCode::FAILURE);
     };
-
     bsIn = bsOpenReadStream(inFile);
-    let mut blockCRC = 0 as libc::c_int as u32;
+
+    let mut blockCRC: u32 = 0;
     let mut bsWr: Option<BitStream> = None;
-    bitsRead = 0 as libc::c_int as u64;
     let mut wrBlock = 0 as libc::c_int;
+
+    bitsRead = 0 as libc::c_int as u64;
+
     loop {
         let b = bsGetBit(&mut bsIn)?;
         if b == 2 as libc::c_int {
