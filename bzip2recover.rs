@@ -166,10 +166,10 @@ fn bsPutUInt32(bs: &mut BitStream, c: u32) -> Result<(), Error> {
 }
 
 fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
-    let mut B_START = [0u64; 50000];
-    let mut B_END = [0u64; 50000];
-    let mut RB_START = [0u64; 50000];
-    let mut RB_END = [0u64; 50000];
+    let mut b_start = vec![0u64; BZ_MAX_HANDLED_BLOCKS];
+    let mut b_end = vec![0u64; BZ_MAX_HANDLED_BLOCKS];
+    let mut rb_start = vec![0u64; BZ_MAX_HANDLED_BLOCKS];
+    let mut rb_end = vec![0u64; BZ_MAX_HANDLED_BLOCKS];
 
     let progname = program_name.display();
 
@@ -196,7 +196,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
     let mut buffLo: u32 = 0;
     let mut buffHi = buffLo;
     let mut currBlock = 0;
-    B_START[currBlock] = 0;
+    b_start[currBlock] = 0;
     let mut rbCtr = 0;
 
     loop {
@@ -204,13 +204,13 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
         bitsRead = bitsRead.wrapping_add(1);
         match b {
             None => {
-                if bitsRead >= B_START[currBlock] && bitsRead.wrapping_sub(B_START[currBlock]) >= 40
+                if bitsRead >= b_start[currBlock] && bitsRead.wrapping_sub(b_start[currBlock]) >= 40
                 {
-                    B_END[currBlock] = bitsRead.wrapping_sub(1);
+                    b_end[currBlock] = bitsRead.wrapping_sub(1);
                     if currBlock > 0 {
                         eprintln!(
                             "   block {} runs from {} to {} (incomplete)",
-                            currBlock, B_START[currBlock], B_END[currBlock],
+                            currBlock, b_start[currBlock], b_end[currBlock],
                         );
                     }
                 }
@@ -222,28 +222,28 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
                 if (buffHi & 0xffff) == BLOCK_HEADER_HI && buffLo == BLOCK_HEADER_LO
                     || (buffHi & 0xffff) == BLOCK_ENDMARK_HI && buffLo == BLOCK_ENDMARK_LO
                 {
-                    B_END[currBlock] = if bitsRead > 49 {
+                    b_end[currBlock] = if bitsRead > 49 {
                         bitsRead.wrapping_sub(49)
                     } else {
                         0
                     };
 
-                    if currBlock > 0 && (B_END[currBlock]).wrapping_sub(B_START[currBlock]) >= 130 {
+                    if currBlock > 0 && (b_end[currBlock]).wrapping_sub(b_start[currBlock]) >= 130 {
                         eprintln!(
                             "   block {} runs from {} to {}",
                             rbCtr + 1,
-                            B_START[currBlock],
-                            B_END[currBlock],
+                            b_start[currBlock],
+                            b_end[currBlock],
                         );
-                        RB_START[rbCtr] = B_START[currBlock];
-                        RB_END[rbCtr] = B_END[currBlock];
+                        rb_start[rbCtr] = b_start[currBlock];
+                        rb_end[rbCtr] = b_end[currBlock];
                         rbCtr += 1;
                     }
                     if currBlock >= BZ_MAX_HANDLED_BLOCKS {
                         return Err(Error::TooManyBlocks(BZ_MAX_HANDLED_BLOCKS));
                     }
                     currBlock += 1;
-                    B_START[currBlock] = bitsRead;
+                    b_start[currBlock] = bitsRead;
                 }
             }
         }
@@ -283,14 +283,14 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
         buffHi = buffHi << 1 | buffLo >> 31;
         buffLo = buffLo << 1 | b as u32;
 
-        if bitsRead == 47u64.wrapping_add(RB_START[wrBlock]) {
+        if bitsRead == 47u64.wrapping_add(rb_start[wrBlock]) {
             blockCRC = buffHi << 16 | buffLo >> 16;
         }
-        if bsWr.is_some() && bitsRead >= RB_START[wrBlock] && bitsRead <= RB_END[wrBlock] {
+        if bsWr.is_some() && bitsRead >= rb_start[wrBlock] && bitsRead <= rb_end[wrBlock] {
             bsPutBit(bsWr.as_mut().unwrap(), b as i32)?;
         }
         bitsRead = bitsRead.wrapping_add(1);
-        if bitsRead == (RB_END[wrBlock]).wrapping_add(1) {
+        if bitsRead == (rb_end[wrBlock]).wrapping_add(1) {
             if let Some(mut bsWr) = bsWr.take() {
                 bsPutUChar(&mut bsWr, 0x17)?;
                 bsPutUChar(&mut bsWr, 0x72)?;
@@ -306,7 +306,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error>
                 break;
             }
             wrBlock += 1;
-        } else if bitsRead == RB_START[wrBlock] {
+        } else if bitsRead == rb_start[wrBlock] {
             // we've been able to open this file, so there must be a file name
             let filename = in_filename.file_name().unwrap();
 
