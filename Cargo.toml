@@ -33,3 +33,4 @@ libbzip2-rs-sys = { path = "libbzip2-rs-sys/", default-features = false }
 
 [dev-dependencies]
 tempfile = "3.13.0"
+crc32fast = "=1.4.2"
