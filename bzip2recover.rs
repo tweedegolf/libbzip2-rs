@@ -7,7 +7,6 @@ use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 const BZ_MAX_HANDLED_BLOCKS: usize = 50000;
 const BZ_MAX_FILENAME: usize = 2000;
@@ -31,8 +30,6 @@ struct BitStream {
     buffLive: i32,
     mode: u8,
 }
-
-static BYTES_OUT: AtomicU64 = AtomicU64::new(0);
 
 fn readError(program_name: &Path, in_filename: &Path, io_error: std::io::Error) -> ExitCode {
     eprintln!(
@@ -106,7 +103,6 @@ fn bsPutBit(bs: &mut BitStream, bit: i32) -> Result<(), Error> {
         bs.handle
             .write_all(&[bs.buffer as u8])
             .map_err(Error::Writing)?;
-        BYTES_OUT.fetch_add(1, Ordering::Relaxed);
         bs.buffLive = 1;
         bs.buffer = bit & 0x1;
     } else {
@@ -147,7 +143,6 @@ fn bsClose(mut bs: BitStream) -> Result<(), Error> {
         bs.handle
             .write_all(&[bs.buffer as u8])
             .map_err(Error::Writing)?;
-        BYTES_OUT.fetch_add(1, Ordering::Relaxed);
         bs.handle.flush().map_err(Error::Writing)?;
     }
 
