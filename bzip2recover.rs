@@ -1,7 +1,8 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::ffi::{c_char, CStr};
+use std::ffi::{c_char, CStr, CString};
+use std::path::PathBuf;
 
 use libc::FILE;
 
@@ -202,10 +203,10 @@ pub static mut B_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut B_END: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_START: [MaybeUInt64; 50000] = [0; 50000];
 pub static mut RB_END: [MaybeUInt64; 50000] = [0; 50000];
-unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
+unsafe fn main_0(program_name_cstr: *mut c_char, opt_in_filename_cstr: Option<*mut c_char>) -> i32 {
     strncpy(
         PROGNAME.as_mut_ptr(),
-        *argv.offset(0 as libc::c_int as isize),
+        program_name_cstr,
         (2000 as libc::c_int - 1 as libc::c_int) as usize,
     );
     PROGNAME[(2000 as libc::c_int - 1 as libc::c_int) as usize] = '\0' as i32 as c_char;
@@ -215,7 +216,7 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
     let progname = CStr::from_ptr(PROGNAME.as_ptr() as *const c_char).to_string_lossy();
 
     eprintln!("bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.");
-    if argc != 2 as libc::c_int {
+    let Some(in_filename_cstr) = opt_in_filename_cstr else {
         eprintln!("{}: usage is `{} damaged_file_name'.", progname, progname,);
         match core::mem::size_of::<MaybeUInt64>() as libc::c_ulong {
             8 => {
@@ -233,22 +234,18 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
         }
 
         std::process::exit(1)
-    }
-    if strlen(*argv.offset(1 as libc::c_int as isize))
-        >= (2000 as libc::c_int - 20 as libc::c_int) as usize
-    {
+    };
+
+    if strlen(in_filename_cstr) >= (2000 as libc::c_int - 20 as libc::c_int) as usize {
         eprintln!(
             "{}: supplied filename is suspiciously (>= {} chars) long.  Bye!",
             progname,
-            strlen(*argv.offset(1 as libc::c_int as isize)) as libc::c_int,
+            strlen(in_filename_cstr) as libc::c_int,
         );
 
         std::process::exit(1)
     }
-    strcpy(
-        IN_FILENAME.as_mut_ptr(),
-        *argv.offset(1 as libc::c_int as isize),
-    );
+    strcpy(IN_FILENAME.as_mut_ptr(), in_filename_cstr);
 
     let in_filename = CStr::from_ptr(IN_FILENAME.as_ptr() as *const c_char).to_string_lossy();
 
@@ -459,14 +456,20 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
 }
 
 pub fn main() {
-    let mut args: Vec<*mut libc::c_char> = Vec::new();
-    for arg in ::std::env::args() {
-        args.push(
-            (::std::ffi::CString::new(arg))
-                .expect("Failed to convert argument into CString.")
-                .into_raw(),
-        );
-    }
-    args.push(core::ptr::null_mut());
-    unsafe { ::std::process::exit(main_0((args.len() - 1) as i32, args.as_mut_ptr())) }
+    let mut it = ::std::env::args_os();
+
+    let program_name = PathBuf::from(it.next().unwrap());
+    let opt_in_filename = it.next().map(|path| PathBuf::from(path));
+
+    let program_name = CString::new(program_name.to_string_lossy().as_bytes())
+        .unwrap()
+        .into_raw();
+
+    let opt_in_filename = opt_in_filename.map(|in_filename| {
+        CString::new(in_filename.to_string_lossy().as_bytes())
+            .unwrap()
+            .into_raw()
+    });
+
+    unsafe { ::std::process::exit(main_0(program_name, opt_in_filename)) }
 }
