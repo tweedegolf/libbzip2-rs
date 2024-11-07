@@ -1,7 +1,6 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use std::ffi::CString;
 use std::fs::File;
 use std::io::{Read, Write};
 #[cfg(unix)]
@@ -320,9 +319,6 @@ fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
 
             let out_filename = in_filename.with_file_name(&filename).with_extension("bz2");
 
-            let out_filename_cstr =
-                CString::new(out_filename.to_string_lossy().as_bytes()).unwrap();
-
             eprintln!(
                 "   writing block {} to `{}' ...",
                 wrBlock + 1 as libc::c_int,
@@ -344,7 +340,6 @@ fn main_0(program_name: &Path, in_filename: &Path) -> Result<ExitCode, Error> {
                 return Ok(ExitCode::FAILURE);
             };
 
-            drop(out_filename_cstr);
             bsWr = {
                 let mut bsWr = bsOpenWriteStream(outFile);
                 bsPutUChar(&mut bsWr, 0x42)?;
