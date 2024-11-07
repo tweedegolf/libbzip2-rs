@@ -30,3 +30,6 @@ libbzip2-rs-sys = { path = "libbzip2-rs-sys/", default-features = false }
 [dependencies]
 libc = "0.2"
 libbzip2-rs-sys = { path = "libbzip2-rs-sys/", default-features = false }
+
+[dev-dependencies]
+tempfile = "3.13.0"
