@@ -6,8 +6,8 @@ use std::ffi::c_char;
 use libc::{fprintf, FILE};
 
 use libc::{
-    __errno_location, close, exit, fclose, fdopen, fflush, fopen, free, malloc, open, perror,
-    sprintf, strcat, strcpy, strlen, strncpy, strrchr,
+    __errno_location, close, fclose, fdopen, fflush, fopen, free, malloc, open, perror, sprintf,
+    strcat, strcpy, strlen, strncpy, strrchr,
 };
 
 extern "C" {
@@ -30,7 +30,8 @@ pub static mut OUT_FILENAME: [c_char; 2000] = [0; 2000];
 pub static mut PROGNAME: [c_char; 2000] = [0; 2000];
 pub static mut BYTES_OUT: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
 pub static mut BYTES_IN: MaybeUInt64 = 0 as libc::c_int as MaybeUInt64;
-unsafe fn readError() {
+
+unsafe fn readError() -> ! {
     fprintf(
         stderr,
         b"%s: I/O error reading `%s', possible reason follows.\n\0" as *const u8
@@ -44,9 +45,11 @@ unsafe fn readError() {
         b"%s: warning: output file(s) may be incomplete.\n\0" as *const u8 as *const libc::c_char,
         PROGNAME.as_mut_ptr(),
     );
-    exit(1 as libc::c_int);
+
+    std::process::exit(1)
 }
-unsafe fn writeError() {
+
+unsafe fn writeError() -> ! {
     fprintf(
         stderr,
         b"%s: I/O error reading `%s', possible reason follows.\n\0" as *const u8
@@ -60,9 +63,11 @@ unsafe fn writeError() {
         b"%s: warning: output file(s) may be incomplete.\n\0" as *const u8 as *const libc::c_char,
         PROGNAME.as_mut_ptr(),
     );
-    exit(1 as libc::c_int);
+
+    std::process::exit(1)
 }
-unsafe fn mallocFail(n: i32) {
+
+unsafe fn mallocFail(n: i32) -> ! {
     fprintf(
         stderr,
         b"%s: malloc failed on request for %d bytes.\n\0" as *const u8 as *const libc::c_char,
@@ -74,8 +79,10 @@ unsafe fn mallocFail(n: i32) {
         b"%s: warning: output file(s) may be incomplete.\n\0" as *const u8 as *const libc::c_char,
         PROGNAME.as_mut_ptr(),
     );
-    exit(1 as libc::c_int);
+
+    std::process::exit(1)
 }
+
 unsafe fn tooManyBlocks(max_handled_blocks: i32) {
     fprintf(
         stderr,
@@ -95,7 +102,8 @@ unsafe fn tooManyBlocks(max_handled_blocks: i32) {
             as *const libc::c_char,
         PROGNAME.as_mut_ptr(),
     );
-    exit(1 as libc::c_int);
+
+    std::process::exit(1)
 }
 unsafe fn bsOpenReadStream(stream: *mut FILE) -> *mut BitStream {
     let bs: *mut BitStream = malloc(core::mem::size_of::<BitStream>()) as *mut BitStream;
@@ -273,7 +281,8 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
                 );
             }
         }
-        exit(1 as libc::c_int);
+
+        std::process::exit(1)
     }
     if strlen(*argv.offset(1 as libc::c_int as isize))
         >= (2000 as libc::c_int - 20 as libc::c_int) as usize
@@ -285,7 +294,8 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
             PROGNAME.as_mut_ptr(),
             strlen(*argv.offset(1 as libc::c_int as isize)) as libc::c_int,
         );
-        exit(1 as libc::c_int);
+
+        std::process::exit(1)
     }
     strcpy(
         IN_FILENAME.as_mut_ptr(),
@@ -302,7 +312,8 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
             PROGNAME.as_mut_ptr(),
             IN_FILENAME.as_mut_ptr(),
         );
-        exit(1 as libc::c_int);
+
+        std::process::exit(1)
     }
     let mut bsIn = bsOpenReadStream(inFile);
     fprintf(
@@ -382,7 +393,8 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
                 as *const libc::c_char,
             PROGNAME.as_mut_ptr(),
         );
-        exit(1 as libc::c_int);
+
+        std::process::exit(1)
     }
     fprintf(
         stderr,
@@ -400,7 +412,8 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
             PROGNAME.as_mut_ptr(),
             IN_FILENAME.as_mut_ptr(),
         );
-        exit(1 as libc::c_int);
+
+        std::process::exit(1)
     }
     bsIn = bsOpenReadStream(inFile);
     let mut blockCRC = 0 as libc::c_int as u32;
@@ -498,7 +511,8 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
                     PROGNAME.as_mut_ptr(),
                     OUT_FILENAME.as_mut_ptr(),
                 );
-                exit(1 as libc::c_int);
+
+                std::process::exit(1)
             }
             bsWr = bsOpenWriteStream(outFile);
             bsPutUChar(bsWr, 0x42 as libc::c_int as u8);
