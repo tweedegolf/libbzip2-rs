@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use libc::FILE;
 
-use libc::{__errno_location, close, fclose, fdopen, fflush, open, perror, strcpy, strncpy};
+use libc::{__errno_location, fclose, fflush, perror, strcpy, strncpy};
 
 extern "C" {
     fn getc(__stream: *mut FILE) -> libc::c_int;
@@ -214,16 +214,6 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
     }
     strcpy(IN_FILENAME.as_mut_ptr(), in_filename_cstr.as_ptr());
 
-    //    let mut inFile = fopen(
-    //        in_filename_cstr.as_ptr().cast_mut(),
-    //        b"rb\0" as *const u8 as *const libc::c_char,
-    //    );
-    //    if inFile.is_null() {
-    //        eprintln!("{}: can't read `{}'", progname, in_filename.display());
-    //
-    //        std::process::exit(1)
-    //    }
-
     let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
 
@@ -298,16 +288,6 @@ unsafe fn main_0(program_name: &Path, in_filename: &Path) -> i32 {
         std::process::exit(1)
     }
     eprintln!("{}: splitting into blocks", progname);
-
-    //    inFile = fopen(
-    //        in_filename_cstr.as_ptr().cast_mut(),
-    //        b"rb\0" as *const u8 as *const libc::c_char,
-    //    );
-    //    if inFile.is_null() {
-    //        eprintln!("{}: can't open `{}'", progname, in_filename.display(),);
-    //
-    //        std::process::exit(1)
-    //    }
 
     let Ok(inFile) = std::fs::File::options().read(true).open(in_filename) else {
         eprintln!("{}: can't read `{}'", progname, in_filename.display());
