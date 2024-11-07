@@ -16,7 +16,6 @@ extern "C" {
 }
 pub type MaybeUInt64 = libc::c_ulonglong;
 pub type Bool = libc::c_uchar;
-#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BitStream {
     pub handle: *mut FILE,
@@ -79,21 +78,21 @@ unsafe fn tooManyBlocks(max_handled_blocks: i32) -> ! {
     std::process::exit(1)
 }
 
-unsafe fn bsOpenReadStream(stream: *mut FILE) -> Box<BitStream> {
-    Box::new(BitStream {
+unsafe fn bsOpenReadStream(stream: *mut FILE) -> BitStream {
+    BitStream {
         handle: stream,
         buffer: 0,
         buffLive: 0,
         mode: b'r',
-    })
+    }
 }
-unsafe fn bsOpenWriteStream(stream: *mut FILE) -> Box<BitStream> {
-    Box::new(BitStream {
+unsafe fn bsOpenWriteStream(stream: *mut FILE) -> BitStream {
+    BitStream {
         handle: stream,
         buffer: 0,
         buffLive: 0,
         mode: b'w',
-    })
+    }
 }
 
 unsafe fn bsPutBit(bs: &mut BitStream, bit: i32) {
@@ -128,7 +127,7 @@ unsafe fn bsGetBit(bs: &mut BitStream) -> i32 {
         bs.buffer >> 7 as libc::c_int & 0x1 as libc::c_int
     }
 }
-unsafe fn bsClose(mut bs: Box<BitStream>) {
+unsafe fn bsClose(mut bs: BitStream) {
     let mut retVal: i32;
     if bs.mode == b'w' {
         while bs.buffLive < 8 as libc::c_int {
@@ -341,7 +340,7 @@ unsafe fn main_0(argc: i32, argv: *mut *mut c_char) -> i32 {
     }
     bsIn = bsOpenReadStream(inFile);
     let mut blockCRC = 0 as libc::c_int as u32;
-    let mut bsWr: Option<Box<BitStream>> = None;
+    let mut bsWr: Option<BitStream> = None;
     bitsRead = 0 as libc::c_int as MaybeUInt64;
     let mut outFile = std::ptr::null_mut::<FILE>();
     let mut wrBlock = 0 as libc::c_int;
