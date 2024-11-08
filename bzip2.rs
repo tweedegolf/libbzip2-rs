@@ -2208,10 +2208,9 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         blockSize100k = 2 as libc::c_int;
     }
     if opMode == OperationMode::Test && srcMode == SourceMode::F2O {
-        fprintf(
-            stderr,
-            b"%s: -c and -t cannot be used together.\n\0" as *const u8 as *const libc::c_char,
-            progName,
+        eprintln!(
+            "{}: -c and -t cannot be used together.",
+            program_name.display(),
         );
         exit(1 as libc::c_int);
     }
