@@ -1546,14 +1546,14 @@ unsafe fn compress(name: *mut c_char) {
     }
     delete_output_on_interrupt = false;
 }
-unsafe fn uncompress(name: *mut c_char) {
+unsafe fn uncompress(name: Option<String>) {
     let inStr: *mut FILE;
     let outStr: *mut FILE;
     let n: i32;
 
     delete_output_on_interrupt = false;
 
-    if name.is_null() && srcMode != SourceMode::I2O {
+    if name.is_none() && srcMode != SourceMode::I2O {
         panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
 
@@ -1572,15 +1572,18 @@ unsafe fn uncompress(name: *mut c_char) {
                 );
             }
             SourceMode::F2O => {
-                copyFileName(inName.as_mut_ptr(), name);
+                let name_cstr = CString::new(name.unwrap()).unwrap();
+                copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
                 copyFileName(
                     outName.as_mut_ptr(),
                     b"(stdout)\0" as *const u8 as *const libc::c_char,
                 );
             }
             SourceMode::F2F => {
-                copyFileName(inName.as_mut_ptr(), name);
-                copyFileName(outName.as_mut_ptr(), name);
+                let name_cstr = CString::new(name.unwrap()).unwrap();
+
+                copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
+                copyFileName(outName.as_mut_ptr(), name_cstr.as_ptr());
 
                 for i in 0..BZ_N_SUFFIX_PAIRS {
                     if mapSuffix(outName.as_mut_ptr(), zSuffix[i], unzSuffix[i]) != 0 {
@@ -2246,7 +2249,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         OperationMode::Unzip => {
             unz_fails_exist = false;
             if srcMode == SourceMode::I2O {
-                uncompress(std::ptr::null_mut());
+                uncompress(None);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2254,8 +2257,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        let name = CString::new(name).unwrap();
-                        uncompress(name.as_ptr().cast_mut());
+                        uncompress(Some(name));
                     }
                 }
             }
