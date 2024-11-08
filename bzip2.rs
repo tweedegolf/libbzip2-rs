@@ -1943,7 +1943,7 @@ const BZLIB_VERSION: &str = unsafe {
 };
 
 fn license() {
-    eprint!(
+    print!(
         concat!(
             "bzip2, a block-sorting file compressor.  Version {}.\n",
             "   \n",
@@ -1964,7 +1964,7 @@ fn license() {
 }
 
 fn usage(full_program_name: &Path) {
-    eprint!(
+    print!(
         concat!(
             "bzip2, a block-sorting file compressor.  Version {}.\n",
             "\n",
