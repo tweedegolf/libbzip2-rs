@@ -1762,7 +1762,7 @@ unsafe fn uncompress(name: Option<String>) {
                     ),
                     program_name = get_program_name().display(),
                 );
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
         }
@@ -1782,7 +1782,7 @@ unsafe fn uncompress(name: Option<String>) {
                 if !inStr.is_null() {
                     fclose(inStr);
                 }
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
         }
@@ -1806,7 +1806,7 @@ unsafe fn uncompress(name: Option<String>) {
                 if !inStr.is_null() {
                     fclose(inStr);
                 }
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
 
@@ -1820,13 +1820,13 @@ unsafe fn uncompress(name: Option<String>) {
                 if !outStr.is_null() {
                     fclose(outStr);
                 }
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
         }
     }
 
-    if verbosity >= 1 as libc::c_int {
+    if verbosity >= 1 {
         eprint!("  {}: ", in_name.display(),);
         pad(inName.as_mut_ptr());
         fflush(stderr);
@@ -1845,7 +1845,7 @@ unsafe fn uncompress(name: Option<String>) {
             delete_output_on_interrupt = false;
             if !keep_input_files {
                 let retVal: IntNative = remove(inName.as_mut_ptr());
-                if retVal != 0 as libc::c_int {
+                if retVal != 0 {
                     ioError();
                 }
             }
@@ -1855,7 +1855,7 @@ unsafe fn uncompress(name: Option<String>) {
         delete_output_on_interrupt = false;
         if srcMode == SourceMode::F2F {
             let retVal_0: IntNative = remove(outName.as_mut_ptr());
-            if retVal_0 != 0 as libc::c_int {
+            if retVal_0 != 0 {
                 ioError();
             }
         }
@@ -1864,12 +1864,12 @@ unsafe fn uncompress(name: Option<String>) {
     delete_output_on_interrupt = false;
 
     if magicNumberOK {
-        if verbosity >= 1 as libc::c_int {
+        if verbosity >= 1 {
             eprintln!("done");
         }
     } else {
-        setExit(2 as libc::c_int);
-        if verbosity >= 1 as libc::c_int {
+        setExit(2);
+        if verbosity >= 1 {
             eprintln!("not a bzip2 file.");
         } else {
             eprintln!(
