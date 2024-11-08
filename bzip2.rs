@@ -1256,13 +1256,15 @@ unsafe fn contains_dubious_chars(ptr: *mut c_char) -> bool {
         .any(|c| *c == b'?' || *c == '*')
 }
 
-static mut zSuffix: [*const c_char; 4] = [
+const BZ_N_SUFFIX_PAIRS: usize = 4;
+
+static mut zSuffix: [*const c_char; BZ_N_SUFFIX_PAIRS] = [
     b".bz2\0" as *const u8 as *const libc::c_char,
     b".bz\0" as *const u8 as *const libc::c_char,
     b".tbz2\0" as *const u8 as *const libc::c_char,
     b".tbz\0" as *const u8 as *const libc::c_char,
 ];
-static mut unzSuffix: [*const c_char; 4] = [
+static mut unzSuffix: [*const c_char; BZ_N_SUFFIX_PAIRS] = [
     b"\0" as *const u8 as *const libc::c_char,
     b"\0" as *const u8 as *const libc::c_char,
     b".tar\0" as *const u8 as *const libc::c_char,
@@ -1545,7 +1547,6 @@ unsafe fn compress(name: *mut c_char) {
     delete_output_on_interrupt = false;
 }
 unsafe fn uncompress(name: *mut c_char) {
-    let current_block: u64;
     let inStr: *mut FILE;
     let outStr: *mut FILE;
     let n: i32;
@@ -1556,57 +1557,46 @@ unsafe fn uncompress(name: *mut c_char) {
         panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
 
-    let mut cantGuess = false;
-    match srcMode {
-        SourceMode::I2O => {
-            copyFileName(
-                inName.as_mut_ptr(),
-                b"(stdin)\0" as *const u8 as *const libc::c_char,
-            );
-            copyFileName(
-                outName.as_mut_ptr(),
-                b"(stdout)\0" as *const u8 as *const libc::c_char,
-            );
-        }
-        SourceMode::F2O => {
-            copyFileName(inName.as_mut_ptr(), name);
-            copyFileName(
-                outName.as_mut_ptr(),
-                b"(stdout)\0" as *const u8 as *const libc::c_char,
-            );
-        }
-        SourceMode::F2F => {
-            copyFileName(inName.as_mut_ptr(), name);
-            copyFileName(outName.as_mut_ptr(), name);
-            let mut i = 0 as libc::c_int;
-            loop {
-                if i >= 4 as libc::c_int {
-                    current_block = 7651349459974463963;
-                    break;
-                }
-                if mapSuffix(
+    let mut cannot_guess = false;
+
+    'zzz: {
+        match srcMode {
+            SourceMode::I2O => {
+                copyFileName(
+                    inName.as_mut_ptr(),
+                    b"(stdin)\0" as *const u8 as *const libc::c_char,
+                );
+                copyFileName(
                     outName.as_mut_ptr(),
-                    zSuffix[i as usize],
-                    unzSuffix[i as usize],
-                ) != 0
-                {
-                    current_block = 4003995367480147712;
-                    break;
-                }
-                i += 1;
+                    b"(stdout)\0" as *const u8 as *const libc::c_char,
+                );
             }
-            match current_block {
-                4003995367480147712 => {}
-                _ => {
-                    cantGuess = true;
-                    strcat(
-                        outName.as_mut_ptr(),
-                        b".out\0" as *const u8 as *const libc::c_char,
-                    );
+            SourceMode::F2O => {
+                copyFileName(inName.as_mut_ptr(), name);
+                copyFileName(
+                    outName.as_mut_ptr(),
+                    b"(stdout)\0" as *const u8 as *const libc::c_char,
+                );
+            }
+            SourceMode::F2F => {
+                copyFileName(inName.as_mut_ptr(), name);
+                copyFileName(outName.as_mut_ptr(), name);
+
+                for i in 0..BZ_N_SUFFIX_PAIRS {
+                    if mapSuffix(outName.as_mut_ptr(), zSuffix[i], unzSuffix[i]) != 0 {
+                        break 'zzz;
+                    }
                 }
+
+                cannot_guess = true;
+                strcat(
+                    outName.as_mut_ptr(),
+                    b".out\0" as *const u8 as *const libc::c_char,
+                );
             }
         }
     }
+
     if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
         if noisy {
             fprintf(
@@ -1658,7 +1648,7 @@ unsafe fn uncompress(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if cantGuess && noisy {
+    if cannot_guess && noisy {
         fprintf(
             stderr,
             b"%s: Can't guess original name for %s -- using %s\n\0" as *const u8
