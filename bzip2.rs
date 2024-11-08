@@ -48,10 +48,17 @@ static mut numFilesProcessed: i32 = 0;
 static mut blockSize100k: i32 = 0;
 static mut exitValue: i32 = 0;
 
-/*-- source modes; F==file, I==stdin, O==stdout --*/
-const SM_I2O: i32 = 1;
-const SM_F2O: i32 = 2;
-const SM_F2F: i32 = 3;
+/// source modes
+///
+/// - F = file
+/// - I = stdin
+/// - O = stdout
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SourceMode {
+    I2O = 1,
+    F2O = 2,
+    F2F = 3,
+}
 
 /*-- operation modes --*/
 const OM_Z: i32 = 1;
@@ -59,7 +66,7 @@ const OM_UNZ: i32 = 2;
 const OM_TEST: i32 = 3;
 
 static mut opMode: i32 = 0;
-static mut srcMode: i32 = 0;
+static mut srcMode: SourceMode = SourceMode::I2O;
 
 static mut longestFileName: i32 = 0;
 static mut inName: [c_char; 1034] = [0; 1034];
@@ -907,7 +914,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
     let program_name = CStr::from_ptr(progName).to_string_lossy();
 
     let mut statBuf: stat = zeroed();
-    if srcMode == 3 as libc::c_int
+    if srcMode == SourceMode::F2F
         && opMode != 3 as libc::c_int
         && deleteOutputOnInterrupt as libc::c_int != 0
     {
@@ -1259,11 +1266,11 @@ unsafe fn compress(name: *mut c_char) {
     let mut n: i32 = 0;
     let mut statBuf: stat = zeroed();
     deleteOutputOnInterrupt = 0 as Bool;
-    if name.is_null() && srcMode != 1 as libc::c_int {
+    if name.is_null() && srcMode != SourceMode::I2O {
         panic(b"compress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
     match srcMode {
-        1 => {
+        SourceMode::I2O => {
             copyFileName(
                 inName.as_mut_ptr(),
                 b"(stdin)\0" as *const u8 as *const libc::c_char,
@@ -1273,7 +1280,14 @@ unsafe fn compress(name: *mut c_char) {
                 b"(stdout)\0" as *const u8 as *const libc::c_char,
             );
         }
-        3 => {
+        SourceMode::F2O => {
+            copyFileName(inName.as_mut_ptr(), name);
+            copyFileName(
+                outName.as_mut_ptr(),
+                b"(stdout)\0" as *const u8 as *const libc::c_char,
+            );
+        }
+        SourceMode::F2F => {
             copyFileName(inName.as_mut_ptr(), name);
             copyFileName(outName.as_mut_ptr(), name);
             strcat(
@@ -1281,17 +1295,8 @@ unsafe fn compress(name: *mut c_char) {
                 b".bz2\0" as *const u8 as *const libc::c_char,
             );
         }
-        2 => {
-            copyFileName(inName.as_mut_ptr(), name);
-            copyFileName(
-                outName.as_mut_ptr(),
-                b"(stdout)\0" as *const u8 as *const libc::c_char,
-            );
-        }
-        _ => {}
     }
-    if srcMode != 1 as libc::c_int && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0
-    {
+    if srcMode != SourceMode::I2O && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0 {
         if noisy != 0 {
             fprintf(
                 stderr,
@@ -1303,7 +1308,7 @@ unsafe fn compress(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode != 1 as libc::c_int && fileExists(inName.as_mut_ptr()) == 0 {
+    if srcMode != SourceMode::I2O && fileExists(inName.as_mut_ptr()) == 0 {
         eprintln!(
             "{}: Can't open input file {}: {}.",
             std::env::args().next().unwrap(),
@@ -1329,7 +1334,7 @@ unsafe fn compress(name: *mut c_char) {
         }
         i += 1;
     }
-    if srcMode == 3 as libc::c_int || srcMode == 2 as libc::c_int {
+    if srcMode == SourceMode::F2F || srcMode == SourceMode::F2O {
         stat(inName.as_mut_ptr(), &mut statBuf);
         if statBuf.st_mode & 0o170000 == 0o40000 {
             fprintf(
@@ -1342,7 +1347,7 @@ unsafe fn compress(name: *mut c_char) {
             return;
         }
     }
-    if srcMode == 3 as libc::c_int
+    if srcMode == SourceMode::F2F
         && forceOverwrite == 0
         && notAStandardFile(inName.as_mut_ptr()) as libc::c_int != 0
     {
@@ -1357,7 +1362,7 @@ unsafe fn compress(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode == 3 as libc::c_int && fileExists(outName.as_mut_ptr()) as libc::c_int != 0 {
+    if srcMode == SourceMode::F2F && fileExists(outName.as_mut_ptr()) as libc::c_int != 0 {
         if forceOverwrite != 0 {
             remove(outName.as_mut_ptr());
         } else {
@@ -1371,7 +1376,7 @@ unsafe fn compress(name: *mut c_char) {
             return;
         }
     }
-    if srcMode == 3 as libc::c_int && forceOverwrite == 0 && {
+    if srcMode == SourceMode::F2F && forceOverwrite == 0 && {
         n = countHardLinks(inName.as_mut_ptr());
         n > 0 as libc::c_int
     } {
@@ -1390,11 +1395,11 @@ unsafe fn compress(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode == 3 as libc::c_int {
+    if srcMode == SourceMode::F2F {
         saveInputFileMetaInfo(inName.as_mut_ptr());
     }
     match srcMode {
-        1 => {
+        SourceMode::I2O => {
             inStr = stdin;
             outStr = stdout;
             if isatty(fileno(stdout)) != 0 {
@@ -1414,7 +1419,7 @@ unsafe fn compress(name: *mut c_char) {
                 return;
             }
         }
-        2 => {
+        SourceMode::F2O => {
             inStr = fopen(
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
@@ -1450,7 +1455,7 @@ unsafe fn compress(name: *mut c_char) {
                 return;
             }
         }
-        3 => {
+        SourceMode::F2F => {
             inStr = fopen(
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
@@ -1486,9 +1491,6 @@ unsafe fn compress(name: *mut c_char) {
                 return;
             }
         }
-        _ => {
-            panic(b"compress: bad srcMode\0" as *const u8 as *const libc::c_char);
-        }
     }
     if verbosity >= 1 as libc::c_int {
         fprintf(
@@ -1503,7 +1505,7 @@ unsafe fn compress(name: *mut c_char) {
     deleteOutputOnInterrupt = 1 as Bool;
     compressStream(inStr, outStr);
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-    if srcMode == 3 as libc::c_int {
+    if srcMode == SourceMode::F2F {
         applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
         deleteOutputOnInterrupt = 0 as Bool;
         if keepInputFiles == 0 {
@@ -1521,12 +1523,12 @@ unsafe fn uncompress(name: *mut c_char) {
     let outStr: *mut FILE;
     let n: i32;
     deleteOutputOnInterrupt = 0 as Bool;
-    if name.is_null() && srcMode != 1 as libc::c_int {
+    if name.is_null() && srcMode != SourceMode::I2O {
         panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
     let mut cantGuess = 0 as Bool;
     match srcMode {
-        1 => {
+        SourceMode::I2O => {
             copyFileName(
                 inName.as_mut_ptr(),
                 b"(stdin)\0" as *const u8 as *const libc::c_char,
@@ -1536,7 +1538,14 @@ unsafe fn uncompress(name: *mut c_char) {
                 b"(stdout)\0" as *const u8 as *const libc::c_char,
             );
         }
-        3 => {
+        SourceMode::F2O => {
+            copyFileName(inName.as_mut_ptr(), name);
+            copyFileName(
+                outName.as_mut_ptr(),
+                b"(stdout)\0" as *const u8 as *const libc::c_char,
+            );
+        }
+        SourceMode::F2F => {
             copyFileName(inName.as_mut_ptr(), name);
             copyFileName(outName.as_mut_ptr(), name);
             let mut i = 0 as libc::c_int;
@@ -1567,17 +1576,8 @@ unsafe fn uncompress(name: *mut c_char) {
                 }
             }
         }
-        2 => {
-            copyFileName(inName.as_mut_ptr(), name);
-            copyFileName(
-                outName.as_mut_ptr(),
-                b"(stdout)\0" as *const u8 as *const libc::c_char,
-            );
-        }
-        _ => {}
     }
-    if srcMode != 1 as libc::c_int && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0
-    {
+    if srcMode != SourceMode::I2O && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0 {
         if noisy != 0 {
             fprintf(
                 stderr,
@@ -1589,7 +1589,7 @@ unsafe fn uncompress(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode != 1 as libc::c_int && fileExists(inName.as_mut_ptr()) == 0 {
+    if srcMode != SourceMode::I2O && fileExists(inName.as_mut_ptr()) == 0 {
         eprintln!(
             "{}: Can't open input file {}: {}.",
             std::env::args().next().unwrap(),
@@ -1599,7 +1599,7 @@ unsafe fn uncompress(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode == 3 as libc::c_int || srcMode == 2 as libc::c_int {
+    if srcMode == SourceMode::F2F || srcMode == SourceMode::F2O {
         let mut statBuf: stat = zeroed();
         stat(inName.as_mut_ptr(), &mut statBuf);
         if statBuf.st_mode & 0o170000 == 0o40000 {
@@ -1613,7 +1613,7 @@ unsafe fn uncompress(name: *mut c_char) {
             return;
         }
     }
-    if srcMode == 3 as libc::c_int
+    if srcMode == SourceMode::F2F
         && forceOverwrite == 0
         && notAStandardFile(inName.as_mut_ptr()) as libc::c_int != 0
     {
@@ -1638,7 +1638,7 @@ unsafe fn uncompress(name: *mut c_char) {
             outName.as_mut_ptr(),
         );
     }
-    if srcMode == 3 as libc::c_int && fileExists(outName.as_mut_ptr()) as libc::c_int != 0 {
+    if srcMode == SourceMode::F2F && fileExists(outName.as_mut_ptr()) as libc::c_int != 0 {
         if forceOverwrite != 0 {
             remove(outName.as_mut_ptr());
         } else {
@@ -1652,7 +1652,7 @@ unsafe fn uncompress(name: *mut c_char) {
             return;
         }
     }
-    if srcMode == 3 as libc::c_int && forceOverwrite == 0 && {
+    if srcMode == SourceMode::F2F && forceOverwrite == 0 && {
         n = countHardLinks(inName.as_mut_ptr());
         n > 0 as libc::c_int
     } {
@@ -1671,11 +1671,11 @@ unsafe fn uncompress(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode == 3 as libc::c_int {
+    if srcMode == SourceMode::F2F {
         saveInputFileMetaInfo(inName.as_mut_ptr());
     }
     match srcMode {
-        1 => {
+        SourceMode::I2O => {
             inStr = stdin;
             outStr = stdout;
             if isatty(fileno(stdin)) != 0 {
@@ -1695,7 +1695,7 @@ unsafe fn uncompress(name: *mut c_char) {
                 return;
             }
         }
-        2 => {
+        SourceMode::F2O => {
             inStr = fopen(
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
@@ -1715,7 +1715,7 @@ unsafe fn uncompress(name: *mut c_char) {
                 return;
             }
         }
-        3 => {
+        SourceMode::F2F => {
             inStr = fopen(
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
@@ -1751,9 +1751,6 @@ unsafe fn uncompress(name: *mut c_char) {
                 return;
             }
         }
-        _ => {
-            panic(b"uncompress: bad srcMode\0" as *const u8 as *const libc::c_char);
-        }
     }
     if verbosity >= 1 as libc::c_int {
         fprintf(
@@ -1769,7 +1766,7 @@ unsafe fn uncompress(name: *mut c_char) {
     let magicNumberOK = uncompressStream(inStr, outStr);
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     if magicNumberOK {
-        if srcMode == 3 as libc::c_int {
+        if srcMode == SourceMode::F2F {
             applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
             deleteOutputOnInterrupt = 0 as Bool;
             if keepInputFiles == 0 {
@@ -1782,7 +1779,7 @@ unsafe fn uncompress(name: *mut c_char) {
     } else {
         unzFailsExist = 1 as Bool;
         deleteOutputOnInterrupt = 0 as Bool;
-        if srcMode == 3 as libc::c_int {
+        if srcMode == SourceMode::F2F {
             let retVal_0: IntNative = remove(outName.as_mut_ptr());
             if retVal_0 != 0 as libc::c_int {
                 ioError();
@@ -1814,7 +1811,7 @@ unsafe fn uncompress(name: *mut c_char) {
 unsafe fn testf(name: *mut c_char) {
     let inStr: *mut FILE;
     deleteOutputOnInterrupt = 0 as Bool;
-    if name.is_null() && srcMode != 1 as libc::c_int {
+    if name.is_null() && srcMode != SourceMode::I2O {
         panic(b"testf: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
     copyFileName(
@@ -1822,22 +1819,20 @@ unsafe fn testf(name: *mut c_char) {
         b"(none)\0" as *const u8 as *const libc::c_char,
     );
     match srcMode {
-        1 => {
+        SourceMode::I2O => {
             copyFileName(
                 inName.as_mut_ptr(),
                 b"(stdin)\0" as *const u8 as *const libc::c_char,
             );
         }
-        3 => {
+        SourceMode::F2O => {
             copyFileName(inName.as_mut_ptr(), name);
         }
-        2 => {
+        SourceMode::F2F => {
             copyFileName(inName.as_mut_ptr(), name);
         }
-        _ => {}
     }
-    if srcMode != 1 as libc::c_int && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0
-    {
+    if srcMode != SourceMode::I2O && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0 {
         if noisy != 0 {
             fprintf(
                 stderr,
@@ -1849,7 +1844,7 @@ unsafe fn testf(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode != 1 as libc::c_int && fileExists(inName.as_mut_ptr()) == 0 {
+    if srcMode != SourceMode::I2O && fileExists(inName.as_mut_ptr()) == 0 {
         eprintln!(
             "{}: Can't open input {}: {}.",
             std::env::args().next().unwrap(),
@@ -1859,7 +1854,7 @@ unsafe fn testf(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode != 1 as libc::c_int {
+    if srcMode != SourceMode::I2O {
         let mut statBuf: stat = zeroed();
         stat(inName.as_mut_ptr(), &mut statBuf);
         if statBuf.st_mode & 0o170000 == 0o40000 {
@@ -1874,7 +1869,7 @@ unsafe fn testf(name: *mut c_char) {
         }
     }
     match srcMode {
-        1 => {
+        SourceMode::I2O => {
             if isatty(fileno(stdin)) != 0 {
                 fprintf(
                     stderr,
@@ -1893,7 +1888,7 @@ unsafe fn testf(name: *mut c_char) {
             }
             inStr = stdin;
         }
-        2 | 3 => {
+        SourceMode::F2O | SourceMode::F2F => {
             inStr = fopen(
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
@@ -1908,9 +1903,6 @@ unsafe fn testf(name: *mut c_char) {
                 setExit(1 as libc::c_int);
                 return;
             }
-        }
-        _ => {
-            panic(b"testf: bad srcMode\0" as *const u8 as *const libc::c_char);
         }
     }
     if verbosity >= 1 as libc::c_int {
@@ -2153,11 +2145,11 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         }
         aa = (*aa).link;
     }
-    if numFileNames == 0 as libc::c_int {
-        srcMode = 1 as libc::c_int;
-    } else {
-        srcMode = 3 as libc::c_int;
-    }
+    srcMode = match numFileNames {
+        0 => SourceMode::I2O,
+        _ => SourceMode::F2F,
+    };
+
     opMode = 1 as libc::c_int;
     if !(strstr(progName, b"unzip\0" as *const u8 as *const libc::c_char)).is_null()
         || !(strstr(progName, b"UNZIP\0" as *const u8 as *const libc::c_char)).is_null()
@@ -2170,10 +2162,9 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         || !(strstr(progName, b"ZCAT\0" as *const u8 as *const libc::c_char)).is_null()
     {
         opMode = 2 as libc::c_int;
-        srcMode = if numFileNames == 0 as libc::c_int {
-            1 as libc::c_int
-        } else {
-            2 as libc::c_int
+        srcMode = match numFileNames {
+            0 => SourceMode::F2O,
+            _ => SourceMode::F2F,
         };
     }
     aa = argList;
@@ -2190,7 +2181,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         if flag_name.as_bytes()[0] == b'-' && flag_name.as_bytes()[1] != b'-' {
             for c in &flag_name.as_bytes()[1..] {
                 match c {
-                    b'c' => srcMode = SM_F2O,
+                    b'c' => srcMode = SourceMode::F2O,
                     b'd' => opMode = OM_UNZ,
                     b'z' => opMode = OM_Z,
                     b'f' => forceOverwrite = True,
@@ -2235,7 +2226,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
 
         match flag_name {
             "--" => break,
-            "--stdout" => srcMode = SM_F2O,
+            "--stdout" => srcMode = SourceMode::F2O,
             "--decompress" => opMode = OM_UNZ,
             "--compress" => opMode = OM_Z,
             "--force" => forceOverwrite = True,
@@ -2276,7 +2267,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
     {
         blockSize100k = 2 as libc::c_int;
     }
-    if opMode == 3 as libc::c_int && srcMode == 2 as libc::c_int {
+    if opMode == 3 as libc::c_int && srcMode == SourceMode::F2O {
         fprintf(
             stderr,
             b"%s: -c and -t cannot be used together.\n\0" as *const u8 as *const libc::c_char,
@@ -2284,13 +2275,13 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         );
         exit(1 as libc::c_int);
     }
-    if srcMode == 2 as libc::c_int && numFileNames == 0 as libc::c_int {
-        srcMode = 1 as libc::c_int;
+    if srcMode == SourceMode::F2O && numFileNames == 0 as libc::c_int {
+        srcMode = SourceMode::I2O;
     }
     if opMode != 1 as libc::c_int {
         blockSize100k = 0 as libc::c_int;
     }
-    if srcMode == 3 as libc::c_int {
+    if srcMode == SourceMode::F2F {
         signal(
             2 as libc::c_int,
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
@@ -2305,7 +2296,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         );
     }
     if opMode == 1 as libc::c_int {
-        if srcMode == 1 as libc::c_int {
+        if srcMode == SourceMode::I2O {
             compress(std::ptr::null_mut());
         } else {
             decode = 1 as Bool;
@@ -2327,7 +2318,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         }
     } else if opMode == 2 as libc::c_int {
         unzFailsExist = 0 as Bool;
-        if srcMode == 1 as libc::c_int {
+        if srcMode == SourceMode::I2O {
             uncompress(std::ptr::null_mut());
         } else {
             decode = 1 as Bool;
@@ -2353,7 +2344,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         }
     } else {
         testFailsExist = 0 as Bool;
-        if srcMode == 1 as libc::c_int {
+        if srcMode == SourceMode::I2O {
             testf(std::ptr::null_mut());
         } else {
             decode = 1 as Bool;
