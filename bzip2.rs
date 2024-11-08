@@ -4,6 +4,7 @@
 
 use std::ffi::{c_char, CStr};
 use std::mem::zeroed;
+use std::path::{Path, PathBuf};
 use std::ptr;
 
 use libbzip2_rs_sys::{
@@ -1947,12 +1948,11 @@ unsafe fn usage(fullProgName: *mut c_char) {
         fullProgName,
     );
 }
-unsafe fn redundant(flag: *mut c_char) {
-    fprintf(
-        stderr,
-        b"%s: %s is redundant in versions 0.9.5 and above\n\0" as *const u8 as *const libc::c_char,
-        progName,
-        flag,
+unsafe fn redundant(program_name: &Path, flag_name: &str) {
+    eprintln!(
+        "{}: {} is redundant in versions 0.9.5 and above",
+        program_name.display(),
+        flag_name,
     );
 }
 unsafe fn myMalloc(n: i32) -> *mut libc::c_void {
@@ -2019,7 +2019,7 @@ unsafe fn addFlagsFromEnvVar(argList: *mut *mut Cell, varName: *const c_char) {
         }
     }
 }
-unsafe fn main_0(argc: IntNative, argv: *mut *mut c_char) -> IntNative {
+unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -> IntNative {
     if ::core::mem::size_of::<i32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
         || ::core::mem::size_of::<u32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
         || ::core::mem::size_of::<i16>() as libc::c_ulong != 2 as libc::c_int as libc::c_ulong
@@ -2214,38 +2214,40 @@ unsafe fn main_0(argc: IntNative, argv: *mut *mut c_char) -> IntNative {
     }
     aa = argList;
     while !aa.is_null() {
-        let name = CStr::from_ptr((*aa).name);
+        let Ok(flag_name) = CStr::from_ptr((*aa).name).to_str() else {
+            continue;
+        };
 
-        match name.to_str() {
-            Ok("--") => break,
-            Ok("--stdout") => srcMode = SM_F2O,
-            Ok("--decompress") => opMode = OM_UNZ,
-            Ok("--compress") => opMode = OM_Z,
-            Ok("--force") => forceOverwrite = True,
-            Ok("--test") => opMode = OM_TEST,
-            Ok("--keep") => keepInputFiles = True,
-            Ok("--small") => smallMode = True,
-            Ok("--quiet") => noisy = False,
-            Ok("--version") => {
+        match flag_name {
+            "--" => break,
+            "--stdout" => srcMode = SM_F2O,
+            "--decompress" => opMode = OM_UNZ,
+            "--compress" => opMode = OM_Z,
+            "--force" => forceOverwrite = True,
+            "--test" => opMode = OM_TEST,
+            "--keep" => keepInputFiles = True,
+            "--small" => smallMode = True,
+            "--quiet" => noisy = False,
+            "--version" => {
                 license();
                 exit(0);
             }
-            Ok("--license") => {
+            "--license" => {
                 license();
                 exit(0);
             }
-            Ok("--exponential") => workFactor = 1,
-            Ok("--repetitive-best") => redundant((*aa).name),
-            Ok("--repetitive-fast") => redundant((*aa).name),
-            Ok("--fast") => blockSize100k = 1,
-            Ok("--best") => blockSize100k = 9,
-            Ok("--verbose") => verbosity += 1,
-            Ok("--help") => {
+            "--exponential" => workFactor = 1,
+            "--repetitive-best" => redundant(program_name, flag_name),
+            "--repetitive-fast" => redundant(program_name, flag_name),
+            "--fast" => blockSize100k = 1,
+            "--best" => blockSize100k = 9,
+            "--verbose" => verbosity += 1,
+            "--help" => {
                 usage(progName);
                 exit(0);
             }
-            Ok(other) => {
-                if other.starts_with("--") {
+            _ => {
+                if flag_name.starts_with("--") {
                     fprintf(
                         stderr,
                         b"%s: Bad flag `%s'\n\0" as *const u8 as *const libc::c_char,
@@ -2256,7 +2258,6 @@ unsafe fn main_0(argc: IntNative, argv: *mut *mut c_char) -> IntNative {
                     exit(1);
                 }
             }
-            Err(_) => { /* do nothing */ }
         }
         aa = (*aa).link;
     }
@@ -2390,6 +2391,10 @@ unsafe fn main_0(argc: IntNative, argv: *mut *mut c_char) -> IntNative {
     exitValue
 }
 fn main() {
+    let mut it = ::std::env::args_os();
+
+    let program_name = PathBuf::from(it.next().unwrap());
+
     let mut args: Vec<*mut libc::c_char> = Vec::new();
     for arg in ::std::env::args() {
         args.push(
@@ -2399,5 +2404,11 @@ fn main() {
         );
     }
     args.push(core::ptr::null_mut());
-    unsafe { ::std::process::exit(main_0((args.len() - 1) as IntNative, args.as_mut_ptr()) as i32) }
+    unsafe {
+        ::std::process::exit(main_0(
+            &program_name,
+            (args.len() - 1) as IntNative,
+            args.as_mut_ptr(),
+        ) as i32)
+    }
 }
