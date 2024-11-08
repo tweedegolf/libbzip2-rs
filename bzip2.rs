@@ -1706,6 +1706,7 @@ unsafe fn uncompress(name: Option<String>) {
     }
 
     if cannot_guess && noisy {
+        // just a warning, no return
         eprintln!(
             "{}: Can't guess original name for {} -- using {}",
             get_program_name().display(),
@@ -1716,7 +1717,7 @@ unsafe fn uncompress(name: Option<String>) {
 
     if srcMode == SourceMode::F2F && out_name.exists() {
         if force_overwrite {
-            let _ = std::fs::remove_file(out_name);
+            let _ = std::fs::remove_file(&out_name);
         } else {
             eprintln!(
                 "{}: Output file {} already exists.",
@@ -1752,17 +1753,12 @@ unsafe fn uncompress(name: Option<String>) {
             inStr = stdin;
             outStr = stdout;
             if isatty(fileno(stdin)) != 0 {
-                fprintf(
-                    stderr,
-                    b"%s: I won't read compressed data from a terminal.\n\0" as *const u8
-                        as *const libc::c_char,
-                    progName,
-                );
-                fprintf(
-                    stderr,
-                    b"%s: For help, type: `%s --help'.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    progName,
+                eprint!(
+                    concat!(
+                        "{program_name}: I won't read compressed data from a terminal.\n",
+                        "{program_name}: For help, type: `{program_name} --help'.\n",
+                    ),
+                    program_name = get_program_name().display(),
                 );
                 setExit(1 as libc::c_int);
                 return;
@@ -1777,8 +1773,8 @@ unsafe fn uncompress(name: Option<String>) {
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input file {}:{}.",
-                    std::env::args().next().unwrap(),
-                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    get_program_name().display(),
+                    in_name.display(),
                     display_last_os_error(),
                 );
                 if !inStr.is_null() {
@@ -1800,8 +1796,8 @@ unsafe fn uncompress(name: Option<String>) {
             if outStr.is_null() {
                 eprintln!(
                     "{}: Can't create output file {}: {}.",
-                    std::env::args().next().unwrap(),
-                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    get_program_name().display(),
+                    out_name.display(),
                     display_last_os_error(),
                 );
                 if !inStr.is_null() {
@@ -1813,8 +1809,8 @@ unsafe fn uncompress(name: Option<String>) {
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
-                    std::env::args().next().unwrap(),
-                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    get_program_name().display(),
+                    in_name.display(),
                     display_last_os_error(),
                 );
                 if !outStr.is_null() {
@@ -1825,6 +1821,7 @@ unsafe fn uncompress(name: Option<String>) {
             }
         }
     }
+
     if verbosity >= 1 as libc::c_int {
         fprintf(
             stderr,
