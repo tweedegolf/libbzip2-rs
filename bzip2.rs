@@ -2223,67 +2223,71 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         );
     }
 
-    if opMode == OperationMode::Zip {
-        if srcMode == SourceMode::I2O {
-            compress(std::ptr::null_mut());
-        } else {
-            decode = 1 as Bool;
-            for name in arg_list {
-                if name == "--" {
-                    decode = 0 as Bool;
-                } else if !(name.starts_with('-') && decode != 0) {
-                    numFilesProcessed += 1;
-                    let name = CString::new(name).unwrap();
-                    compress(name.as_ptr().cast_mut());
+    match opMode {
+        OperationMode::Zip => {
+            if srcMode == SourceMode::I2O {
+                compress(std::ptr::null_mut());
+            } else {
+                decode = 1 as Bool;
+                for name in arg_list {
+                    if name == "--" {
+                        decode = 0 as Bool;
+                    } else if !(name.starts_with('-') && decode != 0) {
+                        numFilesProcessed += 1;
+                        let name = CString::new(name).unwrap();
+                        compress(name.as_ptr().cast_mut());
+                    }
                 }
             }
         }
-    } else if opMode == OperationMode::Unzip {
-        unzFailsExist = 0 as Bool;
-        if srcMode == SourceMode::I2O {
-            uncompress(std::ptr::null_mut());
-        } else {
-            decode = 1 as Bool;
-            for name in arg_list {
-                if name == "--" {
-                    decode = 0 as Bool;
-                } else if !(name.starts_with('-') && decode != 0) {
-                    numFilesProcessed += 1;
-                    let name = CString::new(name).unwrap();
-                    uncompress(name.as_ptr().cast_mut());
+        OperationMode::Unzip => {
+            unzFailsExist = 0 as Bool;
+            if srcMode == SourceMode::I2O {
+                uncompress(std::ptr::null_mut());
+            } else {
+                decode = 1 as Bool;
+                for name in arg_list {
+                    if name == "--" {
+                        decode = 0 as Bool;
+                    } else if !(name.starts_with('-') && decode != 0) {
+                        numFilesProcessed += 1;
+                        let name = CString::new(name).unwrap();
+                        uncompress(name.as_ptr().cast_mut());
+                    }
                 }
             }
+            if unzFailsExist != 0 {
+                setExit(2 as libc::c_int);
+                exit(exitValue);
+            }
         }
-        if unzFailsExist != 0 {
-            setExit(2 as libc::c_int);
-            exit(exitValue);
-        }
-    } else {
-        testFailsExist = 0 as Bool;
-        if srcMode == SourceMode::I2O {
-            testf(std::ptr::null_mut());
-        } else {
-            decode = 1 as Bool;
-            for name in arg_list {
-                if name == "--" {
-                    decode = 0 as Bool;
-                } else if !(name.starts_with('-') && decode != 0) {
-                    numFilesProcessed += 1;
-                    let name = CString::new(name).unwrap();
-                    testf(name.as_ptr().cast_mut());
+        OperationMode::Test => {
+            testFailsExist = 0 as Bool;
+            if srcMode == SourceMode::I2O {
+                testf(std::ptr::null_mut());
+            } else {
+                decode = 1 as Bool;
+                for name in arg_list {
+                    if name == "--" {
+                        decode = 0 as Bool;
+                    } else if !(name.starts_with('-') && decode != 0) {
+                        numFilesProcessed += 1;
+                        let name = CString::new(name).unwrap();
+                        testf(name.as_ptr().cast_mut());
+                    }
                 }
             }
-        }
-        if testFailsExist != 0 {
-            if noisy != 0 {
-                fprintf(
-                    stderr,
-                    b"\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n\0"
-                        as *const u8 as *const libc::c_char,
-                );
+            if testFailsExist != 0 {
+                if noisy != 0 {
+                    eprintln!(concat!(
+                        "\n",
+                        "You can use the `bzip2recover' program to attempt to recover\n",
+                        "data from undamaged sections of corrupted files.\n",
+                    ));
+                }
+                setExit(2 as libc::c_int);
+                exit(exitValue);
             }
-            setExit(2 as libc::c_int);
-            exit(exitValue);
         }
     }
 
