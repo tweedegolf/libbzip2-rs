@@ -1671,7 +1671,7 @@ unsafe fn uncompress(name: Option<String>) {
                 get_program_name().display(),
                 in_name.display(),
             );
-            setExit(1 as libc::c_int);
+            setExit(1);
             return;
         }
     }
@@ -1684,7 +1684,7 @@ unsafe fn uncompress(name: Option<String>) {
                 in_name.display(),
             );
         }
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
 
@@ -1706,14 +1706,14 @@ unsafe fn uncompress(name: Option<String>) {
                 get_program_name().display(),
                 out_name.display(),
             );
-            setExit(1 as libc::c_int);
+            setExit(1);
             return;
         }
     }
 
     if srcMode == SourceMode::F2F && !force_overwrite && {
         n = countHardLinks(inName.as_mut_ptr());
-        n > 0 as libc::c_int
+        n > 0
     } {
         fprintf(
             stderr,
@@ -1730,9 +1730,11 @@ unsafe fn uncompress(name: Option<String>) {
         setExit(1 as libc::c_int);
         return;
     }
+
     if srcMode == SourceMode::F2F {
         saveInputFileMetaInfo(inName.as_mut_ptr());
     }
+
     match srcMode {
         SourceMode::I2O => {
             inStr = stdin;
