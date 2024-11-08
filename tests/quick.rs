@@ -529,3 +529,37 @@ fn bad_flag() {
         assert!(String::from_utf8_lossy(&output.stderr).contains("Bad flag `-x'"));
     }
 }
+
+#[test]
+fn flags_from_env() {
+    // a bad flag
+    {
+        let mut cmd = command();
+        cmd.env("BZIP2", "-4 --foobar");
+        let output = cmd.output().unwrap();
+
+        assert!(
+            !output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Bad flag `--foobar'"));
+    }
+
+    {
+        let mut cmd = command();
+        cmd.env("BZIP", "-1 -4 --repetitive-fast");
+        let output = cmd.output().unwrap();
+
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        assert_eq!(
+            String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+            "bzip2: --repetitive-fast is redundant in versions 0.9.5 and above\n"
+        );
+    }
+}
