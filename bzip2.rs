@@ -24,8 +24,6 @@ extern "C" {
 }
 type Bool = libc::c_uchar;
 
-const False: Bool = 0;
-
 type IntNative = libc::c_int;
 
 static mut verbosity: i32 = 0;
@@ -44,7 +42,7 @@ static mut deleteOutputOnInterrupt: Bool = 0;
 static mut force_overwrite: bool = false;
 static mut testFailsExist: Bool = 0;
 static mut unzFailsExist: Bool = 0;
-static mut noisy: Bool = 0;
+static mut noisy: bool = false;
 static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
 static mut blockSize100k: i32 = 0;
@@ -443,7 +441,7 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
                         if streamNo == 1 {
                             return false;
                         } else {
-                            if noisy != 0 {
+                            if noisy {
                                 eprintln!(
                                     "{}: {}: trailing garbage after EOF ignored\n",
                                     CStr::from_ptr(progName).to_string_lossy(),
@@ -574,7 +572,7 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                                     );
                                     return 0 as Bool;
                                 } else {
-                                    if noisy != 0 {
+                                    if noisy {
                                         fprintf(
                                             stderr,
                                             b"trailing garbage after EOF ignored\n\0" as *const u8
@@ -630,7 +628,7 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                                     );
                                     return 0 as Bool;
                                 } else {
-                                    if noisy != 0 {
+                                    if noisy {
                                         fprintf(
                                             stderr,
                                             b"trailing garbage after EOF ignored\n\0" as *const u8
@@ -685,7 +683,7 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                                     );
                                     return 0 as Bool;
                                 } else {
-                                    if noisy != 0 {
+                                    if noisy {
                                         fprintf(
                                             stderr,
                                             b"trailing garbage after EOF ignored\n\0" as *const u8
@@ -740,7 +738,7 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                                     );
                                     return 0 as Bool;
                                 } else {
-                                    if noisy != 0 {
+                                    if noisy {
                                         fprintf(
                                             stderr,
                                             b"trailing garbage after EOF ignored\n\0" as *const u8
@@ -795,7 +793,7 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                                     );
                                     return 0 as Bool;
                                 } else {
-                                    if noisy != 0 {
+                                    if noisy {
                                         fprintf(
                                             stderr,
                                             b"trailing garbage after EOF ignored\n\0" as *const u8
@@ -850,7 +848,7 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                                     );
                                     return 0 as Bool;
                                 } else {
-                                    if noisy != 0 {
+                                    if noisy {
                                         fprintf(
                                             stderr,
                                             b"trailing garbage after EOF ignored\n\0" as *const u8
@@ -890,7 +888,7 @@ unsafe fn setExit(v: i32) {
 }
 
 unsafe fn cadvise() {
-    if noisy != 0 {
+    if noisy {
         eprint!(concat!(
             "\n",
             "It is possible that the compressed file(s) have become corrupted.\n",
@@ -904,7 +902,7 @@ unsafe fn cadvise() {
 }
 
 unsafe fn showFileNames() {
-    if noisy != 0 {
+    if noisy {
         eprintln!(
             "\tInput file = {}, output file = {}",
             CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
@@ -922,7 +920,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
         && deleteOutputOnInterrupt as libc::c_int != 0
     {
         if stat(inName.as_mut_ptr(), &mut statBuf) == 0 {
-            if noisy != 0 {
+            if noisy {
                 eprintln!(
                     "{}: Deleting output file {}, if it exists.",
                     program_name,
@@ -1009,7 +1007,7 @@ unsafe fn crcError() -> ! {
 }
 
 unsafe fn compressedStreamEOF() -> ! {
-    if noisy != 0 {
+    if noisy {
         eprint!(
             concat!(
                 "\n",
@@ -1300,7 +1298,7 @@ unsafe fn compress(name: *mut c_char) {
         }
     }
     if srcMode != SourceMode::I2O && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0 {
-        if noisy != 0 {
+        if noisy {
             fprintf(
                 stderr,
                 b"%s: There are no files matching `%s'.\n\0" as *const u8 as *const libc::c_char,
@@ -1324,7 +1322,7 @@ unsafe fn compress(name: *mut c_char) {
     let mut i = 0 as libc::c_int;
     while i < 4 as libc::c_int {
         if hasSuffix(inName.as_mut_ptr(), zSuffix[i as usize]) != 0 {
-            if noisy != 0 {
+            if noisy {
                 eprintln!(
                     "{}: Input file {} already has {} suffix.",
                     std::env::args().next().unwrap(),
@@ -1354,7 +1352,7 @@ unsafe fn compress(name: *mut c_char) {
         && !force_overwrite
         && notAStandardFile(inName.as_mut_ptr()) as libc::c_int != 0
     {
-        if noisy != 0 {
+        if noisy {
             fprintf(
                 stderr,
                 b"%s: Input file %s is not a normal file.\n\0" as *const u8 as *const libc::c_char,
@@ -1581,7 +1579,7 @@ unsafe fn uncompress(name: *mut c_char) {
         }
     }
     if srcMode != SourceMode::I2O && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0 {
-        if noisy != 0 {
+        if noisy {
             fprintf(
                 stderr,
                 b"%s: There are no files matching `%s'.\n\0" as *const u8 as *const libc::c_char,
@@ -1620,7 +1618,7 @@ unsafe fn uncompress(name: *mut c_char) {
         && !force_overwrite
         && notAStandardFile(inName.as_mut_ptr()) as libc::c_int != 0
     {
-        if noisy != 0 {
+        if noisy {
             fprintf(
                 stderr,
                 b"%s: Input file %s is not a normal file.\n\0" as *const u8 as *const libc::c_char,
@@ -1631,7 +1629,7 @@ unsafe fn uncompress(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if cantGuess != 0 && noisy != 0 {
+    if cantGuess != 0 && noisy {
         fprintf(
             stderr,
             b"%s: Can't guess original name for %s -- using %s\n\0" as *const u8
@@ -1836,7 +1834,7 @@ unsafe fn testf(name: *mut c_char) {
         }
     }
     if srcMode != SourceMode::I2O && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0 {
-        if noisy != 0 {
+        if noisy {
             fprintf(
                 stderr,
                 b"%s: There are no files matching `%s'.\n\0" as *const u8 as *const libc::c_char,
@@ -2024,7 +2022,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     decompress_mode = DecompressMode::Fast;
     keep_input_files = false;
     force_overwrite = false;
-    noisy = 1 as Bool;
+    noisy = true;
     verbosity = 0 as libc::c_int;
     blockSize100k = 9 as libc::c_int;
     testFailsExist = 0 as Bool;
@@ -2123,7 +2121,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                     b't' => opMode = OperationMode::Test,
                     b'k' => keep_input_files = true,
                     b's' => decompress_mode = DecompressMode::Small,
-                    b'q' => noisy = False,
+                    b'q' => noisy = false,
                     b'1' => blockSize100k = 1,
                     b'2' => blockSize100k = 2,
                     b'3' => blockSize100k = 3,
@@ -2162,7 +2160,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             "--test" => opMode = OperationMode::Test,
             "--keep" => keep_input_files = true,
             "--small" => decompress_mode = DecompressMode::Small,
-            "--quiet" => noisy = False,
+            "--quiet" => noisy = false,
             "--version" | "--license" => {
                 license();
                 exit(0);
@@ -2279,7 +2277,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                 }
             }
             if testFailsExist != 0 {
-                if noisy != 0 {
+                if noisy {
                     eprintln!(concat!(
                         "\n",
                         "You can use the `bzip2recover' program to attempt to recover\n",
