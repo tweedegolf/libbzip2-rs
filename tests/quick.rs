@@ -748,3 +748,46 @@ fn uncompress_file_to_file_tar() {
     let actual = std::fs::read(sample1.with_extension("tar")).unwrap();
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn cannot_guess_file_name() {
+    let expected = include_bytes!("input/quick/sample1.ref");
+
+    let tmpdir = tempfile::tempdir().unwrap();
+    let sample1 = tmpdir.path().join("sample1");
+
+    std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            concat!(
+                "bzip2: Can't guess original name for {in_file} -- using {in_file}.out\n",
+                "  {in_file}: \n",
+                "    [1: huff+mtf rt+rld {{0xccf1b5a5, 0xccf1b5a5}}]\n",
+                "    combined CRCs: stored = 0xccf1b5a5, computed = 0xccf1b5a5\n",
+                "    done\n",
+            ),
+            in_file = sample1.display(),
+        ),
+    );
+
+    let actual = std::fs::read(sample1.with_extension("out")).unwrap();
+    assert_eq!(actual, expected);
+}
