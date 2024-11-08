@@ -1224,6 +1224,23 @@ unsafe fn countHardLinks(name: *mut c_char) -> i32 {
 unsafe fn countHardLinks(name: *mut c_char) -> i32 {
     0 // FIXME
 }
+
+#[cfg(unix)]
+fn count_hardlinks(path: &Path) -> u64 {
+    use std::os::linux::fs::MetadataExt;
+
+    let Ok(metadata) = path.metadata() else {
+        return 0;
+    };
+
+    metadata.st_nlink().saturating_sub(1)
+}
+
+#[cfg(not(unix))]
+unsafe fn count_hardlinks(path: &Path) -> u64 {
+    0 // FIXME
+}
+
 static mut fileMetaInfo: stat = unsafe { zeroed() };
 unsafe fn saveInputFileMetaInfo(srcName: *mut c_char) {
     let retVal = stat(srcName, core::ptr::addr_of_mut!(fileMetaInfo));
@@ -1578,7 +1595,7 @@ unsafe fn compress(name: *mut c_char) {
 unsafe fn uncompress(name: Option<String>) {
     let inStr: *mut FILE;
     let outStr: *mut FILE;
-    let n: i32;
+    let n: u64;
 
     delete_output_on_interrupt = false;
 
@@ -1712,27 +1729,22 @@ unsafe fn uncompress(name: Option<String>) {
     }
 
     if srcMode == SourceMode::F2F && !force_overwrite && {
-        n = countHardLinks(inName.as_mut_ptr());
+        n = count_hardlinks(&in_name);
         n > 0
     } {
-        fprintf(
-            stderr,
-            b"%s: Input file %s has %d other link%s.\n\0" as *const u8 as *const libc::c_char,
-            progName,
-            inName.as_mut_ptr(),
+        eprintln!(
+            "{}: Input file {} has {} other link{}.",
+            get_program_name().display(),
+            in_name.display(),
             n,
-            if n > 1 as libc::c_int {
-                b"s\0" as *const u8 as *const libc::c_char
-            } else {
-                b"\0" as *const u8 as *const libc::c_char
-            },
+            if n > 1 { "s" } else { "" },
         );
         setExit(1 as libc::c_int);
         return;
     }
 
     if srcMode == SourceMode::F2F {
-        saveInputFileMetaInfo(inName.as_mut_ptr());
+        unsafe { saveInputFileMetaInfo(inName.as_mut_ptr()) };
     }
 
     match srcMode {
@@ -1869,6 +1881,7 @@ unsafe fn uncompress(name: Option<String>) {
         }
     };
 }
+
 unsafe fn testf(name: *mut c_char) {
     let inStr: *mut FILE;
     delete_output_on_interrupt = false;
