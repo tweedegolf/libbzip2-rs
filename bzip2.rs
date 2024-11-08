@@ -1939,15 +1939,44 @@ unsafe fn license() {
         BZ2_bzlibVersion(),
     );
 }
-unsafe fn usage(fullProgName: *mut c_char) {
-    fprintf(
-        stderr,
-        b"bzip2, a block-sorting file compressor.  Version %s.\n\n   usage: %s [flags and input files in any order]\n\n   -h --help           print this message\n   -d --decompress     force decompression\n   -z --compress       force compression\n   -k --keep           keep (don't delete) input files\n   -f --force          overwrite existing output files\n   -t --test           test compressed file integrity\n   -c --stdout         output to standard out\n   -q --quiet          suppress noncritical error messages\n   -v --verbose        be verbose (a 2nd -v gives more)\n   -L --license        display software version & license\n   -V --version        display software version & license\n   -s --small          use less memory (at most 2500k)\n   -1 .. -9            set block size to 100k .. 900k\n   --fast              alias for -1\n   --best              alias for -9\n\n   If invoked as `bzip2', default action is to compress.\n              as `bunzip2',  default action is to decompress.\n              as `bzcat', default action is to decompress to stdout.\n\n   If no file names are given, bzip2 compresses or decompresses\n   from standard input to standard output.  You can combine\n   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n\n\0"
-            as *const u8 as *const libc::c_char,
-        BZ2_bzlibVersion(),
-        fullProgName,
+
+unsafe fn usage(full_program_name: &Path) {
+    eprint!(
+        concat!(
+            "bzip2, a block-sorting file compressor.  Version {}.\n",
+            "\n",
+            "   usage: {} [flags and input files in any order]\n",
+            "\n",
+            "   -h --help           print this message\n",
+            "   -d --decompress     force decompression\n",
+            "   -z --compress       force compression\n",
+            "   -k --keep           keep (don't delete) input files\n",
+            "   -f --force          overwrite existing output files\n",
+            "   -t --test           test compressed file integrity\n",
+            "   -c --stdout         output to standard out\n",
+            "   -q --quiet          suppress noncritical error messages\n",
+            "   -v --verbose        be verbose (a 2nd -v gives more)\n",
+            "   -L --license        display software version & license\n",
+            "   -V --version        display software version & license\n",
+            "   -s --small          use less memory (at most 2500k)\n",
+            "   -1 .. -9            set block size to 100k .. 900k\n",
+            "   --fast              alias for -1\n",
+            "   --best              alias for -9\n",
+            "\n",
+            "   If invoked as `bzip2', default action is to compress.\n",
+            "              as `bunzip2',  default action is to decompress.\n",
+            "              as `bzcat', default action is to decompress to stdout.\n",
+            "\n",
+            "   If no file names are given, bzip2 compresses or decompresses\n",
+            "   from standard input to standard output.  You can combine\n",
+            "   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n",
+            "\n"
+        ),
+        unsafe { CStr::from_ptr(BZ2_bzlibVersion()).to_str().unwrap() },
+        full_program_name.display(),
     );
 }
+
 unsafe fn redundant(program_name: &Path, flag_name: &str) {
     eprintln!(
         "{}: {} is redundant in versions 0.9.5 and above",
@@ -1955,6 +1984,7 @@ unsafe fn redundant(program_name: &Path, flag_name: &str) {
         flag_name,
     );
 }
+
 unsafe fn myMalloc(n: i32) -> *mut libc::c_void {
     let p: *mut libc::c_void = malloc(n as size_t);
     if p.is_null() {
@@ -2193,7 +2223,7 @@ unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -
                         verbosity += 1;
                     }
                     104 => {
-                        usage(progName);
+                        usage(program_name);
                         exit(0 as libc::c_int);
                     }
                     _ => {
@@ -2203,7 +2233,7 @@ unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -
                             progName,
                             (*aa).name,
                         );
-                        usage(progName);
+                        usage(program_name);
                         exit(1 as libc::c_int);
                     }
                 }
@@ -2243,7 +2273,7 @@ unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -
             "--best" => blockSize100k = 9,
             "--verbose" => verbosity += 1,
             "--help" => {
-                usage(progName);
+                usage(program_name);
                 exit(0);
             }
             _ => {
@@ -2254,7 +2284,7 @@ unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -
                         progName,
                         (*aa).name,
                     );
-                    usage(progName);
+                    usage(program_name);
                     exit(1);
                 }
             }
