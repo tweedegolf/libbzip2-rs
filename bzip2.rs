@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-use std::ffi::{c_char, CStr};
+use std::ffi::{c_char, CStr, OsStr};
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -15,7 +15,7 @@ use libbzip2_rs_sys::{
 use libc::{
     _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fprintf, fread, free,
     fwrite, getenv, isatty, malloc, open, perror, remove, rewind, signal, size_t, stat, strcat,
-    strcmp, strcpy, strlen, strncmp, strncpy, strstr, ungetc, utimbuf, write, FILE,
+    strcmp, strcpy, strlen, strncpy, ungetc, utimbuf, write, FILE,
 };
 extern "C" {
     static mut stdin: *mut FILE;
@@ -2063,6 +2063,14 @@ unsafe fn addFlagsFromEnvVar(argList: *mut *mut Cell, varName: *const c_char) {
         }
     }
 }
+
+fn contains_osstr(haystack: impl AsRef<OsStr>, needle: impl AsRef<OsStr>) -> bool {
+    let needle = needle.as_ref().as_encoded_bytes();
+    let haystack = haystack.as_ref().as_encoded_bytes();
+
+    haystack.windows(needle.len()).any(|h| h == needle)
+}
+
 unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -> IntNative {
     if ::core::mem::size_of::<i32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
         || ::core::mem::size_of::<u32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
@@ -2147,21 +2155,19 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         }
         aa = (*aa).link;
     }
+
     srcMode = match numFileNames {
         0 => SourceMode::I2O,
         _ => SourceMode::F2F,
     };
-
     opMode = OperationMode::Zip;
-    if !(strstr(progName, b"unzip\0" as *const u8 as *const libc::c_char)).is_null()
-        || !(strstr(progName, b"UNZIP\0" as *const u8 as *const libc::c_char)).is_null()
-    {
+    if contains_osstr(program_name, "unzip") || contains_osstr(program_name, "UNZIP") {
         opMode = OperationMode::Unzip;
     }
-    if !(strstr(progName, b"z2cat\0" as *const u8 as *const libc::c_char)).is_null()
-        || !(strstr(progName, b"Z2CAT\0" as *const u8 as *const libc::c_char)).is_null()
-        || !(strstr(progName, b"zcat\0" as *const u8 as *const libc::c_char)).is_null()
-        || !(strstr(progName, b"ZCAT\0" as *const u8 as *const libc::c_char)).is_null()
+    if contains_osstr(program_name, "z2cat")
+        || contains_osstr(program_name, "Z2CAT")
+        || contains_osstr(program_name, "zcat")
+        || contains_osstr(program_name, "ZCAT")
     {
         opMode = OperationMode::Unzip;
         srcMode = match numFileNames {
@@ -2169,6 +2175,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
             _ => SourceMode::F2F,
         };
     }
+
     aa = argList;
     while !aa.is_null() {
         let Ok(flag_name) = CStr::from_ptr((*aa).name).to_str() else {
