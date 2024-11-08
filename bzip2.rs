@@ -1549,11 +1549,14 @@ unsafe fn uncompress(name: *mut c_char) {
     let inStr: *mut FILE;
     let outStr: *mut FILE;
     let n: i32;
+
     delete_output_on_interrupt = false;
+
     if name.is_null() && srcMode != SourceMode::I2O {
         panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
-    let mut cantGuess = 0 as Bool;
+
+    let mut cantGuess = false;
     match srcMode {
         SourceMode::I2O => {
             copyFileName(
@@ -1595,7 +1598,7 @@ unsafe fn uncompress(name: *mut c_char) {
             match current_block {
                 4003995367480147712 => {}
                 _ => {
-                    cantGuess = 1 as Bool;
+                    cantGuess = true;
                     strcat(
                         outName.as_mut_ptr(),
                         b".out\0" as *const u8 as *const libc::c_char,
@@ -1655,7 +1658,7 @@ unsafe fn uncompress(name: *mut c_char) {
         setExit(1 as libc::c_int);
         return;
     }
-    if cantGuess != 0 && noisy {
+    if cantGuess && noisy {
         fprintf(
             stderr,
             b"%s: Can't guess original name for %s -- using %s\n\0" as *const u8
