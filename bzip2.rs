@@ -60,12 +60,14 @@ enum SourceMode {
     F2F = 3,
 }
 
-/*-- operation modes --*/
-const OM_Z: i32 = 1;
-const OM_UNZ: i32 = 2;
-const OM_TEST: i32 = 3;
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum OperationMode {
+    Zip = 1,
+    Unzip = 2,
+    Test = 3,
+}
 
-static mut opMode: i32 = 0;
+static mut opMode: OperationMode = OperationMode::Zip;
 static mut srcMode: SourceMode = SourceMode::I2O;
 
 static mut longestFileName: i32 = 0;
@@ -915,7 +917,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
 
     let mut statBuf: stat = zeroed();
     if srcMode == SourceMode::F2F
-        && opMode != 3 as libc::c_int
+        && opMode != OperationMode::Test
         && deleteOutputOnInterrupt as libc::c_int != 0
     {
         if stat(inName.as_mut_ptr(), &mut statBuf) == 0 {
@@ -1039,7 +1041,7 @@ unsafe extern "C" fn mySignalCatcher(_: IntNative) {
 }
 unsafe fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
     let mut msg: *const libc::c_char;
-    if opMode == 1 {
+    if opMode == OperationMode::Zip {
         msg = b": Caught a SIGSEGV or SIGBUS whilst compressing.\n\n   Possible causes are (most likely first):\n   (1) This computer has unreliable memory or cache hardware\n       (a surprisingly common problem; try a different machine.)\n   (2) A bug in the compiler used to create this executable\n       (unlikely, if you didn't compile bzip2 yourself.)\n   (3) A real bug in bzip2 -- I hope this should never be the case.\n   The user's manual, Section 4.3, has more info on (1) and (2).\n   \n   If you suspect this is a bug in bzip2, or are unsure about (1)\n   or (2), report it at: https://gitlab.com/bzip2/bzip2/-/issues\n   Section 4.3 of the user's manual describes the info a useful\n   bug report should have.  If the manual is available on your\n   system, please try and read it before mailing me.  If you don't\n   have the manual or can't be bothered to read it, mail me anyway.\n\n\0"
             as *const u8 as *const libc::c_char;
     } else {
@@ -1073,7 +1075,7 @@ unsafe fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
         strlen(outName.as_mut_ptr()) as _,
     );
     write(2, b"\n" as *const u8 as *const libc::c_void, 1);
-    if opMode == 1 {
+    if opMode == OperationMode::Zip {
         setExit(3);
     } else {
         setExit(2);
@@ -2150,18 +2152,18 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         _ => SourceMode::F2F,
     };
 
-    opMode = 1 as libc::c_int;
+    opMode = OperationMode::Zip;
     if !(strstr(progName, b"unzip\0" as *const u8 as *const libc::c_char)).is_null()
         || !(strstr(progName, b"UNZIP\0" as *const u8 as *const libc::c_char)).is_null()
     {
-        opMode = 2 as libc::c_int;
+        opMode = OperationMode::Unzip;
     }
     if !(strstr(progName, b"z2cat\0" as *const u8 as *const libc::c_char)).is_null()
         || !(strstr(progName, b"Z2CAT\0" as *const u8 as *const libc::c_char)).is_null()
         || !(strstr(progName, b"zcat\0" as *const u8 as *const libc::c_char)).is_null()
         || !(strstr(progName, b"ZCAT\0" as *const u8 as *const libc::c_char)).is_null()
     {
-        opMode = 2 as libc::c_int;
+        opMode = OperationMode::Unzip;
         srcMode = match numFileNames {
             0 => SourceMode::F2O,
             _ => SourceMode::F2F,
@@ -2182,10 +2184,10 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
             for c in &flag_name.as_bytes()[1..] {
                 match c {
                     b'c' => srcMode = SourceMode::F2O,
-                    b'd' => opMode = OM_UNZ,
-                    b'z' => opMode = OM_Z,
+                    b'd' => opMode = OperationMode::Unzip,
+                    b'z' => opMode = OperationMode::Zip,
                     b'f' => forceOverwrite = True,
-                    b't' => opMode = OM_TEST,
+                    b't' => opMode = OperationMode::Test,
                     b'k' => keepInputFiles = True,
                     b's' => smallMode = True,
                     b'q' => noisy = False,
@@ -2227,10 +2229,10 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         match flag_name {
             "--" => break,
             "--stdout" => srcMode = SourceMode::F2O,
-            "--decompress" => opMode = OM_UNZ,
-            "--compress" => opMode = OM_Z,
+            "--decompress" => opMode = OperationMode::Unzip,
+            "--compress" => opMode = OperationMode::Zip,
             "--force" => forceOverwrite = True,
-            "--test" => opMode = OM_TEST,
+            "--test" => opMode = OperationMode::Test,
             "--keep" => keepInputFiles = True,
             "--small" => smallMode = True,
             "--quiet" => noisy = False,
@@ -2261,13 +2263,13 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
     if verbosity > 4 as libc::c_int {
         verbosity = 4 as libc::c_int;
     }
-    if opMode == 1 as libc::c_int
+    if opMode == OperationMode::Zip
         && smallMode as libc::c_int != 0
         && blockSize100k > 2 as libc::c_int
     {
         blockSize100k = 2 as libc::c_int;
     }
-    if opMode == 3 as libc::c_int && srcMode == SourceMode::F2O {
+    if opMode == OperationMode::Test && srcMode == SourceMode::F2O {
         fprintf(
             stderr,
             b"%s: -c and -t cannot be used together.\n\0" as *const u8 as *const libc::c_char,
@@ -2278,7 +2280,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
     if srcMode == SourceMode::F2O && numFileNames == 0 as libc::c_int {
         srcMode = SourceMode::I2O;
     }
-    if opMode != 1 as libc::c_int {
+    if opMode != OperationMode::Zip {
         blockSize100k = 0 as libc::c_int;
     }
     if srcMode == SourceMode::F2F {
@@ -2295,7 +2297,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
     }
-    if opMode == 1 as libc::c_int {
+    if opMode == OperationMode::Zip {
         if srcMode == SourceMode::I2O {
             compress(std::ptr::null_mut());
         } else {
@@ -2316,7 +2318,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
                 aa = (*aa).link;
             }
         }
-    } else if opMode == 2 as libc::c_int {
+    } else if opMode == OperationMode::Unzip {
         unzFailsExist = 0 as Bool;
         if srcMode == SourceMode::I2O {
             uncompress(std::ptr::null_mut());
