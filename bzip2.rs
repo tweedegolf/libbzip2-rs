@@ -38,7 +38,7 @@ pub enum DecompressMode {
 
 static mut decompress_mode: DecompressMode = DecompressMode::Fast;
 
-static mut deleteOutputOnInterrupt: Bool = 0;
+static mut delete_output_on_interrupt: bool = false;
 static mut force_overwrite: bool = false;
 static mut test_fails_exists: bool = false;
 static mut unz_fails_exist: bool = false;
@@ -915,10 +915,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
     let program_name = CStr::from_ptr(progName).to_string_lossy();
 
     let mut statBuf: stat = zeroed();
-    if srcMode == SourceMode::F2F
-        && opMode != OperationMode::Test
-        && deleteOutputOnInterrupt as libc::c_int != 0
-    {
+    if srcMode == SourceMode::F2F && opMode != OperationMode::Test && delete_output_on_interrupt {
         if stat(inName.as_mut_ptr(), &mut statBuf) == 0 {
             if noisy {
                 eprintln!(
@@ -1266,7 +1263,7 @@ unsafe fn compress(name: *mut c_char) {
     let outStr: *mut FILE;
     let mut n: i32 = 0;
     let mut statBuf: stat = zeroed();
-    deleteOutputOnInterrupt = 0 as Bool;
+    delete_output_on_interrupt = false;
     if name.is_null() && srcMode != SourceMode::I2O {
         panic(b"compress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
@@ -1503,12 +1500,12 @@ unsafe fn compress(name: *mut c_char) {
         fflush(stderr);
     }
     outputHandleJustInCase = outStr;
-    deleteOutputOnInterrupt = 1 as Bool;
+    delete_output_on_interrupt = true;
     compressStream(inStr, outStr);
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     if srcMode == SourceMode::F2F {
         applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
-        deleteOutputOnInterrupt = 0 as Bool;
+        delete_output_on_interrupt = false;
         if !keep_input_files {
             let retVal: IntNative = remove(inName.as_mut_ptr());
             if retVal != 0 as libc::c_int {
@@ -1516,14 +1513,14 @@ unsafe fn compress(name: *mut c_char) {
             }
         }
     }
-    deleteOutputOnInterrupt = 0 as Bool;
+    delete_output_on_interrupt = false;
 }
 unsafe fn uncompress(name: *mut c_char) {
     let current_block: u64;
     let inStr: *mut FILE;
     let outStr: *mut FILE;
     let n: i32;
-    deleteOutputOnInterrupt = 0 as Bool;
+    delete_output_on_interrupt = false;
     if name.is_null() && srcMode != SourceMode::I2O {
         panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
@@ -1763,13 +1760,13 @@ unsafe fn uncompress(name: *mut c_char) {
         fflush(stderr);
     }
     outputHandleJustInCase = outStr;
-    deleteOutputOnInterrupt = 1 as Bool;
+    delete_output_on_interrupt = true;
     let magicNumberOK = uncompressStream(inStr, outStr);
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     if magicNumberOK {
         if srcMode == SourceMode::F2F {
             applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
-            deleteOutputOnInterrupt = 0 as Bool;
+            delete_output_on_interrupt = false;
             if !keep_input_files {
                 let retVal: IntNative = remove(inName.as_mut_ptr());
                 if retVal != 0 as libc::c_int {
@@ -1779,7 +1776,7 @@ unsafe fn uncompress(name: *mut c_char) {
         }
     } else {
         unz_fails_exist = true;
-        deleteOutputOnInterrupt = 0 as Bool;
+        delete_output_on_interrupt = false;
         if srcMode == SourceMode::F2F {
             let retVal_0: IntNative = remove(outName.as_mut_ptr());
             if retVal_0 != 0 as libc::c_int {
@@ -1787,7 +1784,7 @@ unsafe fn uncompress(name: *mut c_char) {
             }
         }
     }
-    deleteOutputOnInterrupt = 0 as Bool;
+    delete_output_on_interrupt = false;
     if magicNumberOK {
         if verbosity >= 1 as libc::c_int {
             fprintf(stderr, b"done\n\0" as *const u8 as *const libc::c_char);
@@ -1811,7 +1808,7 @@ unsafe fn uncompress(name: *mut c_char) {
 }
 unsafe fn testf(name: *mut c_char) {
     let inStr: *mut FILE;
-    deleteOutputOnInterrupt = 0 as Bool;
+    delete_output_on_interrupt = false;
     if name.is_null() && srcMode != SourceMode::I2O {
         panic(b"testf: bad modes\n\0" as *const u8 as *const libc::c_char);
     }
@@ -2030,7 +2027,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     numFileNames = 0 as libc::c_int;
     numFilesProcessed = 0 as libc::c_int;
     workFactor = 30 as libc::c_int;
-    deleteOutputOnInterrupt = 0 as Bool;
+    delete_output_on_interrupt = false;
     exitValue = 0 as libc::c_int;
     signal(
         11 as libc::c_int,
