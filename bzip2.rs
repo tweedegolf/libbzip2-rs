@@ -2029,16 +2029,6 @@ fn contains_osstr(haystack: impl AsRef<OsStr>, needle: impl AsRef<OsStr>) -> boo
 }
 
 unsafe fn main_0(program_path: &Path) -> IntNative {
-    if ::core::mem::size_of::<i32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
-        || ::core::mem::size_of::<u32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
-        || ::core::mem::size_of::<i16>() as libc::c_ulong != 2 as libc::c_int as libc::c_ulong
-        || ::core::mem::size_of::<u16>() as libc::c_ulong != 2 as libc::c_int as libc::c_ulong
-        || ::core::mem::size_of::<i8>() as libc::c_ulong != 1 as libc::c_int as libc::c_ulong
-        || ::core::mem::size_of::<u8>() as libc::c_ulong != 1 as libc::c_int as libc::c_ulong
-    {
-        configError();
-    }
-
     let program_name = Path::new(program_path.file_name().unwrap());
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
