@@ -91,7 +91,7 @@ impl core::fmt::Display for AssertFail {
                 "\n",
                 "bzip2/libbzip2: internal error number {}.\n",
                 "This is a bug in bzip2/libbzip2, {}.\n",
-                "Please report it at: https://gitlab.com/bzip2/bzip2/-/issues\n",
+                "Please report it at: https://github.com/trifectatechfoundation/libbzip2-rs/issues\n",
                 "If this happened when you were using some program which uses\n",
                 "libbzip2 as a component, you should also report this bug to\n",
                 "the author(s) of that program.\n",
