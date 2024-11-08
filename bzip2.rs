@@ -2050,13 +2050,11 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     exitValue = 0;
 
     signal(
-        11 as libc::c_int,
+        11,
         mySIGSEGVorSIGBUScatcher as unsafe fn(IntNative) as usize,
     );
-    signal(
-        7 as libc::c_int,
-        mySIGSEGVorSIGBUScatcher as unsafe fn(IntNative) as usize,
-    );
+    signal(7, mySIGSEGVorSIGBUScatcher as unsafe fn(IntNative) as usize);
+
     copyFileName(
         inName.as_mut_ptr(),
         b"(none)\0" as *const u8 as *const libc::c_char,
@@ -2086,8 +2084,8 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     arg_list.extend(std::env::args().skip(1));
 
-    longestFileName = 7 as libc::c_int;
-    numFileNames = 0 as libc::c_int;
+    longestFileName = 7;
+    numFileNames = 0;
     let mut decode = true;
 
     for name in &arg_list {
@@ -2198,39 +2196,39 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
     }
+
     if verbosity > 4 as libc::c_int {
-        verbosity = 4 as libc::c_int;
+        verbosity = 4;
     }
-    if opMode == OperationMode::Zip
-        && decompress_mode == DecompressMode::Small
-        && blockSize100k > 2 as libc::c_int
+
+    if opMode == OperationMode::Zip && decompress_mode == DecompressMode::Small && blockSize100k > 2
     {
-        blockSize100k = 2 as libc::c_int;
+        blockSize100k = 2;
     }
     if opMode == OperationMode::Test && srcMode == SourceMode::F2O {
         eprintln!(
             "{}: -c and -t cannot be used together.",
             program_name.display(),
         );
-        exit(1 as libc::c_int);
+        exit(1);
     }
-    if srcMode == SourceMode::F2O && numFileNames == 0 as libc::c_int {
+    if srcMode == SourceMode::F2O && numFileNames == 0 {
         srcMode = SourceMode::I2O;
     }
     if opMode != OperationMode::Zip {
-        blockSize100k = 0 as libc::c_int;
+        blockSize100k = 0;
     }
     if srcMode == SourceMode::F2F {
         signal(
-            2 as libc::c_int,
+            2,
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
         signal(
-            15 as libc::c_int,
+            15,
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
         signal(
-            1 as libc::c_int,
+            1,
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
     }
@@ -2269,7 +2267,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                 }
             }
             if unz_fails_exist {
-                setExit(2 as libc::c_int);
+                setExit(2);
                 exit(exitValue);
             }
         }
@@ -2297,7 +2295,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         "data from undamaged sections of corrupted files.\n",
                     ));
                 }
-                setExit(2 as libc::c_int);
+                setExit(2);
                 exit(exitValue);
             }
         }
