@@ -2070,15 +2070,15 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     let mut arg_list = Vec::with_capacity(16);
 
-    arg_list.extend(std::env::args().skip(1));
+    if let Ok(val) = std::env::var("BZIP2") {
+        arg_list.extend(val.split_ascii_whitespace().map(|s| s.to_owned()));
+    }
 
     if let Ok(val) = std::env::var("BZIP") {
         arg_list.extend(val.split_ascii_whitespace().map(|s| s.to_owned()));
     }
 
-    if let Ok(val) = std::env::var("BZIP2") {
-        arg_list.extend(val.split_ascii_whitespace().map(|s| s.to_owned()));
-    }
+    arg_list.extend(std::env::args().skip(1));
 
     longestFileName = 7 as libc::c_int;
     numFileNames = 0 as libc::c_int;
