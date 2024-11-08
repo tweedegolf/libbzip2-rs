@@ -30,7 +30,7 @@ const False: Bool = 0;
 type IntNative = libc::c_int;
 
 static mut verbosity: i32 = 0;
-static mut keepInputFiles: Bool = 0;
+static mut keep_input_files: bool = false;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -1512,7 +1512,7 @@ unsafe fn compress(name: *mut c_char) {
     if srcMode == SourceMode::F2F {
         applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
         deleteOutputOnInterrupt = 0 as Bool;
-        if keepInputFiles == 0 {
+        if !keep_input_files {
             let retVal: IntNative = remove(inName.as_mut_ptr());
             if retVal != 0 as libc::c_int {
                 ioError();
@@ -1773,7 +1773,7 @@ unsafe fn uncompress(name: *mut c_char) {
         if srcMode == SourceMode::F2F {
             applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
             deleteOutputOnInterrupt = 0 as Bool;
-            if keepInputFiles == 0 {
+            if !keep_input_files {
                 let retVal: IntNative = remove(inName.as_mut_ptr());
                 if retVal != 0 as libc::c_int {
                     ioError();
@@ -2023,7 +2023,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     decompress_mode = DecompressMode::Fast;
-    keepInputFiles = 0 as Bool;
+    keep_input_files = false;
     forceOverwrite = 0 as Bool;
     noisy = 1 as Bool;
     verbosity = 0 as libc::c_int;
@@ -2122,7 +2122,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                     b'z' => opMode = OperationMode::Zip,
                     b'f' => forceOverwrite = True,
                     b't' => opMode = OperationMode::Test,
-                    b'k' => keepInputFiles = True,
+                    b'k' => keep_input_files = true,
                     b's' => decompress_mode = DecompressMode::Small,
                     b'q' => noisy = False,
                     b'1' => blockSize100k = 1,
@@ -2161,7 +2161,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             "--compress" => opMode = OperationMode::Zip,
             "--force" => forceOverwrite = True,
             "--test" => opMode = OperationMode::Test,
-            "--keep" => keepInputFiles = True,
+            "--keep" => keep_input_files = true,
             "--small" => decompress_mode = DecompressMode::Small,
             "--quiet" => noisy = False,
             "--version" | "--license" => {
