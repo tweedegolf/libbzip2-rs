@@ -1224,9 +1224,22 @@ unsafe fn applySavedFileAttrToOutputFile(fd: IntNative) {
 }
 #[cfg(not(unix))]
 unsafe fn applySavedFileAttrToOutputFile(_fd: IntNative) {}
-unsafe fn containsDubiousChars(_: *mut c_char) -> Bool {
-    0
+
+#[cfg(unix)]
+unsafe fn contains_dubious_chars(_: *mut c_char) -> bool {
+    // On unix, files can contain any characters and the file expansion is performed by the shell.
+    false
 }
+
+#[cfg(not(unix))]
+unsafe fn contains_dubious_chars(ptr: *mut c_char) -> bool {
+    // On non-unix (Win* platforms), wildcard characters are not allowed in filenames.
+    CStr::from_ptr(ptr)
+        .to_bytes()
+        .iter()
+        .any(|c| *c == b'?' || *c == '*')
+}
+
 static mut zSuffix: [*const c_char; 4] = [
     b".bz2\0" as *const u8 as *const libc::c_char,
     b".bz\0" as *const u8 as *const libc::c_char,
@@ -1294,7 +1307,7 @@ unsafe fn compress(name: *mut c_char) {
             );
         }
     }
-    if srcMode != SourceMode::I2O && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0 {
+    if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
         if noisy {
             fprintf(
                 stderr,
@@ -1575,7 +1588,7 @@ unsafe fn uncompress(name: *mut c_char) {
             }
         }
     }
-    if srcMode != SourceMode::I2O && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0 {
+    if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
         if noisy {
             fprintf(
                 stderr,
@@ -1830,7 +1843,7 @@ unsafe fn testf(name: *mut c_char) {
             copyFileName(inName.as_mut_ptr(), name);
         }
     }
-    if srcMode != SourceMode::I2O && containsDubiousChars(inName.as_mut_ptr()) as libc::c_int != 0 {
+    if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
         if noisy {
             fprintf(
                 stderr,
