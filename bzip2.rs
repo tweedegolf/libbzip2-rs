@@ -31,7 +31,16 @@ type IntNative = libc::c_int;
 
 static mut verbosity: i32 = 0;
 static mut keepInputFiles: Bool = 0;
-static mut smallMode: Bool = 0;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum DecompressMode {
+    Fast = 0,
+    Small = 1,
+}
+
+static mut decompress_mode: DecompressMode = DecompressMode::Fast;
+
 static mut deleteOutputOnInterrupt: Bool = 0;
 static mut forceOverwrite: Bool = 0;
 static mut testFailsExist: Bool = 0;
@@ -270,7 +279,7 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
                     &mut bzerr,
                     zStream,
                     verbosity,
-                    smallMode as libc::c_int,
+                    decompress_mode as libc::c_int,
                     unused.as_mut_ptr() as *mut libc::c_void,
                     nUnused,
                 );
@@ -470,7 +479,7 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                 &mut bzerr,
                 zStream,
                 verbosity,
-                smallMode as libc::c_int,
+                decompress_mode as libc::c_int,
                 unused.as_mut_ptr() as *mut libc::c_void,
                 nUnused,
             );
@@ -2013,7 +2022,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     let program_name = Path::new(program_path.file_name().unwrap());
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-    smallMode = 0 as Bool;
+    decompress_mode = DecompressMode::Fast;
     keepInputFiles = 0 as Bool;
     forceOverwrite = 0 as Bool;
     noisy = 1 as Bool;
@@ -2114,7 +2123,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                     b'f' => forceOverwrite = True,
                     b't' => opMode = OperationMode::Test,
                     b'k' => keepInputFiles = True,
-                    b's' => smallMode = True,
+                    b's' => decompress_mode = DecompressMode::Small,
                     b'q' => noisy = False,
                     b'1' => blockSize100k = 1,
                     b'2' => blockSize100k = 2,
@@ -2153,7 +2162,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             "--force" => forceOverwrite = True,
             "--test" => opMode = OperationMode::Test,
             "--keep" => keepInputFiles = True,
-            "--small" => smallMode = True,
+            "--small" => decompress_mode = DecompressMode::Small,
             "--quiet" => noisy = False,
             "--version" | "--license" => {
                 license();
@@ -2182,7 +2191,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         verbosity = 4 as libc::c_int;
     }
     if opMode == OperationMode::Zip
-        && smallMode as libc::c_int != 0
+        && decompress_mode == DecompressMode::Small
         && blockSize100k > 2 as libc::c_int
     {
         blockSize100k = 2 as libc::c_int;
