@@ -40,7 +40,7 @@ static mut decompress_mode: DecompressMode = DecompressMode::Fast;
 
 static mut deleteOutputOnInterrupt: Bool = 0;
 static mut force_overwrite: bool = false;
-static mut testFailsExist: Bool = 0;
+static mut test_fails_exists: bool = false;
 static mut unzFailsExist: Bool = 0;
 static mut noisy: bool = false;
 static mut numFileNames: i32 = 0;
@@ -1921,7 +1921,7 @@ unsafe fn testf(name: *mut c_char) {
         fprintf(stderr, b"ok\n\0" as *const u8 as *const libc::c_char);
     }
     if allOK == 0 {
-        testFailsExist = 1 as Bool;
+        test_fails_exists = true;
     }
 }
 
@@ -2025,7 +2025,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     noisy = true;
     verbosity = 0 as libc::c_int;
     blockSize100k = 9 as libc::c_int;
-    testFailsExist = 0 as Bool;
+    test_fails_exists = false;
     unzFailsExist = 0 as Bool;
     numFileNames = 0 as libc::c_int;
     numFilesProcessed = 0 as libc::c_int;
@@ -2261,7 +2261,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Test => {
-            testFailsExist = 0 as Bool;
+            test_fails_exists = false;
             if srcMode == SourceMode::I2O {
                 testf(std::ptr::null_mut());
             } else {
@@ -2276,7 +2276,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                     }
                 }
             }
-            if testFailsExist != 0 {
+            if test_fails_exists {
                 if noisy {
                     eprintln!(concat!(
                         "\n",
