@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-use std::ffi::{c_char, CStr, OsStr};
+use std::ffi::{c_char, CStr, CString, OsStr};
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -13,7 +13,7 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fprintf, fread, free,
+    _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fprintf, fread,
     fwrite, getenv, isatty, malloc, open, perror, remove, rewind, signal, size_t, stat, strcat,
     strcmp, strcpy, strlen, strncpy, ungetc, utimbuf, write, FILE,
 };
@@ -1999,71 +1999,6 @@ fn redundant(program_name: &Path, flag_name: &str) {
     );
 }
 
-unsafe fn myMalloc(n: i32) -> *mut libc::c_void {
-    let p: *mut libc::c_void = malloc(n as size_t);
-    if p.is_null() {
-        outOfMemory();
-    }
-    p
-}
-unsafe fn mkCell() -> *mut Cell {
-    let c: *mut Cell = myMalloc(core::mem::size_of::<Cell>() as libc::c_ulong as i32) as *mut Cell;
-    (*c).name = std::ptr::null_mut();
-    (*c).link = std::ptr::null_mut::<zzzz>();
-    c
-}
-unsafe fn snocString(root: *mut Cell, name: *mut c_char) -> *mut Cell {
-    if root.is_null() {
-        let tmp: *mut Cell = mkCell();
-        (*tmp).name = myMalloc((5 as libc::c_int as libc::size_t).wrapping_add(strlen(name)) as i32)
-            as *mut c_char;
-        strcpy((*tmp).name, name);
-        tmp
-    } else {
-        let mut tmp_0: *mut Cell = root;
-        while !((*tmp_0).link).is_null() {
-            tmp_0 = (*tmp_0).link;
-        }
-        (*tmp_0).link = snocString((*tmp_0).link, name);
-        root
-    }
-}
-unsafe fn addFlagsFromEnvVar(argList: *mut *mut Cell, varName: *const c_char) {
-    let envbase = getenv(varName);
-    if !envbase.is_null() {
-        let mut p = envbase;
-        let mut i = 0 as libc::c_int;
-        loop {
-            if *p.offset(i as isize) as libc::c_int == 0 as libc::c_int {
-                break;
-            }
-            p = p.offset(i as isize);
-            i = 0 as libc::c_int;
-            while !(*p.offset(0 as libc::c_int as isize) as u8 as char).is_ascii_whitespace() {
-                p = p.offset(1);
-            }
-            while *p.offset(i as isize) as libc::c_int != 0 as libc::c_int
-                && !(*p.offset(i as isize) as u8 as char).is_ascii_whitespace()
-            {
-                i += 1;
-            }
-            if i > 0 as libc::c_int {
-                let mut k = i;
-                if k > 1034 as libc::c_int - 10 as libc::c_int {
-                    k = 1034 as libc::c_int - 10 as libc::c_int;
-                }
-                let mut j = 0 as libc::c_int;
-                while j < k {
-                    tmpName[j as usize] = *p.offset(j as isize);
-                    j += 1;
-                }
-                tmpName[k as usize] = 0 as libc::c_int as c_char;
-                *argList = snocString(*argList, tmpName.as_mut_ptr());
-            }
-        }
-    }
-}
-
 fn contains_osstr(haystack: impl AsRef<OsStr>, needle: impl AsRef<OsStr>) -> bool {
     let needle = needle.as_ref().as_encoded_bytes();
     let haystack = haystack.as_ref().as_encoded_bytes();
@@ -2130,30 +2065,33 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         }
         tmp = tmp.offset(1);
     }
-    let mut argList = std::ptr::null_mut::<Cell>();
-    addFlagsFromEnvVar(&mut argList, b"BZIP2\0" as *const u8 as *const libc::c_char);
-    addFlagsFromEnvVar(&mut argList, b"BZIP\0" as *const u8 as *const libc::c_char);
-    let mut i = 1 as libc::c_int;
-    while i <= argc - 1 as libc::c_int {
-        argList = snocString(argList, *argv.offset(i as isize));
-        i += 1;
+
+    let mut arg_list = Vec::with_capacity(16);
+
+    if let Ok(val) = std::env::var("BZIP2") {
+        arg_list.extend(val.split_ascii_whitespace().map(|s| s.to_owned()));
     }
+
+    if let Ok(val) = std::env::var("BZIP") {
+        arg_list.extend(val.split_ascii_whitespace().map(|s| s.to_owned()));
+    }
+
+    arg_list.extend(std::env::args().skip(1));
+
+    // because the C implementation uses a linked list, we need to reverse the arguments
+    arg_list.reverse();
+
     longestFileName = 7 as libc::c_int;
     numFileNames = 0 as libc::c_int;
     let mut decode = 1 as Bool;
-    let mut aa = argList;
-    while !aa.is_null() {
-        if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char) == 0 as libc::c_int {
+
+    for name in &arg_list {
+        if name == "--" {
             decode = 0 as Bool;
-        } else if !(*((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int == '-' as i32
-            && decode as libc::c_int != 0)
-        {
+        } else if !(name.starts_with('-') && decode != 0) {
             numFileNames += 1;
-            if longestFileName < strlen((*aa).name) as i32 {
-                longestFileName = strlen((*aa).name) as i32;
-            }
+            longestFileName = Ord::max(longestFileName, name.len() as i32);
         }
-        aa = (*aa).link;
     }
 
     srcMode = match numFileNames {
@@ -2176,12 +2114,7 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         };
     }
 
-    aa = argList;
-    while !aa.is_null() {
-        let Ok(flag_name) = CStr::from_ptr((*aa).name).to_str() else {
-            continue;
-        };
-
+    for flag_name in &arg_list {
         if flag_name == "--" {
             break;
         }
@@ -2224,16 +2157,10 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
                 }
             }
         }
-
-        aa = (*aa).link;
     }
-    aa = argList;
-    while !aa.is_null() {
-        let Ok(flag_name) = CStr::from_ptr((*aa).name).to_str() else {
-            continue;
-        };
 
-        match flag_name {
+    for flag_name in &arg_list {
+        match flag_name.as_str() {
             "--" => break,
             "--stdout" => srcMode = SourceMode::F2O,
             "--decompress" => opMode = OperationMode::Unzip,
@@ -2248,8 +2175,8 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
                 exit(0);
             }
             "--exponential" => workFactor = 1,
-            "--repetitive-best" => redundant(program_name, flag_name),
-            "--repetitive-fast" => redundant(program_name, flag_name),
+            "--repetitive-best" => redundant(program_name, &flag_name),
+            "--repetitive-fast" => redundant(program_name, &flag_name),
             "--fast" => blockSize100k = 1,
             "--best" => blockSize100k = 9,
             "--verbose" => verbosity += 1,
@@ -2265,7 +2192,6 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
                 }
             }
         }
-        aa = (*aa).link;
     }
     if verbosity > 4 as libc::c_int {
         verbosity = 4 as libc::c_int;
@@ -2304,25 +2230,20 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
     }
+
     if opMode == OperationMode::Zip {
         if srcMode == SourceMode::I2O {
             compress(std::ptr::null_mut());
         } else {
             decode = 1 as Bool;
-            aa = argList;
-            while !aa.is_null() {
-                if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char)
-                    == 0 as libc::c_int
-                {
+            for name in arg_list {
+                if name == "--" {
                     decode = 0 as Bool;
-                } else if !(*((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int
-                    == '-' as i32
-                    && decode as libc::c_int != 0)
-                {
+                } else if !(name.starts_with('-') && decode != 0) {
                     numFilesProcessed += 1;
-                    compress((*aa).name);
+                    let name = CString::new(name).unwrap();
+                    compress(name.as_ptr().cast_mut());
                 }
-                aa = (*aa).link;
             }
         }
     } else if opMode == OperationMode::Unzip {
@@ -2331,20 +2252,14 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
             uncompress(std::ptr::null_mut());
         } else {
             decode = 1 as Bool;
-            aa = argList;
-            while !aa.is_null() {
-                if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char)
-                    == 0 as libc::c_int
-                {
+            for name in arg_list {
+                if name == "--" {
                     decode = 0 as Bool;
-                } else if !(*((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int
-                    == '-' as i32
-                    && decode as libc::c_int != 0)
-                {
+                } else if !(name.starts_with('-') && decode != 0) {
                     numFilesProcessed += 1;
-                    uncompress((*aa).name);
+                    let name = CString::new(name).unwrap();
+                    uncompress(name.as_ptr().cast_mut());
                 }
-                aa = (*aa).link;
             }
         }
         if unzFailsExist != 0 {
@@ -2357,20 +2272,14 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
             testf(std::ptr::null_mut());
         } else {
             decode = 1 as Bool;
-            aa = argList;
-            while !aa.is_null() {
-                if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char)
-                    == 0 as libc::c_int
-                {
+            for name in arg_list {
+                if name == "--" {
                     decode = 0 as Bool;
-                } else if !(*((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int
-                    == '-' as i32
-                    && decode as libc::c_int != 0)
-                {
+                } else if !(name.starts_with('-') && decode != 0) {
                     numFilesProcessed += 1;
-                    testf((*aa).name);
+                    let name = CString::new(name).unwrap();
+                    testf(name.as_ptr().cast_mut());
                 }
-                aa = (*aa).link;
             }
         }
         if testFailsExist != 0 {
@@ -2385,17 +2294,10 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
             exit(exitValue);
         }
     }
-    aa = argList;
-    while !aa.is_null() {
-        let aa2: *mut Cell = (*aa).link;
-        if !((*aa).name).is_null() {
-            free((*aa).name as *mut libc::c_void);
-        }
-        free(aa as *mut libc::c_void);
-        aa = aa2;
-    }
+
     exitValue
 }
+
 fn main() {
     let mut it = ::std::env::args_os();
 
