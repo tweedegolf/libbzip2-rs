@@ -475,3 +475,32 @@ fn test_comp_decomp_sample_ref3() {
         assert_eq!(out_hash, ref_hash);
     }
 }
+
+#[test]
+fn redundant_flag() {
+    {
+        let mut cmd = command();
+        cmd.arg("--repetitive-best");
+        let output = cmd.output().unwrap();
+
+        assert!(output.status.success());
+
+        assert_eq!(
+            String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+            "bzip2: --repetitive-best is redundant in versions 0.9.5 and above\n"
+        );
+    }
+
+    {
+        let mut cmd = command();
+        cmd.arg("--repetitive-fast");
+        let output = cmd.output().unwrap();
+
+        assert!(output.status.success());
+
+        assert_eq!(
+            String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+            "bzip2: --repetitive-fast is redundant in versions 0.9.5 and above\n"
+        );
+    }
+}
