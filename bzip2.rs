@@ -2069,7 +2069,7 @@ unsafe fn addFlagsFromEnvVar(argList: *mut *mut Cell, varName: *const c_char) {
         }
     }
 }
-unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -> IntNative {
+unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -> IntNative {
     if ::core::mem::size_of::<i32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
         || ::core::mem::size_of::<u32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
         || ::core::mem::size_of::<i16>() as libc::c_ulong != 2 as libc::c_int as libc::c_ulong
@@ -2079,6 +2079,9 @@ unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -
     {
         configError();
     }
+
+    let program_name = Path::new(program_path.file_name().unwrap());
+
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     smallMode = 0 as Bool;
     keepInputFiles = 0 as Bool;
