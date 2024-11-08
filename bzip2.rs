@@ -22,6 +22,10 @@ extern "C" {
     static mut stderr: *mut FILE;
 }
 type Bool = libc::c_uchar;
+
+const True: Bool = 1;
+const False: Bool = 0;
+
 type IntNative = libc::c_int;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -42,8 +46,20 @@ static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
 static mut blockSize100k: i32 = 0;
 static mut exitValue: i32 = 0;
+
+/*-- source modes; F==file, I==stdin, O==stdout --*/
+const SM_I2O: i32 = 1;
+const SM_F2O: i32 = 2;
+const SM_F2F: i32 = 3;
+
+/*-- operation modes --*/
+const OM_Z: i32 = 1;
+const OM_UNZ: i32 = 2;
+const OM_TEST: i32 = 3;
+
 static mut opMode: i32 = 0;
 static mut srcMode: i32 = 0;
+
 static mut longestFileName: i32 = 0;
 static mut inName: [c_char; 1034] = [0; 1034];
 static mut outName: [c_char; 1034] = [0; 1034];
@@ -2198,95 +2214,49 @@ unsafe fn main_0(argc: IntNative, argv: *mut *mut c_char) -> IntNative {
     }
     aa = argList;
     while !aa.is_null() {
-        if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char) == 0 as libc::c_int {
-            break;
-        }
-        if strcmp(
-            (*aa).name,
-            b"--stdout\0" as *const u8 as *const libc::c_char,
-        ) == 0 as libc::c_int
-        {
-            srcMode = 2 as libc::c_int;
-        } else if strcmp(
-            (*aa).name,
-            b"--decompress\0" as *const u8 as *const libc::c_char,
-        ) == 0 as libc::c_int
-        {
-            opMode = 2 as libc::c_int;
-        } else if strcmp(
-            (*aa).name,
-            b"--compress\0" as *const u8 as *const libc::c_char,
-        ) == 0 as libc::c_int
-        {
-            opMode = 1 as libc::c_int;
-        } else if strcmp((*aa).name, b"--force\0" as *const u8 as *const libc::c_char)
-            == 0 as libc::c_int
-        {
-            forceOverwrite = 1 as Bool;
-        } else if strcmp((*aa).name, b"--test\0" as *const u8 as *const libc::c_char)
-            == 0 as libc::c_int
-        {
-            opMode = 3 as libc::c_int;
-        } else if strcmp((*aa).name, b"--keep\0" as *const u8 as *const libc::c_char)
-            == 0 as libc::c_int
-        {
-            keepInputFiles = 1 as Bool;
-        } else if strcmp((*aa).name, b"--small\0" as *const u8 as *const libc::c_char)
-            == 0 as libc::c_int
-        {
-            smallMode = 1 as Bool;
-        } else if strcmp((*aa).name, b"--quiet\0" as *const u8 as *const libc::c_char)
-            == 0 as libc::c_int
-        {
-            noisy = 0 as Bool;
-        } else if strcmp((*aa).name, c"--version".as_ptr()) == 0
-            || strcmp((*aa).name, c"--license".as_ptr()) == 0
-        {
-            license();
-            exit(0);
-        } else if strcmp(
-            (*aa).name,
-            b"--exponential\0" as *const u8 as *const libc::c_char,
-        ) == 0 as libc::c_int
-        {
-            workFactor = 1 as libc::c_int;
-        } else if strcmp((*aa).name, c"--repetitive-best".as_ptr()) == 0
-            || strcmp((*aa).name, c"--repetitive-fast".as_ptr()) == 0
-        {
-            redundant((*aa).name);
-        } else if strcmp((*aa).name, b"--fast\0" as *const u8 as *const libc::c_char)
-            == 0 as libc::c_int
-        {
-            blockSize100k = 1 as libc::c_int;
-        } else if strcmp((*aa).name, b"--best\0" as *const u8 as *const libc::c_char)
-            == 0 as libc::c_int
-        {
-            blockSize100k = 9 as libc::c_int;
-        } else if strcmp(
-            (*aa).name,
-            b"--verbose\0" as *const u8 as *const libc::c_char,
-        ) == 0 as libc::c_int
-        {
-            verbosity += 1;
-        } else if strcmp((*aa).name, b"--help\0" as *const u8 as *const libc::c_char)
-            == 0 as libc::c_int
-        {
-            usage(progName);
-            exit(0 as libc::c_int);
-        } else if strncmp(
-            (*aa).name,
-            b"--\0" as *const u8 as *const libc::c_char,
-            2 as libc::c_int as libc::size_t,
-        ) == 0 as libc::c_int
-        {
-            fprintf(
-                stderr,
-                b"%s: Bad flag `%s'\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                (*aa).name,
-            );
-            usage(progName);
-            exit(1 as libc::c_int);
+        let name = CStr::from_ptr((*aa).name);
+
+        match name.to_str() {
+            Ok("--") => break,
+            Ok("--stdout") => srcMode = SM_F2O,
+            Ok("--decompress") => opMode = OM_UNZ,
+            Ok("--compress") => opMode = OM_Z,
+            Ok("--force") => forceOverwrite = True,
+            Ok("--test") => opMode = OM_TEST,
+            Ok("--keep") => keepInputFiles = True,
+            Ok("--small") => smallMode = True,
+            Ok("--quiet") => noisy = False,
+            Ok("--version") => {
+                license();
+                exit(0);
+            }
+            Ok("--license") => {
+                license();
+                exit(0);
+            }
+            Ok("--exponential") => workFactor = 1,
+            Ok("--repetitive-best") => redundant((*aa).name),
+            Ok("--repetitive-fast") => redundant((*aa).name),
+            Ok("--fast") => blockSize100k = 1,
+            Ok("--best") => blockSize100k = 9,
+            Ok("--verbose") => verbosity += 1,
+            Ok("--help") => {
+                usage(progName);
+                exit(0);
+            }
+            Ok(other) => {
+                if other.starts_with("--") {
+                    fprintf(
+                        stderr,
+                        b"%s: Bad flag `%s'\n\0" as *const u8 as *const libc::c_char,
+                        progName,
+                        (*aa).name,
+                    );
+                    usage(progName);
+                    exit(1);
+                }
+            }
+            Err(_) => { /* do nothing */ }
         }
         aa = (*aa).link;
     }
