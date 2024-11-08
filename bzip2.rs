@@ -24,7 +24,6 @@ extern "C" {
 }
 type Bool = libc::c_uchar;
 
-const True: Bool = 1;
 const False: Bool = 0;
 
 type IntNative = libc::c_int;
@@ -42,7 +41,7 @@ pub enum DecompressMode {
 static mut decompress_mode: DecompressMode = DecompressMode::Fast;
 
 static mut deleteOutputOnInterrupt: Bool = 0;
-static mut forceOverwrite: Bool = 0;
+static mut force_overwrite: bool = false;
 static mut testFailsExist: Bool = 0;
 static mut unzFailsExist: Bool = 0;
 static mut noisy: Bool = 0;
@@ -391,7 +390,7 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
                 return true;
             }
             State::TryCat => {
-                if forceOverwrite != 0 {
+                if force_overwrite {
                     rewind(zStream);
                     loop {
                         if myfeof(zStream) != 0 {
@@ -1352,7 +1351,7 @@ unsafe fn compress(name: *mut c_char) {
         }
     }
     if srcMode == SourceMode::F2F
-        && forceOverwrite == 0
+        && !force_overwrite
         && notAStandardFile(inName.as_mut_ptr()) as libc::c_int != 0
     {
         if noisy != 0 {
@@ -1367,7 +1366,7 @@ unsafe fn compress(name: *mut c_char) {
         return;
     }
     if srcMode == SourceMode::F2F && fileExists(outName.as_mut_ptr()) as libc::c_int != 0 {
-        if forceOverwrite != 0 {
+        if force_overwrite {
             remove(outName.as_mut_ptr());
         } else {
             fprintf(
@@ -1380,7 +1379,7 @@ unsafe fn compress(name: *mut c_char) {
             return;
         }
     }
-    if srcMode == SourceMode::F2F && forceOverwrite == 0 && {
+    if srcMode == SourceMode::F2F && !force_overwrite && {
         n = countHardLinks(inName.as_mut_ptr());
         n > 0 as libc::c_int
     } {
@@ -1618,7 +1617,7 @@ unsafe fn uncompress(name: *mut c_char) {
         }
     }
     if srcMode == SourceMode::F2F
-        && forceOverwrite == 0
+        && !force_overwrite
         && notAStandardFile(inName.as_mut_ptr()) as libc::c_int != 0
     {
         if noisy != 0 {
@@ -1643,7 +1642,7 @@ unsafe fn uncompress(name: *mut c_char) {
         );
     }
     if srcMode == SourceMode::F2F && fileExists(outName.as_mut_ptr()) as libc::c_int != 0 {
-        if forceOverwrite != 0 {
+        if force_overwrite {
             remove(outName.as_mut_ptr());
         } else {
             fprintf(
@@ -1656,7 +1655,7 @@ unsafe fn uncompress(name: *mut c_char) {
             return;
         }
     }
-    if srcMode == SourceMode::F2F && forceOverwrite == 0 && {
+    if srcMode == SourceMode::F2F && !force_overwrite && {
         n = countHardLinks(inName.as_mut_ptr());
         n > 0 as libc::c_int
     } {
@@ -2024,7 +2023,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     decompress_mode = DecompressMode::Fast;
     keep_input_files = false;
-    forceOverwrite = 0 as Bool;
+    force_overwrite = false;
     noisy = 1 as Bool;
     verbosity = 0 as libc::c_int;
     blockSize100k = 9 as libc::c_int;
@@ -2120,7 +2119,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                     b'c' => srcMode = SourceMode::F2O,
                     b'd' => opMode = OperationMode::Unzip,
                     b'z' => opMode = OperationMode::Zip,
-                    b'f' => forceOverwrite = True,
+                    b'f' => force_overwrite = true,
                     b't' => opMode = OperationMode::Test,
                     b'k' => keep_input_files = true,
                     b's' => decompress_mode = DecompressMode::Small,
@@ -2159,7 +2158,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             "--stdout" => srcMode = SourceMode::F2O,
             "--decompress" => opMode = OperationMode::Unzip,
             "--compress" => opMode = OperationMode::Zip,
-            "--force" => forceOverwrite = True,
+            "--force" => force_overwrite = true,
             "--test" => opMode = OperationMode::Test,
             "--keep" => keep_input_files = true,
             "--small" => decompress_mode = DecompressMode::Small,
