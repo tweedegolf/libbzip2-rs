@@ -14,8 +14,8 @@ use libbzip2_rs_sys::{
 
 use libc::{
     _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fprintf, fread,
-    fwrite, getenv, isatty, malloc, open, perror, remove, rewind, signal, size_t, stat, strcat,
-    strcmp, strcpy, strlen, strncpy, ungetc, utimbuf, write, FILE,
+    fwrite, isatty, open, perror, remove, rewind, signal, stat, strcat, strcmp, strlen, strncpy,
+    ungetc, utimbuf, write, FILE,
 };
 extern "C" {
     static mut stdin: *mut FILE;
@@ -28,13 +28,7 @@ const True: Bool = 1;
 const False: Bool = 0;
 
 type IntNative = libc::c_int;
-#[derive(Copy, Clone)]
-#[repr(C)]
-struct zzzz {
-    name: *mut c_char,
-    link: *mut zzzz,
-}
-type Cell = zzzz;
+
 static mut verbosity: i32 = 0;
 static mut keepInputFiles: Bool = 0;
 static mut smallMode: Bool = 0;
@@ -73,7 +67,6 @@ static mut srcMode: SourceMode = SourceMode::I2O;
 static mut longestFileName: i32 = 0;
 static mut inName: [c_char; 1034] = [0; 1034];
 static mut outName: [c_char; 1034] = [0; 1034];
-static mut tmpName: [c_char; 1034] = [0; 1034];
 static mut progName: *mut c_char = ptr::null_mut();
 static mut progNameReally: [c_char; 1034] = [0; 1034];
 static mut outputHandleJustInCase: *mut FILE = ptr::null_mut();
@@ -2167,8 +2160,8 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                 exit(0);
             }
             "--exponential" => workFactor = 1,
-            "--repetitive-best" => redundant(program_name, &flag_name),
-            "--repetitive-fast" => redundant(program_name, &flag_name),
+            "--repetitive-best" => redundant(program_name, flag_name),
+            "--repetitive-fast" => redundant(program_name, flag_name),
             "--fast" => blockSize100k = 1,
             "--best" => blockSize100k = 9,
             "--verbose" => verbosity += 1,
