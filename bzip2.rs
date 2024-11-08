@@ -1931,23 +1931,36 @@ unsafe fn testf(name: *mut c_char) {
         testFailsExist = 1 as Bool;
     }
 }
-unsafe fn license() {
-    fprintf(
-        stdout,
-        b"bzip2, a block-sorting file compressor.  Version %s.\n   \n   Copyright (C) 1996-2010 by Julian Seward.\n   \n   This program is free software; you can redistribute it and/or modify\n   it under the terms set out in the LICENSE file, which is included\n   in the bzip2-1.0.6 source distribution.\n   \n   This program is distributed in the hope that it will be useful,\n   but WITHOUT ANY WARRANTY; without even the implied warranty of\n   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n   LICENSE file for more details.\n   \n\0"
-            as *const u8 as *const libc::c_char,
-        BZ2_bzlibVersion(),
+
+const BZLIB_VERSION: &str = unsafe {
+    match CStr::from_ptr(BZ2_bzlibVersion()).to_str() {
+        Ok(s) => s,
+        Err(_) => panic!(),
+    }
+};
+
+fn license() {
+    eprint!(
+        concat!(
+            "bzip2, a block-sorting file compressor.  Version {}.\n",
+            "   \n",
+            "   Copyright (C) 1996-2010 by Julian Seward.\n",
+            "   \n",
+            "   This program is free software; you can redistribute it and/or modify\n",
+            "   it under the terms set out in the LICENSE file, which is included\n",
+            "   in the bzip2-1.0.6 source distribution.\n",
+            "   \n",
+            "   This program is distributed in the hope that it will be useful,\n",
+            "   but WITHOUT ANY WARRANTY; without even the implied warranty of\n",
+            "   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n",
+            "   LICENSE file for more details.\n",
+            "   \n"
+        ),
+        BZLIB_VERSION,
     );
 }
 
 fn usage(full_program_name: &Path) {
-    const VERSION: &str = unsafe {
-        match CStr::from_ptr(BZ2_bzlibVersion()).to_str() {
-            Ok(s) => s,
-            Err(_) => panic!(),
-        }
-    };
-
     eprint!(
         concat!(
             "bzip2, a block-sorting file compressor.  Version {}.\n",
@@ -1979,7 +1992,7 @@ fn usage(full_program_name: &Path) {
             "   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n",
             "\n"
         ),
-        VERSION,
+        BZLIB_VERSION,
         full_program_name.display(),
     );
 }
