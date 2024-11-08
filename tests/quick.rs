@@ -662,3 +662,20 @@ fn version() {
         assert!(String::from_utf8_lossy(&output.stdout).contains("This program is free software"));
     }
 }
+
+#[test]
+fn flags_after_double_dash() {
+    // the version also just prints out the license text
+
+    {
+        let mut cmd = command();
+        cmd.args(&["--", "-V"]);
+        let output = cmd.output().unwrap();
+
+        assert!(!output.status.success(),);
+        assert_eq!(
+            String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+            "bzip2: Can't open input file -V: No such file or directory.\n"
+        );
+    }
+}

@@ -77,6 +77,19 @@ static mut progName: *mut c_char = ptr::null_mut();
 static mut progNameReally: [c_char; 1034] = [0; 1034];
 static mut outputHandleJustInCase: *mut FILE = ptr::null_mut();
 static mut workFactor: i32 = 0;
+
+/// Strictly for compatibility with the original bzip2 output
+fn display_last_os_error() -> String {
+    let mut error = std::io::Error::last_os_error().to_string();
+
+    // now strip off the ` (os error x)` part
+    if let Some(index) = error.find(" (os error") {
+        error.truncate(index);
+    }
+
+    error
+}
+
 unsafe fn myfeof(f: *mut FILE) -> Bool {
     let c: i32 = fgetc(f);
     if c == -1 as libc::c_int {
@@ -1324,7 +1337,7 @@ unsafe fn compress(name: *mut c_char) {
             "{}: Can't open input file {}: {}.",
             std::env::args().next().unwrap(),
             CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-            std::io::Error::last_os_error(),
+            display_last_os_error(),
         );
         setExit(1 as libc::c_int);
         return;
@@ -1460,7 +1473,7 @@ unsafe fn compress(name: *mut c_char) {
                     "{}: Can't open input file {}: {}.",
                     std::env::args().next().unwrap(),
                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-                    std::io::Error::last_os_error(),
+                    display_last_os_error(),
                 );
                 setExit(1 as libc::c_int);
                 return;
@@ -1480,7 +1493,7 @@ unsafe fn compress(name: *mut c_char) {
                     "{}: Can't create output file {}: {}.",
                     std::env::args().next().unwrap(),
                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-                    std::io::Error::last_os_error(),
+                    display_last_os_error(),
                 );
                 if !inStr.is_null() {
                     fclose(inStr);
@@ -1493,7 +1506,7 @@ unsafe fn compress(name: *mut c_char) {
                     "{}: Can't open input file {}: {}.",
                     std::env::args().next().unwrap(),
                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-                    std::io::Error::last_os_error(),
+                    display_last_os_error(),
                 );
                 if !outStr.is_null() {
                     fclose(outStr);
@@ -1605,7 +1618,7 @@ unsafe fn uncompress(name: *mut c_char) {
             "{}: Can't open input file {}: {}.",
             std::env::args().next().unwrap(),
             CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-            std::io::Error::last_os_error(),
+            display_last_os_error(),
         );
         setExit(1 as libc::c_int);
         return;
@@ -1717,7 +1730,7 @@ unsafe fn uncompress(name: *mut c_char) {
                     "{}: Can't open input file {}:{}.",
                     std::env::args().next().unwrap(),
                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-                    std::io::Error::last_os_error(),
+                    display_last_os_error(),
                 );
                 if !inStr.is_null() {
                     fclose(inStr);
@@ -1740,7 +1753,7 @@ unsafe fn uncompress(name: *mut c_char) {
                     "{}: Can't create output file {}: {}.",
                     std::env::args().next().unwrap(),
                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-                    std::io::Error::last_os_error(),
+                    display_last_os_error(),
                 );
                 if !inStr.is_null() {
                     fclose(inStr);
@@ -1753,7 +1766,7 @@ unsafe fn uncompress(name: *mut c_char) {
                     "{}: Can't open input file {}: {}.",
                     std::env::args().next().unwrap(),
                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-                    std::io::Error::last_os_error(),
+                    display_last_os_error(),
                 );
                 if !outStr.is_null() {
                     fclose(outStr);
@@ -1860,7 +1873,7 @@ unsafe fn testf(name: *mut c_char) {
             "{}: Can't open input {}: {}.",
             std::env::args().next().unwrap(),
             CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-            std::io::Error::last_os_error(),
+            display_last_os_error(),
         );
         setExit(1 as libc::c_int);
         return;
@@ -1909,7 +1922,7 @@ unsafe fn testf(name: *mut c_char) {
                     "{}: Can't open input file {}:{}.",
                     std::env::args().next().unwrap(),
                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-                    std::io::Error::last_os_error(),
+                    display_last_os_error(),
                 );
                 setExit(1 as libc::c_int);
                 return;
