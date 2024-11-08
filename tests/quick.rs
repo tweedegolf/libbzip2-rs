@@ -692,7 +692,7 @@ fn compress_and_test() {
 }
 
 #[test]
-fn uncompress_file_to_file() {
+fn uncompress_file_to_file_bz2() {
     let expected = include_bytes!("input/quick/sample1.ref");
 
     let tmpdir = tempfile::tempdir().unwrap();
@@ -717,5 +717,34 @@ fn uncompress_file_to_file() {
     assert!(output.stdout.is_empty());
 
     let actual = std::fs::read(sample1.with_extension("")).unwrap();
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn uncompress_file_to_file_tar() {
+    let expected = include_bytes!("input/quick/sample1.ref");
+
+    let tmpdir = tempfile::tempdir().unwrap();
+    let sample1 = tmpdir.path().join("sample1.tbz2");
+
+    std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-d").arg(&sample1).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    let actual = std::fs::read(sample1.with_extension("tar")).unwrap();
     assert_eq!(actual, expected);
 }
