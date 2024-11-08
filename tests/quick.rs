@@ -563,3 +563,55 @@ fn flags_from_env() {
         );
     }
 }
+
+#[test]
+fn license() {
+    {
+        let mut cmd = command();
+        cmd.args(&["-L", "--never-processed"]);
+        let output = cmd.output().unwrap();
+
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stdout).contains("This program is free software"));
+    }
+
+    {
+        let mut cmd = command();
+        cmd.args(&["--license", "--never-processed"]);
+        let output = cmd.output().unwrap();
+
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stdout).contains("This program is free software"));
+    }
+}
+
+#[test]
+fn version() {
+    // the version also just prints out the license text
+
+    {
+        let mut cmd = command();
+        cmd.args(&["-V", "--never-processed"]);
+        let output = cmd.output().unwrap();
+
+        assert!(output.status.success(),);
+        assert!(String::from_utf8_lossy(&output.stdout).contains("This program is free software"));
+    }
+
+    {
+        let mut cmd = command();
+        cmd.args(&["--version", "--never-processed"]);
+        let output = cmd.output().unwrap();
+
+        assert!(output.status.success(),);
+        assert!(String::from_utf8_lossy(&output.stdout).contains("This program is free software"));
+    }
+}
