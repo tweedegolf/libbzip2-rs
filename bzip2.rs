@@ -2175,91 +2175,53 @@ unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -
     }
     aa = argList;
     while !aa.is_null() {
-        if strcmp((*aa).name, b"--\0" as *const u8 as *const libc::c_char) == 0 as libc::c_int {
+        let Ok(flag_name) = CStr::from_ptr((*aa).name).to_str() else {
+            continue;
+        };
+
+        if flag_name == "--" {
             break;
         }
-        if *((*aa).name).offset(0 as libc::c_int as isize) as libc::c_int == '-' as i32
-            && *((*aa).name).offset(1 as libc::c_int as isize) as libc::c_int != '-' as i32
-        {
-            let mut j = 1 as libc::c_int;
-            while *((*aa).name).offset(j as isize) as libc::c_int != '\0' as i32 {
-                match *((*aa).name).offset(j as isize) as libc::c_int {
-                    99 => {
-                        srcMode = 2 as libc::c_int;
-                    }
-                    100 => {
-                        opMode = 2 as libc::c_int;
-                    }
-                    122 => {
-                        opMode = 1 as libc::c_int;
-                    }
-                    102 => {
-                        forceOverwrite = 1 as Bool;
-                    }
-                    116 => {
-                        opMode = 3 as libc::c_int;
-                    }
-                    107 => {
-                        keepInputFiles = 1 as Bool;
-                    }
-                    115 => {
-                        smallMode = 1 as Bool;
-                    }
-                    113 => {
-                        noisy = 0 as Bool;
-                    }
-                    49 => {
-                        blockSize100k = 1 as libc::c_int;
-                    }
-                    50 => {
-                        blockSize100k = 2 as libc::c_int;
-                    }
-                    51 => {
-                        blockSize100k = 3 as libc::c_int;
-                    }
-                    52 => {
-                        blockSize100k = 4 as libc::c_int;
-                    }
-                    53 => {
-                        blockSize100k = 5 as libc::c_int;
-                    }
-                    54 => {
-                        blockSize100k = 6 as libc::c_int;
-                    }
-                    55 => {
-                        blockSize100k = 7 as libc::c_int;
-                    }
-                    56 => {
-                        blockSize100k = 8 as libc::c_int;
-                    }
-                    57 => {
-                        blockSize100k = 9 as libc::c_int;
-                    }
-                    86 | 76 => {
+
+        // only `-h`, not `--help`
+        if flag_name.as_bytes()[0] == b'-' && flag_name.as_bytes()[1] != b'-' {
+            for c in &flag_name.as_bytes()[1..] {
+                match c {
+                    b'c' => srcMode = SM_F2O,
+                    b'd' => opMode = OM_UNZ,
+                    b'z' => opMode = OM_Z,
+                    b'f' => forceOverwrite = True,
+                    b't' => opMode = OM_TEST,
+                    b'k' => keepInputFiles = True,
+                    b's' => smallMode = True,
+                    b'q' => noisy = False,
+                    b'1' => blockSize100k = 1,
+                    b'2' => blockSize100k = 2,
+                    b'3' => blockSize100k = 3,
+                    b'4' => blockSize100k = 4,
+                    b'5' => blockSize100k = 5,
+                    b'6' => blockSize100k = 6,
+                    b'7' => blockSize100k = 7,
+                    b'8' => blockSize100k = 8,
+                    b'9' => blockSize100k = 9,
+                    b'V' | b'L' => {
                         license();
-                        exit(0 as libc::c_int);
+                        exit(0);
                     }
-                    118 => {
-                        verbosity += 1;
-                    }
-                    104 => {
+                    b'v' => verbosity += 1,
+                    b'h' => {
                         usage(program_name);
-                        exit(0 as libc::c_int);
+                        exit(0);
                     }
                     _ => {
-                        fprintf(
-                            stderr,
-                            b"%s: Bad flag `%s'\n\0" as *const u8 as *const libc::c_char,
-                            progName,
-                            (*aa).name,
-                        );
+                        eprintln!("{}: Bad flag `{}'", program_name.display(), flag_name,);
                         usage(program_name);
-                        exit(1 as libc::c_int);
+                        exit(1);
                     }
                 }
-                j += 1;
             }
         }
+
         aa = (*aa).link;
     }
     aa = argList;
@@ -2278,11 +2240,7 @@ unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -
             "--keep" => keepInputFiles = True,
             "--small" => smallMode = True,
             "--quiet" => noisy = False,
-            "--version" => {
-                license();
-                exit(0);
-            }
-            "--license" => {
+            "--version" | "--license" => {
                 license();
                 exit(0);
             }
