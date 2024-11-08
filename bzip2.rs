@@ -2298,12 +2298,7 @@ unsafe fn main_0(program_name: &Path, argc: IntNative, argv: *mut *mut c_char) -
             }
             _ => {
                 if flag_name.starts_with("--") {
-                    fprintf(
-                        stderr,
-                        b"%s: Bad flag `%s'\n\0" as *const u8 as *const libc::c_char,
-                        progName,
-                        (*aa).name,
-                    );
+                    eprintln!("{}: Bad flag `{}'", program_name.display(), flag_name,);
                     usage(program_name);
                     exit(1);
                 }
