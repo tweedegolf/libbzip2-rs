@@ -565,6 +565,53 @@ fn flags_from_env() {
 }
 
 #[test]
+fn flags_from_env_ordering() {
+    {
+        let mut cmd = command();
+        cmd.arg("--bad1");
+        cmd.env("BZIP", "--bad2");
+        cmd.env("BZIP2", "--bad3");
+        let output = cmd.output().unwrap();
+
+        assert!(
+            !output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Bad flag `--bad3'"));
+    }
+
+    {
+        let mut cmd = command();
+        cmd.arg("--bad1");
+        cmd.env("BZIP", "--bad2");
+        let output = cmd.output().unwrap();
+
+        assert!(
+            !output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Bad flag `--bad2'"));
+    }
+
+    {
+        let mut cmd = command();
+        cmd.arg("--bad1");
+        cmd.env("BZIP", "");
+        cmd.env("BZIP2", "");
+        let output = cmd.output().unwrap();
+
+        assert!(
+            !output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Bad flag `--bad1'"));
+    }
+}
+
+#[test]
 fn license() {
     {
         let mut cmd = command();
