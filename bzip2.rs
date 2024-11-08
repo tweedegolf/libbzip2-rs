@@ -1745,6 +1745,8 @@ unsafe fn uncompress(name: Option<String>) {
     }
 
     if srcMode == SourceMode::F2F {
+        // Save the file's meta-info before we open it.
+        // Doing it later means we mess up the access times.
         unsafe { saveInputFileMetaInfo(inName.as_mut_ptr()) };
     }
 
@@ -1793,6 +1795,7 @@ unsafe fn uncompress(name: Option<String>) {
                 outName.as_mut_ptr(),
                 b"wb\0" as *const u8 as *const libc::c_char,
             );
+
             if outStr.is_null() {
                 eprintln!(
                     "{}: Can't create output file {}: {}.",
@@ -1806,6 +1809,7 @@ unsafe fn uncompress(name: Option<String>) {
                 setExit(1 as libc::c_int);
                 return;
             }
+
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
@@ -1823,18 +1827,18 @@ unsafe fn uncompress(name: Option<String>) {
     }
 
     if verbosity >= 1 as libc::c_int {
-        fprintf(
-            stderr,
-            b"  %s: \0" as *const u8 as *const libc::c_char,
-            inName.as_mut_ptr(),
-        );
+        eprint!("  {}: ", in_name.display(),);
         pad(inName.as_mut_ptr());
         fflush(stderr);
     }
+
+    /*--- Now the input and output handles are sane.  Do the Biz. ---*/
     outputHandleJustInCase = outStr;
     delete_output_on_interrupt = true;
     let magicNumberOK = uncompressStream(inStr, outStr);
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
+
+    /*--- If there was an I/O error, we won't get here. ---*/
     if magicNumberOK {
         if srcMode == SourceMode::F2F {
             applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
@@ -1856,24 +1860,22 @@ unsafe fn uncompress(name: Option<String>) {
             }
         }
     }
+
     delete_output_on_interrupt = false;
+
     if magicNumberOK {
         if verbosity >= 1 as libc::c_int {
-            fprintf(stderr, b"done\n\0" as *const u8 as *const libc::c_char);
+            eprintln!("done");
         }
     } else {
         setExit(2 as libc::c_int);
         if verbosity >= 1 as libc::c_int {
-            fprintf(
-                stderr,
-                b"not a bzip2 file.\n\0" as *const u8 as *const libc::c_char,
-            );
+            eprintln!("not a bzip2 file.");
         } else {
-            fprintf(
-                stderr,
-                b"%s: %s is not a bzip2 file.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                inName.as_mut_ptr(),
+            eprintln!(
+                "{}: {} is not a bzip2 file.",
+                get_program_name().display(),
+                in_name.display(),
             );
         }
     };
