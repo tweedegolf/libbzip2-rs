@@ -87,7 +87,7 @@ const LIBBZIP2_RS_SYS_VERSION: &str = concat!(libbzip2_rs_sys_version!(), "\0");
 /// - The first component is the version of stock zlib that this release is compatible with
 /// - The final component is the zlib-rs version used to build this release.
 #[export_name = prefix!(BZ2_bzlibVersion)]
-pub extern "C" fn BZ2_bzlibVersion() -> *const core::ffi::c_char {
+pub const extern "C" fn BZ2_bzlibVersion() -> *const core::ffi::c_char {
     LIBBZIP2_RS_SYS_VERSION.as_ptr().cast::<core::ffi::c_char>()
 }
 

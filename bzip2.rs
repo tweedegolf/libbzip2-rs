@@ -1940,7 +1940,14 @@ unsafe fn license() {
     );
 }
 
-unsafe fn usage(full_program_name: &Path) {
+fn usage(full_program_name: &Path) {
+    const VERSION: &str = unsafe {
+        match CStr::from_ptr(BZ2_bzlibVersion()).to_str() {
+            Ok(s) => s,
+            Err(_) => panic!(),
+        }
+    };
+
     eprint!(
         concat!(
             "bzip2, a block-sorting file compressor.  Version {}.\n",
@@ -1972,12 +1979,12 @@ unsafe fn usage(full_program_name: &Path) {
             "   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n",
             "\n"
         ),
-        unsafe { CStr::from_ptr(BZ2_bzlibVersion()).to_str().unwrap() },
+        VERSION,
         full_program_name.display(),
     );
 }
 
-unsafe fn redundant(program_name: &Path, flag_name: &str) {
+fn redundant(program_name: &Path, flag_name: &str) {
     eprintln!(
         "{}: {} is redundant in versions 0.9.5 and above",
         program_name.display(),
