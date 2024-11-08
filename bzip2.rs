@@ -41,7 +41,7 @@ static mut decompress_mode: DecompressMode = DecompressMode::Fast;
 static mut deleteOutputOnInterrupt: Bool = 0;
 static mut force_overwrite: bool = false;
 static mut test_fails_exists: bool = false;
-static mut unzFailsExist: Bool = 0;
+static mut unz_fails_exist: bool = false;
 static mut noisy: bool = false;
 static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
@@ -1778,7 +1778,7 @@ unsafe fn uncompress(name: *mut c_char) {
             }
         }
     } else {
-        unzFailsExist = 1 as Bool;
+        unz_fails_exist = true;
         deleteOutputOnInterrupt = 0 as Bool;
         if srcMode == SourceMode::F2F {
             let retVal_0: IntNative = remove(outName.as_mut_ptr());
@@ -2026,7 +2026,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     verbosity = 0 as libc::c_int;
     blockSize100k = 9 as libc::c_int;
     test_fails_exists = false;
-    unzFailsExist = 0 as Bool;
+    unz_fails_exist = false;
     numFileNames = 0 as libc::c_int;
     numFilesProcessed = 0 as libc::c_int;
     workFactor = 30 as libc::c_int;
@@ -2240,7 +2240,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Unzip => {
-            unzFailsExist = 0 as Bool;
+            unz_fails_exist = false;
             if srcMode == SourceMode::I2O {
                 uncompress(std::ptr::null_mut());
             } else {
@@ -2255,7 +2255,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                     }
                 }
             }
-            if unzFailsExist != 0 {
+            if unz_fails_exist {
                 setExit(2 as libc::c_int);
                 exit(exitValue);
             }
