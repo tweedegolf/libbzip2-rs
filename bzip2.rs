@@ -2020,15 +2020,16 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     keep_input_files = false;
     force_overwrite = false;
     noisy = true;
-    verbosity = 0 as libc::c_int;
-    blockSize100k = 9 as libc::c_int;
+    verbosity = 0;
+    blockSize100k = 9;
     test_fails_exists = false;
     unz_fails_exist = false;
-    numFileNames = 0 as libc::c_int;
-    numFilesProcessed = 0 as libc::c_int;
-    workFactor = 30 as libc::c_int;
+    numFileNames = 0;
+    numFilesProcessed = 0;
+    workFactor = 30;
     delete_output_on_interrupt = false;
-    exitValue = 0 as libc::c_int;
+    exitValue = 0;
+
     signal(
         11 as libc::c_int,
         mySIGSEGVorSIGBUScatcher as unsafe fn(IntNative) as usize,
