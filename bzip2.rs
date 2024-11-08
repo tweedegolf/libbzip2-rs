@@ -2006,7 +2006,7 @@ fn contains_osstr(haystack: impl AsRef<OsStr>, needle: impl AsRef<OsStr>) -> boo
     haystack.windows(needle.len()).any(|h| h == needle)
 }
 
-unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -> IntNative {
+unsafe fn main_0(program_path: &Path) -> IntNative {
     if ::core::mem::size_of::<i32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
         || ::core::mem::size_of::<u32>() as libc::c_ulong != 4 as libc::c_int as libc::c_ulong
         || ::core::mem::size_of::<i16>() as libc::c_ulong != 2 as libc::c_int as libc::c_ulong
@@ -2049,22 +2049,14 @@ unsafe fn main_0(program_path: &Path, argc: IntNative, argv: *mut *mut c_char) -
         outName.as_mut_ptr(),
         b"(none)\0" as *const u8 as *const libc::c_char,
     );
-    copyFileName(
+
+    let program_name_str = program_name.to_str().unwrap();
+    core::ptr::copy(
+        program_name_str.as_ptr().cast::<libc::c_char>(),
         progNameReally.as_mut_ptr(),
-        *argv.offset(0 as libc::c_int as isize),
+        program_name_str.len(),
     );
-    progName = &mut *progNameReally
-        .as_mut_ptr()
-        .offset(0 as libc::c_int as isize);
-    let mut tmp = progNameReally
-        .as_mut_ptr()
-        .offset(0 as libc::c_int as isize);
-    while *tmp as libc::c_int != '\0' as i32 {
-        if *tmp as libc::c_int == '/' as i32 {
-            progName = tmp.offset(1 as libc::c_int as isize);
-        }
-        tmp = tmp.offset(1);
-    }
+    progName = progNameReally.as_mut_ptr();
 
     let mut arg_list = Vec::with_capacity(16);
 
@@ -2303,20 +2295,5 @@ fn main() {
 
     let program_name = PathBuf::from(it.next().unwrap());
 
-    let mut args: Vec<*mut libc::c_char> = Vec::new();
-    for arg in ::std::env::args() {
-        args.push(
-            (::std::ffi::CString::new(arg))
-                .expect("Failed to convert argument into CString.")
-                .into_raw(),
-        );
-    }
-    args.push(core::ptr::null_mut());
-    unsafe {
-        ::std::process::exit(main_0(
-            &program_name,
-            (args.len() - 1) as IntNative,
-            args.as_mut_ptr(),
-        ) as i32)
-    }
+    unsafe { ::std::process::exit(main_0(&program_name) as i32) }
 }
