@@ -1258,6 +1258,9 @@ unsafe fn contains_dubious_chars(ptr: *mut c_char) -> bool {
 
 const BZ_N_SUFFIX_PAIRS: usize = 4;
 
+const Z_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = [".bz2", ".bz", ".tbz2", ".tbz"];
+const UNZ_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = ["", "", ".tar", ".tar"];
+
 static mut zSuffix: [*const c_char; BZ_N_SUFFIX_PAIRS] = [
     b".bz2\0" as *const u8 as *const libc::c_char,
     b".bz\0" as *const u8 as *const libc::c_char,
@@ -1281,14 +1284,7 @@ unsafe fn hasSuffix(s: *mut c_char, suffix: *const c_char) -> Bool {
     }
     0 as Bool
 }
-unsafe fn mapSuffix(name: *mut c_char, oldSuffix: *const c_char, newSuffix: *const c_char) -> Bool {
-    if hasSuffix(name, oldSuffix) == 0 {
-        return 0 as Bool;
-    }
-    *name.add((strlen(name)).wrapping_sub(strlen(oldSuffix))) = 0 as libc::c_int as c_char;
-    strcat(name, newSuffix);
-    1 as Bool
-}
+
 unsafe fn compress(name: *mut c_char) {
     let inStr: *mut FILE;
     let outStr: *mut FILE;
@@ -1553,50 +1549,49 @@ unsafe fn uncompress(name: Option<String>) {
 
     delete_output_on_interrupt = false;
 
-    if name.is_none() && srcMode != SourceMode::I2O {
-        panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
-    }
-
     let mut cannot_guess = false;
 
-    'zzz: {
-        match srcMode {
-            SourceMode::I2O => {
-                copyFileName(
-                    inName.as_mut_ptr(),
-                    b"(stdin)\0" as *const u8 as *const libc::c_char,
-                );
-                copyFileName(
-                    outName.as_mut_ptr(),
-                    b"(stdout)\0" as *const u8 as *const libc::c_char,
-                );
-            }
-            SourceMode::F2O => {
-                let name_cstr = CString::new(name.unwrap()).unwrap();
-                copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
-                copyFileName(
-                    outName.as_mut_ptr(),
-                    b"(stdout)\0" as *const u8 as *const libc::c_char,
-                );
-            }
-            SourceMode::F2F => {
-                let name_cstr = CString::new(name.unwrap()).unwrap();
+    match (name, srcMode) {
+        (_, SourceMode::I2O) => {
+            copyFileName(
+                inName.as_mut_ptr(),
+                b"(stdin)\0" as *const u8 as *const libc::c_char,
+            );
+            copyFileName(
+                outName.as_mut_ptr(),
+                b"(stdout)\0" as *const u8 as *const libc::c_char,
+            );
+        }
+        (Some(name), SourceMode::F2O) => {
+            let name_cstr = CString::new(name).unwrap();
+            copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
+            copyFileName(
+                outName.as_mut_ptr(),
+                b"(stdout)\0" as *const u8 as *const libc::c_char,
+            );
+        }
+        (Some(mut name), SourceMode::F2F) => {
+            let name_cstr = CString::new(name.clone()).unwrap();
+            copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
 
-                copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
-                copyFileName(outName.as_mut_ptr(), name_cstr.as_ptr());
-
-                for i in 0..BZ_N_SUFFIX_PAIRS {
-                    if mapSuffix(outName.as_mut_ptr(), zSuffix[i], unzSuffix[i]) != 0 {
-                        break 'zzz;
+            cannot_guess = 'blk: {
+                for (old, new) in Z_SUFFIX.iter().zip(UNZ_SUFFIX) {
+                    if name.ends_with(old) {
+                        name.truncate(name.len() - old.len());
+                        name += new;
+                        break 'blk false;
                     }
                 }
 
-                cannot_guess = true;
-                strcat(
-                    outName.as_mut_ptr(),
-                    b".out\0" as *const u8 as *const libc::c_char,
-                );
-            }
+                name += ".out";
+                true
+            };
+
+            let name_cstr = CString::new(name).unwrap();
+            copyFileName(outName.as_mut_ptr(), name_cstr.as_ptr());
+        }
+        (None, SourceMode::F2O | SourceMode::F2F) => {
+            panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
         }
     }
 
