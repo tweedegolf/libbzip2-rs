@@ -2072,12 +2072,12 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     longestFileName = 7 as libc::c_int;
     numFileNames = 0 as libc::c_int;
-    let mut decode = 1 as Bool;
+    let mut decode = true;
 
     for name in &arg_list {
         if name == "--" {
-            decode = 0 as Bool;
-        } else if !(name.starts_with('-') && decode != 0) {
+            decode = false;
+        } else if !(name.starts_with('-') && decode) {
             numFileNames += 1;
             longestFileName = Ord::max(longestFileName, name.len() as i32);
         }
@@ -2225,11 +2225,11 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             if srcMode == SourceMode::I2O {
                 compress(std::ptr::null_mut());
             } else {
-                decode = 1 as Bool;
+                decode = true;
                 for name in arg_list {
                     if name == "--" {
-                        decode = 0 as Bool;
-                    } else if !(name.starts_with('-') && decode != 0) {
+                        decode = false;
+                    } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
                         let name = CString::new(name).unwrap();
                         compress(name.as_ptr().cast_mut());
@@ -2242,11 +2242,11 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             if srcMode == SourceMode::I2O {
                 uncompress(std::ptr::null_mut());
             } else {
-                decode = 1 as Bool;
+                decode = true;
                 for name in arg_list {
                     if name == "--" {
-                        decode = 0 as Bool;
-                    } else if !(name.starts_with('-') && decode != 0) {
+                        decode = false;
+                    } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
                         let name = CString::new(name).unwrap();
                         uncompress(name.as_ptr().cast_mut());
@@ -2263,11 +2263,11 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             if srcMode == SourceMode::I2O {
                 testf(std::ptr::null_mut());
             } else {
-                decode = 1 as Bool;
+                decode = true;
                 for name in arg_list {
                     if name == "--" {
-                        decode = 0 as Bool;
-                    } else if !(name.starts_with('-') && decode != 0) {
+                        decode = false;
+                    } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
                         let name = CString::new(name).unwrap();
                         testf(name.as_ptr().cast_mut());
