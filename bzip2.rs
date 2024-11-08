@@ -75,6 +75,12 @@ static mut inName: [c_char; 1034] = [0; 1034];
 static mut outName: [c_char; 1034] = [0; 1034];
 static mut progName: *mut c_char = ptr::null_mut();
 static mut progNameReally: [c_char; 1034] = [0; 1034];
+
+fn get_program_name() -> PathBuf {
+    let program_path: PathBuf = std::env::args_os().next().unwrap().into();
+    PathBuf::from(program_path.file_name().unwrap())
+}
+
 static mut outputHandleJustInCase: *mut FILE = ptr::null_mut();
 static mut workFactor: i32 = 0;
 
@@ -1256,6 +1262,23 @@ unsafe fn contains_dubious_chars(ptr: *mut c_char) -> bool {
         .any(|c| *c == b'?' || *c == '*')
 }
 
+#[cfg(unix)]
+fn contains_dubious_chars_safe(_: &Path) -> bool {
+    // On unix, files can contain any characters and the file expansion is performed by the shell.
+    false
+}
+
+#[cfg(not(unix))]
+fn contains_dubious_chars_safe(path: &Path) -> bool {
+    // On non-unix (Win* platforms), wildcard characters are not allowed in filenames.
+    for b in path.as_encoded_bytes() {
+        match b {
+            b'?' | b'*' => return true,
+            _ => {}
+        }
+    }
+}
+
 const BZ_N_SUFFIX_PAIRS: usize = 4;
 
 const Z_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = [".bz2", ".bz", ".tbz2", ".tbz"];
@@ -1551,8 +1574,14 @@ unsafe fn uncompress(name: Option<String>) {
 
     let mut cannot_guess = false;
 
+    let in_name: PathBuf;
+    let out_name: PathBuf;
+
     match (name, srcMode) {
         (_, SourceMode::I2O) => {
+            in_name = PathBuf::from("(stdin)");
+            out_name = PathBuf::from("(stdout)");
+
             copyFileName(
                 inName.as_mut_ptr(),
                 b"(stdin)\0" as *const u8 as *const libc::c_char,
@@ -1563,6 +1592,9 @@ unsafe fn uncompress(name: Option<String>) {
             );
         }
         (Some(name), SourceMode::F2O) => {
+            in_name = PathBuf::from(&name);
+            out_name = PathBuf::from("(stdout)");
+
             let name_cstr = CString::new(name).unwrap();
             copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
             copyFileName(
@@ -1571,6 +1603,8 @@ unsafe fn uncompress(name: Option<String>) {
             );
         }
         (Some(mut name), SourceMode::F2F) => {
+            in_name = PathBuf::from(&name);
+
             let name_cstr = CString::new(name.clone()).unwrap();
             copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
 
@@ -1587,36 +1621,39 @@ unsafe fn uncompress(name: Option<String>) {
                 true
             };
 
+            out_name = PathBuf::from(&name);
+
             let name_cstr = CString::new(name).unwrap();
             copyFileName(outName.as_mut_ptr(), name_cstr.as_ptr());
         }
         (None, SourceMode::F2O | SourceMode::F2F) => {
-            panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char);
+            panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char)
         }
     }
 
-    if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
+    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&in_name) {
         if noisy {
-            fprintf(
-                stderr,
-                b"%s: There are no files matching `%s'.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                inName.as_mut_ptr(),
+            eprintln!(
+                "%{}: There are no files matching `{}'.",
+                get_program_name().display(),
+                in_name.display(),
             );
         }
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
-    if srcMode != SourceMode::I2O && fileExists(inName.as_mut_ptr()) == 0 {
+
+    if srcMode != SourceMode::I2O && !in_name.exists() {
         eprintln!(
             "{}: Can't open input file {}: {}.",
-            std::env::args().next().unwrap(),
-            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+            get_program_name().display(),
+            in_name.display(),
             display_last_os_error(),
         );
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
+
     if srcMode == SourceMode::F2F || srcMode == SourceMode::F2O {
         let mut statBuf: stat = zeroed();
         stat(inName.as_mut_ptr(), &mut statBuf);
