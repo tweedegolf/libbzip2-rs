@@ -76,6 +76,7 @@ static mut outName: [c_char; 1034] = [0; 1034];
 static mut progName: *mut c_char = ptr::null_mut();
 static mut progNameReally: [c_char; 1034] = [0; 1034];
 
+// this should eventually be removed and just passed down into functions from the root
 fn get_program_name() -> PathBuf {
     let program_path: PathBuf = std::env::args_os().next().unwrap().into();
     PathBuf::from(program_path.file_name().unwrap())
@@ -1174,6 +1175,15 @@ unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *
     }
     fp
 }
+
+fn not_a_standard_file(path: &Path) -> bool {
+    let Ok(metadata) = path.symlink_metadata() else {
+        return true;
+    };
+
+    !metadata.is_file()
+}
+
 #[cfg(unix)]
 unsafe fn notAStandardFile(name: *mut c_char) -> Bool {
     let mut statBuf: stat = zeroed();
@@ -1655,58 +1665,52 @@ unsafe fn uncompress(name: Option<String>) {
     }
 
     if srcMode == SourceMode::F2F || srcMode == SourceMode::F2O {
-        let mut statBuf: stat = zeroed();
-        stat(inName.as_mut_ptr(), &mut statBuf);
-        if statBuf.st_mode & 0o170000 == 0o40000 {
-            fprintf(
-                stderr,
-                b"%s: Input file %s is a directory.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                inName.as_mut_ptr(),
+        if in_name.is_dir() {
+            eprintln!(
+                "{}: Input file {} is a directory.",
+                get_program_name().display(),
+                in_name.display(),
             );
             setExit(1 as libc::c_int);
             return;
         }
     }
-    if srcMode == SourceMode::F2F
-        && !force_overwrite
-        && notAStandardFile(inName.as_mut_ptr()) as libc::c_int != 0
-    {
+
+    if srcMode == SourceMode::F2F && !force_overwrite && not_a_standard_file(&in_name) {
         if noisy {
-            fprintf(
-                stderr,
-                b"%s: Input file %s is not a normal file.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                inName.as_mut_ptr(),
+            eprintln!(
+                "{}: Input file {} is not a normal file.",
+                get_program_name().display(),
+                in_name.display(),
             );
         }
         setExit(1 as libc::c_int);
         return;
     }
+
     if cannot_guess && noisy {
-        fprintf(
-            stderr,
-            b"%s: Can't guess original name for %s -- using %s\n\0" as *const u8
-                as *const libc::c_char,
-            progName,
-            inName.as_mut_ptr(),
-            outName.as_mut_ptr(),
+        eprintln!(
+            "{}: Can't guess original name for {} -- using {}",
+            get_program_name().display(),
+            in_name.display(),
+            out_name.display(),
         );
     }
-    if srcMode == SourceMode::F2F && fileExists(outName.as_mut_ptr()) as libc::c_int != 0 {
+
+    if srcMode == SourceMode::F2F && out_name.exists() {
         if force_overwrite {
-            remove(outName.as_mut_ptr());
+            let _ = std::fs::remove_file(out_name);
         } else {
-            fprintf(
-                stderr,
-                b"%s: Output file %s already exists.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                outName.as_mut_ptr(),
+            eprintln!(
+                "{}: Output file {} already exists.",
+                get_program_name().display(),
+                out_name.display(),
             );
             setExit(1 as libc::c_int);
             return;
         }
     }
+
     if srcMode == SourceMode::F2F && !force_overwrite && {
         n = countHardLinks(inName.as_mut_ptr());
         n > 0 as libc::c_int
