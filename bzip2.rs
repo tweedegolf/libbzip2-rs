@@ -25,11 +25,6 @@ type Bool = libc::c_uchar;
 type IntNative = libc::c_int;
 #[derive(Copy, Clone)]
 #[repr(C)]
-struct UInt64 {
-    b: [u8; 8],
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
 struct zzzz {
     name: *mut c_char,
     link: *mut zzzz,
@@ -57,75 +52,6 @@ static mut progName: *mut c_char = ptr::null_mut();
 static mut progNameReally: [c_char; 1034] = [0; 1034];
 static mut outputHandleJustInCase: *mut FILE = ptr::null_mut();
 static mut workFactor: i32 = 0;
-unsafe fn uInt64_from_UInt32s(n: *mut UInt64, lo32: u32, hi32: u32) {
-    (*n).b[7 as libc::c_int as usize] =
-        (hi32 >> 24 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
-    (*n).b[6 as libc::c_int as usize] =
-        (hi32 >> 16 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
-    (*n).b[5 as libc::c_int as usize] =
-        (hi32 >> 8 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
-    (*n).b[4 as libc::c_int as usize] = (hi32 & 0xff as libc::c_int as libc::c_uint) as u8;
-    (*n).b[3 as libc::c_int as usize] =
-        (lo32 >> 24 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
-    (*n).b[2 as libc::c_int as usize] =
-        (lo32 >> 16 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
-    (*n).b[1 as libc::c_int as usize] =
-        (lo32 >> 8 as libc::c_int & 0xff as libc::c_int as libc::c_uint) as u8;
-    (*n).b[0 as libc::c_int as usize] = (lo32 & 0xff as libc::c_int as libc::c_uint) as u8;
-}
-unsafe fn uInt64_to_double(n: *mut UInt64) -> libc::c_double {
-    let mut base: libc::c_double = 1.0f64;
-    let mut sum: libc::c_double = 0.0f64;
-    let mut i = 0 as libc::c_int;
-    while i < 8 as libc::c_int {
-        sum += base * (*n).b[i as usize] as libc::c_double;
-        base *= 256.0f64;
-        i += 1;
-    }
-    sum
-}
-unsafe fn uInt64_isZero(n: *mut UInt64) -> Bool {
-    let mut i = 0 as libc::c_int;
-    while i < 8 as libc::c_int {
-        if (*n).b[i as usize] as libc::c_int != 0 as libc::c_int {
-            return 0 as Bool;
-        }
-        i += 1;
-    }
-    1 as Bool
-}
-unsafe fn uInt64_qrm10(n: *mut UInt64) -> i32 {
-    let mut rem = 0 as libc::c_int as u32;
-    let mut i = 7 as libc::c_int;
-    while i >= 0 as libc::c_int {
-        let tmp = rem
-            .wrapping_mul(256 as libc::c_int as libc::c_uint)
-            .wrapping_add((*n).b[i as usize] as libc::c_uint);
-        (*n).b[i as usize] = tmp.wrapping_div(10 as libc::c_int as libc::c_uint) as u8;
-        rem = tmp.wrapping_rem(10 as libc::c_int as libc::c_uint);
-        i -= 1;
-    }
-    rem as i32
-}
-unsafe fn uInt64_toAscii(outbuf: *mut libc::c_char, n: *mut UInt64) {
-    let mut buf: [u8; 32] = [0; 32];
-    let mut nBuf: i32 = 0 as libc::c_int;
-    let mut n_copy: UInt64 = *n;
-    loop {
-        let q = uInt64_qrm10(&mut n_copy);
-        buf[nBuf as usize] = (q + '0' as i32) as u8;
-        nBuf += 1;
-        if uInt64_isZero(&mut n_copy) != 0 {
-            break;
-        }
-    }
-    *outbuf.offset(nBuf as isize) = 0 as libc::c_int as libc::c_char;
-    let mut i = 0 as libc::c_int;
-    while i < nBuf {
-        *outbuf.offset(i as isize) = buf[(nBuf - i - 1 as libc::c_int) as usize] as libc::c_char;
-        i += 1;
-    }
-}
 unsafe fn myfeof(f: *mut FILE) -> Bool {
     let c: i32 = fgetc(f);
     if c == -1 as libc::c_int {
@@ -134,8 +60,8 @@ unsafe fn myfeof(f: *mut FILE) -> Bool {
     ungetc(c, f);
     0 as Bool
 }
+
 unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE) {
-    let mut current_block: u64;
     let mut ibuf: [u8; 5000] = [0; 5000];
     let mut nbytes_in_lo32: u32 = 0;
     let mut nbytes_in_hi32: u32 = 0;
