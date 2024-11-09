@@ -692,6 +692,43 @@ fn compress_and_test() {
 }
 
 #[test]
+fn uncompress_stdin_to_stdout() {
+    use std::io::Write;
+
+    let compressed = include_bytes!("input/quick/sample1.bz2");
+    let expected = include_bytes!("input/quick/sample1.ref");
+
+    let mut cmd = command();
+
+    // Set up command to read from stdin, decompress, and output to stdout
+    let mut child = cmd
+        .arg("-d")
+        .arg("-c")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start child process");
+
+    // Write the compressed data to stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(compressed)
+            .expect("Failed to write to stdin");
+    }
+
+    // Wait for the child process to finish and capture output
+    let output = child.wait_with_output().expect("Failed to read stdout");
+
+    assert!(
+        output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(output.stdout, expected);
+}
+
+#[test]
 fn uncompress_file_to_file_bz2() {
     let expected = include_bytes!("input/quick/sample1.ref");
 
