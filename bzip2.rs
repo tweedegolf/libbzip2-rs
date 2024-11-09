@@ -1100,19 +1100,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
 }
 
 unsafe fn panic(s: *const c_char) -> ! {
-    eprint!(
-        concat!(
-            "\n",
-            "{}: PANIC -- internal consistency error:\n",
-            "\t{}\n",
-            "\tThis is a BUG.  Please report it at:\n",
-            "\thttps://github.com/trifectatechfoundation/libbzip2-rs/issues\n"
-        ),
-        CStr::from_ptr(progName).to_string_lossy(),
-        CStr::from_ptr(s).to_string_lossy(),
-    );
-    showFileNames();
-    cleanUpAndFail(3 as libc::c_int);
+    panic_str(&CStr::from_ptr(s).to_string_lossy())
 }
 
 unsafe fn panic_str(s: &str) -> ! {
