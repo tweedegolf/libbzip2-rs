@@ -94,7 +94,8 @@ fn display_last_os_error() -> String {
         error.truncate(index);
     }
 
-    error
+    // the C version tries to open a file to check whether a path exists
+    error.replace("Bad address", "No such file or directory")
 }
 
 unsafe fn myfeof(f: *mut FILE) -> Bool {
