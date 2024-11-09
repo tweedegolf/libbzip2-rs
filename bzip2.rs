@@ -249,25 +249,19 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE) {
             if nbytes_in_lo32 == 0 && nbytes_in_hi32 == 0 {
                 eprintln!(" no data compressed.");
             } else {
-                let mut buf_nin: [c_char; 32] = [0; 32];
-                let mut buf_nout: [c_char; 32] = [0; 32];
-                let mut nbytes_in: UInt64 = UInt64 { b: [0; 8] };
-                let mut nbytes_out: UInt64 = UInt64 { b: [0; 8] };
-                uInt64_from_UInt32s(&mut nbytes_in, nbytes_in_lo32, nbytes_in_hi32);
-                uInt64_from_UInt32s(&mut nbytes_out, nbytes_out_lo32, nbytes_out_hi32);
-                let nbytes_in_d = uInt64_to_double(&mut nbytes_in);
-                let nbytes_out_d = uInt64_to_double(&mut nbytes_out);
-                uInt64_toAscii(buf_nin.as_mut_ptr(), &mut nbytes_in);
-                uInt64_toAscii(buf_nout.as_mut_ptr(), &mut nbytes_out);
-                fprintf(
-                    stderr,
-                    b"%6.3f:1, %6.3f bits/byte, %5.2f%% saved, %s in, %s out.\n\0" as *const u8
-                        as *const libc::c_char,
+                let bytes_in = (nbytes_in_hi32 as u64) << 32 | nbytes_in_lo32 as u64;
+                let bytes_out = (nbytes_out_hi32 as u64) << 32 | nbytes_out_lo32 as u64;
+
+                let nbytes_in_d = bytes_in as f64;
+                let nbytes_out_d = bytes_out as f64;
+
+                eprintln!(
+                    "{:6.3}:1, {:6.3} bits/byte, {:5.2}% saved, {} in, {} out.",
                     nbytes_in_d / nbytes_out_d,
-                    8.0f64 * nbytes_out_d / nbytes_in_d,
-                    100.0f64 * (1.0f64 - nbytes_out_d / nbytes_in_d),
-                    buf_nin.as_mut_ptr(),
-                    buf_nout.as_mut_ptr(),
+                    8.0 * nbytes_out_d / nbytes_in_d,
+                    100.0 * (1.0 - nbytes_out_d / nbytes_in_d),
+                    bytes_in,
+                    bytes_out,
                 );
             }
         }
