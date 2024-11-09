@@ -2003,13 +2003,13 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
     if let Some(nbytes_in_lo32) = nbytes_in_lo32.as_mut() {
         *nbytes_in_lo32 = bzf.strm.total_in_lo32;
     }
-    if let Some(nbytes_in_hi32) = nbytes_in_lo32.as_mut() {
+    if let Some(nbytes_in_hi32) = nbytes_in_hi32.as_mut() {
         *nbytes_in_hi32 = bzf.strm.total_in_hi32;
     }
-    if let Some(nbytes_out_lo32) = nbytes_in_lo32.as_mut() {
+    if let Some(nbytes_out_lo32) = nbytes_out_lo32.as_mut() {
         *nbytes_out_lo32 = bzf.strm.total_out_lo32;
     }
-    if let Some(nbytes_out_hi32) = nbytes_in_lo32.as_mut() {
+    if let Some(nbytes_out_hi32) = nbytes_out_hi32.as_mut() {
         *nbytes_out_hi32 = bzf.strm.total_out_hi32;
     }
 
