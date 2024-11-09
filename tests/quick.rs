@@ -615,7 +615,7 @@ fn flags_from_env_ordering() {
 fn license() {
     {
         let mut cmd = command();
-        cmd.args(&["-L", "--never-processed"]);
+        cmd.args(["-L", "--never-processed"]);
         let output = cmd.output().unwrap();
 
         assert!(
@@ -628,7 +628,7 @@ fn license() {
 
     {
         let mut cmd = command();
-        cmd.args(&["--license", "--never-processed"]);
+        cmd.args(["--license", "--never-processed"]);
         let output = cmd.output().unwrap();
 
         assert!(
@@ -646,7 +646,7 @@ fn version() {
 
     {
         let mut cmd = command();
-        cmd.args(&["-V", "--never-processed"]);
+        cmd.args(["-V", "--never-processed"]);
         let output = cmd.output().unwrap();
 
         assert!(output.status.success(),);
@@ -655,7 +655,7 @@ fn version() {
 
     {
         let mut cmd = command();
-        cmd.args(&["--version", "--never-processed"]);
+        cmd.args(["--version", "--never-processed"]);
         let output = cmd.output().unwrap();
 
         assert!(output.status.success(),);
@@ -669,7 +669,7 @@ fn flags_after_double_dash() {
 
     {
         let mut cmd = command();
-        cmd.args(&["--", "-V"]);
+        cmd.args(["--", "-V"]);
         let output = cmd.output().unwrap();
 
         assert!(!output.status.success(),);
