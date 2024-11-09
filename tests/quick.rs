@@ -923,3 +923,109 @@ fn input_file_is_a_symlink() {
         ),
     );
 }
+
+#[test]
+fn input_file_has_hard_links() {
+    let tmpdir = tempfile::tempdir().unwrap();
+    let sample1 = tmpdir.path().join("sample1.bz2");
+    let symlink_path = tmpdir.path().join("this_is_a_symlink.bz2");
+
+    std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+
+    std::fs::hard_link(sample1, &symlink_path).unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-d").arg("-vvv").arg(&symlink_path).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            "bzip2: Input file {in_file} has 1 other link.\n",
+            in_file = symlink_path.display(),
+        ),
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn output_file_exists() {
+    let expected = include_bytes!("input/quick/sample1.ref");
+
+    let tmpdir = tempfile::tempdir().unwrap();
+
+    let sample1_tar_bz2 = tmpdir.path().join("sample1.tar.bz2");
+    std::fs::copy("tests/input/quick/sample1.bz2", &sample1_tar_bz2).unwrap();
+
+    let sample1_tar = tmpdir.path().join("sample1.tar");
+    std::fs::write(&sample1_tar, &[1, 2, 3]).unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1_tar_bz2).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            "bzip2: Output file {out_file} already exists.\n",
+            out_file = sample1_tar.display(),
+        ),
+    );
+
+    let mut cmd = command();
+
+    // now force force overwrite
+    let output = match cmd.arg("-d").arg("-vvvf").arg(&sample1_tar_bz2).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            concat!(
+                "  {in_file}: \n",
+                "    [1: huff+mtf rt+rld {{0xccf1b5a5, 0xccf1b5a5}}]\n",
+                "    combined CRCs: stored = 0xccf1b5a5, computed = 0xccf1b5a5\n",
+                "    done\n",
+            ),
+            in_file = sample1_tar_bz2.display(),
+        ),
+    );
+
+    let actual = std::fs::read(sample1_tar).unwrap();
+    assert_eq!(actual, expected);
+}
