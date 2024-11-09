@@ -1239,6 +1239,7 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
     }
     ioError();
 }
+
 unsafe fn setExit(v: i32) {
     if v > exitValue {
         exitValue = v;
@@ -1270,6 +1271,8 @@ unsafe fn showFileNames() {
 }
 
 unsafe fn cleanUpAndFail(ec: i32) -> ! {
+    let program_name = CStr::from_ptr(progName).to_string_lossy();
+
     let mut statBuf: stat = zeroed();
     if srcMode == 3 as libc::c_int
         && opMode != 3 as libc::c_int
@@ -1277,49 +1280,38 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
     {
         if stat(inName.as_mut_ptr(), &mut statBuf) == 0 {
             if noisy != 0 {
-                fprintf(
-                    stderr,
-                    b"%s: Deleting output file %s, if it exists.\n\0" as *const u8
-                        as *const libc::c_char,
-                    progName,
-                    outName.as_mut_ptr(),
+                eprintln!(
+                    "{}: Deleting output file {}, if it exists.",
+                    program_name,
+                    CStr::from_ptr(outName.as_ptr()).to_string_lossy(),
                 );
             }
             if !outputHandleJustInCase.is_null() {
                 fclose(outputHandleJustInCase);
             }
             if remove(outName.as_mut_ptr()) != 0 {
-                fprintf(
-                    stderr,
-                    b"%s: WARNING: deletion of output file (apparently) failed.\n\0" as *const u8
-                        as *const libc::c_char,
-                    progName,
+                eprintln!(
+                    "{}: WARNING: deletion of output file (apparently) failed.",
+                    program_name,
                 );
             }
         } else {
-            fprintf(
-                stderr,
-                b"%s: WARNING: deletion of output file suppressed\n\0" as *const u8
-                    as *const libc::c_char,
-                progName,
+            eprintln!(
+                "{}: WARNING: deletion of output file suppressed",
+                program_name,
             );
-            fprintf(
-                stderr,
-                b"%s:    since input file no longer exists.  Output file\n\0" as *const u8
-                    as *const libc::c_char,
-                progName,
+            eprintln!(
+                "{}:    since input file no longer exists.  Output file",
+                program_name,
             );
-            fprintf(
-                stderr,
-                b"%s:    `%s' may be incomplete.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                outName.as_mut_ptr(),
+            eprintln!(
+                "{}:    `{}' may be incomplete.",
+                program_name,
+                CStr::from_ptr(outName.as_ptr()).to_string_lossy(),
             );
-            fprintf(
-                stderr,
-                b"%s:    I suggest doing an integrity test (bzip2 -tv) of it.\n\0" as *const u8
-                    as *const libc::c_char,
-                progName,
+            eprintln!(
+                "{}:    I suggest doing an integrity test (bzip2 -tv) of it.",
+                program_name,
             );
         }
     }
@@ -1327,12 +1319,14 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
         && numFileNames > 0 as libc::c_int
         && numFilesProcessed < numFileNames
     {
-        fprintf(
-            stderr,
-            b"%s: WARNING: some files have not been processed:\n%s:    %d specified on command line, %d not processed yet.\n\n\0"
-                as *const u8 as *const libc::c_char,
-            progName,
-            progName,
+        eprint!(
+            concat!(
+                "{}: WARNING: some files have not been processed:\n",
+                "{}:    {} specified on command line, {} not processed yet.\n",
+                "\n",
+            ),
+            program_name,
+            program_name,
             numFileNames,
             numFileNames - numFilesProcessed,
         );
@@ -1340,6 +1334,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
     setExit(ec);
     exit(exitValue);
 }
+
 unsafe fn panic(s: *const c_char) -> ! {
     fprintf(
         stderr,
@@ -1351,16 +1346,17 @@ unsafe fn panic(s: *const c_char) -> ! {
     showFileNames();
     cleanUpAndFail(3 as libc::c_int);
 }
+
 unsafe fn crcError() -> ! {
-    fprintf(
-        stderr,
-        b"\n%s: Data integrity error when decompressing.\n\0" as *const u8 as *const libc::c_char,
-        progName,
+    eprintln!(
+        "\n{}: Data integrity error when decompressing.",
+        CStr::from_ptr(progName).to_string_lossy(),
     );
     showFileNames();
     cadvise();
     cleanUpAndFail(2 as libc::c_int);
 }
+
 unsafe fn compressedStreamEOF() -> ! {
     if noisy != 0 {
         eprint!(
