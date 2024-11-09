@@ -122,6 +122,117 @@ fn uncompress_stdin_to_stdout_unexpected_eof() {
 }
 
 #[test]
+fn uncompress_stdin_to_stdout_crc_error_i2o() {
+    use std::io::Write;
+
+    let compressed = include_bytes!("input/quick/sample1.bz2");
+
+    let mut cmd = command();
+
+    // Set up command to read from stdin, decompress, and output to stdout
+    let mut child = cmd
+        .arg("-d")
+        .arg("-c")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to start child process");
+
+    let (left, right) = compressed.split_at(1024);
+
+    // Write the compressed data to stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(&left).unwrap();
+        stdin.write_all(b"garbage").unwrap();
+        stdin.write_all(&right).unwrap();
+    }
+
+    // Wait for the child process to finish and capture output
+    let output = child.wait_with_output().expect("Failed to read stdout");
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(concat!(
+            "\n",
+            "bzip2: Data integrity error when decompressing.\n",
+            "\tInput file = (stdin), output file = (stdout)\n",
+            "\n",
+            "It is possible that the compressed file(s) have become corrupted.\n",
+            "You can use the -tvv option to test integrity of such files.\n",
+            "\n",
+            "You can use the `bzip2recover' program to attempt to recover\n",
+            "data from undamaged sections of corrupted files.\n",
+            "\n",
+        )),
+    );
+}
+
+#[test]
+fn uncompress_stdin_to_stdout_crc_error_f2f() {
+    use std::io::Write;
+
+    let compressed = include_bytes!("input/quick/sample1.bz2");
+
+    let tmpdir = tempfile::tempdir().unwrap();
+    let sample1 = tmpdir.path().join("sample1.bz2");
+
+    {
+        let mut f = std::fs::File::options()
+            .create(true)
+            .write(true)
+            .open(&sample1)
+            .unwrap();
+
+        let (left, right) = compressed.split_at(1024);
+
+        f.write_all(&left).unwrap();
+        f.write_all(b"garbage").unwrap();
+        f.write_all(&right).unwrap();
+    }
+
+    let mut cmd = command();
+
+    cmd.arg("-d").arg(sample1);
+
+    let output = cmd.output().expect("Failed to read stdout");
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            concat!(
+                "\n",
+                "bzip2: Data integrity error when decompressing.\n",
+                "\tInput file = {tmp_dir}/sample1.bz2, output file = {tmp_dir}/sample1\n",
+                "\n",
+                "It is possible that the compressed file(s) have become corrupted.\n",
+                "You can use the -tvv option to test integrity of such files.\n",
+                "\n",
+                "You can use the `bzip2recover' program to attempt to recover\n",
+                "data from undamaged sections of corrupted files.\n",
+                "\n",
+                "bzip2: Deleting output file {tmp_dir}/sample1, if it exists.\n",
+            ),
+            tmp_dir = tmpdir.path().display(),
+        ),
+    );
+}
+
+#[test]
 fn test_comp_decomp_sample_ref1() {
     let sample = Path::new("tests/input/quick/sample1.ref");
 
