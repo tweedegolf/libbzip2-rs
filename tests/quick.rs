@@ -1068,3 +1068,38 @@ fn output_file_exists() {
     let actual = std::fs::read(sample1_tar).unwrap();
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn input_file_is_not_bzip2_data() {
+    let tmpdir = tempfile::tempdir().unwrap();
+
+    let sample1 = tmpdir.path().join("sample1.txt");
+    std::fs::write(&sample1, b"lang is it ompaad").unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            concat!(
+                "bzip2: Can't guess original name for {in_file} -- using {in_file}.out\n",
+                "  {in_file}: not a bzip2 file.\n"
+            ),
+            in_file = sample1.display(),
+        ),
+    );
+}
