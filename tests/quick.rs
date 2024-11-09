@@ -999,6 +999,43 @@ fn input_file_cannot_be_read() {
 }
 
 #[test]
+fn output_file_cannot_be_written() {
+    let tmpdir = tempfile::tempdir().unwrap();
+    let sample1 = tmpdir.path().join("sample1.bz2");
+
+    std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+
+    // make the directory readonly
+    let mut permissions = std::fs::metadata(tmpdir.path()).unwrap().permissions();
+    permissions.set_readonly(true); // no permissions for you
+    std::fs::set_permissions(tmpdir.path(), permissions).unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            "bzip2: Can't create output file {out_file}: Permission denied.\n",
+            out_file = tmpdir.path().join("sample1").display(),
+        ),
+    );
+}
+
+#[test]
 #[cfg(unix)]
 fn output_file_exists() {
     let expected = include_bytes!("input/quick/sample1.ref");
