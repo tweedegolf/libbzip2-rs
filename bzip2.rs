@@ -144,225 +144,157 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE) {
     let mut bzerr: i32 = 0;
     let mut bzerr_dummy: i32 = 0;
     let mut ret: i32;
-    if ferror(stream) == 0 && ferror(zStream) == 0 {
-        let bzf = BZ2_bzWriteOpen(&mut bzerr, zStream, blockSize100k, verbosity, workFactor);
-        if bzerr != 0 as libc::c_int {
-            current_block = 6224343814938714352;
-        } else {
-            if verbosity >= 2 as libc::c_int {
-                fprintf(stderr, b"\n\0" as *const u8 as *const libc::c_char);
-            }
-            loop {
-                if myfeof(stream) != 0 {
-                    current_block = 9606288038608642794;
-                    break;
-                }
-                let nIbuf = fread(
-                    ibuf.as_mut_ptr() as *mut libc::c_void,
-                    core::mem::size_of::<u8>() as libc::size_t,
-                    5000 as libc::c_int as libc::size_t,
-                    stream,
-                ) as i32;
-                if ferror(stream) != 0 {
-                    current_block = 4037297614742950260;
-                    break;
-                }
-                if nIbuf > 0 as libc::c_int {
-                    BZ2_bzWrite(
-                        &mut bzerr,
-                        bzf,
-                        ibuf.as_mut_ptr() as *mut libc::c_void,
-                        nIbuf,
-                    );
-                }
-                if bzerr != 0 as libc::c_int {
-                    current_block = 6224343814938714352;
-                    break;
-                }
-            }
-            match current_block {
-                4037297614742950260 => {}
-                6224343814938714352 => {}
-                _ => {
-                    BZ2_bzWriteClose64(
-                        &mut bzerr,
-                        bzf,
-                        0 as libc::c_int,
-                        &mut nbytes_in_lo32,
-                        &mut nbytes_in_hi32,
-                        &mut nbytes_out_lo32,
-                        &mut nbytes_out_hi32,
-                    );
-                    if bzerr != 0 as libc::c_int {
-                        current_block = 6224343814938714352;
-                    } else if ferror(zStream) != 0 {
-                        current_block = 4037297614742950260;
-                    } else {
-                        ret = fflush(zStream);
-                        if ret == -1 as libc::c_int {
-                            current_block = 4037297614742950260;
-                        } else {
-                            if zStream != stdout {
-                                let fd: i32 = fileno(zStream);
-                                if fd < 0 as libc::c_int {
-                                    current_block = 4037297614742950260;
-                                } else {
-                                    applySavedFileAttrToOutputFile(fd);
-                                    ret = fclose(zStream);
-                                    outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-                                    if ret == -1 as libc::c_int {
-                                        current_block = 4037297614742950260;
-                                    } else {
-                                        current_block = 9828876828309294594;
-                                    }
-                                }
-                            } else {
-                                current_block = 9828876828309294594;
-                            }
-                            match current_block {
-                                4037297614742950260 => {}
-                                _ => {
-                                    outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-                                    if ferror(stream) != 0 {
-                                        current_block = 4037297614742950260;
-                                    } else {
-                                        ret = fclose(stream);
-                                        if ret == -1 as libc::c_int {
-                                            current_block = 4037297614742950260;
-                                        } else {
-                                            if verbosity >= 1 as libc::c_int {
-                                                if nbytes_in_lo32
-                                                    == 0 as libc::c_int as libc::c_uint
-                                                    && nbytes_in_hi32
-                                                        == 0 as libc::c_int as libc::c_uint
-                                                {
-                                                    fprintf(
-                                                        stderr,
-                                                        b" no data compressed.\n\0" as *const u8
-                                                            as *const libc::c_char,
-                                                    );
-                                                } else {
-                                                    let mut buf_nin: [c_char; 32] = [0; 32];
-                                                    let mut buf_nout: [c_char; 32] = [0; 32];
-                                                    let mut nbytes_in: UInt64 =
-                                                        UInt64 { b: [0; 8] };
-                                                    let mut nbytes_out: UInt64 =
-                                                        UInt64 { b: [0; 8] };
-                                                    uInt64_from_UInt32s(
-                                                        &mut nbytes_in,
-                                                        nbytes_in_lo32,
-                                                        nbytes_in_hi32,
-                                                    );
-                                                    uInt64_from_UInt32s(
-                                                        &mut nbytes_out,
-                                                        nbytes_out_lo32,
-                                                        nbytes_out_hi32,
-                                                    );
-                                                    let nbytes_in_d =
-                                                        uInt64_to_double(&mut nbytes_in);
-                                                    let nbytes_out_d =
-                                                        uInt64_to_double(&mut nbytes_out);
-                                                    uInt64_toAscii(
-                                                        buf_nin.as_mut_ptr(),
-                                                        &mut nbytes_in,
-                                                    );
-                                                    uInt64_toAscii(
-                                                        buf_nout.as_mut_ptr(),
-                                                        &mut nbytes_out,
-                                                    );
-                                                    fprintf(
-                                                        stderr,
-                                                        b"%6.3f:1, %6.3f bits/byte, %5.2f%% saved, %s in, %s out.\n\0"
-                                                            as *const u8 as *const libc::c_char,
-                                                        nbytes_in_d / nbytes_out_d,
-                                                        8.0f64 * nbytes_out_d / nbytes_in_d,
-                                                        100.0f64 * (1.0f64 - nbytes_out_d / nbytes_in_d),
-                                                        buf_nin.as_mut_ptr(),
-                                                        buf_nout.as_mut_ptr(),
-                                                    );
-                                                }
-                                            }
-                                            return;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        match current_block {
-            4037297614742950260 => {}
-            _ => {
-                BZ2_bzWriteClose64(
-                    &mut bzerr_dummy,
-                    bzf,
-                    1 as libc::c_int,
-                    &mut nbytes_in_lo32,
-                    &mut nbytes_in_hi32,
-                    &mut nbytes_out_lo32,
-                    &mut nbytes_out_hi32,
-                );
-                match bzerr {
-                    -9 => {
-                        current_block = 8758779949906403879;
-                        match current_block {
-                            281677055667329941 => {
-                                panic(
-                                    b"compress:unexpected error\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                            }
-                            17408806085946970511 => {
-                                outOfMemory();
-                            }
-                            _ => {
-                                configError();
-                            }
-                        }
-                    }
-                    -3 => {
-                        current_block = 17408806085946970511;
-                        match current_block {
-                            281677055667329941 => {
-                                panic(
-                                    b"compress:unexpected error\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                            }
-                            17408806085946970511 => {
-                                outOfMemory();
-                            }
-                            _ => {
-                                configError();
-                            }
-                        }
-                    }
-                    -6 => {}
-                    _ => {
-                        current_block = 281677055667329941;
-                        match current_block {
-                            281677055667329941 => {
-                                panic(
-                                    b"compress:unexpected error\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                            }
-                            17408806085946970511 => {
-                                outOfMemory();
-                            }
-                            _ => {
-                                configError();
-                            }
-                        }
-                    }
-                }
-            }
-        }
+
+    // TODO set files to binary mode?
+
+    if ferror(stream) != 0 {
+        // diverges
+        ioError()
     }
-    ioError();
+    if ferror(zStream) != 0 {
+        // diverges
+        ioError()
+    }
+
+    let bzf = BZ2_bzWriteOpen(&mut bzerr, zStream, blockSize100k, verbosity, workFactor);
+
+    'errhandler: {
+        if bzerr != libbzip2_rs_sys::BZ_OK {
+            break 'errhandler;
+        }
+
+        if verbosity >= 2 {
+            eprintln!();
+        }
+
+        loop {
+            if myfeof(stream) != 0 {
+                break;
+            }
+
+            let nIbuf = fread(
+                ibuf.as_mut_ptr() as *mut libc::c_void,
+                core::mem::size_of::<u8>() as libc::size_t,
+                5000 as libc::c_int as libc::size_t,
+                stream,
+            ) as i32;
+            if ferror(stream) != 0 {
+                // diverges
+                ioError()
+            }
+            if nIbuf > 0 as libc::c_int {
+                BZ2_bzWrite(
+                    &mut bzerr,
+                    bzf,
+                    ibuf.as_mut_ptr() as *mut libc::c_void,
+                    nIbuf,
+                );
+            }
+            if bzerr != libbzip2_rs_sys::BZ_OK {
+                break 'errhandler;
+            }
+        }
+
+        BZ2_bzWriteClose64(
+            &mut bzerr,
+            bzf,
+            0 as libc::c_int,
+            &mut nbytes_in_lo32,
+            &mut nbytes_in_hi32,
+            &mut nbytes_out_lo32,
+            &mut nbytes_out_hi32,
+        );
+
+        if bzerr != libbzip2_rs_sys::BZ_OK {
+            break 'errhandler;
+        }
+
+        if (ferror(zStream)) != 0 {
+            // diverges
+            ioError()
+        }
+        ret = fflush(zStream);
+        if ret == libc::EOF {
+            // diverges
+            ioError()
+        }
+
+        if zStream != stdout {
+            let fd = fileno(zStream);
+            if fd < 0 {
+                // diverges
+                ioError()
+            }
+            applySavedFileAttrToOutputFile(fd);
+            ret = fclose(zStream);
+            outputHandleJustInCase = core::ptr::null_mut();
+            if ret == libc::EOF {
+                // diverges
+                ioError()
+            }
+        }
+
+        outputHandleJustInCase = core::ptr::null_mut();
+        if ferror(stream) != 0 {
+            // diverges
+            ioError()
+        }
+        ret = fclose(stream);
+        if ret == libc::EOF {
+            // diverges
+            ioError()
+        }
+
+        if verbosity >= 1 {
+            if nbytes_in_lo32 == 0 && nbytes_in_hi32 == 0 {
+                eprintln!(" no data compressed.");
+            } else {
+                let mut buf_nin: [c_char; 32] = [0; 32];
+                let mut buf_nout: [c_char; 32] = [0; 32];
+                let mut nbytes_in: UInt64 = UInt64 { b: [0; 8] };
+                let mut nbytes_out: UInt64 = UInt64 { b: [0; 8] };
+                uInt64_from_UInt32s(&mut nbytes_in, nbytes_in_lo32, nbytes_in_hi32);
+                uInt64_from_UInt32s(&mut nbytes_out, nbytes_out_lo32, nbytes_out_hi32);
+                let nbytes_in_d = uInt64_to_double(&mut nbytes_in);
+                let nbytes_out_d = uInt64_to_double(&mut nbytes_out);
+                uInt64_toAscii(buf_nin.as_mut_ptr(), &mut nbytes_in);
+                uInt64_toAscii(buf_nout.as_mut_ptr(), &mut nbytes_out);
+                fprintf(
+                    stderr,
+                    b"%6.3f:1, %6.3f bits/byte, %5.2f%% saved, %s in, %s out.\n\0" as *const u8
+                        as *const libc::c_char,
+                    nbytes_in_d / nbytes_out_d,
+                    8.0f64 * nbytes_out_d / nbytes_in_d,
+                    100.0f64 * (1.0f64 - nbytes_out_d / nbytes_in_d),
+                    buf_nin.as_mut_ptr(),
+                    buf_nout.as_mut_ptr(),
+                );
+            }
+        }
+
+        return;
+    }
+
+    // errhandler:
+
+    BZ2_bzWriteClose64(
+        &mut bzerr_dummy,
+        bzf,
+        1,
+        &mut nbytes_in_lo32,
+        &mut nbytes_in_hi32,
+        &mut nbytes_out_lo32,
+        &mut nbytes_out_hi32,
+    );
+
+    match bzerr {
+        libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
+        libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(),
+        libbzip2_rs_sys::BZ_IO_ERROR => ioError(),
+        _ => panic_str("compress:unexpected error"),
+    }
 }
+
 unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
     let mut bzf = std::ptr::null_mut();
     let mut bzerr: i32 = 0;
