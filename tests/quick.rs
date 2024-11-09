@@ -330,6 +330,109 @@ fn test_comp_decomp_sample_ref2() {
 }
 
 #[test]
+fn compression_stderr_output() {
+    let sample = Path::new("tests/input/quick/sample3.ref");
+
+    let mut cmd = command();
+    cmd.arg("--compress")
+        .arg("-1")
+        .arg("--keep")
+        .arg("--stdout")
+        .arg("-v")
+        .arg(sample)
+        .stdout(Stdio::piped());
+
+    let output = cmd.output().unwrap();
+
+    assert!(output.status.success());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            "  {in_file}: 440.454:1,  0.018 bits/byte, 99.77% saved, 120244 in, 273 out.\n",
+            in_file = sample.display(),
+        ),
+    );
+
+    let mut cmd = command();
+    cmd.arg("--compress")
+        .arg("-1")
+        .arg("--keep")
+        .arg("--stdout")
+        .arg("-vv")
+        .arg(sample)
+        .stdout(Stdio::piped());
+
+    let output = cmd.output().unwrap();
+
+    assert!(output.status.success());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            concat!(
+                "  {in_file}: \n",
+                "    block 1: crc = 0xbcd1d34c, combined CRC = 0xbcd1d34c, size = 99981\n",
+                "    too repetitive; using fallback sorting algorithm\n",
+                "    block 2: crc = 0xabd59416, combined CRC = 0xd276328f, size = 20263\n",
+                "    too repetitive; using fallback sorting algorithm\n",
+                "    final combined CRC = 0xd276328f\n",
+                "   440.454:1,  0.018 bits/byte, 99.77% saved, 120244 in, 273 out.\n",
+            ),
+            in_file = sample.display(),
+        ),
+    );
+
+    let mut cmd = command();
+    cmd.arg("--compress")
+        .arg("-1")
+        .arg("--keep")
+        .arg("--stdout")
+        .arg("-vvv")
+        .arg(sample)
+        .stdout(Stdio::piped());
+
+    let output = cmd.output().unwrap();
+
+    assert!(output.status.success());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            concat!(
+                "  {in_file}: \n",
+                "    block 1: crc = 0xbcd1d34c, combined CRC = 0xbcd1d34c, size = 99981\n",
+                "      901380 work, 99981 block, ratio  9.02\n",
+                "    too repetitive; using fallback sorting algorithm\n",
+                "      99981 in block, 292 after MTF & 1-2 coding, 32+2 syms in use\n",
+                "      initial group 3, [0 .. 2], has 114 syms (39.0%)\n",
+                "      initial group 2, [3 .. 9], has 85 syms (29.1%)\n",
+                "      initial group 1, [10 .. 33], has 93 syms (31.8%)\n",
+                "      pass 1: size is 296, grp uses are 2 0 4 \n",
+                "      pass 2: size is 155, grp uses are 2 0 4 \n",
+                "      pass 3: size is 155, grp uses are 2 0 4 \n",
+                "      pass 4: size is 155, grp uses are 2 0 4 \n",
+                "      bytes: mapping 19, selectors 3, code lengths 30, codes 155\n",
+                "    block 2: crc = 0xabd59416, combined CRC = 0xd276328f, size = 20263\n",
+                "      182372 work, 20263 block, ratio  9.00\n",
+                "    too repetitive; using fallback sorting algorithm\n",
+                "      20263 in block, 54 after MTF & 1-2 coding, 4+2 syms in use\n",
+                "      initial group 2, [0 .. 1], has 48 syms (88.9%)\n",
+                "      initial group 1, [2 .. 5], has 6 syms (11.1%)\n",
+                "      pass 1: size is 11, grp uses are 0 2 \n",
+                "      pass 2: size is 12, grp uses are 0 2 \n",
+                "      pass 3: size is 12, grp uses are 0 2 \n",
+                "      pass 4: size is 12, grp uses are 0 2 \n",
+                "      bytes: mapping 11, selectors 2, code lengths 5, codes 12\n",
+                "    final combined CRC = 0xd276328f\n",
+                "   440.454:1,  0.018 bits/byte, 99.77% saved, 120244 in, 273 out.\n",
+            ),
+            in_file = sample.display(),
+        ),
+    );
+}
+
+#[test]
 fn test_comp_decomp_sample_ref3() {
     let sample = Path::new("tests/input/quick/sample3.ref");
 
