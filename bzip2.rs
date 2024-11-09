@@ -363,460 +363,224 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE) {
     }
     ioError();
 }
-unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> Bool {
-    let mut current_block: u64;
-    let mut bzf: *mut libc::c_void;
+unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
+    let mut bzf = std::ptr::null_mut();
     let mut bzerr: i32 = 0;
     let mut bzerr_dummy: i32 = 0;
     let mut ret: i32;
     let mut nread: i32;
-    let mut i: i32;
     let mut obuf: [u8; 5000] = [0; 5000];
     let mut unused: [u8; 5000] = [0; 5000];
     let mut unusedTmpV: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
+
     let mut nUnused: libc::c_int = 0;
     let mut streamNo: libc::c_int = 0;
-    if ferror(stream) == 0 && ferror(zStream) == 0 {
-        's_37: loop {
-            bzf = BZ2_bzReadOpen(
-                &mut bzerr,
-                zStream,
-                verbosity,
-                smallMode as libc::c_int,
-                unused.as_mut_ptr() as *mut libc::c_void,
-                nUnused,
-            );
-            if bzf.is_null() || bzerr != 0 as libc::c_int {
-                current_block = 12043696510059011606;
-                break;
-            }
-            streamNo += 1;
-            while bzerr == 0 as libc::c_int {
-                nread = BZ2_bzRead(
+
+    enum State {
+        Standard,
+        CloseOk,
+        TryCat,
+        ErrHandler,
+    }
+
+    let mut state = State::Standard;
+
+    // TODO: set the file into binary mode?
+
+    if ferror(stream) != 0 || ferror(zStream) != 0 {
+        // diverges
+        ioError()
+    }
+
+    'outer: loop {
+        match state {
+            State::Standard => loop {
+                bzf = BZ2_bzReadOpen(
                     &mut bzerr,
-                    bzf,
-                    obuf.as_mut_ptr() as *mut libc::c_void,
-                    5000 as libc::c_int,
+                    zStream,
+                    verbosity,
+                    smallMode as libc::c_int,
+                    unused.as_mut_ptr() as *mut libc::c_void,
+                    nUnused,
                 );
-                if bzerr == -5 as libc::c_int {
-                    current_block = 16997752893149199978;
-                    break 's_37;
+                if bzf.is_null() || bzerr != 0 as libc::c_int {
+                    state = State::ErrHandler;
+                    continue 'outer;
                 }
-                if (bzerr == 0 as libc::c_int || bzerr == 4 as libc::c_int)
-                    && nread > 0 as libc::c_int
-                {
-                    fwrite(
-                        obuf.as_mut_ptr() as *const libc::c_void,
-                        core::mem::size_of::<u8>() as libc::size_t,
-                        nread as libc::size_t,
-                        stream,
+                streamNo += 1;
+
+                while bzerr == 0 as libc::c_int {
+                    nread = BZ2_bzRead(
+                        &mut bzerr,
+                        bzf,
+                        obuf.as_mut_ptr() as *mut libc::c_void,
+                        5000 as libc::c_int,
                     );
-                }
-                if ferror(stream) != 0 {
-                    current_block = 6432526541220421294;
-                    break 's_37;
-                }
-            }
-            if bzerr != 4 as libc::c_int {
-                current_block = 12043696510059011606;
-                break;
-            }
-            BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
-            if bzerr != 0 as libc::c_int {
-                panic(b"decompress:bzReadGetUnused\0" as *const u8 as *const libc::c_char);
-            }
-            let unusedTmp = unusedTmpV as *mut u8;
-            i = 0 as libc::c_int;
-            while i < nUnused {
-                unused[i as usize] = *unusedTmp.offset(i as isize);
-                i += 1;
-            }
-            BZ2_bzReadClose(&mut bzerr, bzf);
-            if bzerr != 0 as libc::c_int {
-                panic(b"decompress:bzReadGetUnused\0" as *const u8 as *const libc::c_char);
-            }
-            if nUnused == 0 as libc::c_int && myfeof(zStream) as libc::c_int != 0 {
-                current_block = 17487785624869370758;
-                break;
-            }
-        }
-        match current_block {
-            6432526541220421294 => {}
-            _ => {
-                if current_block == 16997752893149199978 {
-                    if forceOverwrite != 0 {
-                        rewind(zStream);
-                        loop {
-                            if myfeof(zStream) != 0 {
-                                current_block = 17487785624869370758;
-                                break;
-                            }
-                            nread = fread(
-                                obuf.as_mut_ptr() as *mut libc::c_void,
-                                core::mem::size_of::<u8>() as libc::size_t,
-                                5000 as libc::c_int as libc::size_t,
-                                zStream,
-                            ) as i32;
-                            if ferror(zStream) != 0 {
-                                current_block = 6432526541220421294;
-                                break;
-                            }
-                            if nread > 0 as libc::c_int {
-                                fwrite(
-                                    obuf.as_mut_ptr() as *const libc::c_void,
-                                    core::mem::size_of::<u8>() as libc::size_t,
-                                    nread as libc::size_t,
-                                    stream,
-                                );
-                            }
-                            if ferror(stream) != 0 {
-                                current_block = 6432526541220421294;
-                                break;
-                            }
-                        }
-                    } else {
-                        current_block = 12043696510059011606;
+                    if bzerr == libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC {
+                        state = State::TryCat;
+                        continue 'outer;
+                    }
+                    if (bzerr == libbzip2_rs_sys::BZ_OK || bzerr == libbzip2_rs_sys::BZ_STREAM_END)
+                        && nread > 0
+                    {
+                        fwrite(
+                            obuf.as_mut_ptr() as *const libc::c_void,
+                            core::mem::size_of::<u8>() as libc::size_t,
+                            nread as libc::size_t,
+                            stream,
+                        );
+                    }
+                    if ferror(stream) != 0 {
+                        // diverges
+                        ioError()
                     }
                 }
-                match current_block {
-                    6432526541220421294 => {}
-                    _ => match current_block {
-                        12043696510059011606 => {
-                            BZ2_bzReadClose(&mut bzerr_dummy, bzf);
-                            match bzerr {
-                                -9 => {
-                                    current_block = 13095676725198100986;
-                                    match current_block {
-                                        8365064614624041636 => {
-                                            panic(
-                                                b"decompress:unexpected error\0" as *const u8
-                                                    as *const libc::c_char,
-                                            );
-                                        }
-                                        13095676725198100986 => {
-                                            configError();
-                                        }
-                                        14054180689323133469 => {
-                                            crcError();
-                                        }
-                                        209928180524878488 => {
-                                            outOfMemory();
-                                        }
-                                        13655413948940366317 => {
-                                            compressedStreamEOF();
-                                        }
-                                        _ => {
-                                            if zStream != stdin {
-                                                fclose(zStream);
-                                            }
-                                            if stream != stdout {
-                                                fclose(stream);
-                                            }
-                                            if streamNo == 1 as libc::c_int {
-                                                return 0 as Bool;
-                                            } else {
-                                                if noisy != 0 {
-                                                    fprintf(
-                                                            stderr,
-                                                            b"\n%s: %s: trailing garbage after EOF ignored\n\0"
-                                                                as *const u8 as *const libc::c_char,
-                                                            progName,
-                                                            inName.as_mut_ptr(),
-                                                        );
-                                                }
-                                                return 1 as Bool;
-                                            }
-                                        }
-                                    }
-                                }
-                                -6 => {}
-                                -4 => {
-                                    current_block = 14054180689323133469;
-                                    match current_block {
-                                        8365064614624041636 => {
-                                            panic(
-                                                b"decompress:unexpected error\0" as *const u8
-                                                    as *const libc::c_char,
-                                            );
-                                        }
-                                        13095676725198100986 => {
-                                            configError();
-                                        }
-                                        14054180689323133469 => {
-                                            crcError();
-                                        }
-                                        209928180524878488 => {
-                                            outOfMemory();
-                                        }
-                                        13655413948940366317 => {
-                                            compressedStreamEOF();
-                                        }
-                                        _ => {
-                                            if zStream != stdin {
-                                                fclose(zStream);
-                                            }
-                                            if stream != stdout {
-                                                fclose(stream);
-                                            }
-                                            if streamNo == 1 as libc::c_int {
-                                                return 0 as Bool;
-                                            } else {
-                                                if noisy != 0 {
-                                                    fprintf(
-                                                            stderr,
-                                                            b"\n%s: %s: trailing garbage after EOF ignored\n\0"
-                                                                as *const u8 as *const libc::c_char,
-                                                            progName,
-                                                            inName.as_mut_ptr(),
-                                                        );
-                                                }
-                                                return 1 as Bool;
-                                            }
-                                        }
-                                    }
-                                }
-                                -3 => {
-                                    current_block = 209928180524878488;
-                                    match current_block {
-                                        8365064614624041636 => {
-                                            panic(
-                                                b"decompress:unexpected error\0" as *const u8
-                                                    as *const libc::c_char,
-                                            );
-                                        }
-                                        13095676725198100986 => {
-                                            configError();
-                                        }
-                                        14054180689323133469 => {
-                                            crcError();
-                                        }
-                                        209928180524878488 => {
-                                            outOfMemory();
-                                        }
-                                        13655413948940366317 => {
-                                            compressedStreamEOF();
-                                        }
-                                        _ => {
-                                            if zStream != stdin {
-                                                fclose(zStream);
-                                            }
-                                            if stream != stdout {
-                                                fclose(stream);
-                                            }
-                                            if streamNo == 1 as libc::c_int {
-                                                return 0 as Bool;
-                                            } else {
-                                                if noisy != 0 {
-                                                    fprintf(
-                                                            stderr,
-                                                            b"\n%s: %s: trailing garbage after EOF ignored\n\0"
-                                                                as *const u8 as *const libc::c_char,
-                                                            progName,
-                                                            inName.as_mut_ptr(),
-                                                        );
-                                                }
-                                                return 1 as Bool;
-                                            }
-                                        }
-                                    }
-                                }
-                                -7 => {
-                                    current_block = 13655413948940366317;
-                                    match current_block {
-                                        8365064614624041636 => {
-                                            panic(
-                                                b"decompress:unexpected error\0" as *const u8
-                                                    as *const libc::c_char,
-                                            );
-                                        }
-                                        13095676725198100986 => {
-                                            configError();
-                                        }
-                                        14054180689323133469 => {
-                                            crcError();
-                                        }
-                                        209928180524878488 => {
-                                            outOfMemory();
-                                        }
-                                        13655413948940366317 => {
-                                            compressedStreamEOF();
-                                        }
-                                        _ => {
-                                            if zStream != stdin {
-                                                fclose(zStream);
-                                            }
-                                            if stream != stdout {
-                                                fclose(stream);
-                                            }
-                                            if streamNo == 1 as libc::c_int {
-                                                return 0 as Bool;
-                                            } else {
-                                                if noisy != 0 {
-                                                    fprintf(
-                                                            stderr,
-                                                            b"\n%s: %s: trailing garbage after EOF ignored\n\0"
-                                                                as *const u8 as *const libc::c_char,
-                                                            progName,
-                                                            inName.as_mut_ptr(),
-                                                        );
-                                                }
-                                                return 1 as Bool;
-                                            }
-                                        }
-                                    }
-                                }
-                                -5 => {
-                                    current_block = 17767854911385080736;
-                                    match current_block {
-                                        8365064614624041636 => {
-                                            panic(
-                                                b"decompress:unexpected error\0" as *const u8
-                                                    as *const libc::c_char,
-                                            );
-                                        }
-                                        13095676725198100986 => {
-                                            configError();
-                                        }
-                                        14054180689323133469 => {
-                                            crcError();
-                                        }
-                                        209928180524878488 => {
-                                            outOfMemory();
-                                        }
-                                        13655413948940366317 => {
-                                            compressedStreamEOF();
-                                        }
-                                        _ => {
-                                            if zStream != stdin {
-                                                fclose(zStream);
-                                            }
-                                            if stream != stdout {
-                                                fclose(stream);
-                                            }
-                                            if streamNo == 1 as libc::c_int {
-                                                return 0 as Bool;
-                                            } else {
-                                                if noisy != 0 {
-                                                    fprintf(
-                                                            stderr,
-                                                            b"\n%s: %s: trailing garbage after EOF ignored\n\0"
-                                                                as *const u8 as *const libc::c_char,
-                                                            progName,
-                                                            inName.as_mut_ptr(),
-                                                        );
-                                                }
-                                                return 1 as Bool;
-                                            }
-                                        }
-                                    }
-                                }
-                                _ => {
-                                    current_block = 8365064614624041636;
-                                    match current_block {
-                                        8365064614624041636 => {
-                                            panic(
-                                                b"decompress:unexpected error\0" as *const u8
-                                                    as *const libc::c_char,
-                                            );
-                                        }
-                                        13095676725198100986 => {
-                                            configError();
-                                        }
-                                        14054180689323133469 => {
-                                            crcError();
-                                        }
-                                        209928180524878488 => {
-                                            outOfMemory();
-                                        }
-                                        13655413948940366317 => {
-                                            compressedStreamEOF();
-                                        }
-                                        _ => {
-                                            if zStream != stdin {
-                                                fclose(zStream);
-                                            }
-                                            if stream != stdout {
-                                                fclose(stream);
-                                            }
-                                            if streamNo == 1 as libc::c_int {
-                                                return 0 as Bool;
-                                            } else {
-                                                if noisy != 0 {
-                                                    fprintf(
-                                                            stderr,
-                                                            b"\n%s: %s: trailing garbage after EOF ignored\n\0"
-                                                                as *const u8 as *const libc::c_char,
-                                                            progName,
-                                                            inName.as_mut_ptr(),
-                                                        );
-                                                }
-                                                return 1 as Bool;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+
+                if bzerr != libbzip2_rs_sys::BZ_STREAM_END {
+                    state = State::ErrHandler;
+                    continue 'outer;
+                }
+
+                BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
+                if bzerr != libbzip2_rs_sys::BZ_OK {
+                    // diverges
+                    panic_str("decompress:bzReadGetUnused")
+                }
+
+                let unusedTmp = unusedTmpV as *mut u8;
+                for i in 0..nUnused {
+                    unused[i as usize] = *unusedTmp.offset(i as isize);
+                }
+
+                BZ2_bzReadClose(&mut bzerr, bzf);
+                if bzerr != libbzip2_rs_sys::BZ_OK {
+                    // diverges
+                    panic_str("decompress:bzReadGetUnused")
+                }
+
+                if nUnused == 0 && myfeof(zStream) != 0 {
+                    state = State::CloseOk;
+                    continue 'outer;
+                }
+            },
+            State::CloseOk => {
+                if ferror(zStream) != 0 {
+                    // diverges
+                    ioError()
+                }
+
+                if stream != stdout {
+                    let fd: i32 = fileno(stream);
+                    if fd < 0 {
+                        // diverges
+                        ioError()
+                    }
+
+                    applySavedFileAttrToOutputFile(fd);
+                }
+
+                ret = fclose(zStream);
+                if ret == libc::EOF {
+                    ioError()
+                }
+
+                if ferror(stream) != 0 {
+                    // diverges
+                    ioError()
+                }
+
+                ret = fflush(stream);
+                if ret != 0 {
+                    // diverges
+                    ioError()
+                }
+
+                if stream != stdout {
+                    ret = fclose(stream);
+                    outputHandleJustInCase = core::ptr::null_mut();
+                    if ret == libc::EOF {
+                        ioError()
+                    }
+                }
+                outputHandleJustInCase = core::ptr::null_mut();
+
+                if verbosity >= 2 {
+                    eprint!("\n    ");
+                }
+
+                return true;
+            }
+            State::TryCat => {
+                if forceOverwrite != 0 {
+                    rewind(zStream);
+                    loop {
+                        if myfeof(zStream) != 0 {
+                            break;
                         }
-                        _ => {
-                            if ferror(zStream) == 0 {
-                                if stream != stdout {
-                                    let fd: i32 = fileno(stream);
-                                    if fd < 0 as libc::c_int {
-                                        current_block = 6432526541220421294;
-                                    } else {
-                                        applySavedFileAttrToOutputFile(fd);
-                                        current_block = 11459959175219260272;
-                                    }
-                                } else {
-                                    current_block = 11459959175219260272;
-                                }
-                                match current_block {
-                                    6432526541220421294 => {}
-                                    _ => {
-                                        ret = fclose(zStream);
-                                        if ret != -1 as libc::c_int && ferror(stream) == 0 {
-                                            ret = fflush(stream);
-                                            if ret == 0 as libc::c_int {
-                                                if stream != stdout {
-                                                    ret = fclose(stream);
-                                                    outputHandleJustInCase =
-                                                        std::ptr::null_mut::<FILE>();
-                                                    if ret == -1 as libc::c_int {
-                                                        current_block = 6432526541220421294;
-                                                    } else {
-                                                        current_block = 3123434771885419771;
-                                                    }
-                                                } else {
-                                                    current_block = 3123434771885419771;
-                                                }
-                                                match current_block {
-                                                    6432526541220421294 => {}
-                                                    _ => {
-                                                        outputHandleJustInCase =
-                                                            std::ptr::null_mut::<FILE>();
-                                                        if verbosity >= 2 as libc::c_int {
-                                                            fprintf(
-                                                                stderr,
-                                                                b"\n    \0" as *const u8
-                                                                    as *const libc::c_char,
-                                                            );
-                                                        }
-                                                        return 1 as Bool;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                        nread = fread(
+                            obuf.as_mut_ptr() as *mut libc::c_void,
+                            core::mem::size_of::<u8>() as libc::size_t,
+                            5000 as libc::c_int as libc::size_t,
+                            zStream,
+                        ) as i32;
+                        if ferror(zStream) != 0 {
+                            // diverges
+                            ioError()
                         }
-                    },
+                        if nread > 0 {
+                            fwrite(
+                                obuf.as_mut_ptr() as *const libc::c_void,
+                                core::mem::size_of::<u8>() as libc::size_t,
+                                nread as libc::size_t,
+                                stream,
+                            );
+                        }
+                        if ferror(stream) != 0 {
+                            // diverges
+                            ioError()
+                        }
+                    }
+
+                    state = State::CloseOk;
+                    continue 'outer;
+                }
+            }
+            State::ErrHandler => {
+                BZ2_bzReadClose(&mut bzerr_dummy, bzf);
+
+                match bzerr {
+                    libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
+                    libbzip2_rs_sys::BZ_IO_ERROR => ioError(),
+                    libbzip2_rs_sys::BZ_DATA_ERROR => crcError(),
+                    libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(),
+                    libbzip2_rs_sys::BZ_UNEXPECTED_EOF => compressedStreamEOF(),
+                    libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC => {
+                        if zStream != stdin {
+                            fclose(zStream);
+                        }
+                        if stream != stdout {
+                            fclose(stream);
+                        }
+                        if streamNo == 1 {
+                            return false;
+                        } else {
+                            if noisy != 0 {
+                                eprintln!(
+                                    "{}: {}: trailing garbage after EOF ignored\n",
+                                    CStr::from_ptr(progName).to_string_lossy(),
+                                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                                );
+                            }
+                            return true;
+                        }
+                    }
+                    _ => panic_str("decompress:unexpected error"),
                 }
             }
         }
     }
-    ioError();
 }
+
 unsafe fn testStream(zStream: *mut FILE) -> Bool {
     let mut current_block: u64;
     let mut bzf: *mut libc::c_void;
@@ -1346,6 +1110,22 @@ unsafe fn panic(s: *const c_char) -> ! {
         ),
         CStr::from_ptr(progName).to_string_lossy(),
         CStr::from_ptr(s).to_string_lossy(),
+    );
+    showFileNames();
+    cleanUpAndFail(3 as libc::c_int);
+}
+
+unsafe fn panic_str(s: &str) -> ! {
+    eprint!(
+        concat!(
+            "\n",
+            "{}: PANIC -- internal consistency error:\n",
+            "\t{}\n",
+            "\tThis is a BUG.  Please report it at:\n",
+            "\thttps://github.com/trifectatechfoundation/libbzip2-rs/issues\n"
+        ),
+        CStr::from_ptr(progName).to_string_lossy(),
+        s,
     );
     showFileNames();
     cleanUpAndFail(3 as libc::c_int);
@@ -2131,7 +1911,7 @@ unsafe fn uncompress(name: *mut c_char) {
     deleteOutputOnInterrupt = 1 as Bool;
     let magicNumberOK = uncompressStream(inStr, outStr);
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-    if magicNumberOK != 0 {
+    if magicNumberOK {
         if srcMode == 3 as libc::c_int {
             applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
             deleteOutputOnInterrupt = 0 as Bool;
@@ -2153,7 +1933,7 @@ unsafe fn uncompress(name: *mut c_char) {
         }
     }
     deleteOutputOnInterrupt = 0 as Bool;
-    if magicNumberOK != 0 {
+    if magicNumberOK {
         if verbosity >= 1 as libc::c_int {
             fprintf(stderr, b"done\n\0" as *const u8 as *const libc::c_char);
         }
