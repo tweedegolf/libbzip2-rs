@@ -1244,25 +1244,31 @@ unsafe fn setExit(v: i32) {
         exitValue = v;
     }
 }
+
 unsafe fn cadvise() {
     if noisy != 0 {
-        fprintf(
-            stderr,
-            b"\nIt is possible that the compressed file(s) have become corrupted.\nYou can use the -tvv option to test integrity of such files.\n\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n\0"
-                as *const u8 as *const libc::c_char,
-        );
+        eprint!(concat!(
+            "\n",
+            "It is possible that the compressed file(s) have become corrupted.\n",
+            "You can use the -tvv option to test integrity of such files.\n",
+            "\n",
+            "You can use the `bzip2recover' program to attempt to recover\n",
+            "data from undamaged sections of corrupted files.\n",
+            "\n",
+        ));
     }
 }
+
 unsafe fn showFileNames() {
     if noisy != 0 {
-        fprintf(
-            stderr,
-            b"\tInput file = %s, output file = %s\n\0" as *const u8 as *const libc::c_char,
-            inName.as_mut_ptr(),
-            outName.as_mut_ptr(),
+        eprintln!(
+            "\tInput file = {}, output file = {}",
+            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+            CStr::from_ptr(outName.as_ptr()).to_string_lossy(),
         );
     }
 }
+
 unsafe fn cleanUpAndFail(ec: i32) -> ! {
     let mut statBuf: stat = zeroed();
     if srcMode == 3 as libc::c_int
@@ -1357,11 +1363,13 @@ unsafe fn crcError() -> ! {
 }
 unsafe fn compressedStreamEOF() -> ! {
     if noisy != 0 {
-        fprintf(
-            stderr,
-            b"\n%s: Compressed file ends unexpectedly;\n\tperhaps it is corrupted?  *Possible* reason follows.\n\0"
-                as *const u8 as *const libc::c_char,
-            progName,
+        eprint!(
+            concat!(
+                "\n",
+                "{}: Compressed file ends unexpectedly;\n",
+                "\tperhaps it is corrupted?  *Possible* reason follows.\n"
+            ),
+            CStr::from_ptr(progName).to_string_lossy(),
         );
         perror(progName);
         showFileNames();
