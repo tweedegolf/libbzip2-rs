@@ -284,7 +284,7 @@ fn sendMTFValues(s: &mut EState) {
 
             if s.verbosity >= 3 {
                 eprintln!(
-                    "      initial group {}, [{} .. {}], has {} syms ({:4.1}%%)",
+                    "      initial group {}, [{} .. {}], has {} syms ({:4.1}%)",
                     nPart,
                     gs,
                     ge,
@@ -646,7 +646,7 @@ pub fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
 
         if s.verbosity >= 2 {
             eprintln!(
-                "   block {}: crc = 0x{:08x}, combined CRC = 0x{:08x}, size = {}",
+                "    block {}: crc = 0x{:08x}, combined CRC = 0x{:08x}, size = {}",
                 s.blockNo, s.blockCRC, s.combinedCRC, s.nblock,
             );
         }
