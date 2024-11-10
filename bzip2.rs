@@ -1436,24 +1436,28 @@ unsafe fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
     }
     _exit(exitValue);
 }
+
 unsafe fn outOfMemory() -> ! {
-    fprintf(
-        stderr,
-        b"\n%s: couldn't allocate enough memory\n\0" as *const u8 as *const libc::c_char,
-        progName,
+    eprintln!(
+        "\n{}: couldn't allocate enough memory",
+        CStr::from_ptr(progName).to_string_lossy(),
     );
     showFileNames();
     cleanUpAndFail(1 as libc::c_int);
 }
+
 unsafe fn configError() -> ! {
-    fprintf(
-        stderr,
-        b"bzip2: I'm not configured correctly for this platform!\n\tI require Int32, Int16 and Char to have sizes\n\tof 4, 2 and 1 bytes to run properly, and they don't.\n\tProbably you can fix this by defining them correctly,\n\tand recompiling.  Bye!\n\0"
-            as *const u8 as *const libc::c_char,
-    );
+    eprint!(concat!(
+        "bzip2: I'm not configured correctly for this platform!\n",
+        "\tI require Int32, Int16 and Char to have sizes\n",
+        "\tof 4, 2 and 1 bytes to run properly, and they don't.\n",
+        "\tProbably you can fix this by defining them correctly,\n",
+        "\tand recompiling.  Bye!\n",
+    ));
     setExit(3 as libc::c_int);
     exit(exitValue);
 }
+
 unsafe fn pad(s: *mut c_char) {
     if strlen(s) as i32 >= longestFileName {
         return;
