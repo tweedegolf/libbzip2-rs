@@ -1336,12 +1336,16 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
 }
 
 unsafe fn panic(s: *const c_char) -> ! {
-    fprintf(
-        stderr,
-        b"\n%s: PANIC -- internal consistency error:\n\t%s\n\tThis is a BUG.  Please report it at:\n\thttps://gitlab.com/bzip2/bzip2/-/issues\n\0"
-            as *const u8 as *const libc::c_char,
-        progName,
-        s,
+    eprint!(
+        concat!(
+            "\n",
+            "{}: PANIC -- internal consistency error:\n",
+            "\t{}\n",
+            "\tThis is a BUG.  Please report it at:\n",
+            "\thttps://github.com/trifectatechfoundation/libbzip2-rs/issues\n"
+        ),
+        CStr::from_ptr(progName).to_string_lossy(),
+        CStr::from_ptr(s).to_string_lossy(),
     );
     showFileNames();
     cleanUpAndFail(3 as libc::c_int);
