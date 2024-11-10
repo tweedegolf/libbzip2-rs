@@ -143,9 +143,9 @@ fn uncompress_stdin_to_stdout_crc_error_i2o() {
 
     // Write the compressed data to stdin
     if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(&left).unwrap();
+        stdin.write_all(left).unwrap();
         stdin.write_all(b"garbage").unwrap();
-        stdin.write_all(&right).unwrap();
+        stdin.write_all(right).unwrap();
     }
 
     // Wait for the child process to finish and capture output
@@ -187,15 +187,16 @@ fn uncompress_stdin_to_stdout_crc_error_f2f() {
     {
         let mut f = std::fs::File::options()
             .create(true)
+            .truncate(true)
             .write(true)
             .open(&sample1)
             .unwrap();
 
         let (left, right) = compressed.split_at(1024);
 
-        f.write_all(&left).unwrap();
+        f.write_all(left).unwrap();
         f.write_all(b"garbage").unwrap();
-        f.write_all(&right).unwrap();
+        f.write_all(right).unwrap();
     }
 
     let mut cmd = command();
