@@ -1387,10 +1387,9 @@ unsafe fn ioError() -> ! {
     cleanUpAndFail(1 as libc::c_int);
 }
 unsafe extern "C" fn mySignalCatcher(_: IntNative) {
-    fprintf(
-        stderr,
-        b"\n%s: Control-C or similar caught, quitting.\n\0" as *const u8 as *const libc::c_char,
-        progName,
+    eprintln!(
+        "\n{}: Control-C or similar caught, quitting.",
+        CStr::from_ptr(progName).to_string_lossy(),
     );
     cleanUpAndFail(1 as libc::c_int);
 }
