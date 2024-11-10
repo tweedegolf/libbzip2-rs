@@ -1378,11 +1378,9 @@ unsafe fn compressedStreamEOF() -> ! {
     cleanUpAndFail(2 as libc::c_int);
 }
 unsafe fn ioError() -> ! {
-    fprintf(
-        stderr,
-        b"\n%s: I/O or other error, bailing out.  Possible reason follows.\n\0" as *const u8
-            as *const libc::c_char,
-        progName,
+    eprintln!(
+        "\n{}: I/O or other error, bailing out.  Possible reason follows.",
+        CStr::from_ptr(progName).to_string_lossy(),
     );
     perror(progName);
     showFileNames();
