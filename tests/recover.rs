@@ -1,7 +1,6 @@
 use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::os::unix::fs::FileExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -88,11 +87,11 @@ fn basic_invalid_file() {
     let file_path = tmp.path().join("sample1.bz2");
     let mut file = File::create(&file_path).unwrap();
 
-    file.write_all(include_bytes!("input/quick/sample2.bz2"))
-        .unwrap();
+    // create an input with some data missing
+    let input = include_bytes!("input/quick/sample2.bz2");
+    let input = &input[..input.len() - 100];
 
-    // write some garbage data at the start of the second block
-    file.write_all_at(&[0xAA, 0xBB, 0xCC], 544936 + 64).unwrap();
+    file.write_all(input).unwrap();
 
     drop(file);
 
@@ -109,22 +108,16 @@ fn basic_invalid_file() {
             "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
             "bzip2recover: searching for block boundaries ...\n",
             "   block 1 runs from 80 to 544887\n",
-            "   block 2 runs from 544936 to 589771\n",
-            "   block 3 runs from 589820 to 4360024 (incomplete)\n",
+            "   block 2 runs from 544936 to 589056 (incomplete)\n",
             "bzip2recover: splitting into blocks\n",
             "   writing block 1 to `$TEMPDIR/rec00001sample1.bz2' ...\n",
-            "   writing block 2 to `$TEMPDIR/rec00002sample1.bz2' ...\n",
-            "bzip2recover: finished\n"
+            "bzip2recover: finished\n",
         )
     );
 
     assert_eq!(
         checksum(&tmp.path().join("rec00001sample1.bz2")),
         2309536424
-    );
-    assert_eq!(
-        checksum(&tmp.path().join("rec00002sample1.bz2")),
-        1823861694
     );
 
     assert!(!tmp.path().join("rec00003sample1.bz2").exists());
