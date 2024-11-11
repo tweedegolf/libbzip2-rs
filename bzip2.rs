@@ -1664,7 +1664,7 @@ unsafe fn testf(name: Option<String>) {
                 in_name.display(),
             );
         }
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
     if srcMode != SourceMode::I2O && !in_name.exists() {
@@ -1674,7 +1674,7 @@ unsafe fn testf(name: Option<String>) {
             in_name.display(),
             display_last_os_error(),
         );
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
     if srcMode != SourceMode::I2O && in_name.is_dir() {
@@ -1683,7 +1683,7 @@ unsafe fn testf(name: Option<String>) {
             get_program_name().display(),
             in_name.display(),
         );
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
     match srcMode {
@@ -1698,7 +1698,7 @@ unsafe fn testf(name: Option<String>) {
                     get_program_name().display(),
                     get_program_name().display(),
                 );
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
             inStr = stdin;
@@ -1715,19 +1715,19 @@ unsafe fn testf(name: Option<String>) {
                     in_name.display(),
                     display_last_os_error(),
                 );
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
         }
     }
-    if verbosity >= 1 as libc::c_int {
+    if verbosity >= 1 {
         eprint!("  {}: ", in_name.display());
         pad(inName.as_mut_ptr());
         fflush(stderr);
     }
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     let allOK = testStream(inStr);
-    if allOK as libc::c_int != 0 && verbosity >= 1 as libc::c_int {
+    if allOK && verbosity >= 1 {
         eprintln!("ok");
     }
     if !allOK {
