@@ -2,6 +2,72 @@ use std::env;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
+#[macro_export]
+macro_rules! expect_output_failure {
+    ($output:expr, $expected_stderr:expr $(,)?) => {
+        assert!(
+            !$output.status.success(),
+            "status: {:?} stderr: {:?}",
+            $output.status,
+            String::from_utf8_lossy(&$output.stderr)
+        );
+
+        assert!(
+            $output.stdout.is_empty(),
+            "stdout: {:?}",
+            String::from_utf8_lossy(&$output.stdout)
+        );
+
+        assert_eq!(
+            String::from_utf8_lossy(&$output.stderr).replace(bzip2_binary(), "bzip2"),
+            $expected_stderr,
+        );
+    };
+}
+
+#[macro_export]
+macro_rules! expect_failure {
+    ($cmd:expr, $expected_stderr:expr $(,)?) => {
+        let cmd = $cmd;
+        let output = match cmd.output() {
+            Ok(output) => output,
+            Err(err) => panic!("Running {:?} failed with {err:?}", cmd),
+        };
+
+        expect_output_failure!(output, $expected_stderr);
+    };
+}
+
+#[macro_export]
+macro_rules! expect_output_success {
+    ($output:expr, $expected_stderr:expr $(,)?) => {
+        assert!(
+            $output.status.success(),
+            "status: {:?} stderr: {:?}",
+            $output.status,
+            String::from_utf8_lossy(&$output.stderr)
+        );
+
+        assert_eq!(
+            String::from_utf8_lossy(&$output.stderr).replace(bzip2_binary(), "bzip2"),
+            $expected_stderr,
+        );
+    };
+}
+
+#[macro_export]
+macro_rules! expect_success {
+    ($cmd:expr, $expected_stderr:expr $(,)?) => {
+        let cmd = $cmd;
+        let output = match cmd.output() {
+            Ok(output) => output,
+            Err(err) => panic!("Running {:?} failed with {err:?}", cmd),
+        };
+
+        expect_output_success!(output, $expected_stderr);
+    };
+}
+
 /// Useful to test with the C binary
 fn bzip2_binary() -> &'static str {
     env!("CARGO_BIN_EXE_bzip2")
@@ -34,6 +100,7 @@ fn run_test(compressed: &str, expected: &[u8]) {
         Ok(output) => output,
         Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
     };
+
     assert!(
         output.status.success(),
         "status: {:?} stderr: {:?}",
@@ -95,15 +162,8 @@ fn uncompress_stdin_to_stdout_unexpected_eof() {
     // Wait for the child process to finish and capture output
     let output = child.wait_with_output().expect("Failed to read stdout");
 
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_output_failure!(
+        output,
         format!(concat!(
             "\n",
             "bzip2: Compressed file ends unexpectedly;\n",
@@ -151,15 +211,8 @@ fn uncompress_stdin_to_stdout_crc_error_i2o() {
     // Wait for the child process to finish and capture output
     let output = child.wait_with_output().expect("Failed to read stdout");
 
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_output_failure!(
+        output,
         format!(concat!(
             "\n",
             "bzip2: Data integrity error when decompressing.\n",
@@ -201,19 +254,8 @@ fn uncompress_stdin_to_stdout_crc_error_f2f() {
 
     let mut cmd = command();
 
-    cmd.arg("-d").arg(sample1);
-
-    let output = cmd.output().expect("Failed to read stdout");
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-d").arg(sample1),
         format!(
             concat!(
                 "\n",
@@ -384,20 +426,15 @@ fn compression_stderr_output() {
     );
 
     let mut cmd = command();
-    cmd.arg("--compress")
-        .arg("-1")
-        .arg("--keep")
-        .arg("--stdout")
-        .arg("-vvv")
-        .arg(sample)
-        .stdout(Stdio::piped());
 
-    let output = cmd.output().unwrap();
-
-    assert!(output.status.success());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_success!(
+        cmd.arg("--compress")
+            .arg("-1")
+            .arg("--keep")
+            .arg("--stdout")
+            .arg("-vvv")
+            .arg(sample)
+            .stdout(Stdio::piped()),
         format!(
             concat!(
                 "  {in_file}: \n",
@@ -428,7 +465,7 @@ fn compression_stderr_output() {
                 "   440.454:1,  0.018 bits/byte, 99.77% saved, 120244 in, 273 out.\n",
             ),
             in_file = sample.display(),
-        ),
+        )
     );
 }
 
@@ -480,30 +517,18 @@ fn test_comp_decomp_sample_ref3() {
 fn redundant_flag() {
     {
         let mut cmd = command();
-        cmd.arg("--repetitive-best");
-        let output = cmd.output().unwrap();
 
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-
-        assert_eq!(
-            String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        expect_success!(
+            cmd.arg("--repetitive-best"),
             "bzip2: --repetitive-best is redundant in versions 0.9.5 and above\n"
         );
     }
 
     {
         let mut cmd = command();
-        cmd.arg("--repetitive-fast");
-        let output = cmd.output().unwrap();
 
-        assert!(output.status.success());
-
-        assert_eq!(
-            String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        expect_success!(
+            cmd.arg("--repetitive-fast"),
             "bzip2: --repetitive-fast is redundant in versions 0.9.5 and above\n"
         );
     }
@@ -548,17 +573,9 @@ fn flags_from_env() {
 
     {
         let mut cmd = command();
-        cmd.env("BZIP", "-1 -4 --repetitive-fast");
-        let output = cmd.output().unwrap();
 
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-
-        assert_eq!(
-            String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        expect_success!(
+            cmd.env("BZIP", "-1 -4 --repetitive-fast"),
             "bzip2: --repetitive-fast is redundant in versions 0.9.5 and above\n"
         );
     }
@@ -666,14 +683,9 @@ fn version() {
 #[test]
 fn flags_after_double_dash() {
     let mut cmd = command();
-    cmd.args(["--", "-V"]);
-    let output = cmd.output().unwrap();
 
-    assert!(!output.status.success());
-
-    // the version also just prints out the license text
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.args(["--", "-V"]),
         "bzip2: Can't open input file -V: No such file or directory.\n"
     );
 }
@@ -681,12 +693,9 @@ fn flags_after_double_dash() {
 #[test]
 fn stdout_and_test() {
     let mut cmd = command();
-    cmd.args(["-c", "-t"]);
-    let output = cmd.output().unwrap();
 
-    assert!(!output.status.success());
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.args(["-c", "-t"]),
         "bzip2: -c and -t cannot be used together.\n"
     );
 }
@@ -725,6 +734,7 @@ fn uncompress_stdin_to_stdout() {
         output.status,
         String::from_utf8_lossy(&output.stderr)
     );
+
     assert_eq!(output.stdout, expected);
 }
 
@@ -739,19 +749,7 @@ fn uncompress_file_to_file_bz2() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
+    expect_success!(cmd.arg("-d").arg(&sample1), "");
 
     let actual = std::fs::read(sample1.with_extension("")).unwrap();
     assert_eq!(actual, expected);
@@ -768,19 +766,7 @@ fn uncompress_file_to_file_tar() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
+    expect_success!(cmd.arg("-d").arg(&sample1), "");
 
     let actual = std::fs::read(sample1.with_extension("tar")).unwrap();
     assert_eq!(actual, expected);
@@ -797,22 +783,8 @@ fn cannot_guess_file_name() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_success!(
+        cmd.arg("-d").arg("-vvv").arg(&sample1),
         format!(
             concat!(
                 "bzip2: Can't guess original name for {in_file} -- using {in_file}.out\n",
@@ -836,22 +808,8 @@ fn decompress_input_file_does_not_exist() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-d").arg("-vvv").arg(&sample1),
         format!(
             "bzip2: Can't open input file {in_file}: No such file or directory.\n",
             in_file = sample1.display(),
@@ -865,22 +823,8 @@ fn decompress_input_file_is_a_directory() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(tmpdir.path()).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-d").arg("-vvv").arg(tmpdir.path()),
         format!(
             "bzip2: Input file {in_file} is a directory.\n",
             in_file = tmpdir.path().display(),
@@ -901,22 +845,8 @@ fn input_file_is_a_symlink() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(&symlink_path).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-d").arg("-vvv").arg(&symlink_path),
         format!(
             "bzip2: Input file {in_file} is not a normal file.\n",
             in_file = symlink_path.display(),
@@ -928,33 +858,19 @@ fn input_file_is_a_symlink() {
 fn input_file_has_hard_links() {
     let tmpdir = tempfile::tempdir().unwrap();
     let sample1 = tmpdir.path().join("sample1.bz2");
-    let symlink_path = tmpdir.path().join("this_is_a_symlink.bz2");
+    let hardlink_path = tmpdir.path().join("this_is_a_symlink.bz2");
 
     std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
 
-    std::fs::hard_link(sample1, &symlink_path).unwrap();
+    std::fs::hard_link(sample1, &hardlink_path).unwrap();
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(&symlink_path).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-d").arg("-vvv").arg(&hardlink_path),
         format!(
             "bzip2: Input file {in_file} has 1 other link.\n",
-            in_file = symlink_path.display(),
+            in_file = hardlink_path.display(),
         ),
     );
 }
@@ -975,22 +891,8 @@ fn decompress_input_file_cannot_be_read() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-d").arg("-vvv").arg(&sample1),
         format!(
             "bzip2: Can't open input file {in_file}: Permission denied.\n",
             in_file = sample1.display(),
@@ -1012,22 +914,8 @@ fn output_file_cannot_be_written() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-d").arg("-vvv").arg(&sample1),
         format!(
             "bzip2: Can't create output file {out_file}: Permission denied.\n",
             out_file = tmpdir.path().join("sample1").display(),
@@ -1050,22 +938,8 @@ fn output_file_exists() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1_tar_bz2).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-d").arg("-vvv").arg(&sample1_tar_bz2),
         format!(
             "bzip2: Output file {out_file} already exists.\n",
             out_file = sample1_tar.display(),
@@ -1074,23 +948,8 @@ fn output_file_exists() {
 
     let mut cmd = command();
 
-    // now force force overwrite
-    let output = match cmd.arg("-d").arg("-vvvf").arg(&sample1_tar_bz2).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_success!(
+        cmd.arg("-d").arg("-vvvf").arg(&sample1_tar_bz2),
         format!(
             concat!(
                 "  {in_file}: \n",
@@ -1115,22 +974,8 @@ fn input_file_is_not_bzip2_data() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-d").arg("-vvv").arg(&sample1),
         format!(
             concat!(
                 "bzip2: Can't guess original name for {in_file} -- using {in_file}.out\n",
@@ -1169,19 +1014,7 @@ fn test_valid_stdin() {
     // Wait for the child process to finish and capture output
     let output = child.wait_with_output().expect("Failed to read stdout");
 
-    assert!(
-        output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
-        "  (stdin): ok\n",
-    );
+    expect_output_success!(output, "  (stdin): ok\n");
 }
 
 #[test]
@@ -1210,17 +1043,8 @@ fn test_invalid_stdin() {
     // Wait for the child process to finish and capture output
     let output = child.wait_with_output().expect("Failed to read stdout");
 
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_output_failure!(
+        output,
         concat!(
             "  (stdin): bad magic number (file not created by bzip2)\n",
             "\n",
@@ -1240,19 +1064,7 @@ fn test_file() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-t").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
+    expect_success!(cmd.arg("-t").arg(&sample1), "");
 }
 
 #[test]
@@ -1266,22 +1078,8 @@ fn test_files() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-t").arg("-v").arg(&sample1).arg(&longer).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_success!(
+        cmd.arg("-t").arg("-v").arg(&sample1).arg(&longer),
         format!(
             concat!(
                 "  {in_dir}/sample1.bz2:            ok\n",
@@ -1299,22 +1097,8 @@ fn test_input_file_does_not_exist() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-t").arg("-vvv").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-t").arg("-vvv").arg(&sample1),
         format!(
             "bzip2: Can't open input {in_file}: No such file or directory.\n",
             in_file = sample1.display(),
@@ -1328,22 +1112,8 @@ fn test_input_file_is_a_directory() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-t").arg("-vvv").arg(tmpdir.path()).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-t").arg("-vvv").arg(tmpdir.path()),
         format!(
             "bzip2: Input file {in_file} is a directory.\n",
             in_file = tmpdir.path().display(),
@@ -1367,22 +1137,8 @@ fn test_input_file_cannot_be_read() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-t").arg("-vvv").arg(&sample1).output() {
-        Ok(output) => output,
-        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
-    };
-
-    assert!(
-        !output.status.success(),
-        "status: {:?} stderr: {:?}",
-        output.status,
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    assert!(output.stdout.is_empty());
-
-    assert_eq!(
-        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+    expect_failure!(
+        cmd.arg("-t").arg("-vvv").arg(&sample1),
         format!(
             "bzip2: Can't open input {in_file}: Permission denied.\n",
             in_file = sample1.display(),
