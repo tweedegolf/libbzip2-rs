@@ -1324,4 +1324,26 @@ mod compress_command {
             )
         );
     }
+
+    #[test]
+    fn input_has_bz2_extension() {
+        let tmpdir = tempfile::tempdir().unwrap();
+
+        for extension in [".bz2", ".bz", ".tbz2", ".tbz"] {
+            let sample1 = tmpdir.path().join("test").with_extension(extension);
+
+            std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+
+            let mut cmd = command();
+
+            expect_failure!(
+                cmd.arg("-z").arg(&sample1).arg("-c").stdout(Stdio::piped()),
+                format!(
+                    "bzip2: Input file {in_file} already has {extension} suffix.\n",
+                    in_file = sample1.display(),
+                    extension = extension,
+                )
+            );
+        }
+    }
 }
