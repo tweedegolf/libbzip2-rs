@@ -961,7 +961,7 @@ mod test_command {
     }
 }
 
-mod compression_command {
+mod compress_command {
     use super::*;
 
     #[test]
