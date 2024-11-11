@@ -14,9 +14,9 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fprintf, fread,
-    fwrite, open, perror, remove, rewind, signal, stat, strcat, strcmp, strlen, strncpy, ungetc,
-    utimbuf, write, FILE,
+    _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fread, fwrite, open,
+    perror, remove, rewind, signal, stat, strcat, strcmp, strlen, strncpy, ungetc, utimbuf, write,
+    FILE,
 };
 extern "C" {
     static mut stdin: *mut FILE;
