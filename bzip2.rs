@@ -1710,7 +1710,7 @@ unsafe fn testf(name: Option<String>) {
             );
             if inStr.is_null() {
                 eprintln!(
-                    "{}: Can't open input file {}:{}.",
+                    "{}: Can't open input {}: {}.",
                     get_program_name().display(),
                     in_name.display(),
                     display_last_os_error(),

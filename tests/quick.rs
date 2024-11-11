@@ -961,7 +961,7 @@ fn input_file_has_hard_links() {
 
 #[cfg(unix)]
 #[test]
-fn input_file_cannot_be_read() {
+fn decompress_input_file_cannot_be_read() {
     use std::os::unix::fs::PermissionsExt;
 
     let tmpdir = tempfile::tempdir().unwrap();
@@ -1347,6 +1347,45 @@ fn test_input_file_is_a_directory() {
         format!(
             "bzip2: Input file {in_file} is a directory.\n",
             in_file = tmpdir.path().display(),
+        ),
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn test_input_file_cannot_be_read() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let tmpdir = tempfile::tempdir().unwrap();
+    let sample1 = tmpdir.path().join("sample1.bz2");
+
+    std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+
+    let mut permissions = std::fs::metadata(&sample1).unwrap().permissions();
+    permissions.set_mode(0o000); // no permissions for you
+    std::fs::set_permissions(&sample1, permissions).unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-t").arg("-vvv").arg(&sample1).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            "bzip2: Can't open input {in_file}: Permission denied.\n",
+            in_file = sample1.display(),
         ),
     );
 }
