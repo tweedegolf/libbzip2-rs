@@ -433,6 +433,9 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
 
                     state = State::CloseOk;
                     continue 'outer;
+                } else {
+                    state = State::ErrHandler;
+                    continue 'outer;
                 }
             }
             State::ErrHandler => {
