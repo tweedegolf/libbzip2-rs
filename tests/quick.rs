@@ -721,7 +721,7 @@ mod decompress_command {
     }
 
     #[test]
-    fn input_file_is_not_bzip2_data() {
+    fn input_file_is_not_bzip2_data_verbose() {
         let tmpdir = tempfile::tempdir().unwrap();
 
         let sample1 = tmpdir.path().join("sample1.txt");
@@ -735,6 +735,27 @@ mod decompress_command {
                 concat!(
                     "bzip2: Can't guess original name for {in_file} -- using {in_file}.out\n",
                     "  {in_file}: not a bzip2 file.\n"
+                ),
+                in_file = sample1.display(),
+            ),
+        );
+    }
+
+    #[test]
+    fn input_file_is_not_bzip2_data_less_verbose() {
+        let tmpdir = tempfile::tempdir().unwrap();
+
+        let sample1 = tmpdir.path().join("sample1.txt");
+        std::fs::write(&sample1, b"lang is it ompaad").unwrap();
+
+        let mut cmd = command();
+
+        expect_failure!(
+            cmd.arg("-d").arg(&sample1),
+            format!(
+                concat!(
+                    "bzip2: Can't guess original name for {in_file} -- using {in_file}.out\n",
+                    "bzip2: {in_file} is not a bzip2 file.\n",
                 ),
                 in_file = sample1.display(),
             ),
