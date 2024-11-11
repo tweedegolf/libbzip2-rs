@@ -632,7 +632,7 @@ mod decompress_command {
 
     #[cfg(unix)]
     #[test]
-    fn decompress_input_file_cannot_be_read() {
+    fn input_file_cannot_be_read_f2f() {
         use std::os::unix::fs::PermissionsExt;
 
         let tmpdir = tempfile::tempdir().unwrap();
@@ -759,6 +759,30 @@ mod decompress_command {
                 ),
                 in_file = sample1.display(),
             ),
+        );
+    }
+
+    #[test]
+    fn input_file_cannot_be_read_f2o() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmpdir = tempfile::tempdir().unwrap();
+        let sample1 = tmpdir.path().join("sample1.bz2");
+
+        std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+
+        let mut permissions = std::fs::metadata(&sample1).unwrap().permissions();
+        permissions.set_mode(0o000); // no permissions for you
+        std::fs::set_permissions(&sample1, permissions).unwrap();
+
+        let mut cmd = command();
+
+        expect_failure!(
+            cmd.arg("-d").arg(&sample1).arg("-c").stdout(Stdio::piped()),
+            format!(
+                "bzip2: Can't open input file {in_file}: Permission denied.\n",
+                in_file = sample1.display()
+            )
         );
     }
 }
