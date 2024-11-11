@@ -666,7 +666,7 @@ fn version() {
 #[test]
 fn flags_after_double_dash() {
     let mut cmd = command();
-    cmd.args(&["--", "-V"]);
+    cmd.args(["--", "-V"]);
     let output = cmd.output().unwrap();
 
     assert!(!output.status.success());
@@ -681,7 +681,7 @@ fn flags_after_double_dash() {
 #[test]
 fn compress_and_test() {
     let mut cmd = command();
-    cmd.args(&["-c", "-t"]);
+    cmd.args(["-c", "-t"]);
     let output = cmd.output().unwrap();
 
     assert!(!output.status.success());
@@ -865,7 +865,7 @@ fn input_file_is_a_directory() {
 
     let mut cmd = command();
 
-    let output = match cmd.arg("-d").arg("-vvv").arg(&tmpdir.path()).output() {
+    let output = match cmd.arg("-d").arg("-vvv").arg(tmpdir.path()).output() {
         Ok(output) => output,
         Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
     };
@@ -1046,7 +1046,7 @@ fn output_file_exists() {
     std::fs::copy("tests/input/quick/sample1.bz2", &sample1_tar_bz2).unwrap();
 
     let sample1_tar = tmpdir.path().join("sample1.tar");
-    std::fs::write(&sample1_tar, &[1, 2, 3]).unwrap();
+    std::fs::write(&sample1_tar, [1, 2, 3]).unwrap();
 
     let mut cmd = command();
 
