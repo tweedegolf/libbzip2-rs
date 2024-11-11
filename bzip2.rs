@@ -482,20 +482,20 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
     }
 }
 
-unsafe fn testStream(zStream: *mut FILE) -> Bool {
-    let mut current_block: u64;
+unsafe fn testStream(zStream: *mut FILE) -> bool {
     let mut bzf: *mut libc::c_void;
     let mut bzerr: i32 = 0;
-    let mut bzerr_dummy: i32 = 0;
     let ret: i32;
     let mut i: i32;
     let mut obuf: [u8; 5000] = [0; 5000];
     let mut unused: [u8; 5000] = [0; 5000];
     let mut unusedTmpV: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
+
     let mut nUnused = 0 as libc::c_int;
     let mut streamNo = 0 as libc::c_int;
-    if ferror(zStream) == 0 {
-        's_29: loop {
+
+    'errhandler: {
+        loop {
             bzf = BZ2_bzReadOpen(
                 &mut bzerr,
                 zStream,
@@ -505,8 +505,8 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                 nUnused,
             );
             if bzf.is_null() || bzerr != 0 as libc::c_int {
-                current_block = 5115833311404821621;
-                break;
+                // diverges
+                ioError()
             }
             streamNo += 1;
             while bzerr == 0 as libc::c_int {
@@ -517,13 +517,11 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                     5000 as libc::c_int,
                 );
                 if bzerr == -5 as libc::c_int {
-                    current_block = 5115833311404821621;
-                    break 's_29;
+                    break 'errhandler;
                 }
             }
             if bzerr != 4 as libc::c_int {
-                current_block = 5115833311404821621;
-                break;
+                break 'errhandler;
             }
             BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
             if bzerr != 0 as libc::c_int {
@@ -540,369 +538,63 @@ unsafe fn testStream(zStream: *mut FILE) -> Bool {
                 panic(b"test:bzReadGetUnused\0" as *const u8 as *const libc::c_char);
             }
             if nUnused == 0 as libc::c_int && myfeof(zStream) as libc::c_int != 0 {
-                current_block = 5783071609795492627;
                 break;
             }
         }
-        match current_block {
-            5783071609795492627 => {
-                if ferror(zStream) == 0 {
-                    ret = fclose(zStream);
-                    if ret != -1 as libc::c_int {
-                        if verbosity >= 2 as libc::c_int {
-                            fprintf(stderr, b"\n    \0" as *const u8 as *const libc::c_char);
-                        }
-                        return 1 as Bool;
-                    }
-                }
+
+        if ferror(zStream) != 0 {
+            ioError() // diverges
+        }
+        ret = fclose(zStream);
+        if ret == libc::EOF {
+            ioError() // diverges
+        }
+
+        if verbosity >= 2 {
+            eprintln!()
+        }
+
+        return true;
+    }
+
+    // errhandler:
+
+    BZ2_bzReadClose(&mut 0, bzf);
+    if verbosity == 0 {
+        eprintln!(
+            "{}: {}: ",
+            get_program_name().display(),
+            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+        );
+    }
+    match bzerr {
+        libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
+        libbzip2_rs_sys::BZ_IO_ERROR => ioError(),
+        libbzip2_rs_sys::BZ_DATA_ERROR => {
+            eprintln!("data integrity (CRC) error in data");
+            false
+        }
+        libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(),
+        libbzip2_rs_sys::BZ_UNEXPECTED_EOF => {
+            eprintln!("file ends unexpectedly");
+            false
+        }
+        libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC => {
+            if zStream != stdin {
+                fclose(zStream);
             }
-            _ => {
-                BZ2_bzReadClose(&mut bzerr_dummy, bzf);
-                if verbosity == 0 as libc::c_int {
-                    fprintf(
-                        stderr,
-                        b"%s: %s: \0" as *const u8 as *const libc::c_char,
-                        progName,
-                        inName.as_mut_ptr(),
-                    );
+            if streamNo == 1 {
+                eprintln!("bad magic number (file not created by bzip2)");
+                false
+            } else {
+                if noisy {
+                    eprintln!("trailing garbage after EOF ignored");
                 }
-                match bzerr {
-                    -9 => {
-                        current_block = 7033902699813040753;
-                        match current_block {
-                            14955303639559299169 => {
-                                panic(
-                                    b"test:unexpected error\0" as *const u8 as *const libc::c_char,
-                                );
-                            }
-                            10567734636544821229 => {
-                                fprintf(
-                                    stderr,
-                                    b"file ends unexpectedly\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                            17188754426950485343 => {
-                                if zStream != stdin {
-                                    fclose(zStream);
-                                }
-                                if streamNo == 1 as libc::c_int {
-                                    fprintf(
-                                        stderr,
-                                        b"bad magic number (file not created by bzip2)\n\0"
-                                            as *const u8
-                                            as *const libc::c_char,
-                                    );
-                                    return 0 as Bool;
-                                } else {
-                                    if noisy {
-                                        fprintf(
-                                            stderr,
-                                            b"trailing garbage after EOF ignored\n\0" as *const u8
-                                                as *const libc::c_char,
-                                        );
-                                    }
-                                    return 1 as Bool;
-                                }
-                            }
-                            7033902699813040753 => {
-                                configError();
-                            }
-                            12127014564286193091 => {
-                                outOfMemory();
-                            }
-                            _ => {
-                                fprintf(
-                                    stderr,
-                                    b"data integrity (CRC) error in data\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                        }
-                    }
-                    -6 => {}
-                    -4 => {
-                        current_block = 4900559648241656877;
-                        match current_block {
-                            14955303639559299169 => {
-                                panic(
-                                    b"test:unexpected error\0" as *const u8 as *const libc::c_char,
-                                );
-                            }
-                            10567734636544821229 => {
-                                fprintf(
-                                    stderr,
-                                    b"file ends unexpectedly\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                            17188754426950485343 => {
-                                if zStream != stdin {
-                                    fclose(zStream);
-                                }
-                                if streamNo == 1 as libc::c_int {
-                                    fprintf(
-                                        stderr,
-                                        b"bad magic number (file not created by bzip2)\n\0"
-                                            as *const u8
-                                            as *const libc::c_char,
-                                    );
-                                    return 0 as Bool;
-                                } else {
-                                    if noisy {
-                                        fprintf(
-                                            stderr,
-                                            b"trailing garbage after EOF ignored\n\0" as *const u8
-                                                as *const libc::c_char,
-                                        );
-                                    }
-                                    return 1 as Bool;
-                                }
-                            }
-                            7033902699813040753 => {
-                                configError();
-                            }
-                            12127014564286193091 => {
-                                outOfMemory();
-                            }
-                            _ => {
-                                fprintf(
-                                    stderr,
-                                    b"data integrity (CRC) error in data\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                        }
-                    }
-                    -3 => {
-                        current_block = 12127014564286193091;
-                        match current_block {
-                            14955303639559299169 => {
-                                panic(
-                                    b"test:unexpected error\0" as *const u8 as *const libc::c_char,
-                                );
-                            }
-                            10567734636544821229 => {
-                                fprintf(
-                                    stderr,
-                                    b"file ends unexpectedly\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                            17188754426950485343 => {
-                                if zStream != stdin {
-                                    fclose(zStream);
-                                }
-                                if streamNo == 1 as libc::c_int {
-                                    fprintf(
-                                        stderr,
-                                        b"bad magic number (file not created by bzip2)\n\0"
-                                            as *const u8
-                                            as *const libc::c_char,
-                                    );
-                                    return 0 as Bool;
-                                } else {
-                                    if noisy {
-                                        fprintf(
-                                            stderr,
-                                            b"trailing garbage after EOF ignored\n\0" as *const u8
-                                                as *const libc::c_char,
-                                        );
-                                    }
-                                    return 1 as Bool;
-                                }
-                            }
-                            7033902699813040753 => {
-                                configError();
-                            }
-                            12127014564286193091 => {
-                                outOfMemory();
-                            }
-                            _ => {
-                                fprintf(
-                                    stderr,
-                                    b"data integrity (CRC) error in data\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                        }
-                    }
-                    -7 => {
-                        current_block = 10567734636544821229;
-                        match current_block {
-                            14955303639559299169 => {
-                                panic(
-                                    b"test:unexpected error\0" as *const u8 as *const libc::c_char,
-                                );
-                            }
-                            10567734636544821229 => {
-                                fprintf(
-                                    stderr,
-                                    b"file ends unexpectedly\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                            17188754426950485343 => {
-                                if zStream != stdin {
-                                    fclose(zStream);
-                                }
-                                if streamNo == 1 as libc::c_int {
-                                    fprintf(
-                                        stderr,
-                                        b"bad magic number (file not created by bzip2)\n\0"
-                                            as *const u8
-                                            as *const libc::c_char,
-                                    );
-                                    return 0 as Bool;
-                                } else {
-                                    if noisy {
-                                        fprintf(
-                                            stderr,
-                                            b"trailing garbage after EOF ignored\n\0" as *const u8
-                                                as *const libc::c_char,
-                                        );
-                                    }
-                                    return 1 as Bool;
-                                }
-                            }
-                            7033902699813040753 => {
-                                configError();
-                            }
-                            12127014564286193091 => {
-                                outOfMemory();
-                            }
-                            _ => {
-                                fprintf(
-                                    stderr,
-                                    b"data integrity (CRC) error in data\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                        }
-                    }
-                    -5 => {
-                        current_block = 17188754426950485343;
-                        match current_block {
-                            14955303639559299169 => {
-                                panic(
-                                    b"test:unexpected error\0" as *const u8 as *const libc::c_char,
-                                );
-                            }
-                            10567734636544821229 => {
-                                fprintf(
-                                    stderr,
-                                    b"file ends unexpectedly\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                            17188754426950485343 => {
-                                if zStream != stdin {
-                                    fclose(zStream);
-                                }
-                                if streamNo == 1 as libc::c_int {
-                                    fprintf(
-                                        stderr,
-                                        b"bad magic number (file not created by bzip2)\n\0"
-                                            as *const u8
-                                            as *const libc::c_char,
-                                    );
-                                    return 0 as Bool;
-                                } else {
-                                    if noisy {
-                                        fprintf(
-                                            stderr,
-                                            b"trailing garbage after EOF ignored\n\0" as *const u8
-                                                as *const libc::c_char,
-                                        );
-                                    }
-                                    return 1 as Bool;
-                                }
-                            }
-                            7033902699813040753 => {
-                                configError();
-                            }
-                            12127014564286193091 => {
-                                outOfMemory();
-                            }
-                            _ => {
-                                fprintf(
-                                    stderr,
-                                    b"data integrity (CRC) error in data\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                        }
-                    }
-                    _ => {
-                        current_block = 14955303639559299169;
-                        match current_block {
-                            14955303639559299169 => {
-                                panic(
-                                    b"test:unexpected error\0" as *const u8 as *const libc::c_char,
-                                );
-                            }
-                            10567734636544821229 => {
-                                fprintf(
-                                    stderr,
-                                    b"file ends unexpectedly\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                            17188754426950485343 => {
-                                if zStream != stdin {
-                                    fclose(zStream);
-                                }
-                                if streamNo == 1 as libc::c_int {
-                                    fprintf(
-                                        stderr,
-                                        b"bad magic number (file not created by bzip2)\n\0"
-                                            as *const u8
-                                            as *const libc::c_char,
-                                    );
-                                    return 0 as Bool;
-                                } else {
-                                    if noisy {
-                                        fprintf(
-                                            stderr,
-                                            b"trailing garbage after EOF ignored\n\0" as *const u8
-                                                as *const libc::c_char,
-                                        );
-                                    }
-                                    return 1 as Bool;
-                                }
-                            }
-                            7033902699813040753 => {
-                                configError();
-                            }
-                            12127014564286193091 => {
-                                outOfMemory();
-                            }
-                            _ => {
-                                fprintf(
-                                    stderr,
-                                    b"data integrity (CRC) error in data\n\0" as *const u8
-                                        as *const libc::c_char,
-                                );
-                                return 0 as Bool;
-                            }
-                        }
-                    }
-                }
+                true
             }
         }
+        _ => panic_str("test:unexpected error"),
     }
-    ioError();
 }
 
 unsafe fn setExit(v: i32) {
@@ -2031,7 +1723,7 @@ unsafe fn testf(name: Option<String>) {
     if allOK as libc::c_int != 0 && verbosity >= 1 as libc::c_int {
         eprintln!("ok");
     }
-    if allOK == 0 {
+    if !allOK {
         test_fails_exists = true;
     }
 }
