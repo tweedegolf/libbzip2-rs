@@ -806,6 +806,47 @@ mod decompress_command {
             ),
         );
     }
+
+    #[test]
+    fn second_input_file_is_not_bzip2_data() {
+        use std::io::Write;
+
+        let mut cmd = command();
+
+        let mut child = cmd
+            .arg("-d")
+            .arg("-vvv")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("Failed to start child process");
+
+        // Write the compressed data to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin
+                .write_all(include_bytes!("input/quick/sample1.bz2"))
+                .expect("Failed to write to stdin");
+
+            stdin.write_all(b"lang is it ompaad").unwrap();
+        }
+
+        // Wait for the child process to finish and capture output
+        let output = child.wait_with_output().expect("Failed to read stdout");
+
+        expect_output_success!(
+            output,
+            format!(concat!(
+                "  (stdin): \n",
+                "    [1: huff+mtf rt+rld {{0xccf1b5a5, 0xccf1b5a5}}]\n",
+                "    combined CRCs: stored = 0xccf1b5a5, computed = 0xccf1b5a5\n",
+                "bzip2: (stdin): trailing garbage after EOF ignored\n",
+                "\n",
+                "done\n",
+                ""
+            ),),
+        );
+    }
 }
 
 mod test_command {
