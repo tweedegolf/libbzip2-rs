@@ -2,12 +2,17 @@ use std::env;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
+/// Useful to test with the C binary
+fn bzip2_binary() -> &'static str {
+    env!("CARGO_BIN_EXE_bzip2")
+}
+
 #[macro_export]
 macro_rules! expect_output_failure {
     ($output:expr, $expected_stderr:expr $(,)?) => {
         assert!(
             !$output.status.success(),
-            "status: {:?} stderr: {:?}",
+            "status is success (expected failure): {:?} stderr: {:?}",
             $output.status,
             String::from_utf8_lossy(&$output.stderr)
         );
@@ -43,7 +48,7 @@ macro_rules! expect_output_success {
     ($output:expr, $expected_stderr:expr $(,)?) => {
         assert!(
             $output.status.success(),
-            "status: {:?} stderr: {:?}",
+            "status is failure (expected success) {:?} stderr: {:?}",
             $output.status,
             String::from_utf8_lossy(&$output.stderr)
         );
@@ -66,11 +71,6 @@ macro_rules! expect_success {
 
         expect_output_success!(output, $expected_stderr);
     };
-}
-
-/// Useful to test with the C binary
-fn bzip2_binary() -> &'static str {
-    env!("CARGO_BIN_EXE_bzip2")
 }
 
 fn command() -> Command {
@@ -703,7 +703,6 @@ mod decompress_command {
     }
 
     #[test]
-    #[cfg(unix)]
     fn output_file_exists() {
         let expected = include_bytes!("input/quick/sample1.ref");
 
@@ -1345,5 +1344,58 @@ mod compress_command {
                 )
             );
         }
+    }
+
+    #[test]
+    fn output_file_exists() {
+        let tmpdir = tempfile::tempdir().unwrap();
+
+        let sample1_ref = tmpdir.path().join("sample1.ref");
+        std::fs::copy("tests/input/quick/sample1.ref", &sample1_ref).unwrap();
+
+        let sample1_bz2 = tmpdir.path().join("sample1.ref.bz2");
+        std::fs::write(&sample1_bz2, [1, 2, 3]).unwrap();
+
+        let mut cmd = command();
+
+        expect_failure!(
+            cmd.arg("-z")
+                .arg("-vvv")
+                .arg("-k")
+                .arg(&sample1_ref)
+                .stderr(Stdio::piped()),
+            format!(
+                "bzip2: Output file {in_file}.bz2 already exists.\n",
+                in_file = sample1_ref.display(),
+            ),
+        );
+
+        let mut cmd = command();
+
+        expect_success!(
+            cmd.arg("-z").arg("-vvvf").arg(&sample1_ref),
+            format!(
+                concat!(
+                    "  {in_file}: \n",
+                    "    block 1: crc = 0xccf1b5a5, combined CRC = 0xccf1b5a5, size = 98170\n",
+                    "      454 work, 98170 block, ratio  0.00\n",
+                    "      98170 in block, 59500 after MTF & 1-2 coding, 256+2 syms in use\n",
+                    "      initial group 6, [0 .. 0], has 12672 syms (21.3%)\n",
+                    "      initial group 5, [1 .. 1], has 5883 syms ( 9.9%)\n",
+                    "      initial group 4, [2 .. 3], has 15621 syms (26.3%)\n",
+                    "      initial group 3, [4 .. 6], has 7857 syms (13.2%)\n",
+                    "      initial group 2, [7 .. 15], has 8958 syms (15.1%)\n",
+                    "      initial group 1, [16 .. 257], has 8509 syms (14.3%)\n",
+                    "      pass 1: size is 72279, grp uses are 219 211 68 486 13 193 \n",
+                    "      pass 2: size is 31631, grp uses are 193 273 94 385 62 183 \n",
+                    "      pass 3: size is 31524, grp uses are 190 256 131 361 67 185 \n",
+                    "      pass 4: size is 31510, grp uses are 179 256 139 355 69 192 \n",
+                    "      bytes: mapping 37, selectors 324, code lengths 463, codes 31498\n",
+                    "    final combined CRC = 0xccf1b5a5\n",
+                    "    3.051:1,  2.622 bits/byte, 67.22% saved, 98696 in, 32348 out.\n",
+                ),
+                in_file = sample1_ref.display(),
+            ),
+        );
     }
 }
