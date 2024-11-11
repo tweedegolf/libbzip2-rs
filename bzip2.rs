@@ -1923,28 +1923,32 @@ unsafe fn uncompress(name: Option<String>) {
     };
 }
 
-unsafe fn testf(name: *mut c_char) {
+unsafe fn testf(name: Option<String>) {
     let inStr: *mut FILE;
     delete_output_on_interrupt = false;
-    if name.is_null() && srcMode != SourceMode::I2O {
-        panic(b"testf: bad modes\n\0" as *const u8 as *const libc::c_char);
-    }
+
     copyFileName(
         outName.as_mut_ptr(),
         b"(none)\0" as *const u8 as *const libc::c_char,
     );
-    match srcMode {
-        SourceMode::I2O => {
+
+    match (name, srcMode) {
+        (_, SourceMode::I2O) => {
             copyFileName(
                 inName.as_mut_ptr(),
                 b"(stdin)\0" as *const u8 as *const libc::c_char,
             );
         }
-        SourceMode::F2O => {
-            copyFileName(inName.as_mut_ptr(), name);
+        (Some(name), SourceMode::F2O) => {
+            let name = CString::new(name).unwrap();
+            copyFileName(inName.as_mut_ptr(), name.as_ptr());
         }
-        SourceMode::F2F => {
-            copyFileName(inName.as_mut_ptr(), name);
+        (Some(name), SourceMode::F2F) => {
+            let name = CString::new(name).unwrap();
+            copyFileName(inName.as_mut_ptr(), name.as_ptr());
+        }
+        (None, SourceMode::F2O | SourceMode::F2F) => {
+            panic_str("testf: bad modes");
         }
     }
     if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
@@ -2364,7 +2368,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         OperationMode::Test => {
             test_fails_exists = false;
             if srcMode == SourceMode::I2O {
-                testf(std::ptr::null_mut());
+                testf(None);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2372,8 +2376,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        let name = CString::new(name).unwrap();
-                        testf(name.as_ptr().cast_mut());
+                        testf(Some(name));
                     }
                 }
             }
