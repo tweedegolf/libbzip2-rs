@@ -557,7 +557,7 @@ mod decompress_command {
     }
 
     #[test]
-    fn decompress_input_file_does_not_exist() {
+    fn input_file_does_not_exist() {
         let tmpdir = tempfile::tempdir().unwrap();
         let sample1 = tmpdir.path().join("sample1");
 
@@ -573,7 +573,7 @@ mod decompress_command {
     }
 
     #[test]
-    fn decompress_input_file_is_a_directory() {
+    fn input_file_is_a_directory() {
         let tmpdir = tempfile::tempdir().unwrap();
 
         let mut cmd = command();
@@ -1199,6 +1199,80 @@ mod compress_command {
                 ),
                 in_file = sample.display(),
             )
+        );
+    }
+
+    #[test]
+    fn input_file_does_not_exist() {
+        let tmpdir = tempfile::tempdir().unwrap();
+        let sample1 = tmpdir.path().join("sample1.tar");
+
+        let mut cmd = command();
+
+        expect_failure!(
+            cmd.arg("-z").arg("-vvv").arg(&sample1),
+            format!(
+                "bzip2: Can't open input file {in_file}: No such file or directory.\n",
+                in_file = sample1.display(),
+            ),
+        );
+    }
+
+    #[test]
+    fn input_file_is_a_directory() {
+        let tmpdir = tempfile::tempdir().unwrap();
+
+        let mut cmd = command();
+
+        expect_failure!(
+            cmd.arg("-z").arg("-vvv").arg(tmpdir.path()),
+            format!(
+                "bzip2: Input file {in_file} is a directory.\n",
+                in_file = tmpdir.path().display(),
+            ),
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn input_file_is_a_symlink() {
+        let tmpdir = tempfile::tempdir().unwrap();
+        let sample1 = tmpdir.path().join("sample1.tar");
+        let symlink_path = tmpdir.path().join("this_is_a_symlink.tar");
+
+        std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+
+        std::os::unix::fs::symlink(sample1, &symlink_path).unwrap();
+
+        let mut cmd = command();
+
+        expect_failure!(
+            cmd.arg("-z").arg("-vvv").arg(&symlink_path),
+            format!(
+                "bzip2: Input file {in_file} is not a normal file.\n",
+                in_file = symlink_path.display(),
+            ),
+        );
+    }
+
+    #[test]
+    fn input_file_has_hard_links() {
+        let tmpdir = tempfile::tempdir().unwrap();
+        let sample1 = tmpdir.path().join("sample1.tar");
+        let hardlink_path = tmpdir.path().join("this_is_a_symlink.tar");
+
+        std::fs::copy("tests/input/quick/sample1.ref", &sample1).unwrap();
+
+        std::fs::hard_link(sample1, &hardlink_path).unwrap();
+
+        let mut cmd = command();
+
+        expect_failure!(
+            cmd.arg("-z").arg("-vvv").arg(&hardlink_path),
+            format!(
+                "bzip2: Input file {in_file} has 1 other link.\n",
+                in_file = hardlink_path.display(),
+            ),
         );
     }
 }
