@@ -1287,7 +1287,7 @@ unsafe fn contains_dubious_chars(ptr: *mut c_char) -> bool {
     CStr::from_ptr(ptr)
         .to_bytes()
         .iter()
-        .any(|c| *c == b'?' || *c == '*')
+        .any(|c| *c == b'?' || *c == b'*')
 }
 
 #[cfg(unix)]
@@ -1299,12 +1299,14 @@ fn contains_dubious_chars_safe(_: &Path) -> bool {
 #[cfg(not(unix))]
 fn contains_dubious_chars_safe(path: &Path) -> bool {
     // On non-unix (Win* platforms), wildcard characters are not allowed in filenames.
-    for b in path.as_encoded_bytes() {
+    for b in path.as_os_str().as_encoded_bytes() {
         match b {
             b'?' | b'*' => return true,
             _ => {}
         }
     }
+
+    false
 }
 
 const BZ_N_SUFFIX_PAIRS: usize = 4;
