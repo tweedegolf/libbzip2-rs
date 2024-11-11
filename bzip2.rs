@@ -2188,7 +2188,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
             _ => {
                 if flag_name.starts_with("--") {
-                    eprintln!("{}: Bad flag `{}'", program_name.display(), flag_name,);
+                    eprintln!("{}: Bad flag `{}'", program_name.display(), flag_name);
                     usage(program_name);
                     exit(1);
                 }
