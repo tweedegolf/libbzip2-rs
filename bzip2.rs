@@ -68,14 +68,16 @@ enum OperationMode {
     Test = 3,
 }
 
+const FILE_NAME_LEN: usize = 1034;
+
 static mut opMode: OperationMode = OperationMode::Zip;
 static mut srcMode: SourceMode = SourceMode::I2O;
 
 static mut longestFileName: i32 = 0;
-static mut inName: [c_char; 1034] = [0; 1034];
-static mut outName: [c_char; 1034] = [0; 1034];
+static mut inName: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
+static mut outName: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
 static mut progName: *mut c_char = ptr::null_mut();
-static mut progNameReally: [c_char; 1034] = [0; 1034];
+static mut progNameReally: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
 
 // this should eventually be removed and just passed down into functions from the root
 fn get_program_name() -> PathBuf {
@@ -879,7 +881,7 @@ unsafe fn pad(s: *mut c_char) {
     }
 }
 unsafe fn copyFileName(to: *mut c_char, from: *const c_char) {
-    if strlen(from) > (1034 as libc::c_int - 10 as libc::c_int) as libc::size_t {
+    if strlen(from) > (FILE_NAME_LEN - 10) {
         eprint!(
             concat!(
                 "bzip2: file name\n",
@@ -888,17 +890,13 @@ unsafe fn copyFileName(to: *mut c_char, from: *const c_char) {
                 "Try using a reasonable file name instead.  Sorry! :-)\n",
             ),
             CStr::from_ptr(from).to_string_lossy(),
-            1034 as libc::c_int - 10 as libc::c_int,
+            FILE_NAME_LEN - 10
         );
         setExit(1 as libc::c_int);
         exit(exitValue);
     }
-    strncpy(
-        to,
-        from,
-        (1034 as libc::c_int - 10 as libc::c_int) as libc::size_t,
-    );
-    *to.offset((1034 as libc::c_int - 10 as libc::c_int) as isize) = '\0' as i32 as c_char;
+    strncpy(to, from, FILE_NAME_LEN - 10);
+    *to.wrapping_add(FILE_NAME_LEN - 10) = '\0' as i32 as c_char;
 }
 unsafe fn fileExists(name: *mut c_char) -> Bool {
     let tmp: *mut FILE = fopen(name, b"rb\0" as *const u8 as *const libc::c_char);
