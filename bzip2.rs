@@ -1932,18 +1932,23 @@ unsafe fn testf(name: Option<String>) {
         b"(none)\0" as *const u8 as *const libc::c_char,
     );
 
+    let in_name;
+
     match (name, srcMode) {
         (_, SourceMode::I2O) => {
+            in_name = PathBuf::from("(stdin)");
             copyFileName(
                 inName.as_mut_ptr(),
                 b"(stdin)\0" as *const u8 as *const libc::c_char,
             );
         }
         (Some(name), SourceMode::F2O) => {
+            in_name = PathBuf::from(&name);
             let name = CString::new(name).unwrap();
             copyFileName(inName.as_mut_ptr(), name.as_ptr());
         }
         (Some(name), SourceMode::F2F) => {
+            in_name = PathBuf::from(&name);
             let name = CString::new(name).unwrap();
             copyFileName(inName.as_mut_ptr(), name.as_ptr());
         }
@@ -1952,39 +1957,35 @@ unsafe fn testf(name: Option<String>) {
         }
     }
 
-    if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
+    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&in_name) {
         if noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
                 get_program_name().display(),
-                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                in_name.display(),
             );
         }
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode != SourceMode::I2O && fileExists(inName.as_mut_ptr()) == 0 {
+    if srcMode != SourceMode::I2O && !in_name.exists() {
         eprintln!(
             "{}: Can't open input {}: {}.",
             get_program_name().display(),
-            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+            in_name.display(),
             display_last_os_error(),
         );
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode != SourceMode::I2O {
-        let mut statBuf: stat = zeroed();
-        stat(inName.as_mut_ptr(), &mut statBuf);
-        if statBuf.st_mode & 0o170000 == 0o40000 {
-            eprintln!(
-                "{}: Input file {} is a directory.",
-                get_program_name().display(),
-                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-            );
-            setExit(1 as libc::c_int);
-            return;
-        }
+    if srcMode != SourceMode::I2O && in_name.is_dir() {
+        eprintln!(
+            "{}: Input file {} is a directory.",
+            get_program_name().display(),
+            in_name.display(),
+        );
+        setExit(1 as libc::c_int);
+        return;
     }
     match srcMode {
         SourceMode::I2O => {
@@ -2012,7 +2013,7 @@ unsafe fn testf(name: Option<String>) {
                 eprintln!(
                     "{}: Can't open input file {}:{}.",
                     get_program_name().display(),
-                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    in_name.display(),
                     display_last_os_error(),
                 );
                 setExit(1 as libc::c_int);
@@ -2021,7 +2022,7 @@ unsafe fn testf(name: Option<String>) {
         }
     }
     if verbosity >= 1 as libc::c_int {
-        eprint!("  {}: ", CStr::from_ptr(inName.as_ptr()).to_string_lossy());
+        eprint!("  {}: ", in_name.display());
         pad(inName.as_mut_ptr());
         fflush(stderr);
     }
