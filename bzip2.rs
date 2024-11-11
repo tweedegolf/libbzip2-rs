@@ -1951,13 +1951,13 @@ unsafe fn testf(name: Option<String>) {
             panic_str("testf: bad modes");
         }
     }
+
     if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
         if noisy {
-            fprintf(
-                stderr,
-                b"%s: There are no files matching `%s'.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                inName.as_mut_ptr(),
+            eprintln!(
+                "{}: There are no files matching `{}'.",
+                get_program_name().display(),
+                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
             );
         }
         setExit(1 as libc::c_int);
@@ -1966,7 +1966,7 @@ unsafe fn testf(name: Option<String>) {
     if srcMode != SourceMode::I2O && fileExists(inName.as_mut_ptr()) == 0 {
         eprintln!(
             "{}: Can't open input {}: {}.",
-            std::env::args().next().unwrap(),
+            get_program_name().display(),
             CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
             display_last_os_error(),
         );
@@ -1977,11 +1977,10 @@ unsafe fn testf(name: Option<String>) {
         let mut statBuf: stat = zeroed();
         stat(inName.as_mut_ptr(), &mut statBuf);
         if statBuf.st_mode & 0o170000 == 0o40000 {
-            fprintf(
-                stderr,
-                b"%s: Input file %s is a directory.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                inName.as_mut_ptr(),
+            eprintln!(
+                "{}: Input file {} is a directory.",
+                get_program_name().display(),
+                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
             );
             setExit(1 as libc::c_int);
             return;
@@ -1990,17 +1989,14 @@ unsafe fn testf(name: Option<String>) {
     match srcMode {
         SourceMode::I2O => {
             if isatty(fileno(stdin)) != 0 {
-                fprintf(
-                    stderr,
-                    b"%s: I won't read compressed data from a terminal.\n\0" as *const u8
-                        as *const libc::c_char,
-                    progName,
+                eprintln!(
+                    "{}: I won't read compressed data from a terminal.",
+                    get_program_name().display(),
                 );
-                fprintf(
-                    stderr,
-                    b"%s: For help, type: `%s --help'.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    progName,
+                eprintln!(
+                    "{}: For help, type: `{} --help'.",
+                    get_program_name().display(),
+                    get_program_name().display(),
                 );
                 setExit(1 as libc::c_int);
                 return;
@@ -2015,7 +2011,7 @@ unsafe fn testf(name: Option<String>) {
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input file {}:{}.",
-                    std::env::args().next().unwrap(),
+                    get_program_name().display(),
                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
                     display_last_os_error(),
                 );
@@ -2025,18 +2021,14 @@ unsafe fn testf(name: Option<String>) {
         }
     }
     if verbosity >= 1 as libc::c_int {
-        fprintf(
-            stderr,
-            b"  %s: \0" as *const u8 as *const libc::c_char,
-            inName.as_mut_ptr(),
-        );
+        eprint!("  {}: ", CStr::from_ptr(inName.as_ptr()).to_string_lossy());
         pad(inName.as_mut_ptr());
         fflush(stderr);
     }
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     let allOK = testStream(inStr);
     if allOK as libc::c_int != 0 && verbosity >= 1 as libc::c_int {
-        fprintf(stderr, b"ok\n\0" as *const u8 as *const libc::c_char);
+        eprintln!("ok");
     }
     if allOK == 0 {
         test_fails_exists = true;
