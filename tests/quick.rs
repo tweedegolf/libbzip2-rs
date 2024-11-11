@@ -1232,7 +1232,7 @@ fn test_invalid_stdin() {
 }
 
 #[test]
-fn test_file_to_file_bz2() {
+fn test_file() {
     let tmpdir = tempfile::tempdir().unwrap();
     let sample1 = tmpdir.path().join("sample1.bz2");
 
@@ -1253,6 +1253,43 @@ fn test_file_to_file_bz2() {
     );
 
     assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn test_files() {
+    let tmpdir = tempfile::tempdir().unwrap();
+    let sample1 = tmpdir.path().join("sample1.bz2");
+    let longer = tmpdir.path().join("a_longer_file_name.bz2");
+
+    std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+    std::fs::copy("tests/input/quick/sample1.bz2", &longer).unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-t").arg("-v").arg(&sample1).arg(&longer).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            concat!(
+                "  {in_dir}/sample1.bz2:            ok\n",
+                "  {in_dir}/a_longer_file_name.bz2: ok\n",
+            ),
+            in_dir = tmpdir.path().display(),
+        )
+    );
 }
 
 #[test]
