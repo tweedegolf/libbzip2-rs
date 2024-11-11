@@ -1118,11 +1118,10 @@ unsafe fn compress(name: *mut c_char) {
     }
     if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
         if noisy {
-            fprintf(
-                stderr,
-                b"%s: There are no files matching `%s'.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                inName.as_mut_ptr(),
+            eprintln!(
+                "{}: There are no files matching `{}'.",
+                get_program_name().display(),
+                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
             );
         }
         setExit(1 as libc::c_int);
@@ -1157,11 +1156,10 @@ unsafe fn compress(name: *mut c_char) {
     if srcMode == SourceMode::F2F || srcMode == SourceMode::F2O {
         stat(inName.as_mut_ptr(), &mut statBuf);
         if statBuf.st_mode & 0o170000 == 0o40000 {
-            fprintf(
-                stderr,
-                b"%s: Input file %s is a directory.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                inName.as_mut_ptr(),
+            eprintln!(
+                "{}: Input file {} is a directory.",
+                get_program_name().display(),
+                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
             );
             setExit(1 as libc::c_int);
             return;
@@ -1172,11 +1170,10 @@ unsafe fn compress(name: *mut c_char) {
         && notAStandardFile(inName.as_mut_ptr()) as libc::c_int != 0
     {
         if noisy {
-            fprintf(
-                stderr,
-                b"%s: Input file %s is not a normal file.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                inName.as_mut_ptr(),
+            eprintln!(
+                "{}: Input file {} is not a normal file.",
+                get_program_name().display(),
+                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
             );
         }
         setExit(1 as libc::c_int);
@@ -1186,11 +1183,10 @@ unsafe fn compress(name: *mut c_char) {
         if force_overwrite {
             remove(outName.as_mut_ptr());
         } else {
-            fprintf(
-                stderr,
-                b"%s: Output file %s already exists.\n\0" as *const u8 as *const libc::c_char,
-                progName,
-                outName.as_mut_ptr(),
+            eprintln!(
+                "{}: Output file {} already exists.",
+                get_program_name().display(),
+                CStr::from_ptr(outName.as_ptr()).to_string_lossy(),
             );
             setExit(1 as libc::c_int);
             return;
@@ -1200,17 +1196,12 @@ unsafe fn compress(name: *mut c_char) {
         n = countHardLinks(inName.as_mut_ptr());
         n > 0 as libc::c_int
     } {
-        fprintf(
-            stderr,
-            b"%s: Input file %s has %d other link%s.\n\0" as *const u8 as *const libc::c_char,
-            progName,
-            inName.as_mut_ptr(),
+        eprintln!(
+            "{}: Input file {} has {} other link{}.",
+            get_program_name().display(),
+            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
             n,
-            if n > 1 as libc::c_int {
-                b"s\0" as *const u8 as *const libc::c_char
-            } else {
-                b"\0" as *const u8 as *const libc::c_char
-            },
+            if n > 1 as libc::c_int { "s" } else { "" },
         );
         setExit(1 as libc::c_int);
         return;
@@ -1223,17 +1214,14 @@ unsafe fn compress(name: *mut c_char) {
             inStr = stdin;
             outStr = stdout;
             if std::io::stdout().is_terminal() {
-                fprintf(
-                    stderr,
-                    b"%s: I won't write compressed data to a terminal.\n\0" as *const u8
-                        as *const libc::c_char,
-                    progName,
+                eprintln!(
+                    "{}: I won't write compressed data to a terminal.",
+                    get_program_name().display(),
                 );
-                fprintf(
-                    stderr,
-                    b"%s: For help, type: `%s --help'.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    progName,
+                eprintln!(
+                    "{}: For help, type: `{} --help'.",
+                    get_program_name().display(),
+                    get_program_name().display(),
                 );
                 setExit(1 as libc::c_int);
                 return;
@@ -1246,17 +1234,14 @@ unsafe fn compress(name: *mut c_char) {
             );
             outStr = stdout;
             if std::io::stdout().is_terminal() {
-                fprintf(
-                    stderr,
-                    b"%s: I won't write compressed data to a terminal.\n\0" as *const u8
-                        as *const libc::c_char,
-                    progName,
+                eprintln!(
+                    "{}: I won't write compressed data to a terminal.",
+                    get_program_name().display(),
                 );
-                fprintf(
-                    stderr,
-                    b"%s: For help, type: `%s --help'.\n\0" as *const u8 as *const libc::c_char,
-                    progName,
-                    progName,
+                eprintln!(
+                    "{}: For help, type: `{} --help'.",
+                    get_program_name().display(),
+                    get_program_name().display(),
                 );
                 if !inStr.is_null() {
                     fclose(inStr);
@@ -1267,7 +1252,7 @@ unsafe fn compress(name: *mut c_char) {
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
-                    std::env::args().next().unwrap(),
+                    get_program_name().display(),
                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
                     display_last_os_error(),
                 );
@@ -1313,11 +1298,7 @@ unsafe fn compress(name: *mut c_char) {
         }
     }
     if verbosity >= 1 as libc::c_int {
-        fprintf(
-            stderr,
-            b"  %s: \0" as *const u8 as *const libc::c_char,
-            inName.as_mut_ptr(),
-        );
+        eprint!("  {}: ", CStr::from_ptr(inName.as_ptr()).to_string_lossy(),);
         pad(inName.as_mut_ptr());
         fflush(stderr);
     }
@@ -1337,6 +1318,7 @@ unsafe fn compress(name: *mut c_char) {
     }
     delete_output_on_interrupt = false;
 }
+
 unsafe fn uncompress(name: Option<String>) {
     let inStr: *mut FILE;
     let outStr: *mut FILE;
