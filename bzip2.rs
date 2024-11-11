@@ -1318,12 +1318,7 @@ static mut zSuffix: [*const c_char; BZ_N_SUFFIX_PAIRS] = [
     b".tbz2\0" as *const u8 as *const libc::c_char,
     b".tbz\0" as *const u8 as *const libc::c_char,
 ];
-static mut unzSuffix: [*const c_char; BZ_N_SUFFIX_PAIRS] = [
-    b"\0" as *const u8 as *const libc::c_char,
-    b"\0" as *const u8 as *const libc::c_char,
-    b".tar\0" as *const u8 as *const libc::c_char,
-    b".tar\0" as *const u8 as *const libc::c_char,
-];
+
 unsafe fn hasSuffix(s: *mut c_char, suffix: *const c_char) -> Bool {
     let ns: i32 = strlen(s) as i32;
     let nx: i32 = strlen(suffix) as i32;
@@ -1682,16 +1677,14 @@ unsafe fn uncompress(name: Option<String>) {
         return;
     }
 
-    if srcMode == SourceMode::F2F || srcMode == SourceMode::F2O {
-        if in_name.is_dir() {
-            eprintln!(
-                "{}: Input file {} is a directory.",
-                get_program_name().display(),
-                in_name.display(),
-            );
-            setExit(1);
-            return;
-        }
+    if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && in_name.is_dir() {
+        eprintln!(
+            "{}: Input file {} is a directory.",
+            get_program_name().display(),
+            in_name.display(),
+        );
+        setExit(1);
+        return;
     }
 
     if srcMode == SourceMode::F2F && !force_overwrite && not_a_standard_file(&in_name) {
