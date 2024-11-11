@@ -1,5 +1,5 @@
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// Useful to test with the C binary
@@ -309,6 +309,26 @@ fn version() {
         assert!(output.status.success(),);
         assert!(String::from_utf8_lossy(&output.stdout).contains("This program is free software"));
     }
+}
+
+#[test]
+fn very_long_file_name() {
+    let file_path = PathBuf::from("NaN".repeat(1000) + " batman!.txt");
+
+    let mut cmd = command();
+
+    expect_failure!(
+        cmd.arg("-d").arg("-c").arg(&file_path),
+        format!(
+            concat!(
+                "bzip2: file name\n",
+                "`{file_path}'\n",
+                "is suspiciously (more than 1024 chars) long.\n",
+                "Try using a reasonable file name instead.  Sorry! :-)\n",
+            ),
+            file_path = file_path.display(),
+        ),
+    );
 }
 
 mod decompress_command {
