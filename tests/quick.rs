@@ -679,7 +679,7 @@ fn flags_after_double_dash() {
 }
 
 #[test]
-fn compress_and_test() {
+fn stdout_and_test() {
     let mut cmd = command();
     cmd.args(["-c", "-t"]);
     let output = cmd.output().unwrap();
@@ -830,7 +830,7 @@ fn cannot_guess_file_name() {
 }
 
 #[test]
-fn input_file_does_not_exist() {
+fn decompress_input_file_does_not_exist() {
     let tmpdir = tempfile::tempdir().unwrap();
     let sample1 = tmpdir.path().join("sample1");
 
@@ -860,7 +860,7 @@ fn input_file_does_not_exist() {
 }
 
 #[test]
-fn input_file_is_a_directory() {
+fn decompress_input_file_is_a_directory() {
     let tmpdir = tempfile::tempdir().unwrap();
 
     let mut cmd = command();
@@ -1137,6 +1137,179 @@ fn input_file_is_not_bzip2_data() {
                 "  {in_file}: not a bzip2 file.\n"
             ),
             in_file = sample1.display(),
+        ),
+    );
+}
+
+#[test]
+fn test_valid_stdin() {
+    use std::io::Write;
+
+    let compressed = include_bytes!("input/quick/sample1.bz2");
+
+    let mut cmd = command();
+
+    // Set up command to read from stdin, decompress, and output to stdout
+    let mut child = cmd
+        .arg("-t")
+        .arg("-v")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to start child process");
+
+    // Write the compressed data to stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(compressed)
+            .expect("Failed to write to stdin");
+    }
+
+    // Wait for the child process to finish and capture output
+    let output = child.wait_with_output().expect("Failed to read stdout");
+
+    assert!(
+        output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        "  (stdin): ok\n",
+    );
+}
+
+#[test]
+fn test_invalid_stdin() {
+    use std::io::Write;
+
+    let mut cmd = command();
+
+    // Set up command to read from stdin, decompress, and output to stdout
+    let mut child = cmd
+        .arg("-t")
+        .arg("-v")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to start child process");
+
+    // Write the random data to stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(b"fee stjert, sibben stjerre")
+            .expect("Failed to write to stdin");
+    }
+
+    // Wait for the child process to finish and capture output
+    let output = child.wait_with_output().expect("Failed to read stdout");
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        concat!(
+            "  (stdin): bad magic number (file not created by bzip2)\n",
+            "\n",
+            "You can use the `bzip2recover' program to attempt to recover\n",
+            "data from undamaged sections of corrupted files.\n",
+            "\n"
+        ),
+    );
+}
+
+#[test]
+fn test_file_to_file_bz2() {
+    let tmpdir = tempfile::tempdir().unwrap();
+    let sample1 = tmpdir.path().join("sample1.bz2");
+
+    std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-t").arg(&sample1).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn test_input_file_does_not_exist() {
+    let tmpdir = tempfile::tempdir().unwrap();
+    let sample1 = tmpdir.path().join("sample1");
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-t").arg("-vvv").arg(&sample1).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            "bzip2: Can't open input {in_file}: No such file or directory.\n",
+            in_file = sample1.display(),
+        ),
+    );
+}
+
+#[test]
+fn test_input_file_is_a_directory() {
+    let tmpdir = tempfile::tempdir().unwrap();
+
+    let mut cmd = command();
+
+    let output = match cmd.arg("-t").arg("-vvv").arg(tmpdir.path()).output() {
+        Ok(output) => output,
+        Err(err) => panic!("Running {cmd:?} failed with {err:?}"),
+    };
+
+    assert!(
+        !output.status.success(),
+        "status: {:?} stderr: {:?}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(output.stdout.is_empty());
+
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
+        format!(
+            "bzip2: Input file {in_file} is a directory.\n",
+            in_file = tmpdir.path().display(),
         ),
     );
 }
