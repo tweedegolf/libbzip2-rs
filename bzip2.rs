@@ -1052,54 +1052,100 @@ unsafe fn ioError() -> ! {
     showFileNames();
     cleanUpAndFail(1 as libc::c_int);
 }
-unsafe extern "C" fn mySignalCatcher(_: IntNative) {
+
+unsafe extern "C" fn mySignalCatcher(_: libc::c_int) {
     eprintln!(
         "\n{}: Control-C or similar caught, quitting.",
         CStr::from_ptr(progName).to_string_lossy(),
     );
     cleanUpAndFail(1 as libc::c_int);
 }
-unsafe fn mySIGSEGVorSIGBUScatcher(_: IntNative) {
-    let mut msg: *const libc::c_char;
-    if opMode == OperationMode::Zip {
-        msg = b": Caught a SIGSEGV or SIGBUS whilst compressing.\n\n   Possible causes are (most likely first):\n   (1) This computer has unreliable memory or cache hardware\n       (a surprisingly common problem; try a different machine.)\n   (2) A bug in the compiler used to create this executable\n       (unlikely, if you didn't compile bzip2 yourself.)\n   (3) A real bug in bzip2 -- I hope this should never be the case.\n   The user's manual, Section 4.3, has more info on (1) and (2).\n   \n   If you suspect this is a bug in bzip2, or are unsure about (1)\n   or (2), report it at: https://gitlab.com/bzip2/bzip2/-/issues\n   Section 4.3 of the user's manual describes the info a useful\n   bug report should have.  If the manual is available on your\n   system, please try and read it before mailing me.  If you don't\n   have the manual or can't be bothered to read it, mail me anyway.\n\n\0"
-            as *const u8 as *const libc::c_char;
-    } else {
-        msg = b": Caught a SIGSEGV or SIGBUS whilst decompressing.\n\n   Possible causes are (most likely first):\n   (1) The compressed data is corrupted, and bzip2's usual checks\n       failed to detect this.  Try bzip2 -tvv my_file.bz2.\n   (2) This computer has unreliable memory or cache hardware\n       (a surprisingly common problem; try a different machine.)\n   (3) A bug in the compiler used to create this executable\n       (unlikely, if you didn't compile bzip2 yourself.)\n   (4) A real bug in bzip2 -- I hope this should never be the case.\n   The user's manual, Section 4.3, has more info on (2) and (3).\n   \n   If you suspect this is a bug in bzip2, or are unsure about (2)\n   or (3), report it at: https://gitlab.com/bzip2/bzip2/-/issues\n   Section 4.3 of the user's manual describes the info a useful\n   bug report should have.  If the manual is available on your\n   system, please try and read it before mailing me.  If you don't\n   have the manual or can't be bothered to read it, mail me anyway.\n\n\0"
-            as *const u8 as *const libc::c_char;
-    }
-    write(2, b"\n" as *const u8 as *const libc::c_void, 1);
-    write(2, progName as *const libc::c_void, strlen(progName) as _);
-    write(2, msg as *const libc::c_void, strlen(msg) as _);
-    msg = b"\tInput file = \0" as *const u8 as *const libc::c_char;
-    write(
-        2 as libc::c_int,
-        msg as *const libc::c_void,
-        strlen(msg) as _,
+
+unsafe extern "C" fn mySIGSEGVorSIGBUScatcher(_: libc::c_int) {
+    const COMPRESS_MSG: &str = concat!(
+        ": Caught a SIGSEGV or SIGBUS whilst compressing.\n",
+        "\n",
+        "   Possible causes are (most likely first):\n",
+        "   (1) This computer has unreliable memory or cache hardware\n",
+        "       (a surprisingly common problem; try a different machine.)\n",
+        "   (2) A bug in the compiler used to create this executable\n",
+        "       (unlikely, if you didn't compile bzip2 yourself.)\n",
+        "   (3) A real bug in bzip2-rs -- I hope this should never be the case.\n",
+        "   The user's manual, Section 4.3, has more info on (1) and (2).\n",
+        "   \n",
+        "   If you suspect this is a bug in bzip2-rs, or are unsure about (1)\n",
+        "   or (2), report it at: https://github.com/trifectatechfoundation/libbzip2-rs/issues\n",
+        "   Section 4.3 of the user's manual describes the info a useful\n",
+        "   bug report should have.  If the manual is available on your\n",
+        "   system, please try and read it before mailing me.  If you don't\n",
+        "   have the manual or can't be bothered to read it, mail me anyway.\n",
+        "\n",
     );
+
+    const DECOMPRESS_MSG: &str = concat!(
+        ": Caught a SIGSEGV or SIGBUS whilst decompressing.\n",
+        "\n",
+        "   Possible causes are (most likely first):\n",
+        "   (1) The compressed data is corrupted, and bzip2's usual checks\n",
+        "       failed to detect this.  Try bzip2 -tvv my_file.bz2.\n",
+        "   (2) This computer has unreliable memory or cache hardware\n",
+        "       (a surprisingly common problem; try a different machine.)\n",
+        "   (3) A bug in the compiler used to create this executable\n",
+        "       (unlikely, if you didn't compile bzip2 yourself.)\n",
+        "   (4) A real bug in bzip2-rs -- I hope this should never be the case.\n",
+        "   The user's manual, Section 4.3, has more info on (2) and (3).\n",
+        "   \n",
+        "   If you suspect this is a bug in bzip2-rs, or are unsure about (2)\n",
+        "   or (3), report it at: https://github.com/trifectatechfoundation/libbzip2-rs/issues\n",
+        "   Section 4.3 of the user's manual describes the info a useful\n",
+        "   bug report should have.  If the manual is available on your\n",
+        "   system, please try and read it before mailing me.  If you don't\n",
+        "   have the manual or can't be bothered to read it, mail me anyway.\n",
+        "\n",
+    );
+
+    let msg = match opMode {
+        OperationMode::Zip => COMPRESS_MSG,
+        _ => DECOMPRESS_MSG,
+    };
+
+    let write_str = |s: &str| {
+        write(
+            libc::STDERR_FILENO,
+            s.as_ptr() as *const libc::c_void,
+            s.len() as _,
+        )
+    };
+
+    write_str("\n");
     write(
-        2,
+        libc::STDERR_FILENO,
+        progName as *const libc::c_void,
+        strlen(progName) as _,
+    );
+    write_str(msg);
+
+    write_str("\tInput file = ");
+    write(
+        libc::STDERR_FILENO,
         inName.as_mut_ptr() as *const libc::c_void,
         strlen(inName.as_mut_ptr()) as _,
     );
+    write_str("\n");
+
+    write_str("\tOutput file = ");
     write(
-        2,
-        b"\n\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        1,
-    );
-    msg = b"\tOutput file = \0" as *const u8 as *const libc::c_char;
-    write(2, msg as *const libc::c_void, strlen(msg) as _);
-    write(
-        2,
+        libc::STDERR_FILENO,
         outName.as_mut_ptr() as *const libc::c_void,
         strlen(outName.as_mut_ptr()) as _,
     );
-    write(2, b"\n" as *const u8 as *const libc::c_void, 1);
-    if opMode == OperationMode::Zip {
-        setExit(3);
-    } else {
-        setExit(2);
+    write_str("\n");
+
+    match opMode {
+        OperationMode::Zip => setExit(3),
+        _ => setExit(2),
     }
+
     _exit(exitValue);
 }
 
@@ -2093,9 +2139,12 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     signal(
         11,
-        mySIGSEGVorSIGBUScatcher as unsafe fn(IntNative) as usize,
+        mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(libc::c_int) as usize,
     );
-    signal(7, mySIGSEGVorSIGBUScatcher as unsafe fn(IntNative) as usize);
+    signal(
+        7,
+        mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(libc::c_int) as usize,
+    );
 
     copyFileName(
         inName.as_mut_ptr(),
