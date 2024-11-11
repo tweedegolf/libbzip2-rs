@@ -873,10 +873,9 @@ unsafe fn pad(s: *mut c_char) {
     if strlen(s) as i32 >= longestFileName {
         return;
     }
-    let mut i = 1 as libc::c_int;
-    while i <= longestFileName - strlen(s) as i32 {
-        fprintf(stderr, b" \0" as *const u8 as *const libc::c_char);
-        i += 1;
+
+    for _ in 1..=longestFileName - strlen(s) as i32 {
+        eprint!(" ");
     }
 }
 unsafe fn copyFileName(to: *mut c_char, from: *const c_char) {
