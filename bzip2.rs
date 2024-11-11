@@ -1513,12 +1513,13 @@ unsafe fn uncompress(name: Option<String>) {
             outStr = stdout;
             if inStr.is_null() {
                 eprintln!(
-                    "{}: Can't open input file {}:{}.",
+                    "{}: Can't open input file {}: {}.",
                     get_program_name().display(),
                     in_name.display(),
                     display_last_os_error(),
                 );
                 if !inStr.is_null() {
+                    // this is unreachable, but in the original C source code
                     fclose(inStr);
                 }
                 setExit(1);
