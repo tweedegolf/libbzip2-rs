@@ -880,11 +880,14 @@ unsafe fn pad(s: *mut c_char) {
 }
 unsafe fn copyFileName(to: *mut c_char, from: *const c_char) {
     if strlen(from) > (1034 as libc::c_int - 10 as libc::c_int) as libc::size_t {
-        fprintf(
-            stderr,
-            b"bzip2: file name\n`%s'\nis suspiciously (more than %d chars) long.\nTry using a reasonable file name instead.  Sorry! :-)\n\0"
-                as *const u8 as *const libc::c_char,
-            from,
+        eprint!(
+            concat!(
+                "bzip2: file name\n",
+                "`{}'\n",
+                "is suspiciously (more than {} chars) long.\n",
+                "Try using a reasonable file name instead.  Sorry! :-)\n",
+            ),
+            CStr::from_ptr(from).to_string_lossy(),
             1034 as libc::c_int - 10 as libc::c_int,
         );
         setExit(1 as libc::c_int);
