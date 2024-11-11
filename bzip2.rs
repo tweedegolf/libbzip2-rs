@@ -489,10 +489,9 @@ unsafe fn testStream(zStream: *mut FILE) -> bool {
     let mut i: i32;
     let mut obuf: [u8; 5000] = [0; 5000];
     let mut unused: [u8; 5000] = [0; 5000];
-    let mut unusedTmpV: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
 
-    let mut nUnused = 0 as libc::c_int;
-    let mut streamNo = 0 as libc::c_int;
+    let mut nUnused = 0;
+    let mut streamNo = 0;
 
     'errhandler: {
         loop {
@@ -504,40 +503,48 @@ unsafe fn testStream(zStream: *mut FILE) -> bool {
                 unused.as_mut_ptr() as *mut libc::c_void,
                 nUnused,
             );
-            if bzf.is_null() || bzerr != 0 as libc::c_int {
+            if bzf.is_null() || bzerr != 0 {
                 // diverges
                 ioError()
             }
+
+            // there might be multiple files if the input stream is stdin
             streamNo += 1;
-            while bzerr == 0 as libc::c_int {
+
+            while bzerr == 0 {
                 BZ2_bzRead(
                     &mut bzerr,
                     bzf,
                     obuf.as_mut_ptr() as *mut libc::c_void,
-                    5000 as libc::c_int,
+                    5000,
                 );
-                if bzerr == -5 as libc::c_int {
+                if bzerr == libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC {
                     break 'errhandler;
                 }
             }
-            if bzerr != 4 as libc::c_int {
+
+            if bzerr != libbzip2_rs_sys::BZ_STREAM_END {
                 break 'errhandler;
             }
+
+            let mut unusedTmpV: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
             BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
-            if bzerr != 0 as libc::c_int {
-                panic(b"test:bzReadGetUnused\0" as *const u8 as *const libc::c_char);
+            if bzerr != libbzip2_rs_sys::BZ_OK {
+                panic_str("test:bzReadGetUnused");
             }
+
             let unusedTmp = unusedTmpV as *mut u8;
             i = 0 as libc::c_int;
             while i < nUnused {
                 unused[i as usize] = *unusedTmp.offset(i as isize);
                 i += 1;
             }
+
             BZ2_bzReadClose(&mut bzerr, bzf);
-            if bzerr != 0 as libc::c_int {
-                panic(b"test:bzReadGetUnused\0" as *const u8 as *const libc::c_char);
+            if bzerr != libbzip2_rs_sys::BZ_OK {
+                panic_str("test:bzReadClose");
             }
-            if nUnused == 0 as libc::c_int && myfeof(zStream) as libc::c_int != 0 {
+            if nUnused == 0 && myfeof(zStream) != 0 {
                 break;
             }
         }
