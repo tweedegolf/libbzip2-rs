@@ -4,7 +4,6 @@
 
 use std::ffi::{c_char, CStr, CString, OsStr};
 use std::io::IsTerminal;
-use std::io::Write;
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -1298,7 +1297,6 @@ unsafe fn compress(name: *mut c_char) {
     if verbosity >= 1 as libc::c_int {
         eprint!("  {}: ", CStr::from_ptr(inName.as_ptr()).to_string_lossy(),);
         pad(inName.as_mut_ptr());
-        let _ = std::io::stderr().flush();
     }
     outputHandleJustInCase = outStr;
     delete_output_on_interrupt = true;
@@ -1553,7 +1551,6 @@ unsafe fn uncompress(name: Option<String>) {
     if verbosity >= 1 {
         eprint!("  {}: ", in_name.display(),);
         pad(inName.as_mut_ptr());
-        let _ = std::io::stderr().flush();
     }
 
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
@@ -1706,7 +1703,6 @@ unsafe fn testf(name: Option<String>) {
     if verbosity >= 1 {
         eprint!("  {}: ", in_name.display());
         pad(inName.as_mut_ptr());
-        let _ = std::io::stderr().flush();
     }
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     let allOK = testStream(inStr);
