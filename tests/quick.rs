@@ -1487,9 +1487,9 @@ mod compress_command {
 
         std::fs::copy("tests/input/quick/sample1.ref", &sample1).unwrap();
 
-        let mut permissions = std::fs::metadata(&tmpdir.path()).unwrap().permissions();
+        let mut permissions = std::fs::metadata(tmpdir.path()).unwrap().permissions();
         permissions.set_mode(0o000); // no permissions for you
-        std::fs::set_permissions(&tmpdir.path(), permissions).unwrap();
+        std::fs::set_permissions(tmpdir.path(), permissions).unwrap();
 
         let mut cmd = command();
 
