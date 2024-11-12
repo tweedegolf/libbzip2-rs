@@ -647,7 +647,7 @@ macro_rules! BZ_UPDATE_CRC {
     };
 }
 
-unsafe fn add_pair_to_block(s: &mut EState) {
+fn add_pair_to_block(s: &mut EState) {
     let ch: u8 = s.state_in_ch as u8;
 
     for _ in 0..s.state_in_len {
@@ -681,7 +681,7 @@ unsafe fn add_pair_to_block(s: &mut EState) {
     };
 }
 
-unsafe fn flush_rl(s: &mut EState) {
+fn flush_rl(s: &mut EState) {
     if s.state_in_ch < 256 {
         add_pair_to_block(s);
     }
