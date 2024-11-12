@@ -1,16 +1,16 @@
 #![forbid(unsafe_code)]
 
-use crate::blocksort::BZ2_blockSort;
+use crate::blocksort::block_sort;
 use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS, BZ_RUNA, BZ_RUNB};
 use crate::{assert_h, huffman};
 
-pub struct EWriter {
+pub(crate) struct EWriter {
     pub num_z: u32,
     bs_live: i32,
     bs_buff: u32,
 }
 
-pub struct LiveWriter<'a> {
+pub(crate) struct LiveWriter<'a> {
     zbits: &'a mut [u8],
     writer: &'a mut EWriter,
     num_z: u32,
@@ -665,7 +665,7 @@ pub(crate) fn compress_block(s: &mut EState, is_last_block: bool) {
             );
         }
 
-        BZ2_blockSort(s);
+        block_sort(s);
     }
 
     {

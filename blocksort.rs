@@ -1286,7 +1286,7 @@ fn mainSort(
 ///    All other areas of block destroyed
 ///    ftab [ 0 .. 65536 ] destroyed
 ///    arr1 [0 .. nblock-1] holds sorted order
-pub fn BZ2_blockSort(s: &mut EState) {
+pub(crate) fn block_sort(s: &mut EState) {
     let nblock = usize::try_from(s.nblock).unwrap();
 
     let ptr = s.arr1.ptr();

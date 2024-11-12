@@ -158,7 +158,7 @@ impl bz_stream {
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
-pub enum ReturnCode {
+pub(crate) enum ReturnCode {
     BZ_OK = 0,
     BZ_RUN_OK = 1,
     BZ_FLUSH_OK = 2,
@@ -177,7 +177,7 @@ pub enum ReturnCode {
 
 #[repr(i32)]
 #[derive(Copy, Clone)]
-pub enum Mode {
+pub(crate) enum Mode {
     Idle = 1,
     Running = 2,
     Flushing = 3,
@@ -186,20 +186,20 @@ pub enum Mode {
 
 #[repr(i32)]
 #[derive(Copy, Clone)]
-pub enum State {
+pub(crate) enum State {
     Output = 1,
     Input = 2,
 }
 
-pub const BZ_N_RADIX: i32 = 2;
-pub const BZ_N_QSORT: i32 = 12;
-pub const BZ_N_SHELL: i32 = 18;
-pub const BZ_N_OVERSHOOT: usize = (BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2) as usize;
+pub(crate) const BZ_N_RADIX: i32 = 2;
+pub(crate) const BZ_N_QSORT: i32 = 12;
+pub(crate) const BZ_N_SHELL: i32 = 18;
+pub(crate) const BZ_N_OVERSHOOT: usize = (BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL + 2) as usize;
 
-pub const FTAB_LEN: usize = u16::MAX as usize + 2;
+pub(crate) const FTAB_LEN: usize = u16::MAX as usize + 2;
 
 #[repr(C)]
-pub struct EState {
+pub(crate) struct EState {
     pub strm: *mut bz_stream,
     pub mode: Mode,
     pub state: State,
@@ -240,7 +240,7 @@ pub(crate) fn dangling<T>() -> *mut T {
     ptr::null_mut::<T>().wrapping_add(mem::align_of::<T>())
 }
 
-pub struct Arr1 {
+pub(crate) struct Arr1 {
     ptr: *mut u32,
     len: usize,
 }
@@ -275,7 +275,7 @@ impl Arr1 {
     }
 }
 
-pub struct Arr2 {
+pub(crate) struct Arr2 {
     ptr: *mut u32,
     len: usize,
 }
@@ -339,7 +339,7 @@ impl Arr2 {
     }
 }
 
-pub struct Ftab {
+pub(crate) struct Ftab {
     ptr: *mut u32,
 }
 
@@ -353,7 +353,7 @@ impl Ftab {
         self.ptr.is_null()
     }
 
-    pub fn ftab(&mut self) -> &mut [u32; FTAB_LEN] {
+    pub(crate) fn ftab(&mut self) -> &mut [u32; FTAB_LEN] {
         // NOTE: this panics if the pointer is NULL, that is important!
         unsafe { self.ptr.cast::<[u32; FTAB_LEN]>().as_mut().unwrap() }
     }
@@ -364,7 +364,7 @@ impl Ftab {
 }
 
 #[repr(C)]
-pub struct DState {
+pub(crate) struct DState {
     pub strm: *mut bz_stream,
     pub state: decompress::State,
     pub state_out_ch: u8,
@@ -431,7 +431,7 @@ pub struct DState {
     pub save_gPerm: i32,
 }
 
-pub struct DSlice<T> {
+pub(crate) struct DSlice<T> {
     ptr: *mut T,
     len: usize,
 }
@@ -444,12 +444,12 @@ impl<T> DSlice<T> {
         }
     }
 
-    pub unsafe fn alloc(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) -> Option<Self> {
+    pub(crate) unsafe fn alloc(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) -> Option<Self> {
         let ptr = bzalloc_array::<T>(bzalloc, opaque, len)?;
         Some(Self::from_raw_parts_mut(ptr, len))
     }
 
-    pub unsafe fn dealloc(&mut self, bzfree: FreeFunc, opaque: *mut c_void) {
+    pub(crate) unsafe fn dealloc(&mut self, bzfree: FreeFunc, opaque: *mut c_void) {
         let this = mem::replace(self, Self::new());
         if this.len != 0 {
             bzfree(opaque, this.ptr.cast())
@@ -457,15 +457,15 @@ impl<T> DSlice<T> {
     }
 
     /// Safety: ptr must satisfy the requirements of [`core::slice::from_raw_parts_mut`].
-    pub unsafe fn from_raw_parts_mut(ptr: *mut T, len: usize) -> Self {
+    pub(crate) unsafe fn from_raw_parts_mut(ptr: *mut T, len: usize) -> Self {
         Self { ptr, len }
     }
 
-    pub fn as_slice(&self) -> &[T] {
+    pub(crate) fn as_slice(&self) -> &[T] {
         unsafe { core::slice::from_raw_parts(self.ptr, self.len) }
     }
 
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
+    pub(crate) fn as_mut_slice(&mut self) -> &mut [T] {
         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 }
@@ -473,7 +473,7 @@ impl<T> DSlice<T> {
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct bzFile {
+pub(crate) struct bzFile {
     pub handle: *mut FILE,
     pub buf: [i8; BZ_MAX_UNUSED as usize],
     pub bufN: i32,
@@ -523,7 +523,7 @@ fn isempty_rl(s: &mut EState) -> bool {
 ///     * a `NULL` pointer
 ///     * a valid pointer to an allocation of `len * size_of::<T>()` bytes aligned to at least `align_of::<usize>()`
 /// - the type `T` must be zeroable (i.e. an all-zero bit pattern is valid for `T`)
-pub unsafe fn bzalloc_array<T>(
+unsafe fn bzalloc_array<T>(
     bzalloc: AllocFunc,
     opaque: *mut c_void,
     len: usize,
@@ -1039,7 +1039,7 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
 }
 
 #[repr(u8)]
-pub enum DecompressMode {
+pub(crate) enum DecompressMode {
     Small,
     Fast,
 }
@@ -2321,7 +2321,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
 
 #[derive(Copy, Clone)]
 #[repr(u8)]
-pub enum Operation {
+pub(crate) enum Operation {
     Reading,
     Writing,
 }
