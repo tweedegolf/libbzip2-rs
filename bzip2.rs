@@ -8,6 +8,7 @@ use std::io::IsTerminal;
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::SystemTime;
 
 use libbzip2_rs_sys::{
@@ -78,7 +79,7 @@ const FILE_NAME_LEN: usize = 1034;
 static mut opMode: OperationMode = OperationMode::Zip;
 static mut srcMode: SourceMode = SourceMode::I2O;
 
-static mut longestFileName: i32 = 0;
+static LONGEST_FILENAME: AtomicUsize = AtomicUsize::new(0);
 static mut inName: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
 static mut outName: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
 static mut progName: *mut c_char = ptr::null_mut();
@@ -872,12 +873,15 @@ unsafe fn configError() -> ! {
     exit(exitValue);
 }
 
-unsafe fn pad(s: *mut c_char) {
-    if strlen(s) as i32 >= longestFileName {
+fn pad(s: &Path) {
+    let len = s.as_os_str().as_encoded_bytes().len();
+    let longest_filename = LONGEST_FILENAME.load(Ordering::Relaxed);
+
+    if len >= longest_filename {
         return;
     }
 
-    for _ in 1..=longestFileName - strlen(s) as i32 {
+    for _ in 1..=longest_filename - len {
         eprint!(" ");
     }
 }
@@ -1252,7 +1256,7 @@ unsafe fn compress(name: Option<&str>) {
     }
     if verbosity >= 1 as libc::c_int {
         eprint!("  {}: ", in_name.display());
-        pad(inName.as_mut_ptr());
+        pad(in_name);
     }
     outputHandleJustInCase = outStr;
     delete_output_on_interrupt = true;
@@ -1501,7 +1505,7 @@ unsafe fn uncompress(name: Option<&str>) {
 
     if verbosity >= 1 {
         eprint!("  {}: ", in_name.display(),);
-        pad(inName.as_mut_ptr());
+        pad(&in_name);
     }
 
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
@@ -1645,7 +1649,7 @@ unsafe fn testf(name: Option<&str>) {
     }
     if verbosity >= 1 {
         eprint!("  {}: ", in_name.display());
-        pad(inName.as_mut_ptr());
+        pad(&in_name);
     }
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     let allOK = testStream(inStr);
@@ -1787,7 +1791,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     arg_list.extend(std::env::args().skip(1));
 
-    longestFileName = 7;
+    LONGEST_FILENAME.store(7, Ordering::Relaxed);
     numFileNames = 0;
     let mut decode = true;
 
@@ -1796,7 +1800,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             decode = false;
         } else if !(name.starts_with('-') && decode) {
             numFileNames += 1;
-            longestFileName = Ord::max(longestFileName, name.len() as i32);
+            LONGEST_FILENAME.fetch_max(name.len(), Ordering::Relaxed);
         }
     }
 
