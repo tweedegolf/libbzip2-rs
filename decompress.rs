@@ -9,7 +9,6 @@ use crate::randtable::BZ2_RNUMS;
 const MTFA_SIZE: i32 = 4096;
 const MTFL_SIZE: i32 = 16;
 
-#[repr(i32)]
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub(crate) enum State {

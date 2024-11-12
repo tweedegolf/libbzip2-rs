@@ -31,8 +31,7 @@ static mut verbosity: i32 = 0;
 static mut keep_input_files: bool = false;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum DecompressMode {
+enum DecompressMode {
     Fast = 0,
     Small = 1,
 }

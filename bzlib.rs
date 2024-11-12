@@ -175,7 +175,6 @@ pub(crate) enum ReturnCode {
     BZ_CONFIG_ERROR = -9,
 }
 
-#[repr(i32)]
 #[derive(Copy, Clone)]
 pub(crate) enum Mode {
     Idle = 1,
@@ -184,7 +183,6 @@ pub(crate) enum Mode {
     Finishing = 4,
 }
 
-#[repr(i32)]
 #[derive(Copy, Clone)]
 pub(crate) enum State {
     Output = 1,
@@ -198,7 +196,6 @@ pub(crate) const BZ_N_OVERSHOOT: usize = (BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL +
 
 pub(crate) const FTAB_LEN: usize = u16::MAX as usize + 2;
 
-#[repr(C)]
 pub(crate) struct EState {
     pub strm: *mut bz_stream,
     pub mode: Mode,
@@ -212,8 +209,6 @@ pub(crate) struct EState {
     pub workFactor: i32,
     pub state_in_ch: u32,
     pub state_in_len: i32,
-    pub rNToGo: i32,
-    pub rTPos: i32,
     pub nblock: i32,
     pub nblockMAX: i32,
     pub state_out_pos: i32,
@@ -363,7 +358,6 @@ impl Ftab {
     }
 }
 
-#[repr(C)]
 pub(crate) struct DState {
     pub strm: *mut bz_stream,
     pub state: decompress::State,
@@ -472,15 +466,14 @@ impl<T> DSlice<T> {
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub(crate) struct bzFile {
-    pub handle: *mut FILE,
-    pub buf: [i8; BZ_MAX_UNUSED as usize],
-    pub bufN: i32,
-    pub strm: bz_stream,
-    pub lastErr: ReturnCode,
-    pub operation: Operation,
-    pub initialisedOk: bool,
+    handle: *mut FILE,
+    buf: [i8; BZ_MAX_UNUSED as usize],
+    bufN: i32,
+    strm: bz_stream,
+    lastErr: ReturnCode,
+    operation: Operation,
+    initialisedOk: bool,
 }
 
 const _C_INT_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_int>() == 4);
@@ -1038,7 +1031,6 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     0 as c_int
 }
 
-#[repr(u8)]
 pub(crate) enum DecompressMode {
     Small,
     Fast,
@@ -2320,7 +2312,6 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
 }
 
 #[derive(Copy, Clone)]
-#[repr(u8)]
 pub(crate) enum Operation {
     Reading,
     Writing,
