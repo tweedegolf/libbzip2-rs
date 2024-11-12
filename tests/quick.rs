@@ -896,7 +896,6 @@ mod decompress_command {
                 "    [1: huff+mtf rt+rld {{0xccf1b5a5, 0xccf1b5a5}}]\n",
                 "    combined CRCs: stored = 0xccf1b5a5, computed = 0xccf1b5a5\n",
                 "bzip2: (stdin): trailing garbage after EOF ignored\n",
-                "\n",
                 "done\n",
                 ""
             ),),
