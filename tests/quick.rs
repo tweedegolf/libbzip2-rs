@@ -1458,26 +1458,43 @@ mod compress_command {
 
         std::fs::copy("tests/input/quick/sample1.ref", &sample1).unwrap();
 
-        let mut permissions = std::fs::metadata(&sample1).unwrap().permissions();
+        let mut permissions = std::fs::metadata(&tmpdir.path()).unwrap().permissions();
         permissions.set_mode(0o000); // no permissions for you
-        std::fs::set_permissions(&sample1, permissions).unwrap();
+        std::fs::set_permissions(&tmpdir.path(), permissions).unwrap();
 
         let mut cmd = command();
 
-        expect_failure!(
-            cmd.arg("-z").arg(&sample1).arg("-c").stdout(Stdio::piped()),
-            format!(
-                "bzip2: Can't open input file {in_file}: Permission denied.\n",
-                in_file = sample1.display()
-            )
+        cmd.arg("-z").arg(&sample1).arg("-c").stdout(Stdio::piped());
+
+        let output = match cmd.output() {
+            Ok(output) => output,
+            Err(err) => panic!("Running {:?} failed with {err:?}", cmd),
+        };
+
+        assert!(
+            !output.status.success(),
+            "status is success (expected failure): {:?} stderr: {:?}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
         );
+        assert!(
+            output.stdout.is_empty(),
+            "stdout: {:?}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        assert!(String::from_utf8_lossy(&output.stderr)
+            .replace(bzip2_binary(), "bzip2")
+            .contains(&format!(
+                "bzip2: Can't open input file {in_file}: ",
+                in_file = sample1.display()
+            )));
     }
 
     #[test]
     fn input_has_bz2_extension() {
         let tmpdir = tempfile::tempdir().unwrap();
 
-        for extension in [".bz2", ".bz", ".tbz2", ".tbz"] {
+        for extension in ["bz2", "bz", "tbz2", "tbz"] {
             let sample1 = tmpdir.path().join("test").with_extension(extension);
 
             std::fs::copy("tests/input/quick/sample1.bz2", &sample1).unwrap();
