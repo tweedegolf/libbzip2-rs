@@ -116,7 +116,7 @@ unsafe fn myfeof(f: *mut FILE) -> Bool {
     0 as Bool
 }
 
-unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE) {
+unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE, metadata: Option<&Metadata>) {
     let mut ibuf: [u8; 5000] = [0; 5000];
     let mut nbytes_in_lo32: u32 = 0;
     let mut nbytes_in_hi32: u32 = 0;
@@ -200,13 +200,8 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE) {
             ioError()
         }
 
-        if zStream != stdout {
-            let fd = fileno(zStream);
-            if fd < 0 {
-                // diverges
-                ioError()
-            }
-            applySavedFileAttrToOutputFile(fd);
+        if let Some(metadata) = metadata {
+            set_permissions(zStream, metadata);
             ret = fclose(zStream);
             outputHandleJustInCase = core::ptr::null_mut();
             if ret == libc::EOF {
@@ -270,7 +265,11 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE) {
     }
 }
 
-unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
+unsafe fn uncompressStream(
+    zStream: *mut FILE,
+    stream: *mut FILE,
+    metadata: Option<&Metadata>,
+) -> bool {
     let mut bzf = std::ptr::null_mut();
     let mut bzerr: i32 = 0;
     let mut bzerr_dummy: i32 = 0;
@@ -376,14 +375,8 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
                     ioError()
                 }
 
-                if stream != stdout {
-                    let fd: i32 = fileno(stream);
-                    if fd < 0 {
-                        // diverges
-                        ioError()
-                    }
-
-                    applySavedFileAttrToOutputFile(fd);
+                if let Some(metadata) = metadata {
+                    set_permissions(stream, metadata);
                 }
 
                 ret = fclose(zStream);
@@ -974,14 +967,6 @@ unsafe fn count_hardlinks(path: &Path) -> u64 {
     0 // FIXME
 }
 
-static mut fileMetaInfo: stat = unsafe { zeroed() };
-unsafe fn saveInputFileMetaInfo(srcName: *mut c_char) {
-    let retVal = stat(srcName, core::ptr::addr_of_mut!(fileMetaInfo));
-    if retVal != 0 as libc::c_int {
-        ioError();
-    }
-}
-
 fn apply_saved_time_info_to_output_file(dst_name: &CStr, metadata: Metadata) {
     #[cfg(unix)]
     {
@@ -1000,18 +985,26 @@ fn apply_saved_time_info_to_output_file(dst_name: &CStr, metadata: Metadata) {
     }
 }
 
-#[cfg(not(unix))]
-unsafe fn applySavedTimeInfoToOutputFile(_dstName: *mut c_char) {}
-#[cfg(unix)]
-unsafe fn applySavedFileAttrToOutputFile(fd: IntNative) {
-    let retVal = libc::fchmod(fd, fileMetaInfo.st_mode);
-    if retVal != 0 as libc::c_int {
-        ioError();
+unsafe fn set_permissions(handle: *mut FILE, metadata: &Metadata) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+
+        let fd = fileno(handle);
+        if fd < 0 {
+            // diverges
+            ioError()
+        }
+
+        let retVal = libc::fchmod(fd, metadata.mode());
+        if retVal != 0 as libc::c_int {
+            ioError();
+        }
+
+        // chown() will in many cases return with EPERM, which can be safely ignored.
+        libc::fchown(fd, metadata.uid(), metadata.gid());
     }
-    libc::fchown(fd, fileMetaInfo.st_uid, fileMetaInfo.st_gid);
 }
-#[cfg(not(unix))]
-unsafe fn applySavedFileAttrToOutputFile(_fd: IntNative) {}
 
 #[cfg(unix)]
 fn contains_dubious_chars_safe(_: &Path) -> bool {
@@ -1260,7 +1253,7 @@ unsafe fn compress(name: Option<&str>) {
     }
     outputHandleJustInCase = outStr;
     delete_output_on_interrupt = true;
-    compressStream(inStr, outStr);
+    compressStream(inStr, outStr, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     if let Some(metadata) = metadata {
@@ -1410,12 +1403,6 @@ unsafe fn uncompress(name: Option<&str>) {
         return;
     }
 
-    if srcMode == SourceMode::F2F {
-        // Save the file's meta-info before we open it.
-        // Doing it later means we mess up the access times.
-        unsafe { saveInputFileMetaInfo(inName.as_mut_ptr()) };
-    }
-
     // Save the file's meta-info before we open it.
     // Doing it later means we mess up the access times.
     let metadata = match srcMode {
@@ -1511,7 +1498,7 @@ unsafe fn uncompress(name: Option<&str>) {
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
     outputHandleJustInCase = outStr;
     delete_output_on_interrupt = true;
-    let magicNumberOK = uncompressStream(inStr, outStr);
+    let magicNumberOK = uncompressStream(inStr, outStr, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     /*--- If there was an I/O error, we won't get here. ---*/
