@@ -1520,7 +1520,7 @@ unsafe fn uncompress(name: Option<String>) {
                     display_last_os_error(),
                 );
                 if !inStr.is_null() {
-                    // this is unreachable, but in the original C source code
+                    // this is unreachable, but it exists in the original C source code
                     fclose(inStr);
                 }
                 setExit(1);
