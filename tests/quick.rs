@@ -1,6 +1,9 @@
 use std::env;
+use std::fs::Metadata;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::time::Duration;
+use std::time::SystemTime;
 
 /// Useful to test with the C binary
 fn bzip2_binary() -> &'static str {
@@ -106,6 +109,22 @@ fn setup_custom_tty() -> (std::process::Stdio, std::process::Stdio) {
     }
 
     unsafe { (Stdio::from_raw_fd(master_fd), Stdio::from_raw_fd(slave_fd)) }
+}
+
+fn timestamps(metadata: Metadata) -> (u64, u64) {
+    let atime = {
+        let system_time = metadata.accessed().unwrap_or(SystemTime::UNIX_EPOCH);
+        let duration = system_time.duration_since(SystemTime::UNIX_EPOCH).unwrap();
+        duration.as_secs()
+    };
+
+    let modtime = {
+        let system_time = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+        let duration = system_time.duration_since(SystemTime::UNIX_EPOCH).unwrap();
+        duration.as_secs()
+    };
+
+    (atime, modtime)
 }
 
 fn command() -> Command {
@@ -367,6 +386,7 @@ fn very_long_file_name() {
 }
 
 mod decompress_command {
+
     use super::*;
 
     #[test]
@@ -781,6 +801,11 @@ mod decompress_command {
 
         let mut cmd = command();
 
+        let input_metadata = std::fs::metadata(&sample1_tar_bz2).unwrap();
+
+        // sleep so that we'd notice if the timestamp was not set correctly
+        std::thread::sleep(Duration::from_secs(1));
+
         expect_success!(
             cmd.arg("-d").arg("-vvvf").arg(&sample1_tar_bz2),
             format!(
@@ -793,6 +818,10 @@ mod decompress_command {
                 in_file = sample1_tar_bz2.display(),
             ),
         );
+
+        let output_metadata = std::fs::metadata(&sample1_tar).unwrap();
+
+        assert_eq!(timestamps(input_metadata), timestamps(output_metadata));
 
         let actual = std::fs::read(sample1_tar).unwrap();
         assert_eq!(actual, expected);
@@ -1538,6 +1567,11 @@ mod compress_command {
 
         let mut cmd = command();
 
+        let input_metadata = std::fs::metadata(&sample1_ref).unwrap();
+
+        // sleep so that we'd notice if the timestamp was not set correctly
+        std::thread::sleep(Duration::from_secs(1));
+
         expect_success!(
             cmd.arg("-z").arg("-vvvf").arg(&sample1_ref),
             format!(
@@ -1563,6 +1597,10 @@ mod compress_command {
                 in_file = sample1_ref.display(),
             ),
         );
+
+        let output_metadata = std::fs::metadata(sample1_bz2).unwrap();
+
+        assert_eq!(timestamps(input_metadata), timestamps(output_metadata));
     }
 
     #[test]
