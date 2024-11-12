@@ -12,7 +12,7 @@ const MTFL_SIZE: i32 = 16;
 #[repr(i32)]
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
-pub enum State {
+pub(crate) enum State {
     BZ_X_IDLE = 1,
     BZ_X_OUTPUT = 2,
     BZ_X_MAGIC_1 = 10,
