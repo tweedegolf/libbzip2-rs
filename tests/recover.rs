@@ -50,13 +50,18 @@ fn basic_valid_file() {
 
     let output = run_bzip2recover(Some(&file_path));
 
-    assert!(output.status.success());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(output.stdout.is_empty());
 
     assert_eq!(
         String::from_utf8_lossy(&output.stderr)
             .replace(&tmp_path_str, "$TEMPDIR")
-            .replace(bzip2recover_binary(), "bzip2recover"),
+            .replace(bzip2recover_binary(), "bzip2recover")
+            .replace("\\", "/"),
         concat!(
             "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
             "bzip2recover: searching for block boundaries ...\n",
@@ -97,13 +102,18 @@ fn basic_invalid_file() {
 
     let output = run_bzip2recover(Some(&file_path));
 
-    assert!(output.status.success());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(output.stdout.is_empty());
 
     assert_eq!(
         String::from_utf8_lossy(&output.stderr)
             .replace(&tmp_path_str, "$TEMPDIR")
-            .replace(bzip2recover_binary(), "bzip2recover"),
+            .replace(bzip2recover_binary(), "bzip2recover")
+            .replace("\\", "/"),
         concat!(
             "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
             "bzip2recover: searching for block boundaries ...\n",
@@ -127,7 +137,11 @@ fn basic_invalid_file() {
 fn no_input_file() {
     let output = run_bzip2recover(None);
 
-    assert!(!output.status.success());
+    assert!(
+        !output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(output.stdout.is_empty());
 
     assert_eq!(
@@ -144,7 +158,11 @@ fn no_input_file() {
 fn nonexistent_input_file() {
     let output = run_bzip2recover(Some(Path::new("does_not_exist.txt")));
 
-    assert!(!output.status.success());
+    assert!(
+        !output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(output.stdout.is_empty());
 
     assert_eq!(
@@ -171,7 +189,11 @@ fn random_input_data() {
 
     let output = run_bzip2recover(Some(&file_path));
 
-    assert!(!output.status.success());
+    assert!(
+        !output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(output.stdout.is_empty());
 
     assert_eq!(
@@ -201,13 +223,18 @@ fn does_not_overwrite_recovered_files() {
 
     let output = run_bzip2recover(Some(&file_path));
 
-    assert!(output.status.success());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(output.stdout.is_empty());
 
     assert_eq!(
         String::from_utf8_lossy(&output.stderr)
             .replace(&tmp_path_str, "$TEMPDIR")
-            .replace(bzip2recover_binary(), "bzip2recover"),
+            .replace(bzip2recover_binary(), "bzip2recover")
+            .replace("\\", "/"),
         concat!(
             "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
             "bzip2recover: searching for block boundaries ...\n",
@@ -225,13 +252,18 @@ fn does_not_overwrite_recovered_files() {
 
     let output = run_bzip2recover(Some(&file_path));
 
-    assert!(!output.status.success());
+    assert!(
+        !output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(output.stdout.is_empty());
 
     assert_eq!(
         String::from_utf8_lossy(&output.stderr)
             .replace(&tmp_path_str, "$TEMPDIR")
-            .replace(bzip2recover_binary(), "bzip2recover"),
+            .replace(bzip2recover_binary(), "bzip2recover")
+            .replace("\\", "/"),
         concat!(
             "bzip2recover 1.0.6: extracts blocks from damaged .bz2 files.\n",
             "bzip2recover: searching for block boundaries ...\n",
@@ -249,7 +281,11 @@ fn very_long_file_name() {
     let file_path = PathBuf::from("NaN".repeat(1000) + " batman!.txt");
     let output = run_bzip2recover(Some(&file_path));
 
-    assert!(!output.status.success());
+    assert!(
+        !output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(output.stdout.is_empty());
 
     assert_eq!(

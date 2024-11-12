@@ -11,11 +11,45 @@ use crate::libbzip2_rs_sys_version;
 use crate::BZ_MAX_UNUSED;
 
 // FIXME remove this
+#[cfg(not(target_os = "windows"))]
 extern "C" {
     #[cfg_attr(target_os = "macos", link_name = "__stdinp")]
     static mut stdin: *mut FILE;
     #[cfg_attr(target_os = "macos", link_name = "__stdoutp")]
     static mut stdout: *mut FILE;
+}
+
+#[cfg(all(target_os = "windows", target_env = "gnu"))]
+extern "C" {
+    fn __acrt_iob_func(idx: libc::c_uint) -> *mut FILE;
+}
+
+#[cfg(not(target_os = "windows"))]
+macro_rules! STDIN {
+    () => {
+        stdin
+    };
+}
+
+#[cfg(all(target_os = "windows", target_env = "gnu"))]
+macro_rules! STDIN {
+    () => {
+        __acrt_iob_func(0)
+    };
+}
+
+#[cfg(not(target_os = "windows"))]
+macro_rules! STDOUT {
+    () => {
+        stdout
+    };
+}
+
+#[cfg(all(target_os = "windows", target_env = "gnu"))]
+macro_rules! STDOUT {
+    () => {
+        __acrt_iob_func(1)
+    };
 }
 
 pub(crate) const BZ_MAX_ALPHA_SIZE: usize = 258;
@@ -2660,8 +2694,8 @@ unsafe fn bzopen_or_bzdopen(path: Option<&CStr>, open_mode: OpenMode, mode: &CSt
     let mode2 = mode.as_ptr().cast_mut().cast::<c_char>();
 
     let default_file = match operation {
-        Operation::Reading => stdin,
-        Operation::Writing => stdout,
+        Operation::Reading => STDIN!(),
+        Operation::Writing => STDOUT!(),
     };
 
     let fp = match open_mode {
@@ -2696,7 +2730,7 @@ unsafe fn bzopen_or_bzdopen(path: Option<&CStr>, open_mode: OpenMode, mode: &CSt
     };
 
     if bzfp.is_null() {
-        if fp != stdin && fp != stdout {
+        if fp != STDIN!() && fp != STDOUT!() {
             fclose(fp);
         }
         return ptr::null_mut();
@@ -2889,7 +2923,7 @@ pub unsafe extern "C" fn BZ2_bzclose(b: *mut BZFILE) {
         }
     }
 
-    if fp != stdin && fp != stdout {
+    if fp != STDIN!() && fp != STDOUT!() {
         fclose(fp);
     }
 }

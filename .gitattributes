@@ -8,6 +8,7 @@
 
 # Files that should be left untouched (binary is macro for -text -diff)
 *.ref           binary
+tests/*.txt     eol=lf
 
 #
 # Exclude files from exporting
