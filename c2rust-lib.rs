@@ -1,9 +1,13 @@
+#![no_std]
 #![allow(non_snake_case)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::missing_safety_doc)] // FIXME remove once everything has safety docs
 #![allow(clippy::needless_range_loop)] // FIXME remove once all instances are fixed
 
 //! A drop-in compatible rust implementation of bzip2
+
+#[cfg(feature = "std")]
+extern crate std;
 
 use core::ffi::c_int;
 
@@ -71,8 +75,13 @@ pub(crate) use libbzip2_rs_sys_version;
 macro_rules! assert_h {
     ($condition:expr, $errcode:expr) => {{
         if !$condition {
-            eprint!("{}", $crate::AssertFail($errcode));
+            #[cfg(feature = "std")]
+            std::eprint!("{}", $crate::AssertFail($errcode));
+            #[cfg(feature = "std")]
             std::process::exit(3);
+
+            #[cfg(not(feature = "std"))]
+            panic!("{}", $crate::AssertFail($errcode));
         }
     }};
 }
