@@ -485,7 +485,6 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
 unsafe fn testStream(zStream: *mut FILE) -> bool {
     let mut bzf: *mut libc::c_void;
     let mut bzerr: i32 = 0;
-    let ret: i32;
     let mut i: i32;
     let mut obuf: [u8; 5000] = [0; 5000];
     let mut unused: [u8; 5000] = [0; 5000];
@@ -527,7 +526,7 @@ unsafe fn testStream(zStream: *mut FILE) -> bool {
                 break 'errhandler;
             }
 
-            let mut unusedTmpV: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
+            let mut unusedTmpV = std::ptr::null_mut();
             BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
             if bzerr != libbzip2_rs_sys::BZ_OK {
                 panic_str("test:bzReadGetUnused");
@@ -552,8 +551,7 @@ unsafe fn testStream(zStream: *mut FILE) -> bool {
         if ferror(zStream) != 0 {
             ioError() // diverges
         }
-        ret = fclose(zStream);
-        if ret == libc::EOF {
+        if fclose(zStream) == libc::EOF {
             ioError() // diverges
         }
 
