@@ -1077,17 +1077,21 @@ unsafe fn hasSuffix(s: *mut c_char, suffix: *const c_char) -> Bool {
     0 as Bool
 }
 
-unsafe fn compress(name: *mut c_char) {
+unsafe fn compress(name: Option<&str>) {
+    let in_name;
+    let out_name;
+
     let inStr: *mut FILE;
     let outStr: *mut FILE;
-    let mut n: i32 = 0;
+    let mut n: u64 = 0;
     let mut statBuf: stat = zeroed();
     delete_output_on_interrupt = false;
-    if name.is_null() && srcMode != SourceMode::I2O {
-        panic_str("compress: bad modes\n");
-    }
-    match srcMode {
-        SourceMode::I2O => {
+
+    match (name, srcMode) {
+        (_, SourceMode::I2O) => {
+            in_name = Path::new("(stdin)");
+            out_name = PathBuf::from("(stdout)");
+
             copyFileName(
                 inName.as_mut_ptr(),
                 b"(stdin)\0" as *const u8 as *const libc::c_char,
@@ -1097,58 +1101,70 @@ unsafe fn compress(name: *mut c_char) {
                 b"(stdout)\0" as *const u8 as *const libc::c_char,
             );
         }
-        SourceMode::F2O => {
-            copyFileName(inName.as_mut_ptr(), name);
+        (Some(name), SourceMode::F2O) => {
+            in_name = Path::new(name);
+            out_name = PathBuf::from("(stdout)");
+
+            let name = CString::new(name).unwrap();
+            copyFileName(inName.as_mut_ptr(), name.as_ptr());
             copyFileName(
                 outName.as_mut_ptr(),
                 b"(stdout)\0" as *const u8 as *const libc::c_char,
             );
         }
-        SourceMode::F2F => {
-            copyFileName(inName.as_mut_ptr(), name);
-            copyFileName(outName.as_mut_ptr(), name);
+        (Some(name), SourceMode::F2F) => {
+            in_name = Path::new(name);
+            out_name = PathBuf::from(format!("{name}.bz2"));
+
+            let name = CString::new(name).unwrap();
+            copyFileName(inName.as_mut_ptr(), name.as_ptr());
+            copyFileName(outName.as_mut_ptr(), name.as_ptr());
             strcat(
                 outName.as_mut_ptr(),
                 b".bz2\0" as *const u8 as *const libc::c_char,
             );
         }
+        (None, SourceMode::F2O | SourceMode::F2F) => {
+            panic_str("compress: bad modes\n");
+        }
     }
-    if srcMode != SourceMode::I2O && contains_dubious_chars(inName.as_mut_ptr()) {
+
+    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(in_name) {
         if noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
                 get_program_name().display(),
-                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                in_name.display(),
             );
         }
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode != SourceMode::I2O && fileExists(inName.as_mut_ptr()) == 0 {
+    if srcMode != SourceMode::I2O && !in_name.exists() {
         eprintln!(
             "{}: Can't open input file {}: {}.",
             std::env::args().next().unwrap(),
-            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+            in_name.display(),
             display_last_os_error(),
         );
         setExit(1 as libc::c_int);
         return;
     }
-    let mut i = 0 as libc::c_int;
-    while i < 4 as libc::c_int {
-        if hasSuffix(inName.as_mut_ptr(), zSuffix[i as usize]) != 0 {
-            if noisy {
-                eprintln!(
-                    "{}: Input file {} already has {} suffix.",
-                    std::env::args().next().unwrap(),
-                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-                    CStr::from_ptr(zSuffix[i as usize]).to_string_lossy(),
-                );
+    if let Some(extension) = in_name.extension() {
+        for bz2_extension in ["bz2", "bz", "tbz2", "tbz"] {
+            if extension == OsStr::new(bz2_extension) {
+                if noisy {
+                    eprintln!(
+                        "{}: Input file {} already has {} suffix.",
+                        std::env::args().next().unwrap(),
+                        in_name.display(),
+                        bz2_extension
+                    );
+                }
+                setExit(1 as libc::c_int);
+                return;
             }
-            setExit(1 as libc::c_int);
-            return;
         }
-        i += 1;
     }
     if srcMode == SourceMode::F2F || srcMode == SourceMode::F2O {
         stat(inName.as_mut_ptr(), &mut statBuf);
@@ -1156,49 +1172,46 @@ unsafe fn compress(name: *mut c_char) {
             eprintln!(
                 "{}: Input file {} is a directory.",
                 get_program_name().display(),
-                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                in_name.display(),
             );
             setExit(1 as libc::c_int);
             return;
         }
     }
-    if srcMode == SourceMode::F2F
-        && !force_overwrite
-        && notAStandardFile(inName.as_mut_ptr()) as libc::c_int != 0
-    {
+    if srcMode == SourceMode::F2F && !force_overwrite && not_a_standard_file(in_name) {
         if noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
                 get_program_name().display(),
-                CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                in_name.display(),
             );
         }
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode == SourceMode::F2F && fileExists(outName.as_mut_ptr()) as libc::c_int != 0 {
+    if srcMode == SourceMode::F2F && out_name.exists() {
         if force_overwrite {
             remove(outName.as_mut_ptr());
         } else {
             eprintln!(
                 "{}: Output file {} already exists.",
                 get_program_name().display(),
-                CStr::from_ptr(outName.as_ptr()).to_string_lossy(),
+                out_name.display(),
             );
             setExit(1 as libc::c_int);
             return;
         }
     }
     if srcMode == SourceMode::F2F && !force_overwrite && {
-        n = countHardLinks(inName.as_mut_ptr());
-        n > 0 as libc::c_int
+        n = count_hardlinks(in_name);
+        n > 0
     } {
         eprintln!(
             "{}: Input file {} has {} other link{}.",
             get_program_name().display(),
-            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+            in_name.display(),
             n,
-            if n > 1 as libc::c_int { "s" } else { "" },
+            if n > 1 { "s" } else { "" },
         );
         setExit(1 as libc::c_int);
         return;
@@ -1250,7 +1263,7 @@ unsafe fn compress(name: *mut c_char) {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
                     get_program_name().display(),
-                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    in_name.display(),
                     display_last_os_error(),
                 );
                 setExit(1 as libc::c_int);
@@ -1270,7 +1283,7 @@ unsafe fn compress(name: *mut c_char) {
                 eprintln!(
                     "{}: Can't create output file {}: {}.",
                     std::env::args().next().unwrap(),
-                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    in_name.display(),
                     display_last_os_error(),
                 );
                 if !inStr.is_null() {
@@ -1283,7 +1296,7 @@ unsafe fn compress(name: *mut c_char) {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
                     std::env::args().next().unwrap(),
-                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                    in_name.display(),
                     display_last_os_error(),
                 );
                 if !outStr.is_null() {
@@ -1295,7 +1308,7 @@ unsafe fn compress(name: *mut c_char) {
         }
     }
     if verbosity >= 1 as libc::c_int {
-        eprint!("  {}: ", CStr::from_ptr(inName.as_ptr()).to_string_lossy(),);
+        eprint!("  {}: ", in_name.display());
         pad(inName.as_mut_ptr());
     }
     outputHandleJustInCase = outStr;
@@ -2000,7 +2013,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     match opMode {
         OperationMode::Zip => {
             if srcMode == SourceMode::I2O {
-                compress(std::ptr::null_mut());
+                compress(None);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2008,8 +2021,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        let name = CString::new(name).unwrap();
-                        compress(name.as_ptr().cast_mut());
+                        compress(Some(name.as_str()));
                     }
                 }
             }
