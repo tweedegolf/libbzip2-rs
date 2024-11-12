@@ -74,11 +74,11 @@ macro_rules! expect_success {
 }
 
 #[cfg(unix)]
-unsafe fn setup_custom_tty() -> (std::process::Stdio, std::process::Stdio) {
+fn setup_custom_tty() -> (std::process::Stdio, std::process::Stdio) {
     use std::os::fd::FromRawFd;
 
     // Open a new PTY master device
-    let master_fd = libc::posix_openpt(libc::O_RDWR | libc::O_NOCTTY);
+    let master_fd = unsafe { libc::posix_openpt(libc::O_RDWR | libc::O_NOCTTY) };
     if master_fd == -1 {
         panic!("{}", std::io::Error::last_os_error());
     }
@@ -907,7 +907,7 @@ mod decompress_command {
     fn stdin_is_terminal() {
         let mut cmd = command();
 
-        let (_master, tty) = unsafe { setup_custom_tty() };
+        let (_master, tty) = setup_custom_tty();
 
         expect_failure!(
             cmd.arg("-d").arg("-c").stdin(tty),
@@ -1097,7 +1097,7 @@ mod test_command {
     fn stdin_is_terminal() {
         let mut cmd = command();
 
-        let (_master, tty) = unsafe { setup_custom_tty() };
+        let (_master, tty) = setup_custom_tty();
 
         expect_failure!(
             cmd.arg("-t").stdin(tty),
@@ -1552,7 +1552,7 @@ mod compress_command {
     fn stdout_is_terminal_i2o() {
         let mut cmd = command();
 
-        let (_master, tty) = unsafe { setup_custom_tty() };
+        let (_master, tty) = setup_custom_tty();
 
         expect_failure!(
             cmd.arg("-z").arg("-c").stdin(Stdio::piped()).stdout(tty),
@@ -1573,7 +1573,7 @@ mod compress_command {
         let sample1_ref = tmpdir.path().join("sample1.ref");
         std::fs::copy("tests/input/quick/sample1.ref", &sample1_ref).unwrap();
 
-        let (_master, tty) = unsafe { setup_custom_tty() };
+        let (_master, tty) = setup_custom_tty();
 
         expect_failure!(
             cmd.arg("-z")
@@ -1601,7 +1601,7 @@ mod compress_command {
         let sample1_ref = tmpdir.path().join("sample1.ref");
         std::fs::copy("tests/input/quick/sample1.ref", &sample1_ref).unwrap();
 
-        let (master, tty) = unsafe { setup_custom_tty() };
+        let (master, tty) = setup_custom_tty();
 
         // dropping here triggers an IO error down the line
         drop(master);
