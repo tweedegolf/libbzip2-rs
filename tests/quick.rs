@@ -73,6 +73,41 @@ macro_rules! expect_success {
     };
 }
 
+#[cfg(unix)]
+unsafe fn setup_custom_tty() -> (std::process::Stdio, std::process::Stdio) {
+    use std::os::fd::FromRawFd;
+
+    // Open a new PTY master device
+    let master_fd = libc::posix_openpt(libc::O_RDWR | libc::O_NOCTTY);
+    if master_fd == -1 {
+        panic!("{}", std::io::Error::last_os_error());
+    }
+
+    // Grant access to the slave PTY
+    if unsafe { libc::grantpt(master_fd) } < 0 {
+        panic!("{}", std::io::Error::last_os_error());
+    }
+
+    // Unlock the slave PTY
+    if unsafe { libc::unlockpt(master_fd) } < 0 {
+        panic!("{}", std::io::Error::last_os_error());
+    }
+
+    // Get the path to the slave PTY
+    let slave_path_ptr = unsafe { libc::ptsname(master_fd) };
+    if slave_path_ptr.is_null() {
+        panic!("{}", std::io::Error::last_os_error());
+    }
+
+    // Open the slave PTY
+    let slave_fd = unsafe { libc::open(slave_path_ptr, libc::O_RDWR) };
+    if slave_fd < 0 {
+        panic!("{}", std::io::Error::last_os_error());
+    }
+
+    unsafe { (Stdio::from_raw_fd(master_fd), Stdio::from_raw_fd(slave_fd)) }
+}
+
 fn command() -> Command {
     match env::var("RUNNER") {
         Ok(runner) if !runner.is_empty() => {
@@ -867,6 +902,22 @@ mod decompress_command {
             ),),
         );
     }
+
+    #[test]
+    #[cfg(unix)]
+    fn stdin_is_terminal() {
+        let mut cmd = command();
+
+        let (_master, tty) = unsafe { setup_custom_tty() };
+
+        expect_failure!(
+            cmd.arg("-d").arg("-c").stdin(tty),
+            concat!(
+                "bzip2: I won't read compressed data from a terminal.\n",
+                "bzip2: For help, type: `bzip2 --help'.\n",
+            ),
+        );
+    }
 }
 
 mod test_command {
@@ -1038,6 +1089,22 @@ mod test_command {
             format!(
                 "bzip2: Can't open input {in_file}: Permission denied.\n",
                 in_file = sample1.display(),
+            ),
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn stdin_is_terminal() {
+        let mut cmd = command();
+
+        let (_master, tty) = unsafe { setup_custom_tty() };
+
+        expect_failure!(
+            cmd.arg("-t").stdin(tty),
+            concat!(
+                "bzip2: I won't read compressed data from a terminal.\n",
+                "bzip2: For help, type: `bzip2 --help'.\n",
             ),
         );
     }
@@ -1480,5 +1547,85 @@ mod compress_command {
                 in_file = sample1_ref.display(),
             ),
         );
+    }
+
+    #[test]
+    fn stdout_is_terminal_i2o() {
+        let mut cmd = command();
+
+        let (_master, tty) = unsafe { setup_custom_tty() };
+
+        expect_failure!(
+            cmd.arg("-z").arg("-c").stdin(Stdio::piped()).stdout(tty),
+            concat!(
+                "bzip2: I won't write compressed data to a terminal.\n",
+                "bzip2: For help, type: `bzip2 --help'.\n",
+            ),
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn stdout_is_terminal_f2o() {
+        let mut cmd = command();
+
+        let tmpdir = tempfile::tempdir().unwrap();
+
+        let sample1_ref = tmpdir.path().join("sample1.ref");
+        std::fs::copy("tests/input/quick/sample1.ref", &sample1_ref).unwrap();
+
+        let (_master, tty) = unsafe { setup_custom_tty() };
+
+        expect_failure!(
+            cmd.arg("-z")
+                .arg("-c")
+                .arg("-k")
+                .arg(&sample1_ref)
+                .stdout(tty),
+            concat!(
+                "bzip2: I won't write compressed data to a terminal.\n",
+                "bzip2: For help, type: `bzip2 --help'.\n",
+            ),
+        );
+
+        // the `-k` flag should keep the input file
+        assert!(sample1_ref.exists());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn io_error() {
+        let mut cmd = command();
+
+        let tmpdir = tempfile::tempdir().unwrap();
+
+        let sample1_ref = tmpdir.path().join("sample1.ref");
+        std::fs::copy("tests/input/quick/sample1.ref", &sample1_ref).unwrap();
+
+        let (master, tty) = unsafe { setup_custom_tty() };
+
+        // dropping here triggers an IO error down the line
+        drop(master);
+
+        expect_failure!(
+            cmd.arg("-z")
+                .arg("-c")
+                .arg("-k")
+                .arg(&sample1_ref)
+                .stdout(tty),
+            format!(
+                concat!(
+                    "\n",
+                    "bzip2: I/O or other error, bailing out.  Possible reason follows.\n",
+                    "bzip2: Input/output error\n",
+                    "\tInput file = {in_file}, output file = (stdout)\n",
+                    ""
+                ),
+                in_file = sample1_ref.display(),
+            )
+        );
+
+        // the `-k` flag should keep the input file
+        assert!(sample1_ref.exists());
     }
 }
