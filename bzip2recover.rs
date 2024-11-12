@@ -343,7 +343,8 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<(), Error> {
             options.write(true).create(true);
 
             #[cfg(unix)]
-            options.mode(libc::S_IWUSR | libc::S_IRUSR);
+            #[allow(clippy::unnecessary_cast)]
+            options.mode(libc::S_IWUSR as u32 | libc::S_IRUSR as u32);
 
             #[cfg(unix)]
             options.custom_flags(libc::O_EXCL);
