@@ -238,7 +238,8 @@ fn fallbackSort(
        initial fmap and initial BH bits.
     --*/
     if verb >= 4 {
-        eprintln!("        bucket sorting ...");
+        #[cfg(feature = "std")]
+        std::eprintln!("        bucket sorting ...");
     }
 
     {
@@ -284,7 +285,8 @@ fn fallbackSort(
     H = 1;
     loop {
         if verb >= 4 {
-            eprint!("        depth {:>6} has ", H);
+            #[cfg(feature = "std")]
+            std::eprint!("        depth {:>6} has ", H);
         }
         j = 0;
         i = 0;
@@ -352,7 +354,8 @@ fn fallbackSort(
             }
         }
         if verb >= 4 {
-            eprintln!("{:>6} unresolved strings", nNotDone);
+            #[cfg(feature = "std")]
+            std::eprintln!("{:>6} unresolved strings", nNotDone);
         }
         H *= 2;
         if H > nblock || nNotDone == 0 {
@@ -361,7 +364,8 @@ fn fallbackSort(
     }
 
     if verb >= 4 {
-        eprintln!("        reconstructing block ...");
+        #[cfg(feature = "std")]
+        std::eprintln!("        reconstructing block ...");
     }
 
     {
@@ -959,7 +963,8 @@ fn mainSort(
     let mut numQSorted: i32;
     let mut s: u16;
     if verb >= 4 as c_int {
-        eprintln!("        main sort initialise ...");
+        #[cfg(feature = "std")]
+        std::eprintln!("        main sort initialise ...");
     }
 
     /*-- set up the 2-byte frequency table --*/
@@ -994,7 +999,8 @@ fn mainSort(
     }
 
     if verb >= 4 as c_int {
-        eprintln!("        bucket sorting ...");
+        #[cfg(feature = "std")]
+        std::eprintln!("        bucket sorting ...");
     }
 
     /*-- Complete the initial radix sort --*/
@@ -1114,7 +1120,8 @@ fn mainSort(
 
                     if hi > lo {
                         if verb >= 4 as c_int {
-                            eprintln!(
+                            #[cfg(feature = "std")]
+                            std::eprintln!(
                                 "        qsort [{:#x}, {:#x}]   done {}   this {}",
                                 ss,
                                 j,
@@ -1258,7 +1265,8 @@ fn mainSort(
         }
     }
     if verb >= 4 as c_int {
-        eprintln!(
+        #[cfg(feature = "std")]
+        std::eprintln!(
             "        {} pointers, {} sorted, {} scanned",
             nblock,
             numQSorted,
@@ -1332,7 +1340,8 @@ fn BZ2_blockSortHelp(
         );
 
         if verbosity >= 3 {
-            eprintln!(
+            #[cfg(feature = "std")]
+            std::eprintln!(
                 "      {} work, {} block, ratio {:5.2}",
                 budgetInit - budget,
                 nblock,
@@ -1342,7 +1351,8 @@ fn BZ2_blockSortHelp(
 
         if budget < 0 {
             if verbosity >= 2 as c_int {
-                eprintln!("    too repetitive; using fallback sorting algorithm");
+                #[cfg(feature = "std")]
+                std::eprintln!("    too repetitive; using fallback sorting algorithm");
             }
 
             fallbackSort(ptr, arr2, ftab, nblock as i32, verbosity);

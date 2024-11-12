@@ -565,7 +565,8 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
 
                 s.currBlockNo += 1;
                 if s.verbosity >= 2 {
-                    eprint!("\n    [{}: huff+mtf ", s.currBlockNo);
+                    #[cfg(feature = "std")]
+                    std::eprint!("\n    [{}: huff+mtf ", s.currBlockNo);
                 }
                 s.storedBlockCRC = 0_u32;
                 current_block = BZ_X_BCRC_1;
@@ -1062,7 +1063,8 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             s.calculatedBlockCRC = 0xffffffffu32;
                             s.state = State::BZ_X_OUTPUT;
                             if s.verbosity >= 2 {
-                                eprint!("rt+rld");
+                                #[cfg(feature = "std")]
+                                std::eprint!("rt+rld");
                             }
                             match s.smallDecompress {
                                 DecompressMode::Small => {

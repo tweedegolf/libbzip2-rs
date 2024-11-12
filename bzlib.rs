@@ -1648,13 +1648,16 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
             if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
                 s.calculatedBlockCRC = !s.calculatedBlockCRC;
                 if s.verbosity >= 3 {
-                    eprint!(
+                    #[cfg(feature = "std")]
+                    std::eprint!(
                         " {{{:#08x}, {:#08x}}}",
-                        s.storedBlockCRC, s.calculatedBlockCRC,
+                        s.storedBlockCRC,
+                        s.calculatedBlockCRC,
                     );
                 }
                 if s.verbosity >= 2 {
-                    eprint!("]");
+                    #[cfg(feature = "std")]
+                    std::eprint!("]");
                 }
                 if s.calculatedBlockCRC != s.storedBlockCRC {
                     return ReturnCode::BZ_DATA_ERROR;
@@ -1672,9 +1675,11 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
             _ => match BZ2_decompress(strm, s) {
                 ReturnCode::BZ_STREAM_END => {
                     if s.verbosity >= 3 {
-                        eprint!(
+                        #[cfg(feature = "std")]
+                        std::eprint!(
                             "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
-                            s.storedCombinedCRC, s.calculatedCombinedCRC,
+                            s.storedCombinedCRC,
+                            s.calculatedCombinedCRC,
                         );
                     }
                     if s.calculatedCombinedCRC != s.storedCombinedCRC {
