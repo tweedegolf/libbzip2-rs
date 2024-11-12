@@ -1532,34 +1532,26 @@ unsafe fn uncompress(name: Option<String>) {
     };
 }
 
-unsafe fn testf(name: Option<String>) {
+unsafe fn testf(name: Option<&str>) {
     let inStr: *mut FILE;
     delete_output_on_interrupt = false;
 
-    copyFileName(
-        outName.as_mut_ptr(),
-        b"(none)\0" as *const u8 as *const libc::c_char,
-    );
+    copy_filename(outName.as_mut_ptr(), "(none)");
 
     let in_name;
 
     match (name, srcMode) {
         (_, SourceMode::I2O) => {
             in_name = PathBuf::from("(stdin)");
-            copyFileName(
-                inName.as_mut_ptr(),
-                b"(stdin)\0" as *const u8 as *const libc::c_char,
-            );
+            copy_filename(inName.as_mut_ptr(), "(stdin)");
         }
         (Some(name), SourceMode::F2O) => {
             in_name = PathBuf::from(&name);
-            let name = CString::new(name).unwrap();
-            copyFileName(inName.as_mut_ptr(), name.as_ptr());
+            copy_filename(inName.as_mut_ptr(), name);
         }
         (Some(name), SourceMode::F2F) => {
             in_name = PathBuf::from(&name);
-            let name = CString::new(name).unwrap();
-            copyFileName(inName.as_mut_ptr(), name.as_ptr());
+            copy_filename(inName.as_mut_ptr(), name);
         }
         (None, SourceMode::F2O | SourceMode::F2F) => {
             panic_str("testf: bad modes");
@@ -1751,14 +1743,8 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(libc::c_int) as usize,
     );
 
-    copyFileName(
-        inName.as_mut_ptr(),
-        b"(none)\0" as *const u8 as *const libc::c_char,
-    );
-    copyFileName(
-        outName.as_mut_ptr(),
-        b"(none)\0" as *const u8 as *const libc::c_char,
-    );
+    copy_filename(inName.as_mut_ptr(), "(none)");
+    copy_filename(outName.as_mut_ptr(), "(none)");
 
     let program_name_str = program_name.to_str().unwrap();
     core::ptr::copy(
@@ -1976,7 +1962,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        testf(Some(name));
+                        testf(Some(name.as_str()));
                     }
                 }
             }
