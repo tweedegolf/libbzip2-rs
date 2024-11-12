@@ -2,7 +2,6 @@ use std::env;
 use std::fs::Metadata;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::Duration;
 use std::time::SystemTime;
 
 /// Useful to test with the C binary
@@ -27,8 +26,12 @@ macro_rules! expect_output_failure {
         );
 
         assert_eq!(
-            String::from_utf8_lossy(&$output.stderr).replace(bzip2_binary(), "bzip2"),
-            $expected_stderr,
+            String::from_utf8_lossy(&$output.stderr)
+                .replace(bzip2_binary(), "bzip2")
+                .replace("bzip2.exe", "bzip2")
+                .replace("\\", "/")
+                .replace("\r\n", "\n"),
+            $expected_stderr.replace("\\", "/"),
         );
     };
 }
@@ -57,8 +60,12 @@ macro_rules! expect_output_success {
         );
 
         assert_eq!(
-            String::from_utf8_lossy(&$output.stderr).replace(bzip2_binary(), "bzip2"),
-            $expected_stderr,
+            String::from_utf8_lossy(&$output.stderr)
+                .replace(bzip2_binary(), "bzip2")
+                .replace("bzip2.exe", "bzip2")
+                .replace("\\", "/")
+                .replace("\r\n", "\n"),
+            $expected_stderr.replace("\\", "/"),
         );
     };
 }
@@ -194,7 +201,11 @@ fn flags_after_double_dash() {
 
     expect_failure!(
         cmd.args(["--", "-V"]),
-        "bzip2: Can't open input file -V: No such file or directory.\n"
+        if cfg!(windows) {
+            "bzip2: Can't open input file -V: The system cannot find the file specified..\n"
+        } else {
+            "bzip2: Can't open input file -V: No such file or directory.\n"
+        }
     );
 }
 
@@ -351,7 +362,11 @@ fn version() {
         cmd.args(["-V", "--never-processed"]);
         let output = cmd.output().unwrap();
 
-        assert!(output.status.success(),);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         assert!(String::from_utf8_lossy(&output.stdout).contains("This program is free software"));
     }
 
@@ -360,7 +375,11 @@ fn version() {
         cmd.args(["--version", "--never-processed"]);
         let output = cmd.output().unwrap();
 
-        assert!(output.status.success(),);
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         assert!(String::from_utf8_lossy(&output.stdout).contains("This program is free software"));
     }
 }
@@ -419,20 +438,37 @@ mod decompress_command {
 
         expect_output_failure!(
             output,
-            format!(concat!(
-                "\n",
-                "bzip2: Compressed file ends unexpectedly;\n",
-                "	perhaps it is corrupted?  *Possible* reason follows.\n",
-                "bzip2: Inappropriate ioctl for device\n",
-                "	Input file = (stdin), output file = (stdout)\n",
-                "\n",
-                "It is possible that the compressed file(s) have become corrupted.\n",
-                "You can use the -tvv option to test integrity of such files.\n",
-                "\n",
-                "You can use the `bzip2recover' program to attempt to recover\n",
-                "data from undamaged sections of corrupted files.\n",
-                "\n",
-            )),
+            if cfg!(windows) {
+                concat!(
+                    "\n",
+                    "bzip2: Compressed file ends unexpectedly;\n",
+                    "	perhaps it is corrupted?  *Possible* reason follows.\n",
+                    "bzip2: No error\n",
+                    "	Input file = (stdin), output file = (stdout)\n",
+                    "\n",
+                    "It is possible that the compressed file(s) have become corrupted.\n",
+                    "You can use the -tvv option to test integrity of such files.\n",
+                    "\n",
+                    "You can use the `bzip2recover' program to attempt to recover\n",
+                    "data from undamaged sections of corrupted files.\n",
+                    "\n",
+                )
+            } else {
+                concat!(
+                    "\n",
+                    "bzip2: Compressed file ends unexpectedly;\n",
+                    "	perhaps it is corrupted?  *Possible* reason follows.\n",
+                    "bzip2: Inappropriate ioctl for device\n",
+                    "	Input file = (stdin), output file = (stdout)\n",
+                    "\n",
+                    "It is possible that the compressed file(s) have become corrupted.\n",
+                    "You can use the -tvv option to test integrity of such files.\n",
+                    "\n",
+                    "You can use the `bzip2recover' program to attempt to recover\n",
+                    "data from undamaged sections of corrupted files.\n",
+                    "\n",
+                )
+            },
         );
     }
 
@@ -640,10 +676,18 @@ mod decompress_command {
 
         expect_failure!(
             cmd.arg("-d").arg("-vvv").arg(&sample1),
-            format!(
-                "bzip2: Can't open input file {in_file}: No such file or directory.\n",
-                in_file = sample1.display(),
-            ),
+            if cfg!(windows) {
+                format!(
+                    "bzip2: Can't open input file {in_file}: \
+                    The system cannot find the file specified..\n",
+                    in_file = sample1.display(),
+                )
+            } else {
+                format!(
+                    "bzip2: Can't open input file {in_file}: No such file or directory.\n",
+                    in_file = sample1.display(),
+                )
+            },
         );
     }
 
@@ -685,6 +729,7 @@ mod decompress_command {
     }
 
     #[test]
+    #[cfg(unix)]
     fn input_file_has_hard_links() {
         let tmpdir = tempfile::tempdir().unwrap();
         let sample1 = tmpdir.path().join("sample1.bz2");
@@ -730,6 +775,7 @@ mod decompress_command {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn input_file_cannot_be_read_f2o() {
         use std::os::unix::fs::PermissionsExt;
@@ -755,6 +801,7 @@ mod decompress_command {
     }
 
     #[test]
+    #[cfg(unix)]
     fn output_file_cannot_be_written() {
         let tmpdir = tempfile::tempdir().unwrap();
         let sample1 = tmpdir.path().join("sample1.bz2");
@@ -778,7 +825,10 @@ mod decompress_command {
     }
 
     #[test]
+    #[cfg(unix)] // Timestamps are not restored on Windows
     fn output_file_exists() {
+        use std::time::Duration;
+
         let expected = include_bytes!("input/quick/sample1.ref");
 
         let tmpdir = tempfile::tempdir().unwrap();
@@ -962,6 +1012,7 @@ mod test_command {
     }
 
     #[test]
+    #[cfg_attr(windows, ignore = "windows may be mangling stdin somehow")]
     fn valid_stdin() {
         use std::io::Write;
 
@@ -1074,10 +1125,18 @@ mod test_command {
 
         expect_failure!(
             cmd.arg("-t").arg("-vvv").arg(&sample1),
-            format!(
-                "bzip2: Can't open input {in_file}: No such file or directory.\n",
-                in_file = sample1.display(),
-            ),
+            if cfg!(windows) {
+                format!(
+                    "bzip2: Can't open input {in_file}: \
+                    The system cannot find the file specified..\n",
+                    in_file = sample1.display(),
+                )
+            } else {
+                format!(
+                    "bzip2: Can't open input {in_file}: No such file or directory.\n",
+                    in_file = sample1.display(),
+                )
+            },
         );
     }
 
@@ -1156,7 +1215,11 @@ mod compress_command {
 
             let output = cmd.output().unwrap();
 
-            assert!(output.status.success());
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
 
             let tmpdir = tempfile::tempdir().unwrap();
 
@@ -1175,7 +1238,11 @@ mod compress_command {
 
             let output = cmd.output().unwrap();
 
-            assert!(output.status.success());
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
 
             let out_hash = crc32fast::hash(&output.stdout);
             let ref_file = std::fs::read(sample).unwrap();
@@ -1206,10 +1273,10 @@ mod compress_command {
                 String::from_utf8_lossy(&output.stderr)
             );
 
-            // let tmpdir = tempfile::tempdir().unwrap();
-            let tmpdir_path = Path::new("/tmp/foo");
+            let tmpdir = tempfile::tempdir().unwrap();
 
-            let tempfile_path = tmpdir_path
+            let tempfile_path = tmpdir
+                .path()
                 .with_file_name(sample.file_name().unwrap())
                 .with_extension("bz2");
 
@@ -1252,7 +1319,11 @@ mod compress_command {
 
             let output = cmd.output().unwrap();
 
-            assert!(output.status.success());
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
 
             let tmpdir = tempfile::tempdir().unwrap();
 
@@ -1271,7 +1342,11 @@ mod compress_command {
 
             let output = cmd.output().unwrap();
 
-            assert!(output.status.success());
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
 
             let out_hash = crc32fast::hash(&output.stdout);
             let ref_file = std::fs::read(sample).unwrap();
@@ -1296,7 +1371,11 @@ mod compress_command {
 
         let output = cmd.output().unwrap();
 
-        assert!(output.status.success());
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
 
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
@@ -1317,7 +1396,11 @@ mod compress_command {
 
         let output = cmd.output().unwrap();
 
-        assert!(output.status.success());
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
 
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).replace(bzip2_binary(), "bzip2"),
@@ -1388,10 +1471,18 @@ mod compress_command {
 
         expect_failure!(
             cmd.arg("-z").arg("-vvv").arg(&sample1),
-            format!(
-                "bzip2: Can't open input file {in_file}: No such file or directory.\n",
-                in_file = sample1.display(),
-            ),
+            if cfg!(windows) {
+                format!(
+                    "bzip2: Can't open input file {in_file}: \
+                    The system cannot find the file specified..\n",
+                    in_file = sample1.display(),
+                )
+            } else {
+                format!(
+                    "bzip2: Can't open input file {in_file}: No such file or directory.\n",
+                    in_file = sample1.display(),
+                )
+            },
         );
     }
 
@@ -1433,6 +1524,7 @@ mod compress_command {
     }
 
     #[test]
+    #[cfg(unix)]
     fn input_file_has_hard_links() {
         let tmpdir = tempfile::tempdir().unwrap();
         let sample1 = tmpdir.path().join("sample1.tar");
@@ -1478,6 +1570,7 @@ mod compress_command {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn input_file_cannot_be_read_f2o() {
         use std::os::unix::fs::PermissionsExt;
@@ -1542,7 +1635,10 @@ mod compress_command {
     }
 
     #[test]
+    #[cfg(unix)] // Timestamps are not restored on Windows
     fn output_file_exists() {
+        use std::time::Duration;
+
         let tmpdir = tempfile::tempdir().unwrap();
 
         let sample1_ref = tmpdir.path().join("sample1.ref");
@@ -1607,6 +1703,7 @@ mod compress_command {
     }
 
     #[test]
+    #[cfg(unix)]
     fn stdout_is_terminal_i2o() {
         let mut cmd = command();
 

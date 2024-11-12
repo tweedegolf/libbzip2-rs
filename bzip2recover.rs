@@ -439,11 +439,19 @@ mod test {
 
         assert_eq!(
             buf,
-            concat!(
-                "/foo/bar/bzip2recover: I/O error reading `$garbage', possible reason follows.\n",
-                "No such file or directory (os error 2)\n",
-                "/foo/bar/bzip2recover: warning: output file(s) may be incomplete.\n"
-            )
+            if cfg!(windows) {
+                concat!(
+                    "/foo/bar/bzip2recover: I/O error reading `$garbage', possible reason follows.\n",
+                    "The system cannot find the file specified. (os error 2)\n",
+                    "/foo/bar/bzip2recover: warning: output file(s) may be incomplete.\n"
+                )
+            } else {
+                concat!(
+                    "/foo/bar/bzip2recover: I/O error reading `$garbage', possible reason follows.\n",
+                    "No such file or directory (os error 2)\n",
+                    "/foo/bar/bzip2recover: warning: output file(s) may be incomplete.\n"
+                )
+            }
         );
     }
 
@@ -466,11 +474,19 @@ mod test {
 
         assert_eq!(
             buf,
-            concat!(
-                "/foo/bar/bzip2recover: I/O error writing `$garbage', possible reason follows.\n",
-                "No such file or directory (os error 2)\n",
-                "/foo/bar/bzip2recover: warning: output file(s) may be incomplete.\n"
-            )
+            if cfg!(windows) {
+                concat!(
+                    "/foo/bar/bzip2recover: I/O error writing `$garbage', possible reason follows.\n",
+                    "The system cannot find the file specified. (os error 2)\n",
+                    "/foo/bar/bzip2recover: warning: output file(s) may be incomplete.\n"
+                )
+            } else {
+                concat!(
+                    "/foo/bar/bzip2recover: I/O error writing `$garbage', possible reason follows.\n",
+                    "No such file or directory (os error 2)\n",
+                    "/foo/bar/bzip2recover: warning: output file(s) may be incomplete.\n"
+                )
+            }
         );
     }
 

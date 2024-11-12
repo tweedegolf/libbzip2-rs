@@ -9,7 +9,6 @@ use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::SystemTime;
 
 use libbzip2_rs_sys::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
@@ -17,17 +16,50 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fread, fwrite, open,
-    perror, remove, rewind, signal, stat, strlen, ungetc, utimbuf, write, FILE, O_CREAT, O_EXCL,
-    O_WRONLY, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM, S_IRUSR, S_IWUSR,
+    _exit, exit, fclose, ferror, fflush, fgetc, fileno, fopen, fread, fwrite, perror, remove,
+    rewind, signal, stat, strlen, ungetc, write, FILE, SIGINT, SIGSEGV, SIGTERM,
 };
 
 // FIXME remove this
+#[cfg(not(target_os = "windows"))]
 extern "C" {
     #[cfg_attr(target_os = "macos", link_name = "__stdinp")]
     static mut stdin: *mut FILE;
     #[cfg_attr(target_os = "macos", link_name = "__stdoutp")]
     static mut stdout: *mut FILE;
+}
+
+#[cfg(all(target_os = "windows", target_env = "gnu"))]
+extern "C" {
+    fn __acrt_iob_func(idx: libc::c_uint) -> *mut FILE;
+}
+
+#[cfg(not(target_os = "windows"))]
+macro_rules! STDIN {
+    () => {
+        stdin
+    };
+}
+
+#[cfg(all(target_os = "windows", target_env = "gnu"))]
+macro_rules! STDIN {
+    () => {
+        __acrt_iob_func(0)
+    };
+}
+
+#[cfg(not(target_os = "windows"))]
+macro_rules! STDOUT {
+    () => {
+        stdout
+    };
+}
+
+#[cfg(all(target_os = "windows", target_env = "gnu"))]
+macro_rules! STDOUT {
+    () => {
+        __acrt_iob_func(1)
+    };
 }
 
 type Bool = libc::c_uchar;
@@ -126,7 +158,8 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE, metadata: Option
     let mut bzerr_dummy: i32 = 0;
     let mut ret: i32;
 
-    // TODO set files to binary mode?
+    set_binary_mode(stream);
+    set_binary_mode(zStream);
 
     if ferror(stream) != 0 {
         // diverges
@@ -291,7 +324,8 @@ unsafe fn uncompressStream(
 
     let mut state = State::Standard;
 
-    // TODO: set the file into binary mode?
+    set_binary_mode(stream);
+    set_binary_mode(zStream);
 
     if ferror(stream) != 0 || ferror(zStream) != 0 {
         // diverges
@@ -395,7 +429,7 @@ unsafe fn uncompressStream(
                     ioError()
                 }
 
-                if stream != stdout {
+                if stream != STDOUT!() {
                     ret = fclose(stream);
                     outputHandleJustInCase = core::ptr::null_mut();
                     if ret == libc::EOF {
@@ -458,10 +492,10 @@ unsafe fn uncompressStream(
                     libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(),
                     libbzip2_rs_sys::BZ_UNEXPECTED_EOF => compressedStreamEOF(),
                     libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC => {
-                        if zStream != stdin {
+                        if zStream != STDIN!() {
                             fclose(zStream);
                         }
-                        if stream != stdout {
+                        if stream != STDOUT!() {
                             fclose(stream);
                         }
                         if streamNo == 1 {
@@ -587,7 +621,7 @@ unsafe fn testStream(zStream: *mut FILE) -> bool {
             false
         }
         libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC => {
-            if zStream != stdin {
+            if zStream != STDIN!() {
                 fclose(zStream);
             }
             if streamNo == 1 {
@@ -903,44 +937,65 @@ unsafe fn copy_filename(to: *mut c_char, from: &str) {
 }
 
 fn fopen_output_safely_rust(name: impl AsRef<Path>) -> *mut FILE {
-    use std::os::fd::IntoRawFd;
-    use std::os::unix::fs::OpenOptionsExt;
+    #[cfg(unix)]
+    {
+        use std::os::fd::IntoRawFd;
+        use std::os::unix::fs::OpenOptionsExt;
 
-    let mut opts = std::fs::File::options();
+        let mut opts = std::fs::File::options();
 
-    opts.write(true).create_new(true);
+        opts.write(true).create_new(true);
 
-    #[allow(clippy::unnecessary_cast)]
-    opts.mode((libc::S_IWUSR | libc::S_IRUSR) as u32);
+        #[allow(clippy::unnecessary_cast)]
+        opts.mode((libc::S_IWUSR | libc::S_IRUSR) as u32);
 
-    let Ok(file) = opts.open(name) else {
-        return std::ptr::null_mut::<FILE>();
-    };
+        let Ok(file) = opts.open(name) else {
+            return std::ptr::null_mut::<FILE>();
+        };
 
-    let fd = file.into_raw_fd();
-    let mode = b"wb\0".as_ptr().cast::<c_char>();
-    let fp = unsafe { fdopen(fd, mode) };
-    if fp.is_null() {
-        unsafe { close(fd) };
+        let fd = file.into_raw_fd();
+        let mode = b"wb\0".as_ptr().cast::<c_char>();
+        let fp = unsafe { libc::fdopen(fd, mode) };
+        if fp.is_null() {
+            unsafe { libc::close(fd) };
+        }
+        fp
     }
 
-    fp
+    #[cfg(not(unix))]
+    unsafe {
+        use std::ffi::CString;
+
+        // The CString really only needs to live for the duration of the fopen
+        #[allow(temporary_cstring_as_ptr)]
+        libc::fopen(
+            CString::new(name.as_ref().to_str().unwrap())
+                .unwrap()
+                .as_ptr(),
+            b"wb\0".as_ptr().cast::<c_char>(),
+        )
+    }
 }
 
 unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *mut FILE {
-    let fh = open(
-        name,
-        O_WRONLY | O_CREAT | O_EXCL,
-        S_IWUSR as libc::c_uint | S_IRUSR as libc::c_uint,
-    );
-    if fh == -1 as libc::c_int {
-        return std::ptr::null_mut::<FILE>();
+    #[cfg(unix)]
+    {
+        let fh = libc::open(
+            name,
+            libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL,
+            libc::S_IWUSR as libc::c_uint | libc::S_IRUSR as libc::c_uint,
+        );
+        if fh == -1 as libc::c_int {
+            return std::ptr::null_mut::<FILE>();
+        }
+        let fp = libc::fdopen(fh, mode);
+        if fp.is_null() {
+            libc::close(fh);
+        }
+        fp
     }
-    let fp = fdopen(fh, mode);
-    if fp.is_null() {
-        close(fh);
-    }
-    fp
+    #[cfg(not(unix))]
+    libc::fopen(name, mode)
 }
 
 fn not_a_standard_file(path: &Path) -> bool {
@@ -963,13 +1018,15 @@ fn count_hardlinks(path: &Path) -> u64 {
 }
 
 #[cfg(not(unix))]
-unsafe fn count_hardlinks(path: &Path) -> u64 {
+unsafe fn count_hardlinks(_path: &Path) -> u64 {
     0 // FIXME
 }
 
 fn apply_saved_time_info_to_output_file(_dst_name: &CStr, _metadata: Metadata) {
     #[cfg(unix)]
     {
+        use std::time::SystemTime;
+
         let convert = |x: SystemTime| {
             x.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as libc::time_t
         };
@@ -977,7 +1034,7 @@ fn apply_saved_time_info_to_output_file(_dst_name: &CStr, _metadata: Metadata) {
         let actime = convert(_metadata.accessed().unwrap_or(SystemTime::UNIX_EPOCH));
         let modtime = convert(_metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH));
 
-        let buf = utimbuf { actime, modtime };
+        let buf = libc::utimbuf { actime, modtime };
 
         match unsafe { libc::utime(_dst_name.as_ptr(), &buf) } {
             0 => {}
@@ -986,24 +1043,24 @@ fn apply_saved_time_info_to_output_file(_dst_name: &CStr, _metadata: Metadata) {
     }
 }
 
-unsafe fn set_permissions(handle: *mut FILE, metadata: &Metadata) {
+unsafe fn set_permissions(_handle: *mut FILE, _metadata: &Metadata) {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
 
-        let fd = fileno(handle);
+        let fd = fileno(_handle);
         if fd < 0 {
             // diverges
             ioError()
         }
 
-        let retVal = libc::fchmod(fd, metadata.mode() as libc::mode_t);
+        let retVal = libc::fchmod(fd, _metadata.mode() as libc::mode_t);
         if retVal != 0 as libc::c_int {
             ioError();
         }
 
         // chown() will in many cases return with EPERM, which can be safely ignored.
-        libc::fchown(fd, metadata.uid(), metadata.gid());
+        libc::fchown(fd, _metadata.uid(), _metadata.gid());
     }
 }
 
@@ -1030,6 +1087,24 @@ const BZ_N_SUFFIX_PAIRS: usize = 4;
 
 const Z_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = [".bz2", ".bz", ".tbz2", ".tbz"];
 const UNZ_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = ["", "", ".tar", ".tar"];
+
+#[cfg(windows)]
+/// Prevent Windows from mangling the read data.
+unsafe fn set_binary_mode(file: *mut FILE) {
+    use std::ffi::c_int;
+
+    extern "C" {
+        fn _setmode(fd: c_int, mode: c_int) -> c_int;
+    }
+
+    if _setmode(fileno(file), libc::O_BINARY) == -1 {
+        ioError();
+    }
+}
+
+#[cfg(not(windows))]
+/// Prevent Windows from mangling the read data.
+unsafe fn set_binary_mode(_file: *mut FILE) {}
 
 unsafe fn compress(name: Option<&str>) {
     let in_name;
@@ -1165,8 +1240,8 @@ unsafe fn compress(name: Option<&str>) {
 
     match srcMode {
         SourceMode::I2O => {
-            inStr = stdin;
-            outStr = stdout;
+            inStr = STDIN!();
+            outStr = STDOUT!();
             if std::io::stdout().is_terminal() {
                 eprintln!(
                     "{}: I won't write compressed data to a terminal.",
@@ -1186,7 +1261,7 @@ unsafe fn compress(name: Option<&str>) {
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
             );
-            outStr = stdout;
+            outStr = STDOUT!();
             if std::io::stdout().is_terminal() {
                 eprintln!(
                     "{}: I won't write compressed data to a terminal.",
@@ -1416,8 +1491,8 @@ unsafe fn uncompress(name: Option<&str>) {
 
     match srcMode {
         SourceMode::I2O => {
-            inStr = stdin;
-            outStr = stdout;
+            inStr = STDIN!();
+            outStr = STDOUT!();
             if std::io::stdin().is_terminal() {
                 eprint!(
                     concat!(
@@ -1435,7 +1510,7 @@ unsafe fn uncompress(name: Option<&str>) {
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
             );
-            outStr = stdout;
+            outStr = STDOUT!();
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
@@ -1616,7 +1691,7 @@ unsafe fn testf(name: Option<&str>) {
                 setExit(1);
                 return;
             }
-            inStr = stdin;
+            inStr = STDIN!();
         }
         SourceMode::F2O | SourceMode::F2F => {
             inStr = fopen(
@@ -1751,8 +1826,9 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         SIGSEGV,
         mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(libc::c_int) as usize,
     );
+    #[cfg(not(target_os = "windows"))]
     signal(
-        SIGBUS,
+        libc::SIGBUS,
         mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(libc::c_int) as usize,
     );
 
@@ -1922,8 +1998,9 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             SIGTERM,
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
+        #[cfg(not(target_os = "windows"))]
         signal(
-            SIGHUP,
+            libc::SIGHUP,
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
     }
