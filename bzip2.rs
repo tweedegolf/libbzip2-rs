@@ -1191,7 +1191,7 @@ unsafe fn compress(name: Option<&str>) {
     }
     if srcMode == SourceMode::F2F && out_name.exists() {
         if force_overwrite {
-            remove(outName.as_mut_ptr());
+            let _ = std::fs::remove_file(out_name);
         } else {
             eprintln!(
                 "{}: Output file {} already exists.",
@@ -1319,8 +1319,7 @@ unsafe fn compress(name: Option<&str>) {
         applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
         delete_output_on_interrupt = false;
         if !keep_input_files {
-            let retVal: IntNative = remove(inName.as_mut_ptr());
-            if retVal != 0 as libc::c_int {
+            if let Err(_) = std::fs::remove_file(in_name) {
                 ioError();
             }
         }
