@@ -16,7 +16,7 @@ use libbzip2_rs_sys::{
 use libc::{
     _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fread, fwrite, open,
     perror, remove, rewind, signal, stat, strcat, strcmp, strlen, strncpy, ungetc, utimbuf, write,
-    FILE,
+    FILE, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM,
 };
 extern "C" {
     static mut stdin: *mut FILE;
@@ -1812,11 +1812,11 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     exitValue = 0;
 
     signal(
-        11,
+        SIGSEGV,
         mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(libc::c_int) as usize,
     );
     signal(
-        7,
+        SIGBUS,
         mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(libc::c_int) as usize,
     );
 
@@ -1985,15 +1985,15 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     }
     if srcMode == SourceMode::F2F {
         signal(
-            2,
+            SIGINT,
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
         signal(
-            15,
+            SIGTERM,
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
         signal(
-            1,
+            SIGHUP,
             mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
         );
     }
