@@ -482,8 +482,7 @@ const _C_SHORT_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_short>() == 
 const _C_CHAR_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_char>() == 1);
 
 unsafe extern "C" fn default_bzalloc(_opaque: *mut c_void, items: i32, size: i32) -> *mut c_void {
-    let v: *mut c_void = malloc((items * size) as usize);
-    v
+    malloc((items * size) as usize)
 }
 unsafe extern "C" fn default_bzfree(_opaque: *mut c_void, addr: *mut c_void) {
     if !addr.is_null() {
@@ -523,13 +522,11 @@ unsafe fn bzalloc_array<T>(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) 
     let len = i32::try_from(len).ok()?;
     let width = i32::try_from(mem::size_of::<T>()).ok()?;
 
-    let ptr = bzalloc(opaque, len, width);
+    let ptr = bzalloc(opaque, len, width).cast::<T>();
 
     if ptr.is_null() {
         return None;
     }
-
-    let ptr = ptr.cast::<T>();
 
     ptr::write_bytes(ptr, 0, len as usize);
 
@@ -2643,11 +2640,7 @@ enum OpenMode {
     FileDescriptor(i32),
 }
 
-unsafe fn bzopen_or_bzdopen(
-    path: *const c_char,
-    open_mode: OpenMode,
-    mode: *const c_char,
-) -> *mut BZFILE {
+unsafe fn bzopen_or_bzdopen(path: Option<&CStr>, open_mode: OpenMode, mode: &CStr) -> *mut BZFILE {
     let mut bzerr = 0;
     let mut unused: [c_char; BZ_MAX_UNUSED as usize] = [0; BZ_MAX_UNUSED as usize];
 
@@ -2658,18 +2651,6 @@ unsafe fn bzopen_or_bzdopen(
 
     let mut smallMode = false;
     let mut operation = Operation::Reading;
-
-    let mode = if mode.is_null() {
-        return ptr::null_mut();
-    } else {
-        CStr::from_ptr(mode)
-    };
-
-    let path = if path.is_null() {
-        None
-    } else {
-        Some(CStr::from_ptr(path))
-    };
 
     for c in mode.to_bytes() {
         match c {
@@ -2756,6 +2737,18 @@ unsafe fn bzopen_or_bzdopen(
 /// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzopen)]
 pub unsafe extern "C" fn BZ2_bzopen(path: *const c_char, mode: *const c_char) -> *mut BZFILE {
+    let mode = if mode.is_null() {
+        return ptr::null_mut();
+    } else {
+        CStr::from_ptr(mode)
+    };
+
+    let path = if path.is_null() {
+        None
+    } else {
+        Some(CStr::from_ptr(path))
+    };
+
     bzopen_or_bzdopen(path, OpenMode::Pointer, mode)
 }
 
@@ -2773,7 +2766,13 @@ pub unsafe extern "C" fn BZ2_bzopen(path: *const c_char, mode: *const c_char) ->
 /// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzdopen)]
 pub unsafe extern "C" fn BZ2_bzdopen(fd: c_int, mode: *const c_char) -> *mut BZFILE {
-    bzopen_or_bzdopen(ptr::null(), OpenMode::FileDescriptor(fd), mode)
+    let mode = if mode.is_null() {
+        return ptr::null_mut();
+    } else {
+        CStr::from_ptr(mode)
+    };
+
+    bzopen_or_bzdopen(None, OpenMode::FileDescriptor(fd), mode)
 }
 
 /// Reads up to `len` (uncompressed) bytes from the compressed file `b` into the buffer `buf`.
