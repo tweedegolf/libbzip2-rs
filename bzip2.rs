@@ -903,6 +903,31 @@ unsafe fn copy_filename(to: *mut c_char, from: &str) {
     *to.wrapping_add(FILE_NAME_LEN - 10) = '\0' as i32 as c_char;
 }
 
+fn fopen_output_safely_rust(name: impl AsRef<Path>) -> *mut FILE {
+    use std::os::fd::AsRawFd;
+    use std::os::unix::fs::OpenOptionsExt;
+
+    let mut opts = std::fs::File::options();
+
+    opts.write(true).create_new(true);
+
+    opts.mode(libc::S_IWUSR | libc::S_IRUSR);
+
+    let Ok(file) = opts.open(name) else {
+        return std::ptr::null_mut::<FILE>();
+    };
+
+    let mode = b"wb\0".as_ptr().cast::<c_char>();
+    let fp = unsafe { fdopen(file.as_raw_fd(), mode) };
+    if fp.is_null() {
+        drop(file)
+    } else {
+        core::mem::forget(file)
+    }
+
+    fp
+}
+
 unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *mut FILE {
     let fh = open(
         name,
@@ -1096,7 +1121,7 @@ unsafe fn compress(name: Option<&str>) {
     }
     if srcMode == SourceMode::F2F && out_name.exists() {
         if force_overwrite {
-            let _ = std::fs::remove_file(out_name);
+            let _ = std::fs::remove_file(&out_name);
         } else {
             eprintln!(
                 "{}: Output file {} already exists.",
@@ -1180,10 +1205,7 @@ unsafe fn compress(name: Option<&str>) {
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
             );
-            outStr = fopen_output_safely(
-                outName.as_mut_ptr(),
-                b"wb\0" as *const u8 as *const libc::c_char,
-            );
+            outStr = fopen_output_safely_rust(&out_name);
             if outStr.is_null() {
                 eprintln!(
                     "{}: Can't create output file {}: {}.",
