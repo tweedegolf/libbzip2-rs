@@ -15,8 +15,8 @@ use libbzip2_rs_sys::{
 
 use libc::{
     _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fread, fwrite, open,
-    perror, remove, rewind, signal, stat, strcat, strlen, strncpy, ungetc, utimbuf, write, FILE,
-    O_CREAT, O_EXCL, O_WRONLY, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM, S_IRUSR, S_IWUSR,
+    perror, remove, rewind, signal, stat, strlen, strncpy, ungetc, utimbuf, write, FILE, O_CREAT,
+    O_EXCL, O_WRONLY, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM, S_IRUSR, S_IWUSR,
 };
 
 // FIXME remove this
@@ -879,6 +879,26 @@ unsafe fn pad(s: *mut c_char) {
         eprint!(" ");
     }
 }
+
+unsafe fn copy_filename(to: *mut c_char, from: &str) {
+    if from.len() > (FILE_NAME_LEN - 10) {
+        eprint!(
+            concat!(
+                "bzip2: file name\n",
+                "`{}'\n",
+                "is suspiciously (more than {} chars) long.\n",
+                "Try using a reasonable file name instead.  Sorry! :-)\n",
+            ),
+            from,
+            FILE_NAME_LEN - 10
+        );
+        setExit(1 as libc::c_int);
+        exit(exitValue);
+    }
+    strncpy(to, from.as_ptr().cast::<c_char>(), FILE_NAME_LEN - 10);
+    *to.wrapping_add(FILE_NAME_LEN - 10) = '\0' as i32 as c_char;
+}
+
 unsafe fn copyFileName(to: *mut c_char, from: *const c_char) {
     if strlen(from) > (FILE_NAME_LEN - 10) {
         eprint!(
@@ -1009,37 +1029,22 @@ unsafe fn compress(name: Option<&str>) {
             in_name = Path::new("(stdin)");
             out_name = PathBuf::from("(stdout)");
 
-            copyFileName(
-                inName.as_mut_ptr(),
-                b"(stdin)\0" as *const u8 as *const libc::c_char,
-            );
-            copyFileName(
-                outName.as_mut_ptr(),
-                b"(stdout)\0" as *const u8 as *const libc::c_char,
-            );
+            copy_filename(inName.as_mut_ptr(), "(stdin)");
+            copy_filename(outName.as_mut_ptr(), "(stdout)");
         }
         (Some(name), SourceMode::F2O) => {
             in_name = Path::new(name);
             out_name = PathBuf::from("(stdout)");
 
-            let name = CString::new(name).unwrap();
-            copyFileName(inName.as_mut_ptr(), name.as_ptr());
-            copyFileName(
-                outName.as_mut_ptr(),
-                b"(stdout)\0" as *const u8 as *const libc::c_char,
-            );
+            copy_filename(inName.as_mut_ptr(), name);
+            copy_filename(outName.as_mut_ptr(), "(stdout)");
         }
         (Some(name), SourceMode::F2F) => {
             in_name = Path::new(name);
             out_name = PathBuf::from(format!("{name}.bz2"));
 
-            let name = CString::new(name).unwrap();
-            copyFileName(inName.as_mut_ptr(), name.as_ptr());
-            copyFileName(outName.as_mut_ptr(), name.as_ptr());
-            strcat(
-                outName.as_mut_ptr(),
-                b".bz2\0" as *const u8 as *const libc::c_char,
-            );
+            copy_filename(inName.as_mut_ptr(), in_name.to_str().unwrap());
+            copy_filename(outName.as_mut_ptr(), out_name.to_str().unwrap());
         }
         (None, SourceMode::F2O | SourceMode::F2F) => {
             panic_str("compress: bad modes\n");
