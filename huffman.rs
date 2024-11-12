@@ -59,7 +59,7 @@ fn downheap(
     heap[z] = tmp;
 }
 
-pub fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: usize, maxLen: i32) {
+pub(crate) fn make_code_lengths(len: &mut [u8], freq: &[i32], alphaSize: usize, maxLen: i32) {
     /*--
        Nodes and heap entries run from 1.  Entry 0
        for both the heap and nodes is a sentinel.
@@ -155,7 +155,7 @@ pub fn BZ2_hbMakeCodeLengths(len: &mut [u8], freq: &[i32], alphaSize: usize, max
     }
 }
 
-pub fn BZ2_hbAssignCodes(
+pub(crate) fn assign_codes(
     code: &mut [i32],
     length: &[u8],
     minLen: i32,
@@ -174,7 +174,7 @@ pub fn BZ2_hbAssignCodes(
     }
 }
 
-pub fn BZ2_hbCreateDecodeTables(
+pub(crate) fn create_decode_tables(
     limit: &mut [i32],
     base: &mut [i32],
     perm: &mut [i32],

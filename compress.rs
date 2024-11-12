@@ -1,9 +1,8 @@
 #![forbid(unsafe_code)]
 
-use crate::assert_h;
 use crate::blocksort::BZ2_blockSort;
 use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS, BZ_RUNA, BZ_RUNB};
-use crate::huffman::{BZ2_hbAssignCodes, BZ2_hbMakeCodeLengths};
+use crate::{assert_h, huffman};
 
 pub struct EWriter {
     pub num_z: u32,
@@ -78,7 +77,7 @@ impl<'a> LiveWriter<'a> {
     }
 }
 
-fn makeMaps_e(s: &mut EState) {
+fn make_maps_e(s: &mut EState) {
     s.nInUse = 0;
     for (i, in_use) in s.inUse.iter().enumerate() {
         if *in_use {
@@ -88,7 +87,7 @@ fn makeMaps_e(s: &mut EState) {
     }
 }
 
-fn generateMTFValues(s: &mut EState) {
+fn generate_mtf_values(s: &mut EState) {
     /*
        After sorting (eg, here),
           s.arr1 [ 0 .. s->nblock-1 ] holds sorted order,
@@ -112,7 +111,7 @@ fn generateMTFValues(s: &mut EState) {
        compressBlock().
     */
 
-    makeMaps_e(s);
+    make_maps_e(s);
     let EOB = s.nInUse + 1;
 
     s.mtfFreq[..=EOB as usize].fill(0);
@@ -200,7 +199,7 @@ fn generateMTFValues(s: &mut EState) {
     s.nMTF = wr;
 }
 
-fn sendMTFValues(s: &mut EState) {
+fn send_mtf_values(s: &mut EState) {
     const BZ_LESSER_ICOST: u8 = 0;
     const BZ_GREATER_ICOST: u8 = 15;
 
@@ -468,7 +467,7 @@ fn sendMTFValues(s: &mut EState) {
         /* maxLen was changed from 20 to 17 in bzip2-1.0.3.  See
         comment in huffman.c for details. */
         for t in 0..nGroups {
-            BZ2_hbMakeCodeLengths(&mut s.len[t], &s.rfreq[t], alphaSize, 17);
+            huffman::make_code_lengths(&mut s.len[t], &s.rfreq[t], alphaSize, 17);
         }
     }
 
@@ -517,7 +516,7 @@ fn sendMTFValues(s: &mut EState) {
         assert_h!(maxLen <= 17, 3004);
         assert_h!(minLen >= 1, 3005);
 
-        BZ2_hbAssignCodes(&mut s.code[t], &s.len[t], minLen, maxLen, alphaSize);
+        huffman::assign_codes(&mut s.code[t], &s.len[t], minLen, maxLen, alphaSize);
     }
 
     /*--- Transmit the mapping table. ---*/
@@ -646,7 +645,7 @@ fn sendMTFValues(s: &mut EState) {
     }
 }
 
-pub fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
+pub(crate) fn compress_block(s: &mut EState, is_last_block: bool) {
     if s.nblock > 0 {
         s.blockCRC = !s.blockCRC;
         s.combinedCRC = s.combinedCRC.rotate_left(1);
@@ -709,9 +708,9 @@ pub fn BZ2_compressBlock(s: &mut EState, is_last_block: bool) {
 
             drop(writer);
 
-            generateMTFValues(s);
+            generate_mtf_values(s);
 
-            sendMTFValues(s);
+            send_mtf_values(s);
         }
     }
 
