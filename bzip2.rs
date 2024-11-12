@@ -15,8 +15,8 @@ use libbzip2_rs_sys::{
 
 use libc::{
     _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fread, fwrite, open,
-    perror, remove, rewind, signal, stat, strcat, strcmp, strlen, strncpy, ungetc, utimbuf, write,
-    FILE, O_CREAT, O_EXCL, O_WRONLY, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM, S_IRUSR, S_IWUSR,
+    perror, remove, rewind, signal, stat, strcat, strlen, strncpy, ungetc, utimbuf, write, FILE,
+    O_CREAT, O_EXCL, O_WRONLY, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM, S_IRUSR, S_IWUSR,
 };
 
 // FIXME remove this
@@ -897,14 +897,6 @@ unsafe fn copyFileName(to: *mut c_char, from: *const c_char) {
     strncpy(to, from, FILE_NAME_LEN - 10);
     *to.wrapping_add(FILE_NAME_LEN - 10) = '\0' as i32 as c_char;
 }
-unsafe fn fileExists(name: *mut c_char) -> Bool {
-    let tmp: *mut FILE = fopen(name, b"rb\0" as *const u8 as *const libc::c_char);
-    let exists: Bool = (tmp != std::ptr::null_mut::<libc::c_void>() as *mut FILE) as Bool;
-    if !tmp.is_null() {
-        fclose(tmp);
-    }
-    exists
-}
 unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *mut FILE {
     let fh = open(
         name,
@@ -927,47 +919,6 @@ fn not_a_standard_file(path: &Path) -> bool {
     };
 
     !metadata.is_file()
-}
-
-#[cfg(unix)]
-unsafe fn notAStandardFile(name: *mut c_char) -> Bool {
-    let mut statBuf: stat = zeroed();
-    let i = libc::lstat(name, &mut statBuf);
-    if i != 0 as libc::c_int {
-        return 1 as Bool;
-    }
-    if statBuf.st_mode & 0o170000 == 0o100000 {
-        return 0 as Bool;
-    }
-    1 as Bool
-}
-#[cfg(not(unix))]
-unsafe fn notAStandardFile(name: *mut c_char) -> Bool {
-    let Ok(name) = std::ffi::CStr::from_ptr(name).to_str() else {
-        return 1;
-    };
-    let Ok(metadata) = std::path::Path::new(name).symlink_metadata() else {
-        return 1;
-    };
-
-    if metadata.file_type().is_file() {
-        0
-    } else {
-        1
-    }
-}
-#[cfg(unix)]
-unsafe fn countHardLinks(name: *mut c_char) -> i32 {
-    let mut statBuf: stat = zeroed();
-    let i = libc::lstat(name, &mut statBuf);
-    if i != 0 as libc::c_int {
-        return 0 as libc::c_int;
-    }
-    (statBuf.st_nlink).wrapping_sub(1) as i32
-}
-#[cfg(not(unix))]
-unsafe fn countHardLinks(name: *mut c_char) -> i32 {
-    0 // FIXME
 }
 
 #[cfg(unix)]
@@ -1020,21 +971,6 @@ unsafe fn applySavedFileAttrToOutputFile(fd: IntNative) {
 unsafe fn applySavedFileAttrToOutputFile(_fd: IntNative) {}
 
 #[cfg(unix)]
-unsafe fn contains_dubious_chars(_: *mut c_char) -> bool {
-    // On unix, files can contain any characters and the file expansion is performed by the shell.
-    false
-}
-
-#[cfg(not(unix))]
-unsafe fn contains_dubious_chars(ptr: *mut c_char) -> bool {
-    // On non-unix (Win* platforms), wildcard characters are not allowed in filenames.
-    CStr::from_ptr(ptr)
-        .to_bytes()
-        .iter()
-        .any(|c| *c == b'?' || *c == b'*')
-}
-
-#[cfg(unix)]
 fn contains_dubious_chars_safe(_: &Path) -> bool {
     // On unix, files can contain any characters and the file expansion is performed by the shell.
     false
@@ -1057,25 +993,6 @@ const BZ_N_SUFFIX_PAIRS: usize = 4;
 
 const Z_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = [".bz2", ".bz", ".tbz2", ".tbz"];
 const UNZ_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = ["", "", ".tar", ".tar"];
-
-static mut zSuffix: [*const c_char; BZ_N_SUFFIX_PAIRS] = [
-    b".bz2\0" as *const u8 as *const libc::c_char,
-    b".bz\0" as *const u8 as *const libc::c_char,
-    b".tbz2\0" as *const u8 as *const libc::c_char,
-    b".tbz\0" as *const u8 as *const libc::c_char,
-];
-
-unsafe fn hasSuffix(s: *mut c_char, suffix: *const c_char) -> Bool {
-    let ns: i32 = strlen(s) as i32;
-    let nx: i32 = strlen(suffix) as i32;
-    if ns < nx {
-        return 0 as Bool;
-    }
-    if strcmp(s.offset(ns as isize).offset(-nx as isize), suffix) == 0 as libc::c_int {
-        return 1 as Bool;
-    }
-    0 as Bool
-}
 
 unsafe fn compress(name: Option<&str>) {
     let in_name;
@@ -1151,14 +1068,14 @@ unsafe fn compress(name: Option<&str>) {
         return;
     }
     if let Some(extension) = in_name.extension() {
-        for bz2_extension in ["bz2", "bz", "tbz2", "tbz"] {
-            if extension == OsStr::new(bz2_extension) {
+        for bz2_extension in Z_SUFFIX {
+            if extension == OsStr::new(&bz2_extension[1..]) {
                 if noisy {
                     eprintln!(
                         "{}: Input file {} already has {} suffix.",
                         std::env::args().next().unwrap(),
                         in_name.display(),
-                        bz2_extension
+                        &bz2_extension[1..],
                     );
                 }
                 setExit(1 as libc::c_int);
@@ -1318,10 +1235,8 @@ unsafe fn compress(name: Option<&str>) {
     if srcMode == SourceMode::F2F {
         applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
         delete_output_on_interrupt = false;
-        if !keep_input_files {
-            if let Err(_) = std::fs::remove_file(in_name) {
-                ioError();
-            }
+        if !keep_input_files && std::fs::remove_file(in_name).is_err() {
+            ioError();
         }
     }
     delete_output_on_interrupt = false;
