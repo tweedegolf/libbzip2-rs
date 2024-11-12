@@ -1527,7 +1527,7 @@ mod compress_command {
                 concat!(
                     "  {in_file}: \n",
                     "    block 1: crc = 0xccf1b5a5, combined CRC = 0xccf1b5a5, size = 98170\n",
-                    "      454 work, 98170 block, ratio  0.00\n",
+                    "      431 work, 98170 block, ratio  0.00\n",
                     "      98170 in block, 59500 after MTF & 1-2 coding, 256+2 syms in use\n",
                     "      initial group 6, [0 .. 0], has 12672 syms (21.3%)\n",
                     "      initial group 5, [1 .. 1], has 5883 syms ( 9.9%)\n",
@@ -1626,5 +1626,19 @@ mod compress_command {
 
         // the `-k` flag should keep the input file
         assert!(sample1_ref.exists());
+    }
+
+    #[test]
+    fn compress_sample1_log() {
+        let mut cmd = command();
+
+        expect_success!(
+            cmd.arg("-z")
+                .arg("-vvvv")
+                .arg("-c")
+                .arg("-k")
+                .arg("tests/input/quick/sample1.ref"),
+            include_str!("compress-sample1-log.txt"),
+        );
     }
 }
