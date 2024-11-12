@@ -1114,7 +1114,7 @@ fn mainSort(
         for j in 0..=255 {
             if j != ss {
                 sb = (ss << 8 as c_int) + j;
-                if (!(ftab[sb as usize] & SETMASK)) != 0 {
+                if ftab[sb as usize] & SETMASK == 0 {
                     let lo: i32 = (ftab[sb as usize] & CLEARMASK) as i32;
                     let hi: i32 = ((ftab[sb as usize + 1] & CLEARMASK).wrapping_sub(1)) as i32;
 
