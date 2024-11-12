@@ -256,47 +256,34 @@ pub unsafe fn decompress_c(
 ) -> i32 {
     use bzip2_sys::*;
 
-    pub unsafe fn BZ2_bzBuffToBuffDecompress(
-        dest: *mut libc::c_char,
-        dest_len: *mut libc::c_uint,
-        source: *mut libc::c_char,
-        source_len: libc::c_uint,
-        small: libc::c_int,
-        verbosity: libc::c_int,
-    ) -> libc::c_int {
-        let mut strm: bz_stream = bz_stream {
-            next_in: std::ptr::null_mut::<libc::c_char>(),
-            avail_in: 0,
-            total_in_lo32: 0,
-            total_in_hi32: 0,
-            next_out: std::ptr::null_mut::<libc::c_char>(),
-            avail_out: 0,
-            total_out_lo32: 0,
-            total_out_hi32: 0,
-            state: std::ptr::null_mut::<libc::c_void>(),
-            bzalloc: None,
-            bzfree: None,
-            opaque: std::ptr::null_mut::<libc::c_void>(),
-        };
-        let mut ret: libc::c_int;
-        if dest.is_null()
-            || dest_len.is_null()
-            || source.is_null()
-            || small != 0 as libc::c_int && small != 1 as libc::c_int
-            || verbosity < 0 as libc::c_int
-            || verbosity > 4 as libc::c_int
-        {
-            return -(2 as libc::c_int);
-        }
-        strm.bzalloc = None;
-        strm.bzfree = None;
-        strm.opaque = std::ptr::null_mut::<libc::c_void>();
-        ret = BZ2_bzDecompressInit(&mut strm, verbosity, small);
+    let mut strm: bz_stream = bz_stream {
+        next_in: std::ptr::null_mut::<libc::c_char>(),
+        avail_in: 0,
+        total_in_lo32: 0,
+        total_in_hi32: 0,
+        next_out: std::ptr::null_mut::<libc::c_char>(),
+        avail_out: 0,
+        total_out_lo32: 0,
+        total_out_hi32: 0,
+        state: std::ptr::null_mut::<libc::c_void>(),
+        bzalloc: None,
+        bzfree: None,
+        opaque: std::ptr::null_mut::<libc::c_void>(),
+    };
+    let mut ret: libc::c_int;
+    if dest.is_null() || dest_len.is_null() || source.is_null() {
+        return -(2 as libc::c_int);
+    }
+    strm.bzalloc = None;
+    strm.bzfree = None;
+    strm.opaque = std::ptr::null_mut::<libc::c_void>();
+    unsafe {
+        ret = BZ2_bzDecompressInit(&mut strm, 0, 0);
         if ret != 0 as libc::c_int {
             return ret;
         }
-        strm.next_in = source;
-        strm.next_out = dest;
+        strm.next_in = source as *mut libc::c_char;
+        strm.next_out = dest.cast::<core::ffi::c_char>();
         strm.avail_in = source_len;
         strm.avail_out = *dest_len;
         ret = BZ2_bzDecompress(&mut strm);
@@ -316,17 +303,6 @@ pub unsafe fn decompress_c(
             BZ2_bzDecompressEnd(&mut strm);
             return 0 as libc::c_int;
         }
-    }
-
-    unsafe {
-        BZ2_bzBuffToBuffDecompress(
-            dest.cast::<core::ffi::c_char>(),
-            dest_len,
-            source as *mut _,
-            source_len,
-            0,
-            0,
-        )
     }
 }
 
@@ -338,47 +314,34 @@ pub unsafe fn decompress_rs(
 ) -> i32 {
     use libbzip2_rs_sys::*;
 
-    pub unsafe fn BZ2_bzBuffToBuffDecompress(
-        dest: *mut libc::c_char,
-        dest_len: *mut libc::c_uint,
-        source: *mut libc::c_char,
-        source_len: libc::c_uint,
-        small: libc::c_int,
-        verbosity: libc::c_int,
-    ) -> libc::c_int {
-        let mut strm: bz_stream = bz_stream {
-            next_in: std::ptr::null_mut::<libc::c_char>(),
-            avail_in: 0,
-            total_in_lo32: 0,
-            total_in_hi32: 0,
-            next_out: std::ptr::null_mut::<libc::c_char>(),
-            avail_out: 0,
-            total_out_lo32: 0,
-            total_out_hi32: 0,
-            state: std::ptr::null_mut::<libc::c_void>(),
-            bzalloc: None,
-            bzfree: None,
-            opaque: std::ptr::null_mut::<libc::c_void>(),
-        };
-        let mut ret: libc::c_int;
-        if dest.is_null()
-            || dest_len.is_null()
-            || source.is_null()
-            || small != 0 as libc::c_int && small != 1 as libc::c_int
-            || verbosity < 0 as libc::c_int
-            || verbosity > 4 as libc::c_int
-        {
-            return -(2 as libc::c_int);
-        }
-        strm.bzalloc = None;
-        strm.bzfree = None;
-        strm.opaque = std::ptr::null_mut::<libc::c_void>();
-        ret = BZ2_bzDecompressInit(&mut strm, verbosity, small);
+    let mut strm: bz_stream = bz_stream {
+        next_in: std::ptr::null_mut::<libc::c_char>(),
+        avail_in: 0,
+        total_in_lo32: 0,
+        total_in_hi32: 0,
+        next_out: std::ptr::null_mut::<libc::c_char>(),
+        avail_out: 0,
+        total_out_lo32: 0,
+        total_out_hi32: 0,
+        state: std::ptr::null_mut::<libc::c_void>(),
+        bzalloc: None,
+        bzfree: None,
+        opaque: std::ptr::null_mut::<libc::c_void>(),
+    };
+    let mut ret: libc::c_int;
+    if dest.is_null() || dest_len.is_null() || source.is_null() {
+        return -(2 as libc::c_int);
+    }
+    strm.bzalloc = None;
+    strm.bzfree = None;
+    strm.opaque = std::ptr::null_mut::<libc::c_void>();
+    unsafe {
+        ret = BZ2_bzDecompressInit(&mut strm, 0, 0);
         if ret != 0 as libc::c_int {
             return ret;
         }
-        strm.next_in = source;
-        strm.next_out = dest;
+        strm.next_in = source as *mut libc::c_char;
+        strm.next_out = dest.cast::<core::ffi::c_char>();
         strm.avail_in = source_len;
         strm.avail_out = *dest_len;
         ret = BZ2_bzDecompress(&mut strm);
@@ -399,17 +362,6 @@ pub unsafe fn decompress_rs(
             return 0 as libc::c_int;
         }
     }
-
-    unsafe {
-        BZ2_bzBuffToBuffDecompress(
-            dest.cast::<core::ffi::c_char>(),
-            dest_len,
-            source as *mut _,
-            source_len,
-            0,
-            0,
-        )
-    }
 }
 
 pub unsafe fn compress_c(
@@ -419,54 +371,35 @@ pub unsafe fn compress_c(
     source_len: libc::c_uint,
 ) -> i32 {
     use bzip2_sys::*;
-    pub unsafe fn BZ2_bzBuffToBuffCompress(
-        dest: *mut libc::c_char,
-        dest_len: *mut libc::c_uint,
-        source: *mut libc::c_char,
-        source_len: libc::c_uint,
-        block_size_100k: libc::c_int,
-        verbosity: libc::c_int,
-        mut work_factor: libc::c_int,
-    ) -> libc::c_int {
-        let mut strm: bz_stream = bz_stream {
-            next_in: std::ptr::null_mut::<libc::c_char>(),
-            avail_in: 0,
-            total_in_lo32: 0,
-            total_in_hi32: 0,
-            next_out: std::ptr::null_mut::<libc::c_char>(),
-            avail_out: 0,
-            total_out_lo32: 0,
-            total_out_hi32: 0,
-            state: std::ptr::null_mut::<libc::c_void>(),
-            bzalloc: None,
-            bzfree: None,
-            opaque: std::ptr::null_mut::<libc::c_void>(),
-        };
-        let mut ret: libc::c_int;
-        if dest.is_null()
-            || dest_len.is_null()
-            || source.is_null()
-            || block_size_100k < 1 as libc::c_int
-            || block_size_100k > 9 as libc::c_int
-            || verbosity < 0 as libc::c_int
-            || verbosity > 4 as libc::c_int
-            || work_factor < 0 as libc::c_int
-            || work_factor > 250 as libc::c_int
-        {
-            return -2 as libc::c_int;
-        }
-        if work_factor == 0 as libc::c_int {
-            work_factor = 30 as libc::c_int;
-        }
-        strm.bzalloc = None;
-        strm.bzfree = None;
-        strm.opaque = std::ptr::null_mut::<libc::c_void>();
-        ret = BZ2_bzCompressInit(&mut strm, block_size_100k, verbosity, work_factor);
+
+    let mut strm: bz_stream = bz_stream {
+        next_in: std::ptr::null_mut::<libc::c_char>(),
+        avail_in: 0,
+        total_in_lo32: 0,
+        total_in_hi32: 0,
+        next_out: std::ptr::null_mut::<libc::c_char>(),
+        avail_out: 0,
+        total_out_lo32: 0,
+        total_out_hi32: 0,
+        state: std::ptr::null_mut::<libc::c_void>(),
+        bzalloc: None,
+        bzfree: None,
+        opaque: std::ptr::null_mut::<libc::c_void>(),
+    };
+    let mut ret: libc::c_int;
+    if dest.is_null() || dest_len.is_null() || source.is_null() {
+        return -2 as libc::c_int;
+    }
+    strm.bzalloc = None;
+    strm.bzfree = None;
+    strm.opaque = std::ptr::null_mut::<libc::c_void>();
+    unsafe {
+        ret = BZ2_bzCompressInit(&mut strm, 9, 0, 30);
         if ret != 0 as libc::c_int {
             return ret;
         }
-        strm.next_in = source;
-        strm.next_out = dest;
+        strm.next_in = source as *mut libc::c_char;
+        strm.next_out = dest.cast::<core::ffi::c_char>();
         strm.avail_in = source_len;
         strm.avail_out = *dest_len;
         ret = BZ2_bzCompress(&mut strm, 2 as libc::c_int);
@@ -481,22 +414,6 @@ pub unsafe fn compress_c(
             BZ2_bzCompressEnd(&mut strm);
             return 0 as libc::c_int;
         }
-    }
-
-    let verbosity = 0;
-    let block_size_100k = 9;
-    let work_factor = 30;
-
-    unsafe {
-        BZ2_bzBuffToBuffCompress(
-            dest.cast::<core::ffi::c_char>(),
-            dest_len,
-            source as *mut _,
-            source_len,
-            block_size_100k,
-            verbosity,
-            work_factor,
-        )
     }
 }
 
@@ -508,54 +425,34 @@ pub unsafe fn compress_rs(
 ) -> i32 {
     use libbzip2_rs_sys::*;
 
-    pub unsafe fn BZ2_bzBuffToBuffCompress(
-        dest: *mut libc::c_char,
-        dest_len: *mut libc::c_uint,
-        source: *mut libc::c_char,
-        source_len: libc::c_uint,
-        block_size_100k: libc::c_int,
-        verbosity: libc::c_int,
-        mut work_factor: libc::c_int,
-    ) -> libc::c_int {
-        let mut strm: bz_stream = bz_stream {
-            next_in: std::ptr::null_mut::<libc::c_char>(),
-            avail_in: 0,
-            total_in_lo32: 0,
-            total_in_hi32: 0,
-            next_out: std::ptr::null_mut::<libc::c_char>(),
-            avail_out: 0,
-            total_out_lo32: 0,
-            total_out_hi32: 0,
-            state: std::ptr::null_mut::<libc::c_void>(),
-            bzalloc: None,
-            bzfree: None,
-            opaque: std::ptr::null_mut::<libc::c_void>(),
-        };
-        let mut ret: libc::c_int;
-        if dest.is_null()
-            || dest_len.is_null()
-            || source.is_null()
-            || block_size_100k < 1 as libc::c_int
-            || block_size_100k > 9 as libc::c_int
-            || verbosity < 0 as libc::c_int
-            || verbosity > 4 as libc::c_int
-            || work_factor < 0 as libc::c_int
-            || work_factor > 250 as libc::c_int
-        {
-            return -2 as libc::c_int;
-        }
-        if work_factor == 0 as libc::c_int {
-            work_factor = 30 as libc::c_int;
-        }
-        strm.bzalloc = None;
-        strm.bzfree = None;
-        strm.opaque = std::ptr::null_mut::<libc::c_void>();
-        ret = BZ2_bzCompressInit(&mut strm, block_size_100k, verbosity, work_factor);
+    let mut strm: bz_stream = bz_stream {
+        next_in: std::ptr::null_mut::<libc::c_char>(),
+        avail_in: 0,
+        total_in_lo32: 0,
+        total_in_hi32: 0,
+        next_out: std::ptr::null_mut::<libc::c_char>(),
+        avail_out: 0,
+        total_out_lo32: 0,
+        total_out_hi32: 0,
+        state: std::ptr::null_mut::<libc::c_void>(),
+        bzalloc: None,
+        bzfree: None,
+        opaque: std::ptr::null_mut::<libc::c_void>(),
+    };
+    let mut ret: libc::c_int;
+    if dest.is_null() || dest_len.is_null() || source.is_null() {
+        return -2 as libc::c_int;
+    }
+    strm.bzalloc = None;
+    strm.bzfree = None;
+    strm.opaque = std::ptr::null_mut::<libc::c_void>();
+    unsafe {
+        ret = BZ2_bzCompressInit(&mut strm, 9, 0, 30);
         if ret != 0 as libc::c_int {
             return ret;
         }
-        strm.next_in = source;
-        strm.next_out = dest;
+        strm.next_in = source as *mut libc::c_char;
+        strm.next_out = dest.cast::<core::ffi::c_char>();
         strm.avail_in = source_len;
         strm.avail_out = *dest_len;
         ret = BZ2_bzCompress(&mut strm, 2 as libc::c_int);
@@ -570,22 +467,6 @@ pub unsafe fn compress_rs(
             BZ2_bzCompressEnd(&mut strm);
             return 0 as libc::c_int;
         }
-    }
-
-    let verbosity = 0;
-    let block_size_100k = 9;
-    let work_factor = 30;
-
-    unsafe {
-        BZ2_bzBuffToBuffCompress(
-            dest.cast::<core::ffi::c_char>(),
-            dest_len,
-            source as *mut _,
-            source_len,
-            block_size_100k,
-            verbosity,
-            work_factor,
-        )
     }
 }
 
