@@ -1,7 +1,7 @@
 use core::ffi::{c_int, c_uint};
 
-use crate::bzlib::{bz_stream, BZ2_indexIntoF, DSlice, DState, DecompressMode, ReturnCode};
-use crate::huffman::BZ2_hbCreateDecodeTables;
+use crate::bzlib::{bz_stream, index_into_f, DSlice, DState, DecompressMode, ReturnCode};
+use crate::huffman;
 use crate::randtable::BZ2_RNUMS;
 
 /*-- Constants for the fast MTF decoder. --*/
@@ -122,7 +122,7 @@ enum Block {
 }
 use Block::*;
 
-fn makeMaps_d(s: &mut DState) {
+fn make_maps_d(s: &mut DState) {
     s.nInUse = 0;
     for (i, in_use) in s.inUse.iter().enumerate() {
         if *in_use {
@@ -154,7 +154,7 @@ impl GetBitsConvert for i32 {
     }
 }
 
-pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
+pub(crate) fn decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
     let mut current_block: Block;
     let mut uc: u8;
     let mut minLen: i32;
@@ -1130,7 +1130,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                             // `return true` is probably uninitentional?!
                                             return ReturnCode::BZ_RUN_OK;
                                         }
-                                        s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
+                                        s.k0 = index_into_f(s.tPos as i32, &mut s.cftab);
                                         s.tPos = ll16[s.tPos as usize] as u32
                                             | (ll4[(s.tPos >> 1) as usize] as u32
                                                 >> (s.tPos << 2 & 0x4)
@@ -1153,7 +1153,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                             // `return true` is probably uninitentional?!
                                             return ReturnCode::BZ_RUN_OK;
                                         }
-                                        s.k0 = BZ2_indexIntoF(s.tPos as i32, &mut s.cftab);
+                                        s.k0 = index_into_f(s.tPos as i32, &mut s.cftab);
                                         s.tPos = ll16[s.tPos as usize] as u32
                                             | (ll4[(s.tPos >> 1) as usize] as u32
                                                 >> (s.tPos << 2 & 0x4)
@@ -1281,7 +1281,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                 continue;
                             }
                         } else {
-                            makeMaps_d(s);
+                            make_maps_d(s);
 
                             // reborrow
                             tt = s.tt.as_mut_slice();
@@ -1361,7 +1361,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             maxLen = Ord::max(maxLen, *current as i32);
                             minLen = Ord::min(minLen, *current as i32);
                         }
-                        BZ2_hbCreateDecodeTables(
+                        huffman::create_decode_tables(
                             &mut s.limit[t as usize],
                             &mut s.base[t as usize],
                             &mut s.perm[t as usize],

@@ -4,9 +4,9 @@ use core::{mem, ptr};
 use libc::FILE;
 use libc::{fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, ungetc};
 
-use crate::compress::BZ2_compressBlock;
+use crate::compress::compress_block;
 use crate::crctable::BZ2_CRC32TABLE;
-use crate::decompress::{self, BZ2_decompress};
+use crate::decompress::{self, decompress};
 use crate::libbzip2_rs_sys_version;
 
 extern "C" {
@@ -506,12 +506,12 @@ fn prepare_new_block(s: &mut EState) {
     s.blockNo += 1;
 }
 
-fn init_RL(s: &mut EState) {
+fn init_rl(s: &mut EState) {
     s.state_in_ch = 256 as c_int as u32;
     s.state_in_len = 0 as c_int;
 }
 
-fn isempty_RL(s: &mut EState) -> bool {
+fn isempty_rl(s: &mut EState) -> bool {
     !(s.state_in_ch < 256 && s.state_in_len > 0)
 }
 
@@ -658,7 +658,7 @@ unsafe fn BZ2_bzCompressInitHelp(
     (*strm).total_out_lo32 = 0;
     (*strm).total_out_hi32 = 0;
 
-    init_RL(&mut *s);
+    init_rl(&mut *s);
     prepare_new_block(&mut *s);
 
     ReturnCode::BZ_OK
@@ -705,11 +705,11 @@ unsafe fn add_pair_to_block(s: &mut EState) {
     };
 }
 
-unsafe fn flush_RL(s: &mut EState) {
+unsafe fn flush_rl(s: &mut EState) {
     if s.state_in_ch < 256 {
         add_pair_to_block(s);
     }
-    init_RL(s);
+    init_rl(s);
 }
 
 macro_rules! ADD_CHAR_TO_BLOCK {
@@ -819,12 +819,12 @@ unsafe fn handle_compress(strm: &mut bz_stream, s: &mut EState) -> bool {
             if s.state_out_pos < s.writer.num_z as i32 {
                 break;
             }
-            if matches!(s.mode, Mode::Finishing) && s.avail_in_expect == 0 && isempty_RL(&mut *s) {
+            if matches!(s.mode, Mode::Finishing) && s.avail_in_expect == 0 && isempty_rl(&mut *s) {
                 break;
             }
             prepare_new_block(&mut *s);
             s.state = State::Output;
-            if matches!(s.mode, Mode::Flushing) && s.avail_in_expect == 0 && isempty_RL(&mut *s) {
+            if matches!(s.mode, Mode::Flushing) && s.avail_in_expect == 0 && isempty_rl(&mut *s) {
                 break;
             }
         }
@@ -833,12 +833,12 @@ unsafe fn handle_compress(strm: &mut bz_stream, s: &mut EState) -> bool {
         }
         progress_in |= copy_input_until_stop(strm, s);
         if !matches!(s.mode, Mode::Running) && s.avail_in_expect == 0 {
-            flush_RL(s);
+            flush_rl(s);
             let is_last_block = matches!(s.mode, Mode::Finishing);
-            BZ2_compressBlock(s, is_last_block);
+            compress_block(s, is_last_block);
             s.state = State::Input;
         } else if s.nblock >= s.nblockMAX {
-            BZ2_compressBlock(s, false);
+            compress_block(s, false);
             s.state = State::Input;
         } else if strm.avail_in == 0 {
             break;
@@ -913,10 +913,10 @@ unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, action: i32) -> ReturnCode {
         return ReturnCode::BZ_PARAM_ERROR;
     }
 
-    BZ2_bzCompressLoop(strm, s, action)
+    compress_loop(strm, s, action)
 }
 
-unsafe fn BZ2_bzCompressLoop(strm: &mut bz_stream, s: &mut EState, action: i32) -> ReturnCode {
+unsafe fn compress_loop(strm: &mut bz_stream, s: &mut EState, action: i32) -> ReturnCode {
     loop {
         match s.mode {
             Mode::Idle => return ReturnCode::BZ_SEQUENCE_ERROR,
@@ -950,7 +950,7 @@ unsafe fn BZ2_bzCompressLoop(strm: &mut bz_stream, s: &mut EState, action: i32) 
                 }
                 handle_compress(strm, s);
                 if s.avail_in_expect > 0
-                    || !isempty_RL(&mut *s)
+                    || !isempty_rl(&mut *s)
                     || s.state_out_pos < s.writer.num_z as i32
                 {
                     return ReturnCode::BZ_FLUSH_OK;
@@ -972,7 +972,7 @@ unsafe fn BZ2_bzCompressLoop(strm: &mut bz_stream, s: &mut EState, action: i32) 
                     return ReturnCode::BZ_SEQUENCE_ERROR;
                 }
                 if s.avail_in_expect > 0
-                    || !isempty_RL(s)
+                    || !isempty_rl(s)
                     || s.state_out_pos < s.writer.num_z as i32
                 {
                     return ReturnCode::BZ_FINISH_OK;
@@ -1152,7 +1152,7 @@ macro_rules! BZ_GET_FAST {
     };
 }
 
-unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> bool {
+unsafe fn un_rle_obuf_to_output_fast(strm: &mut bz_stream, s: &mut DState) -> bool {
     let mut k1: u8;
     if s.blockRandomised {
         loop {
@@ -1394,7 +1394,7 @@ unsafe fn unRLE_obuf_to_output_FAST(strm: &mut bz_stream, s: &mut DState) -> boo
 }
 
 #[inline]
-pub fn BZ2_indexIntoF(indx: i32, cftab: &mut [i32]) -> i32 {
+pub(crate) fn index_into_f(indx: i32, cftab: &mut [i32]) -> i32 {
     let mut nb = 0;
     let mut na = 256;
     loop {
@@ -1429,12 +1429,12 @@ macro_rules! BZ_GET_SMALL {
         if $s.tPos >= 100000u32.wrapping_mul($s.blockSize100k as u32) {
             return true;
         }
-        $cccc = BZ2_indexIntoF($s.tPos as i32, &mut $s.cftab) as _;
+        $cccc = index_into_f($s.tPos as i32, &mut $s.cftab) as _;
         $s.tPos = GET_LL!($s, $s.tPos);
     };
 }
 
-unsafe fn unRLE_obuf_to_output_SMALL(strm: &mut bz_stream, s: &mut DState) -> bool {
+unsafe fn un_rle_obuf_to_output_small(strm: &mut bz_stream, s: &mut DState) -> bool {
     let mut k1: u8;
     if s.blockRandomised {
         loop {
@@ -1637,8 +1637,8 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
         }
         if let decompress::State::BZ_X_OUTPUT = s.state {
             let corrupt = match s.smallDecompress {
-                DecompressMode::Small => unRLE_obuf_to_output_SMALL(strm, s),
-                DecompressMode::Fast => unRLE_obuf_to_output_FAST(strm, s),
+                DecompressMode::Small => un_rle_obuf_to_output_small(strm, s),
+                DecompressMode::Fast => un_rle_obuf_to_output_fast(strm, s),
             };
 
             if corrupt {
@@ -1672,7 +1672,7 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
 
         match s.state {
             decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT => continue,
-            _ => match BZ2_decompress(strm, s) {
+            _ => match decompress(strm, s) {
                 ReturnCode::BZ_STREAM_END => {
                     if s.verbosity >= 3 {
                         #[cfg(feature = "std")]
