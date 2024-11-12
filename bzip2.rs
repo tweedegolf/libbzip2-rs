@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-use std::ffi::{c_char, CStr, CString, OsStr};
+use std::ffi::{c_char, CStr, OsStr};
 use std::io::IsTerminal;
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
@@ -15,8 +15,8 @@ use libbzip2_rs_sys::{
 
 use libc::{
     _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fread, fwrite, open,
-    perror, remove, rewind, signal, stat, strlen, strncpy, ungetc, utimbuf, write, FILE, O_CREAT,
-    O_EXCL, O_WRONLY, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM, S_IRUSR, S_IWUSR,
+    perror, remove, rewind, signal, stat, strlen, ungetc, utimbuf, write, FILE, O_CREAT, O_EXCL,
+    O_WRONLY, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM, S_IRUSR, S_IWUSR,
 };
 
 // FIXME remove this
@@ -895,28 +895,14 @@ unsafe fn copy_filename(to: *mut c_char, from: &str) {
         setExit(1 as libc::c_int);
         exit(exitValue);
     }
-    strncpy(to, from.as_ptr().cast::<c_char>(), FILE_NAME_LEN - 10);
+
+    std::ptr::copy(from.as_ptr().cast::<c_char>(), to, from.len());
+    *to.wrapping_add(from.len() + 1) = '\0' as i32 as c_char;
+
+    // make sure that the final byte is always 0
     *to.wrapping_add(FILE_NAME_LEN - 10) = '\0' as i32 as c_char;
 }
 
-unsafe fn copyFileName(to: *mut c_char, from: *const c_char) {
-    if strlen(from) > (FILE_NAME_LEN - 10) {
-        eprint!(
-            concat!(
-                "bzip2: file name\n",
-                "`{}'\n",
-                "is suspiciously (more than {} chars) long.\n",
-                "Try using a reasonable file name instead.  Sorry! :-)\n",
-            ),
-            CStr::from_ptr(from).to_string_lossy(),
-            FILE_NAME_LEN - 10
-        );
-        setExit(1 as libc::c_int);
-        exit(exitValue);
-    }
-    strncpy(to, from, FILE_NAME_LEN - 10);
-    *to.wrapping_add(FILE_NAME_LEN - 10) = '\0' as i32 as c_char;
-}
 unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *mut FILE {
     let fh = open(
         name,
@@ -1247,7 +1233,7 @@ unsafe fn compress(name: Option<&str>) {
     delete_output_on_interrupt = false;
 }
 
-unsafe fn uncompress(name: Option<String>) {
+unsafe fn uncompress(name: Option<&str>) {
     let inStr: *mut FILE;
     let outStr: *mut FILE;
     let n: u64;
@@ -1264,31 +1250,21 @@ unsafe fn uncompress(name: Option<String>) {
             in_name = PathBuf::from("(stdin)");
             out_name = PathBuf::from("(stdout)");
 
-            copyFileName(
-                inName.as_mut_ptr(),
-                b"(stdin)\0" as *const u8 as *const libc::c_char,
-            );
-            copyFileName(
-                outName.as_mut_ptr(),
-                b"(stdout)\0" as *const u8 as *const libc::c_char,
-            );
+            copy_filename(inName.as_mut_ptr(), "(stdin)");
+            copy_filename(outName.as_mut_ptr(), "(stdout)");
         }
         (Some(name), SourceMode::F2O) => {
             in_name = PathBuf::from(&name);
             out_name = PathBuf::from("(stdout)");
 
-            let name_cstr = CString::new(name).unwrap();
-            copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
-            copyFileName(
-                outName.as_mut_ptr(),
-                b"(stdout)\0" as *const u8 as *const libc::c_char,
-            );
+            copy_filename(inName.as_mut_ptr(), name);
+            copy_filename(outName.as_mut_ptr(), "(stdout)");
         }
-        (Some(mut name), SourceMode::F2F) => {
-            in_name = PathBuf::from(&name);
+        (Some(name), SourceMode::F2F) => {
+            in_name = PathBuf::from(name);
+            copy_filename(inName.as_mut_ptr(), name);
 
-            let name_cstr = CString::new(name.clone()).unwrap();
-            copyFileName(inName.as_mut_ptr(), name_cstr.as_ptr());
+            let mut name = name.to_owned();
 
             cannot_guess = 'blk: {
                 for (old, new) in Z_SUFFIX.iter().zip(UNZ_SUFFIX) {
@@ -1303,10 +1279,9 @@ unsafe fn uncompress(name: Option<String>) {
                 true
             };
 
-            out_name = PathBuf::from(&name);
+            copy_filename(outName.as_mut_ptr(), &name);
 
-            let name_cstr = CString::new(name).unwrap();
-            copyFileName(outName.as_mut_ptr(), name_cstr.as_ptr());
+            out_name = PathBuf::from(name);
         }
         (None, SourceMode::F2O | SourceMode::F2F) => panic_str("uncompress: bad modes\n"),
     }
@@ -1942,7 +1917,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        uncompress(Some(name));
+                        uncompress(Some(name.as_str()));
                     }
                 }
             }
