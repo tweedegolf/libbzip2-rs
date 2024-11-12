@@ -1007,7 +1007,6 @@ unsafe fn compress(name: Option<&str>) {
     let inStr: *mut FILE;
     let outStr: *mut FILE;
     let mut n: u64 = 0;
-    let mut statBuf: stat = zeroed();
     delete_output_on_interrupt = false;
 
     match (name, srcMode) {
@@ -1074,18 +1073,16 @@ unsafe fn compress(name: Option<&str>) {
             }
         }
     }
-    if srcMode == SourceMode::F2F || srcMode == SourceMode::F2O {
-        stat(inName.as_mut_ptr(), &mut statBuf);
-        if statBuf.st_mode & 0o170000 == 0o40000 {
-            eprintln!(
-                "{}: Input file {} is a directory.",
-                get_program_name().display(),
-                in_name.display(),
-            );
-            setExit(1 as libc::c_int);
-            return;
-        }
+    if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && in_name.is_dir() {
+        eprintln!(
+            "{}: Input file {} is a directory.",
+            get_program_name().display(),
+            in_name.display(),
+        );
+        setExit(1 as libc::c_int);
+        return;
     }
+
     if srcMode == SourceMode::F2F && !force_overwrite && not_a_standard_file(in_name) {
         if noisy {
             eprintln!(
