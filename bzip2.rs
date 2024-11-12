@@ -469,7 +469,7 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
                             if noisy {
                                 eprintln!(
                                     "\n{}: {}: trailing garbage after EOF ignored",
-                                    CStr::from_ptr(progName).to_string_lossy(),
+                                    get_program_name().display(),
                                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
                                 );
                             }
@@ -695,10 +695,6 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
     exit(exitValue);
 }
 
-unsafe fn panic(s: *const c_char) -> ! {
-    panic_str(&CStr::from_ptr(s).to_string_lossy())
-}
-
 unsafe fn panic_str(s: &str) -> ! {
     eprint!(
         concat!(
@@ -708,7 +704,7 @@ unsafe fn panic_str(s: &str) -> ! {
             "\tThis is a BUG.  Please report it at:\n",
             "\thttps://github.com/trifectatechfoundation/libbzip2-rs/issues\n"
         ),
-        CStr::from_ptr(progName).to_string_lossy(),
+        get_program_name().display(),
         s,
     );
     showFileNames();
@@ -718,7 +714,7 @@ unsafe fn panic_str(s: &str) -> ! {
 unsafe fn crcError() -> ! {
     eprintln!(
         "\n{}: Data integrity error when decompressing.",
-        CStr::from_ptr(progName).to_string_lossy(),
+        get_program_name().display(),
     );
     showFileNames();
     cadvise();
@@ -733,7 +729,7 @@ unsafe fn compressedStreamEOF() -> ! {
                 "{}: Compressed file ends unexpectedly;\n",
                 "\tperhaps it is corrupted?  *Possible* reason follows.\n"
             ),
-            CStr::from_ptr(progName).to_string_lossy(),
+            get_program_name().display(),
         );
         perror(progName);
         showFileNames();
@@ -744,7 +740,7 @@ unsafe fn compressedStreamEOF() -> ! {
 unsafe fn ioError() -> ! {
     eprintln!(
         "\n{}: I/O or other error, bailing out.  Possible reason follows.",
-        CStr::from_ptr(progName).to_string_lossy(),
+        get_program_name().display(),
     );
     perror(progName);
     showFileNames();
@@ -850,7 +846,7 @@ unsafe extern "C" fn mySIGSEGVorSIGBUScatcher(_: libc::c_int) {
 unsafe fn outOfMemory() -> ! {
     eprintln!(
         "\n{}: couldn't allocate enough memory",
-        CStr::from_ptr(progName).to_string_lossy(),
+        get_program_name().display(),
     );
     showFileNames();
     cleanUpAndFail(1 as libc::c_int);
@@ -1083,7 +1079,7 @@ unsafe fn compress(name: *mut c_char) {
     let mut statBuf: stat = zeroed();
     delete_output_on_interrupt = false;
     if name.is_null() && srcMode != SourceMode::I2O {
-        panic(b"compress: bad modes\n\0" as *const u8 as *const libc::c_char);
+        panic_str("compress: bad modes\n");
     }
     match srcMode {
         SourceMode::I2O => {
@@ -1375,9 +1371,7 @@ unsafe fn uncompress(name: Option<String>) {
             let name_cstr = CString::new(name).unwrap();
             copyFileName(outName.as_mut_ptr(), name_cstr.as_ptr());
         }
-        (None, SourceMode::F2O | SourceMode::F2F) => {
-            panic(b"uncompress: bad modes\n\0" as *const u8 as *const libc::c_char)
-        }
+        (None, SourceMode::F2O | SourceMode::F2F) => panic_str("uncompress: bad modes\n"),
     }
 
     if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&in_name) {
