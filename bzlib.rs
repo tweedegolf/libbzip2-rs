@@ -182,7 +182,7 @@ pub(crate) const BZ_N_OVERSHOOT: usize = (BZ_N_RADIX + BZ_N_QSORT + BZ_N_SHELL +
 pub(crate) const FTAB_LEN: usize = u16::MAX as usize + 2;
 
 pub(crate) struct EState {
-    pub strm: *mut bz_stream,
+    pub strm: usize, // Only for a consistency check
     pub mode: Mode,
     pub state: State,
     pub avail_in_expect: u32,
@@ -344,7 +344,7 @@ impl Ftab {
 }
 
 pub(crate) struct DState {
-    pub strm: *mut bz_stream,
+    pub strm: usize, // Only for a consistency check
     pub state: decompress::State,
     pub state_out_ch: u8,
     pub state_out_len: i32,
@@ -581,7 +581,7 @@ unsafe fn BZ2_bzCompressInitHelp(
 
     // this `s.strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
     // that a given state belongs to a given strm.
-    (*s).strm = strm;
+    (*s).strm = strm as usize; // FIXME use .addr() once stable
 
     let n = 100000 * blockSize100k;
 
@@ -885,7 +885,8 @@ unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, action: i32) -> ReturnCode {
         return ReturnCode::BZ_PARAM_ERROR;
     };
 
-    if s.strm != strm {
+    // FIXME use .addr() once stable
+    if s.strm != strm as *mut _ as usize {
         return ReturnCode::BZ_PARAM_ERROR;
     }
 
@@ -984,7 +985,8 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
-    if s.strm != strm {
+    // FIXME use .addr() once stable
+    if s.strm != strm as *mut _ as usize {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
@@ -1060,7 +1062,7 @@ unsafe fn BZ2_bzDecompressInitHelp(
 
     // this `s.strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
     // that a given state belongs to a given strm.
-    (*s).strm = strm;
+    (*s).strm = strm as usize; // FIXME use .addr() once stable
 
     (*s).state = decompress::State::BZ_X_MAGIC_1;
     (*s).bsLive = 0;
@@ -1590,7 +1592,8 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
         return ReturnCode::BZ_PARAM_ERROR;
     };
 
-    if s.strm != strm {
+    // FIXME use .addr() once stable
+    if s.strm != strm as *mut _ as usize {
         return ReturnCode::BZ_PARAM_ERROR;
     }
 
@@ -1683,7 +1686,8 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> c_int {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
-    if s.strm != strm {
+    // FIXME use .addr() once stable
+    if s.strm != strm as *mut _ as usize {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
