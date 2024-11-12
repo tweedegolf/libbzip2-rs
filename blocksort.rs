@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
-use core::ffi::{c_double, c_float, c_int, c_uint};
-use std::cmp::Ordering;
+use core::cmp::Ordering;
+use core::ffi::{c_int, c_uint};
 
 use crate::{
     assert_h,
@@ -1336,9 +1336,7 @@ fn BZ2_blockSortHelp(
                 "      {} work, {} block, ratio {:5.2}",
                 budgetInit - budget,
                 nblock,
-                ((budgetInit - budget) as c_float
-                    / (if nblock == 0 { 1 } else { nblock }) as c_float)
-                    as c_double,
+                (budgetInit - budget) as f64 / (if nblock == 0 { 1 } else { nblock }) as f64
             );
         }
 

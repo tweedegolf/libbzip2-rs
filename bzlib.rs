@@ -1,4 +1,5 @@
 use core::ffi::{c_char, c_int, c_uint, c_void, CStr};
+use core::{mem, ptr};
 
 use libc::FILE;
 use libc::{fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, ungetc};
@@ -138,18 +139,18 @@ pub struct bz_stream {
 impl bz_stream {
     pub const fn zeroed() -> Self {
         Self {
-            next_in: std::ptr::null_mut::<c_char>(),
+            next_in: ptr::null_mut::<c_char>(),
             avail_in: 0,
             total_in_lo32: 0,
             total_in_hi32: 0,
-            next_out: std::ptr::null_mut::<c_char>(),
+            next_out: ptr::null_mut::<c_char>(),
             avail_out: 0,
             total_out_lo32: 0,
             total_out_hi32: 0,
-            state: std::ptr::null_mut::<c_void>(),
+            state: ptr::null_mut::<c_void>(),
             bzalloc: None,
             bzfree: None,
-            opaque: std::ptr::null_mut::<c_void>(),
+            opaque: ptr::null_mut::<c_void>(),
         }
     }
 }
@@ -236,7 +237,7 @@ pub struct EState {
 
 /// Creates a new pointer that is dangling, but well-aligned.
 pub(crate) fn dangling<T>() -> *mut T {
-    core::ptr::null_mut::<T>().wrapping_add(core::mem::align_of::<T>())
+    ptr::null_mut::<T>().wrapping_add(mem::align_of::<T>())
 }
 
 pub struct Arr1 {
@@ -331,7 +332,7 @@ impl Arr2 {
 
         let start_byte = len.next_multiple_of(2);
         let quadrant: *mut u16 = (self.ptr as *mut u8).wrapping_add(start_byte) as *mut u16;
-        unsafe { core::ptr::write_bytes(quadrant, 0, len) };
+        unsafe { ptr::write_bytes(quadrant, 0, len) };
         let quadrant = unsafe { core::slice::from_raw_parts_mut(quadrant, len) };
 
         (block, quadrant)
@@ -449,7 +450,7 @@ impl<T> DSlice<T> {
     }
 
     pub unsafe fn dealloc(&mut self, bzfree: FreeFunc, opaque: *mut c_void) {
-        let this = core::mem::replace(self, Self::new());
+        let this = mem::replace(self, Self::new());
         if this.len != 0 {
             bzfree(opaque, this.ptr.cast())
         }
@@ -530,7 +531,7 @@ pub unsafe fn bzalloc_array<T>(
     assert!(core::mem::align_of::<T>() <= 16);
 
     let len = i32::try_from(len).ok()?;
-    let width = i32::try_from(core::mem::size_of::<T>()).ok()?;
+    let width = i32::try_from(mem::size_of::<T>()).ok()?;
 
     let ptr = bzalloc(opaque, len, width);
 
@@ -540,7 +541,7 @@ pub unsafe fn bzalloc_array<T>(
 
     let ptr = ptr.cast::<T>();
 
-    core::ptr::write_bytes(ptr, 0, len as usize);
+    ptr::write_bytes(ptr, 0, len as usize);
 
     Some(ptr)
 }
@@ -1016,23 +1017,23 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     };
 
     if !(s.arr1).is_empty() {
-        let arr1 = core::mem::replace(&mut s.arr1, Arr1::new());
+        let arr1 = mem::replace(&mut s.arr1, Arr1::new());
         let (ptr, _len) = arr1.into_raw_parts();
         (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
     if !(s.arr2).is_empty() {
-        let arr2 = core::mem::replace(&mut s.arr2, Arr2::new());
+        let arr2 = mem::replace(&mut s.arr2, Arr2::new());
         let (ptr, _len) = arr2.into_raw_parts();
         (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
     if !(s.ftab).is_null() {
-        let ftab = core::mem::replace(&mut s.ftab, Ftab::from_ptr(core::ptr::null_mut()));
+        let ftab = mem::replace(&mut s.ftab, Ftab::from_ptr(ptr::null_mut()));
         let ptr = ftab.into_ptr();
         (bzfree)(strm.opaque, ptr.cast::<c_void>());
     }
 
     (bzfree)(strm.opaque, strm.state);
-    strm.state = std::ptr::null_mut::<c_void>();
+    strm.state = ptr::null_mut::<c_void>();
 
     0 as c_int
 }
@@ -1727,7 +1728,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> c_int {
     s.ll4.dealloc(bzfree, strm.opaque);
 
     (bzfree)(strm.opaque, strm.state.cast::<c_void>());
-    strm.state = std::ptr::null_mut::<c_void>();
+    strm.state = ptr::null_mut::<c_void>();
 
     ReturnCode::BZ_OK as c_int
 }
@@ -1773,7 +1774,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     verbosity: c_int,
     mut workFactor: c_int,
 ) -> *mut c_void {
-    let bzf: *mut bzFile = std::ptr::null_mut::<bzFile>();
+    let bzf: *mut bzFile = ptr::null_mut::<bzFile>();
 
     BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
 
@@ -1783,17 +1784,17 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
         || !(0..=4).contains(&verbosity)
     {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
-        return core::ptr::null_mut();
+        return ptr::null_mut();
     }
 
     if ferror(f) != 0 {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_IO_ERROR);
-        return core::ptr::null_mut();
+        return ptr::null_mut();
     }
 
-    let Some(bzf) = bzalloc_array::<bzFile>(default_bzalloc, core::ptr::null_mut(), 1) else {
+    let Some(bzf) = bzalloc_array::<bzFile>(default_bzalloc, ptr::null_mut(), 1) else {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_MEM_ERROR);
-        return core::ptr::null_mut();
+        return ptr::null_mut();
     };
 
     // SAFETY: bzf is non-null and correctly initalized
@@ -1807,7 +1808,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     bzf.operation = Operation::Writing;
     bzf.strm.bzalloc = None;
     bzf.strm.bzfree = None;
-    bzf.strm.opaque = std::ptr::null_mut();
+    bzf.strm.opaque = ptr::null_mut();
 
     if workFactor == 0 {
         workFactor = 30;
@@ -1824,7 +1825,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
             BZ_SETERR!(bzerror, bzf, error);
             free(bzf as *mut bzFile as *mut c_void);
 
-            core::ptr::null_mut()
+            ptr::null_mut()
         }
     }
 }
@@ -1877,7 +1878,7 @@ pub unsafe extern "C" fn BZ2_bzWrite(
                     let n1 = BZ_MAX_UNUSED.wrapping_sub(bzf.strm.avail_out) as usize;
                     let n2 = fwrite(
                         bzf.buf.as_mut_ptr().cast::<c_void>(),
-                        core::mem::size_of::<u8>(),
+                        mem::size_of::<u8>(),
                         n1,
                         bzf.handle,
                     );
@@ -1912,9 +1913,9 @@ pub unsafe extern "C" fn BZ2_bzWriteClose(
         b,
         abandon,
         nbytes_in,
-        std::ptr::null_mut::<c_uint>(),
+        ptr::null_mut::<c_uint>(),
         nbytes_out,
-        std::ptr::null_mut::<c_uint>(),
+        ptr::null_mut::<c_uint>(),
     );
 }
 #[export_name = prefix!(BZ2_bzWriteClose64)]
@@ -1967,7 +1968,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
                         let n1 = BZ_MAX_UNUSED.wrapping_sub(bzf.strm.avail_out) as usize;
                         let n2 = fwrite(
                             bzf.buf.as_mut_ptr().cast::<c_void>(),
-                            core::mem::size_of::<u8>(),
+                            mem::size_of::<u8>(),
                             n1,
                             bzf.handle,
                         );
@@ -2024,7 +2025,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     unused: *mut c_void,
     nUnused: c_int,
 ) -> *mut c_void {
-    let bzf: *mut bzFile = std::ptr::null_mut::<bzFile>();
+    let bzf: *mut bzFile = ptr::null_mut::<bzFile>();
 
     BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
 
@@ -2035,17 +2036,17 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         || (!unused.is_null() && !(0..=5000).contains(&nUnused))
     {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
-        return std::ptr::null_mut::<c_void>();
+        return ptr::null_mut::<c_void>();
     }
 
     if ferror(f) != 0 {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_IO_ERROR);
-        return std::ptr::null_mut::<c_void>();
+        return ptr::null_mut::<c_void>();
     }
 
-    let Some(bzf) = bzalloc_array::<bzFile>(default_bzalloc, core::ptr::null_mut(), 1) else {
+    let Some(bzf) = bzalloc_array::<bzFile>(default_bzalloc, ptr::null_mut(), 1) else {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_MEM_ERROR);
-        return core::ptr::null_mut();
+        return ptr::null_mut();
     };
 
     // SAFETY: bzf is non-null and correctly initalized
@@ -2059,10 +2060,10 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     bzf.operation = Operation::Reading;
     bzf.strm.bzalloc = None;
     bzf.strm.bzfree = None;
-    bzf.strm.opaque = core::ptr::null_mut();
+    bzf.strm.opaque = ptr::null_mut();
 
     if nUnused > 0 {
-        core::ptr::copy(
+        ptr::copy(
             unused as *mut i8,
             bzf.buf[bzf.bufN as usize..].as_mut_ptr(),
             nUnused as usize,
@@ -2079,7 +2080,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         ret => {
             BZ_SETERR!(bzerror, bzf, ret);
             free(bzf as *mut bzFile as *mut c_void);
-            return core::ptr::null_mut();
+            return ptr::null_mut();
         }
     }
 
@@ -2342,7 +2343,7 @@ unsafe fn bzopen_or_bzdopen(
     let mut operation = Operation::Reading;
 
     let mode = if mode.is_null() {
-        return core::ptr::null_mut();
+        return ptr::null_mut();
     } else {
         CStr::from_ptr(mode)
     };
@@ -2391,7 +2392,7 @@ unsafe fn bzopen_or_bzdopen(
     };
 
     if fp.is_null() {
-        return core::ptr::null_mut();
+        return ptr::null_mut();
     }
 
     let bzfp = match operation {
@@ -2416,7 +2417,7 @@ unsafe fn bzopen_or_bzdopen(
         if fp != stdin && fp != stdout {
             fclose(fp);
         }
-        return core::ptr::null_mut();
+        return ptr::null_mut();
     }
 
     bzfp
@@ -2431,7 +2432,7 @@ pub unsafe extern "C" fn BZ2_bzopen(path: *const c_char, mode: *const c_char) ->
 /// Opens a `.bz2` file for reading or writing using a pre-existing file descriptor. Analogous to fdopen.
 #[export_name = prefix!(BZ2_bzdopen)]
 pub unsafe extern "C" fn BZ2_bzdopen(fd: c_int, mode: *const c_char) -> *mut c_void {
-    bzopen_or_bzdopen(core::ptr::null(), OpenMode::FileDescriptor(fd), mode)
+    bzopen_or_bzdopen(ptr::null(), OpenMode::FileDescriptor(fd), mode)
 }
 
 #[export_name = prefix!(BZ2_bzread)]
@@ -2487,16 +2488,16 @@ pub unsafe extern "C" fn BZ2_bzclose(b: *mut c_void) {
                 &mut bzerr,
                 b,
                 false as i32,
-                core::ptr::null_mut(),
-                core::ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
             );
             if bzerr != 0 {
                 BZ2_bzWriteClose(
-                    std::ptr::null_mut(),
+                    ptr::null_mut(),
                     b,
                     true as i32,
-                    core::ptr::null_mut(),
-                    core::ptr::null_mut(),
+                    ptr::null_mut(),
+                    ptr::null_mut(),
                 );
             }
         }
@@ -2546,7 +2547,7 @@ mod tests {
     #[test]
     fn error_messages() {
         let mut bz_file = bzFile {
-            handle: std::ptr::null_mut(),
+            handle: core::ptr::null_mut(),
             buf: [0; 5000],
             bufN: 0,
             strm: bz_stream::zeroed(),

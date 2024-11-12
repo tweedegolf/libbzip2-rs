@@ -82,7 +82,7 @@ pub(crate) use assert_h;
 pub(crate) struct AssertFail(i32);
 
 impl core::fmt::Display for AssertFail {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
             f,
             concat!(
@@ -141,7 +141,11 @@ impl core::fmt::Display for AssertFail {
 
 #[cfg(test)]
 mod test {
+    extern crate alloc;
+
     use super::*;
+
+    use alloc::string::String;
 
     #[test]
     fn print_assert_fail_coverage() {
