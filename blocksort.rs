@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+use core::ffi::{c_double, c_float, c_int, c_uint};
 use std::cmp::Ordering;
 
 use crate::{
@@ -7,7 +8,7 @@ use crate::{
     bzlib::{Arr2, EState, BZ_N_OVERSHOOT, BZ_N_QSORT, BZ_N_RADIX, FTAB_LEN},
 };
 
-/// Fallback O(N log(N)^2) sorting algorithm, for repetitive blocks      
+/// Fallback O(N log(N)^2) sorting algorithm, for repetitive blocks
 #[inline]
 fn fallbackSimpleSort(fmap: &mut [u32], eclass: &[u32], lo: i32, hi: i32) {
     let mut j: i32;
@@ -291,7 +292,7 @@ fn fallbackSort(
             if ISSET_BH!(i) {
                 j = i;
             }
-            k = fmap[i as usize].wrapping_sub(H as libc::c_uint) as i32;
+            k = fmap[i as usize].wrapping_sub(H as c_uint) as i32;
             if k < 0 {
                 k += nblock;
             }
@@ -480,7 +481,7 @@ fn mainGtU(
     }
     i1 = i1.wrapping_add(1);
     i2 = i2.wrapping_add(1);
-    k = nblock.wrapping_add(8 as libc::c_int as libc::c_uint) as i32;
+    k = nblock.wrapping_add(8 as c_int as c_uint) as i32;
     loop {
         c1 = block[i1 as usize];
         c2 = block[i2 as usize];
@@ -584,28 +585,28 @@ fn mainGtU(
         if i2 >= nblock {
             i2 = i2.wrapping_sub(nblock);
         }
-        k -= 8 as libc::c_int;
+        k -= 8 as c_int;
         *budget -= 1;
-        if k < 0 as libc::c_int {
+        if k < 0 as c_int {
             break false;
         }
     }
 }
 static INCS: [i32; 14] = [
-    1 as libc::c_int,
-    4 as libc::c_int,
-    13 as libc::c_int,
-    40 as libc::c_int,
-    121 as libc::c_int,
-    364 as libc::c_int,
-    1093 as libc::c_int,
-    3280 as libc::c_int,
-    9841 as libc::c_int,
-    29524 as libc::c_int,
-    88573 as libc::c_int,
-    265720 as libc::c_int,
-    797161 as libc::c_int,
-    2391484 as libc::c_int,
+    1 as c_int,
+    4 as c_int,
+    13 as c_int,
+    40 as c_int,
+    121 as c_int,
+    364 as c_int,
+    1093 as c_int,
+    3280 as c_int,
+    9841 as c_int,
+    29524 as c_int,
+    88573 as c_int,
+    265720 as c_int,
+    797161 as c_int,
+    2391484 as c_int,
 ];
 fn mainSimpleSort(
     ptr: &mut [u32],
@@ -623,16 +624,16 @@ fn mainSimpleSort(
     let mut hp: i32;
     let mut v: u32;
 
-    let bigN = hi - lo + 1 as libc::c_int;
-    if bigN < 2 as libc::c_int {
+    let bigN = hi - lo + 1 as c_int;
+    if bigN < 2 as c_int {
         return;
     }
-    hp = 0 as libc::c_int;
+    hp = 0 as c_int;
     while INCS[hp as usize] < bigN {
         hp += 1;
     }
     hp -= 1;
-    while hp >= 0 as libc::c_int {
+    while hp >= 0 as c_int {
         h = INCS[hp as usize];
         i = lo + h;
         loop {
@@ -642,8 +643,8 @@ fn mainSimpleSort(
             v = ptr[i as usize];
             j = i;
             while mainGtU(
-                (ptr[(j - h) as usize]).wrapping_add(d as libc::c_uint),
-                v.wrapping_add(d as libc::c_uint),
+                (ptr[(j - h) as usize]).wrapping_add(d as c_uint),
+                v.wrapping_add(d as c_uint),
                 block,
                 quadrant,
                 nblock as u32,
@@ -651,7 +652,7 @@ fn mainSimpleSort(
             ) {
                 ptr[j as usize] = ptr[(j - h) as usize];
                 j -= h;
-                if j <= lo + h - 1 as libc::c_int {
+                if j <= lo + h - 1 as c_int {
                     break;
                 }
             }
@@ -663,8 +664,8 @@ fn mainSimpleSort(
             v = ptr[i as usize];
             j = i;
             while mainGtU(
-                (ptr[(j - h) as usize]).wrapping_add(d as libc::c_uint),
-                v.wrapping_add(d as libc::c_uint),
+                (ptr[(j - h) as usize]).wrapping_add(d as c_uint),
+                v.wrapping_add(d as c_uint),
                 block,
                 quadrant,
                 nblock as u32,
@@ -672,7 +673,7 @@ fn mainSimpleSort(
             ) {
                 ptr[j as usize] = ptr[(j - h) as usize];
                 j -= h;
-                if j <= lo + h - 1 as libc::c_int {
+                if j <= lo + h - 1 as c_int {
                     break;
                 }
             }
@@ -684,8 +685,8 @@ fn mainSimpleSort(
             v = ptr[i as usize];
             j = i;
             while mainGtU(
-                (ptr[(j - h) as usize]).wrapping_add(d as libc::c_uint),
-                v.wrapping_add(d as libc::c_uint),
+                (ptr[(j - h) as usize]).wrapping_add(d as c_uint),
+                v.wrapping_add(d as c_uint),
                 block,
                 quadrant,
                 nblock as u32,
@@ -693,13 +694,13 @@ fn mainSimpleSort(
             ) {
                 ptr[j as usize] = ptr[(j - h) as usize];
                 j -= h;
-                if j <= lo + h - 1 as libc::c_int {
+                if j <= lo + h - 1 as c_int {
                     break;
                 }
             }
             ptr[j as usize] = v;
             i += 1;
-            if *budget < 0 as libc::c_int {
+            if *budget < 0 as c_int {
                 return;
             }
         }
@@ -755,12 +756,12 @@ fn mainQSort3(
     let mut nextLo: [i32; 3] = [0; 3];
     let mut nextHi: [i32; 3] = [0; 3];
     let mut nextD: [i32; 3] = [0; 3];
-    sp = 0 as libc::c_int;
+    sp = 0 as c_int;
     stackLo[sp as usize] = loSt;
     stackHi[sp as usize] = hiSt;
     stackD[sp as usize] = dSt;
     sp += 1;
-    while sp > 0 as libc::c_int {
+    while sp > 0 as c_int {
         assert_h!(sp < MAIN_QSORT_STACK_SIZE - 2, 1001);
 
         sp -= 1;
@@ -769,15 +770,15 @@ fn mainQSort3(
         d = stackD[sp as usize];
         if hi - lo < MAIN_QSORT_SMALL_THRESH || d > MAIN_QSORT_DEPTH_THRESH {
             mainSimpleSort(ptr, block, quadrant, nblock, lo, hi, d, budget);
-            if *budget < 0 as libc::c_int {
+            if *budget < 0 as c_int {
                 return;
             }
         } else {
             med = mmed3(
-                block[(ptr[lo as usize]).wrapping_add(d as libc::c_uint) as usize],
-                block[(ptr[hi as usize]).wrapping_add(d as libc::c_uint) as usize],
-                block[((ptr[((lo + hi) >> 1 as libc::c_int) as usize])
-                    .wrapping_add(d as libc::c_uint) as isize) as usize],
+                block[(ptr[lo as usize]).wrapping_add(d as c_uint) as usize],
+                block[(ptr[hi as usize]).wrapping_add(d as c_uint) as usize],
+                block[((ptr[((lo + hi) >> 1 as c_int) as usize]).wrapping_add(d as c_uint) as isize)
+                    as usize],
             ) as i32;
             ltLo = lo;
             unLo = ltLo;
@@ -788,16 +789,15 @@ fn mainQSort3(
                     if unLo > unHi {
                         break;
                     }
-                    n = block[(ptr[unLo as usize]).wrapping_add(d as libc::c_uint) as usize] as i32
-                        - med;
-                    if n == 0 as libc::c_int {
+                    n = block[(ptr[unLo as usize]).wrapping_add(d as c_uint) as usize] as i32 - med;
+                    if n == 0 as c_int {
                         let zztmp: i32 = ptr[unLo as usize] as i32;
                         ptr[unLo as usize] = ptr[ltLo as usize];
                         ptr[ltLo as usize] = zztmp as u32;
                         ltLo += 1;
                         unLo += 1;
                     } else {
-                        if n > 0 as libc::c_int {
+                        if n > 0 as c_int {
                             break;
                         }
                         unLo += 1;
@@ -807,16 +807,15 @@ fn mainQSort3(
                     if unLo > unHi {
                         break;
                     }
-                    n = block[(ptr[unHi as usize]).wrapping_add(d as libc::c_uint) as usize] as i32
-                        - med;
-                    if n == 0 as libc::c_int {
+                    n = block[(ptr[unHi as usize]).wrapping_add(d as c_uint) as usize] as i32 - med;
+                    if n == 0 as c_int {
                         let zztmp_0: i32 = ptr[unHi as usize] as i32;
                         ptr[unHi as usize] = ptr[gtHi as usize];
                         ptr[gtHi as usize] = zztmp_0 as u32;
                         gtHi -= 1;
                         unHi -= 1;
                     } else {
-                        if n < 0 as libc::c_int {
+                        if n < 0 as c_int {
                             break;
                         }
                         unHi -= 1;
@@ -834,7 +833,7 @@ fn mainQSort3(
             if gtHi < ltLo {
                 stackLo[sp as usize] = lo;
                 stackHi[sp as usize] = hi;
-                stackD[sp as usize] = d + 1 as libc::c_int;
+                stackD[sp as usize] = d + 1 as c_int;
                 sp += 1;
             } else {
                 n = if ltLo - lo < unLo - ltLo {
@@ -845,7 +844,7 @@ fn mainQSort3(
                 let mut yyp1: i32 = lo;
                 let mut yyp2: i32 = unLo - n;
                 let mut yyn: i32 = n;
-                while yyn > 0 as libc::c_int {
+                while yyn > 0 as c_int {
                     let zztmp_2: i32 = ptr[yyp1 as usize] as i32;
                     ptr[yyp1 as usize] = ptr[yyp2 as usize];
                     ptr[yyp2 as usize] = zztmp_2 as u32;
@@ -859,9 +858,9 @@ fn mainQSort3(
                     gtHi - unHi
                 };
                 let mut yyp1_0: i32 = unLo;
-                let mut yyp2_0: i32 = hi - m + 1 as libc::c_int;
+                let mut yyp2_0: i32 = hi - m + 1 as c_int;
                 let mut yyn_0: i32 = m;
-                while yyn_0 > 0 as libc::c_int {
+                while yyn_0 > 0 as c_int {
                     let zztmp_3: i32 = ptr[yyp1_0 as usize] as i32;
                     ptr[yyp1_0 as usize] = ptr[yyp2_0 as usize];
                     ptr[yyp2_0 as usize] = zztmp_3 as u32;
@@ -869,70 +868,70 @@ fn mainQSort3(
                     yyp2_0 += 1;
                     yyn_0 -= 1;
                 }
-                n = lo + unLo - ltLo - 1 as libc::c_int;
-                m = hi - (gtHi - unHi) + 1 as libc::c_int;
-                nextLo[0 as libc::c_int as usize] = lo;
-                nextHi[0 as libc::c_int as usize] = n;
-                nextD[0 as libc::c_int as usize] = d;
-                nextLo[1 as libc::c_int as usize] = m;
-                nextHi[1 as libc::c_int as usize] = hi;
-                nextD[1 as libc::c_int as usize] = d;
-                nextLo[2 as libc::c_int as usize] = n + 1 as libc::c_int;
-                nextHi[2 as libc::c_int as usize] = m - 1 as libc::c_int;
-                nextD[2 as libc::c_int as usize] = d + 1 as libc::c_int;
-                if nextHi[0 as libc::c_int as usize] - nextLo[0 as libc::c_int as usize]
-                    < nextHi[1 as libc::c_int as usize] - nextLo[1 as libc::c_int as usize]
+                n = lo + unLo - ltLo - 1 as c_int;
+                m = hi - (gtHi - unHi) + 1 as c_int;
+                nextLo[0 as c_int as usize] = lo;
+                nextHi[0 as c_int as usize] = n;
+                nextD[0 as c_int as usize] = d;
+                nextLo[1 as c_int as usize] = m;
+                nextHi[1 as c_int as usize] = hi;
+                nextD[1 as c_int as usize] = d;
+                nextLo[2 as c_int as usize] = n + 1 as c_int;
+                nextHi[2 as c_int as usize] = m - 1 as c_int;
+                nextD[2 as c_int as usize] = d + 1 as c_int;
+                if nextHi[0 as c_int as usize] - nextLo[0 as c_int as usize]
+                    < nextHi[1 as c_int as usize] - nextLo[1 as c_int as usize]
                 {
                     let mut tz: i32;
-                    tz = nextLo[0 as libc::c_int as usize];
-                    nextLo[0 as libc::c_int as usize] = nextLo[1 as libc::c_int as usize];
-                    nextLo[1 as libc::c_int as usize] = tz;
-                    tz = nextHi[0 as libc::c_int as usize];
-                    nextHi[0 as libc::c_int as usize] = nextHi[1 as libc::c_int as usize];
-                    nextHi[1 as libc::c_int as usize] = tz;
-                    tz = nextD[0 as libc::c_int as usize];
-                    nextD[0 as libc::c_int as usize] = nextD[1 as libc::c_int as usize];
-                    nextD[1 as libc::c_int as usize] = tz;
+                    tz = nextLo[0 as c_int as usize];
+                    nextLo[0 as c_int as usize] = nextLo[1 as c_int as usize];
+                    nextLo[1 as c_int as usize] = tz;
+                    tz = nextHi[0 as c_int as usize];
+                    nextHi[0 as c_int as usize] = nextHi[1 as c_int as usize];
+                    nextHi[1 as c_int as usize] = tz;
+                    tz = nextD[0 as c_int as usize];
+                    nextD[0 as c_int as usize] = nextD[1 as c_int as usize];
+                    nextD[1 as c_int as usize] = tz;
                 }
-                if nextHi[1 as libc::c_int as usize] - nextLo[1 as libc::c_int as usize]
-                    < nextHi[2 as libc::c_int as usize] - nextLo[2 as libc::c_int as usize]
+                if nextHi[1 as c_int as usize] - nextLo[1 as c_int as usize]
+                    < nextHi[2 as c_int as usize] - nextLo[2 as c_int as usize]
                 {
                     let mut tz_0: i32;
-                    tz_0 = nextLo[1 as libc::c_int as usize];
-                    nextLo[1 as libc::c_int as usize] = nextLo[2 as libc::c_int as usize];
-                    nextLo[2 as libc::c_int as usize] = tz_0;
-                    tz_0 = nextHi[1 as libc::c_int as usize];
-                    nextHi[1 as libc::c_int as usize] = nextHi[2 as libc::c_int as usize];
-                    nextHi[2 as libc::c_int as usize] = tz_0;
-                    tz_0 = nextD[1 as libc::c_int as usize];
-                    nextD[1 as libc::c_int as usize] = nextD[2 as libc::c_int as usize];
-                    nextD[2 as libc::c_int as usize] = tz_0;
+                    tz_0 = nextLo[1 as c_int as usize];
+                    nextLo[1 as c_int as usize] = nextLo[2 as c_int as usize];
+                    nextLo[2 as c_int as usize] = tz_0;
+                    tz_0 = nextHi[1 as c_int as usize];
+                    nextHi[1 as c_int as usize] = nextHi[2 as c_int as usize];
+                    nextHi[2 as c_int as usize] = tz_0;
+                    tz_0 = nextD[1 as c_int as usize];
+                    nextD[1 as c_int as usize] = nextD[2 as c_int as usize];
+                    nextD[2 as c_int as usize] = tz_0;
                 }
-                if nextHi[0 as libc::c_int as usize] - nextLo[0 as libc::c_int as usize]
-                    < nextHi[1 as libc::c_int as usize] - nextLo[1 as libc::c_int as usize]
+                if nextHi[0 as c_int as usize] - nextLo[0 as c_int as usize]
+                    < nextHi[1 as c_int as usize] - nextLo[1 as c_int as usize]
                 {
                     let mut tz_1: i32;
-                    tz_1 = nextLo[0 as libc::c_int as usize];
-                    nextLo[0 as libc::c_int as usize] = nextLo[1 as libc::c_int as usize];
-                    nextLo[1 as libc::c_int as usize] = tz_1;
-                    tz_1 = nextHi[0 as libc::c_int as usize];
-                    nextHi[0 as libc::c_int as usize] = nextHi[1 as libc::c_int as usize];
-                    nextHi[1 as libc::c_int as usize] = tz_1;
-                    tz_1 = nextD[0 as libc::c_int as usize];
-                    nextD[0 as libc::c_int as usize] = nextD[1 as libc::c_int as usize];
-                    nextD[1 as libc::c_int as usize] = tz_1;
+                    tz_1 = nextLo[0 as c_int as usize];
+                    nextLo[0 as c_int as usize] = nextLo[1 as c_int as usize];
+                    nextLo[1 as c_int as usize] = tz_1;
+                    tz_1 = nextHi[0 as c_int as usize];
+                    nextHi[0 as c_int as usize] = nextHi[1 as c_int as usize];
+                    nextHi[1 as c_int as usize] = tz_1;
+                    tz_1 = nextD[0 as c_int as usize];
+                    nextD[0 as c_int as usize] = nextD[1 as c_int as usize];
+                    nextD[1 as c_int as usize] = tz_1;
                 }
-                stackLo[sp as usize] = nextLo[0 as libc::c_int as usize];
-                stackHi[sp as usize] = nextHi[0 as libc::c_int as usize];
-                stackD[sp as usize] = nextD[0 as libc::c_int as usize];
+                stackLo[sp as usize] = nextLo[0 as c_int as usize];
+                stackHi[sp as usize] = nextHi[0 as c_int as usize];
+                stackD[sp as usize] = nextD[0 as c_int as usize];
                 sp += 1;
-                stackLo[sp as usize] = nextLo[1 as libc::c_int as usize];
-                stackHi[sp as usize] = nextHi[1 as libc::c_int as usize];
-                stackD[sp as usize] = nextD[1 as libc::c_int as usize];
+                stackLo[sp as usize] = nextLo[1 as c_int as usize];
+                stackHi[sp as usize] = nextHi[1 as c_int as usize];
+                stackD[sp as usize] = nextD[1 as c_int as usize];
                 sp += 1;
-                stackLo[sp as usize] = nextLo[2 as libc::c_int as usize];
-                stackHi[sp as usize] = nextHi[2 as libc::c_int as usize];
-                stackD[sp as usize] = nextD[2 as libc::c_int as usize];
+                stackLo[sp as usize] = nextLo[2 as c_int as usize];
+                stackHi[sp as usize] = nextHi[2 as c_int as usize];
+                stackD[sp as usize] = nextD[2 as c_int as usize];
                 sp += 1;
             }
         }
@@ -959,7 +958,7 @@ fn mainSort(
     let mut c1: u8;
     let mut numQSorted: i32;
     let mut s: u16;
-    if verb >= 4 as libc::c_int {
+    if verb >= 4 as c_int {
         eprintln!("        main sort initialise ...");
     }
 
@@ -967,25 +966,25 @@ fn mainSort(
     ftab.fill(0);
 
     j = (block[0] as i32) << 8;
-    i = nblock - 1 as libc::c_int;
-    while i >= 3 as libc::c_int {
-        j = j >> 8 | (block[i as usize] as u16 as libc::c_int) << 8;
+    i = nblock - 1 as c_int;
+    while i >= 3 as c_int {
+        j = j >> 8 | (block[i as usize] as u16 as c_int) << 8;
         ftab[j as usize] += 1;
 
-        j = j >> 8 | (block[(i - 1 as libc::c_int) as usize] as u16 as libc::c_int) << 8;
+        j = j >> 8 | (block[(i - 1 as c_int) as usize] as u16 as c_int) << 8;
         ftab[j as usize] += 1;
 
-        j = j >> 8 | (block[(i - 2 as libc::c_int) as usize] as u16 as libc::c_int) << 8;
+        j = j >> 8 | (block[(i - 2 as c_int) as usize] as u16 as c_int) << 8;
         ftab[j as usize] += 1;
 
-        j = j >> 8 | (block[(i - 3 as libc::c_int) as usize] as u16 as libc::c_int) << 8;
+        j = j >> 8 | (block[(i - 3 as c_int) as usize] as u16 as c_int) << 8;
         ftab[j as usize] += 1;
 
         i -= 4;
     }
 
-    while i >= 0 as libc::c_int {
-        j = j >> 8 as libc::c_int | (block[i as usize] as u16 as libc::c_int) << 8 as libc::c_int;
+    while i >= 0 as c_int {
+        j = j >> 8 as c_int | (block[i as usize] as u16 as c_int) << 8 as c_int;
         ftab[j as usize] += 1;
         i -= 1;
     }
@@ -994,7 +993,7 @@ fn mainSort(
         block[nblock as usize + i] = block[i];
     }
 
-    if verb >= 4 as libc::c_int {
+    if verb >= 4 as c_int {
         eprintln!("        bucket sorting ...");
     }
 
@@ -1003,38 +1002,34 @@ fn mainSort(
         ftab[i] += ftab[i - 1];
     }
 
-    s = ((block[0 as libc::c_int as usize] as libc::c_int) << 8 as libc::c_int) as u16;
-    i = nblock - 1 as libc::c_int;
-    while i >= 3 as libc::c_int {
-        s = (s as libc::c_int >> 8 | (block[i as usize] as libc::c_int) << 8) as u16;
+    s = ((block[0 as c_int as usize] as c_int) << 8 as c_int) as u16;
+    i = nblock - 1 as c_int;
+    while i >= 3 as c_int {
+        s = (s as c_int >> 8 | (block[i as usize] as c_int) << 8) as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
         ptr[j as usize] = i as u32;
 
-        s = (s as libc::c_int >> 8 | (block[(i - 1 as libc::c_int) as usize] as libc::c_int) << 8)
-            as u16;
+        s = (s as c_int >> 8 | (block[(i - 1 as c_int) as usize] as c_int) << 8) as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
         ptr[j as usize] = i as u32 - 1;
 
-        s = (s as libc::c_int >> 8 | (block[(i - 2 as libc::c_int) as usize] as libc::c_int) << 8)
-            as u16;
+        s = (s as c_int >> 8 | (block[(i - 2 as c_int) as usize] as c_int) << 8) as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
         ptr[j as usize] = i as u32 - 2;
 
-        s = (s as libc::c_int >> 8 | (block[(i - 3 as libc::c_int) as usize] as libc::c_int) << 8)
-            as u16;
+        s = (s as c_int >> 8 | (block[(i - 3 as c_int) as usize] as c_int) << 8) as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
         ptr[j as usize] = i as u32 - 3;
 
-        i -= 4 as libc::c_int;
+        i -= 4 as c_int;
     }
 
-    while i >= 0 as libc::c_int {
-        s = (s as libc::c_int >> 8 as libc::c_int
-            | (block[i as usize] as libc::c_int) << 8 as libc::c_int) as u16;
+    while i >= 0 as c_int {
+        s = (s as c_int >> 8 as c_int | (block[i as usize] as c_int) << 8 as c_int) as u16;
         j = ftab[usize::from(s)] as i32 - 1;
         ftab[usize::from(s)] = j as u32;
         ptr[j as usize] = i as u32;
@@ -1043,16 +1038,16 @@ fn mainSort(
     }
 
     bigDone.fill(false);
-    i = 0 as libc::c_int;
-    while i <= 255 as libc::c_int {
+    i = 0 as c_int;
+    while i <= 255 as c_int {
         runningOrder[i as usize] = i;
         i += 1;
     }
     let mut vv: i32;
-    let mut h: i32 = 1 as libc::c_int;
+    let mut h: i32 = 1 as c_int;
     loop {
-        h = 3 as libc::c_int * h + 1 as libc::c_int;
-        if h > 256 as libc::c_int {
+        h = 3 as c_int * h + 1 as c_int;
+        if h > 256 as c_int {
             break;
         }
     }
@@ -1064,22 +1059,22 @@ fn mainSort(
     }
 
     loop {
-        h /= 3 as libc::c_int;
+        h /= 3 as c_int;
         i = h;
-        while i <= 255 as libc::c_int {
+        while i <= 255 as c_int {
             vv = runningOrder[i as usize];
             j = i;
             while BIGFREQ!(runningOrder[(j - h) as usize] as usize) > BIGFREQ!(vv as usize) {
                 runningOrder[j as usize] = runningOrder[(j - h) as usize];
                 j -= h;
-                if j <= h - 1 as libc::c_int {
+                if j <= h - 1 as c_int {
                     break;
                 }
             }
             runningOrder[j as usize] = vv;
             i += 1;
         }
-        if h == 1 as libc::c_int {
+        if h == 1 as c_int {
             break;
         }
     }
@@ -1088,7 +1083,7 @@ fn mainSort(
        The main sorting loop.
     --*/
 
-    numQSorted = 0 as libc::c_int;
+    numQSorted = 0 as c_int;
 
     for i in 0..=255 {
         /*--
@@ -1112,33 +1107,24 @@ fn mainSort(
         --*/
         for j in 0..=255 {
             if j != ss {
-                sb = (ss << 8 as libc::c_int) + j;
+                sb = (ss << 8 as c_int) + j;
                 if (!(ftab[sb as usize] & SETMASK)) != 0 {
                     let lo: i32 = (ftab[sb as usize] & CLEARMASK) as i32;
                     let hi: i32 = ((ftab[sb as usize + 1] & CLEARMASK).wrapping_sub(1)) as i32;
 
                     if hi > lo {
-                        if verb >= 4 as libc::c_int {
+                        if verb >= 4 as c_int {
                             eprintln!(
                                 "        qsort [{:#x}, {:#x}]   done {}   this {}",
                                 ss,
                                 j,
                                 numQSorted,
-                                hi - lo + 1 as libc::c_int,
+                                hi - lo + 1 as c_int,
                             );
                         }
-                        mainQSort3(
-                            ptr,
-                            block,
-                            quadrant,
-                            nblock,
-                            lo,
-                            hi,
-                            2 as libc::c_int,
-                            budget,
-                        );
-                        numQSorted += hi - lo + 1 as libc::c_int;
-                        if *budget < 0 as libc::c_int {
+                        mainQSort3(ptr, block, quadrant, nblock, lo, hi, 2 as c_int, budget);
+                        numQSorted += hi - lo + 1 as c_int;
+                        if *budget < 0 as c_int {
                             return;
                         }
                     }
@@ -1164,7 +1150,7 @@ fn mainSort(
             j = (ftab[(ss as usize) << 8] & CLEARMASK) as i32;
             while j < copyStart[ss as usize] {
                 k = (ptr[j as usize]).wrapping_sub(1) as i32;
-                if k < 0 as libc::c_int {
+                if k < 0 as c_int {
                     k += nblock;
                 }
                 c1 = block[k as usize];
@@ -1179,7 +1165,7 @@ fn mainSort(
             j = (ftab[(ss as usize + 1) << 8] & CLEARMASK) as i32 - 1;
             while j > copyEnd[ss as usize] {
                 k = (ptr[j as usize]).wrapping_sub(1) as i32;
-                if k < 0 as libc::c_int {
+                if k < 0 as c_int {
                     k += nblock;
                 }
                 c1 = block[k as usize];
@@ -1248,17 +1234,17 @@ fn mainSort(
         --*/
         bigDone[ss as usize] = true;
 
-        if i < 255 as libc::c_int {
+        if i < 255 as c_int {
             let bbStart: i32 = (ftab[(ss as usize) << 8] & CLEARMASK) as i32;
             let bbSize: i32 = (ftab[(ss as usize + 1) << 8] & CLEARMASK) as i32 - bbStart;
-            let mut shifts: i32 = 0 as libc::c_int;
+            let mut shifts: i32 = 0 as c_int;
 
-            while bbSize >> shifts > 65534 as libc::c_int {
+            while bbSize >> shifts > 65534 as c_int {
                 shifts += 1;
             }
 
-            j = bbSize - 1 as libc::c_int;
-            while j >= 0 as libc::c_int {
+            j = bbSize - 1 as c_int;
+            while j >= 0 as c_int {
                 let a2update: i32 = ptr[(bbStart + j) as usize] as i32;
                 let qVal: u16 = (j >> shifts) as u16;
                 quadrant[a2update as usize] = qVal;
@@ -1271,7 +1257,7 @@ fn mainSort(
             assert_h!(((bbSize - 1) >> shifts) <= 65535, 1002);
         }
     }
-    if verb >= 4 as libc::c_int {
+    if verb >= 4 as c_int {
         eprintln!(
             "        {} pointers, {} sorted, {} scanned",
             nblock,
@@ -1300,7 +1286,7 @@ pub fn BZ2_blockSort(s: &mut EState) {
 
     BZ2_blockSortHelp(ptr, &mut s.arr2, ftab, nblock, s.workFactor, s.verbosity);
 
-    s.origPtr = -1 as libc::c_int;
+    s.origPtr = -1 as c_int;
     for i in 0..s.nblock {
         if ptr[i as usize] == 0 {
             s.origPtr = i;
@@ -1350,14 +1336,14 @@ fn BZ2_blockSortHelp(
                 "      {} work, {} block, ratio {:5.2}",
                 budgetInit - budget,
                 nblock,
-                ((budgetInit - budget) as libc::c_float
-                    / (if nblock == 0 { 1 } else { nblock }) as libc::c_float)
-                    as libc::c_double,
+                ((budgetInit - budget) as c_float
+                    / (if nblock == 0 { 1 } else { nblock }) as c_float)
+                    as c_double,
             );
         }
 
         if budget < 0 {
-            if verbosity >= 2 as libc::c_int {
+            if verbosity >= 2 as c_int {
                 eprintln!("    too repetitive; using fallback sorting algorithm");
             }
 

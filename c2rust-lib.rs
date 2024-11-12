@@ -7,8 +7,6 @@
 
 use core::ffi::c_int;
 
-extern crate libc;
-
 mod blocksort;
 mod bzlib;
 mod compress;

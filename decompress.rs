@@ -1,3 +1,5 @@
+use core::ffi::{c_int, c_uint};
+
 use crate::bzlib::{bz_stream, BZ2_indexIntoF, DSlice, DState, DecompressMode, ReturnCode};
 use crate::huffman::BZ2_hbCreateDecodeTables;
 use crate::randtable::BZ2_RNUMS;
@@ -948,9 +950,9 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         nn = (nextSym - 1) as u32;
                         if nn < 16 {
                             pp = s.mtfbase[0_usize];
-                            uc = s.mtfa[(pp as libc::c_uint).wrapping_add(nn) as usize];
+                            uc = s.mtfa[(pp as c_uint).wrapping_add(nn) as usize];
                             while nn > 3 {
-                                let z: i32 = (pp as libc::c_uint).wrapping_add(nn) as i32;
+                                let z: i32 = (pp as c_uint).wrapping_add(nn) as i32;
                                 s.mtfa[z as usize] = s.mtfa[(z - 1) as usize];
                                 s.mtfa[(z - 1) as usize] = s.mtfa[(z - 2) as usize];
                                 s.mtfa[(z - 2) as usize] = s.mtfa[(z - 3) as usize];
@@ -958,9 +960,8 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                 nn = (nn).wrapping_sub(4);
                             }
                             while nn > 0 {
-                                s.mtfa[(pp as libc::c_uint).wrapping_add(nn) as usize] =
-                                    s.mtfa[(pp as libc::c_uint).wrapping_add(nn).wrapping_sub(1)
-                                        as usize];
+                                s.mtfa[(pp as c_uint).wrapping_add(nn) as usize] = s.mtfa
+                                    [(pp as c_uint).wrapping_add(nn).wrapping_sub(1) as usize];
                                 nn = nn.wrapping_sub(1);
                             }
                             s.mtfa[pp as usize] = uc;
@@ -1077,12 +1078,12 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                             (s.cftabCopy[uc as usize] & 0xffff) as u16;
                                         if i & 0x1 == 0 {
                                             ll4[(i >> 1) as usize] =
-                                                (ll4[(i >> 1) as usize] as libc::c_int & 0xf0
+                                                (ll4[(i >> 1) as usize] as c_int & 0xf0
                                                     | s.cftabCopy[uc as usize] >> 16)
                                                     as u8;
                                         } else {
                                             ll4[(i >> 1) as usize] =
-                                                (ll4[(i >> 1) as usize] as libc::c_int & 0xf
+                                                (ll4[(i >> 1) as usize] as c_int & 0xf
                                                     | (s.cftabCopy[uc as usize] >> 16) << 4)
                                                     as u8;
                                         }
@@ -1102,12 +1103,11 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                         ll16[j as usize] = (i & 0xffff) as u16;
                                         if j & 0x1 == 0 {
                                             ll4[(j >> 1) as usize] =
-                                                (ll4[(j >> 1) as usize] as libc::c_int & 0xf0
-                                                    | i >> 16)
+                                                (ll4[(j >> 1) as usize] as c_int & 0xf0 | i >> 16)
                                                     as u8;
                                         } else {
                                             ll4[(j >> 1) as usize] =
-                                                (ll4[(j >> 1) as usize] as libc::c_int & 0xf
+                                                (ll4[(j >> 1) as usize] as c_int & 0xf
                                                     | (i >> 16) << 4)
                                                     as u8;
                                         }
@@ -1165,7 +1165,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                                     while i < nblock {
                                         uc = (tt[i as usize] & 0xff) as u8;
                                         let fresh0 = &mut (tt[s.cftab[uc as usize] as usize]);
-                                        *fresh0 |= (i << 8) as libc::c_uint;
+                                        *fresh0 |= (i << 8) as c_uint;
                                         s.cftab[uc as usize] += 1;
                                         i += 1;
                                     }
@@ -1250,7 +1250,7 @@ pub fn BZ2_decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                             let mut tmp: u8;
                             let mut v_22: u8;
                             v_22 = 0_u8;
-                            while (v_22 as libc::c_int) < nGroups {
+                            while (v_22 as c_int) < nGroups {
                                 pos[v_22 as usize] = v_22;
                                 v_22 = v_22.wrapping_add(1);
                             }
