@@ -16,12 +16,17 @@ use libbzip2_rs_sys::{
 use libc::{
     _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fread, fwrite, open,
     perror, remove, rewind, signal, stat, strcat, strcmp, strlen, strncpy, ungetc, utimbuf, write,
-    FILE, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM,
+    FILE, O_CREAT, O_EXCL, O_WRONLY, SIGBUS, SIGHUP, SIGINT, SIGSEGV, SIGTERM, S_IRUSR, S_IWUSR,
 };
+
+// FIXME remove this
 extern "C" {
+    #[cfg_attr(target_os = "macos", link_name = "__stdinp")]
     static mut stdin: *mut FILE;
+    #[cfg_attr(target_os = "macos", link_name = "__stdoutp")]
     static mut stdout: *mut FILE;
 }
+
 type Bool = libc::c_uchar;
 
 type IntNative = libc::c_int;
@@ -903,8 +908,8 @@ unsafe fn fileExists(name: *mut c_char) -> Bool {
 unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *mut FILE {
     let fh = open(
         name,
-        0o1 as libc::c_int | 0o100 as libc::c_int | 0o200 as libc::c_int,
-        0o200 as libc::c_int | 0o400 as libc::c_int,
+        O_WRONLY | O_CREAT | O_EXCL,
+        S_IWUSR as libc::c_uint | S_IRUSR as libc::c_uint,
     );
     if fh == -1 as libc::c_int {
         return std::ptr::null_mut::<FILE>();
@@ -967,13 +972,13 @@ unsafe fn countHardLinks(name: *mut c_char) -> i32 {
 
 #[cfg(unix)]
 fn count_hardlinks(path: &Path) -> u64 {
-    use std::os::linux::fs::MetadataExt;
+    use std::os::unix::fs::MetadataExt;
 
     let Ok(metadata) = path.metadata() else {
         return 0;
     };
 
-    metadata.st_nlink().saturating_sub(1)
+    metadata.nlink().saturating_sub(1)
 }
 
 #[cfg(not(unix))]

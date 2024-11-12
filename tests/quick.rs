@@ -1594,6 +1594,8 @@ mod compress_command {
     #[test]
     #[cfg(unix)]
     fn io_error() {
+        use std::os::fd::FromRawFd;
+
         let mut cmd = command();
 
         let tmpdir = tempfile::tempdir().unwrap();
@@ -1601,22 +1603,24 @@ mod compress_command {
         let sample1_ref = tmpdir.path().join("sample1.ref");
         std::fs::copy("tests/input/quick/sample1.ref", &sample1_ref).unwrap();
 
-        let (master, tty) = setup_custom_tty();
-
-        // dropping here triggers an IO error down the line
-        drop(master);
+        let mut pair = [0; 2];
+        unsafe {
+            assert_eq!(libc::pipe(&mut pair as *mut [i32; 2] as *mut i32), 0);
+            // closing the read side here triggers an IO error down the line
+            assert_eq!(libc::close(pair[0]), 0);
+        }
 
         expect_failure!(
             cmd.arg("-z")
                 .arg("-c")
                 .arg("-k")
                 .arg(&sample1_ref)
-                .stdout(tty),
+                .stdout(unsafe { Stdio::from_raw_fd(pair[1]) }),
             format!(
                 concat!(
                     "\n",
                     "bzip2: I/O or other error, bailing out.  Possible reason follows.\n",
-                    "bzip2: Input/output error\n",
+                    "bzip2: Broken pipe\n",
                     "\tInput file = {in_file}, output file = (stdout)\n",
                     ""
                 ),

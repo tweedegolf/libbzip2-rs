@@ -10,9 +10,12 @@ use crate::decompress::{self, decompress};
 use crate::libbzip2_rs_sys_version;
 use crate::BZ_MAX_UNUSED;
 
+// FIXME remove this
 extern "C" {
-    static stdin: *mut FILE;
-    static stdout: *mut FILE;
+    #[cfg_attr(target_os = "macos", link_name = "__stdinp")]
+    static mut stdin: *mut FILE;
+    #[cfg_attr(target_os = "macos", link_name = "__stdoutp")]
+    static mut stdout: *mut FILE;
 }
 
 pub(crate) const BZ_MAX_ALPHA_SIZE: usize = 258;
