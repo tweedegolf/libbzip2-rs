@@ -3,6 +3,7 @@
 #![allow(non_upper_case_globals)]
 
 use std::ffi::{c_char, CStr, CString, OsStr};
+use std::io::IsTerminal;
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -14,8 +15,8 @@ use libbzip2_rs_sys::{
 
 use libc::{
     _exit, close, exit, fclose, fdopen, ferror, fflush, fgetc, fileno, fopen, fprintf, fread,
-    fwrite, isatty, open, perror, remove, rewind, signal, stat, strcat, strcmp, strlen, strncpy,
-    ungetc, utimbuf, write, FILE,
+    fwrite, open, perror, remove, rewind, signal, stat, strcat, strcmp, strlen, strncpy, ungetc,
+    utimbuf, write, FILE,
 };
 extern "C" {
     static mut stdin: *mut FILE;
@@ -1219,7 +1220,7 @@ unsafe fn compress(name: *mut c_char) {
         SourceMode::I2O => {
             inStr = stdin;
             outStr = stdout;
-            if isatty(fileno(stdout)) != 0 {
+            if std::io::stdout().is_terminal() {
                 fprintf(
                     stderr,
                     b"%s: I won't write compressed data to a terminal.\n\0" as *const u8
@@ -1242,7 +1243,7 @@ unsafe fn compress(name: *mut c_char) {
                 b"rb\0" as *const u8 as *const libc::c_char,
             );
             outStr = stdout;
-            if isatty(fileno(stdout)) != 0 {
+            if std::io::stdout().is_terminal() {
                 fprintf(
                     stderr,
                     b"%s: I won't write compressed data to a terminal.\n\0" as *const u8
@@ -1494,7 +1495,7 @@ unsafe fn uncompress(name: Option<String>) {
         SourceMode::I2O => {
             inStr = stdin;
             outStr = stdout;
-            if isatty(fileno(stdin)) != 0 {
+            if std::io::stdin().is_terminal() {
                 eprint!(
                     concat!(
                         "{program_name}: I won't read compressed data from a terminal.\n",
@@ -1688,7 +1689,7 @@ unsafe fn testf(name: Option<String>) {
     }
     match srcMode {
         SourceMode::I2O => {
-            if isatty(fileno(stdin)) != 0 {
+            if std::io::stdin().is_terminal() {
                 eprintln!(
                     "{}: I won't read compressed data from a terminal.",
                     get_program_name().display(),
