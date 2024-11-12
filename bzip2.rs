@@ -470,7 +470,7 @@ unsafe fn uncompressStream(zStream: *mut FILE, stream: *mut FILE) -> bool {
                         } else {
                             if noisy {
                                 eprintln!(
-                                    "\n{}: {}: trailing garbage after EOF ignored\n",
+                                    "\n{}: {}: trailing garbage after EOF ignored",
                                     CStr::from_ptr(progName).to_string_lossy(),
                                     CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
                                 );
