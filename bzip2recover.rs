@@ -21,7 +21,6 @@ enum Error {
     Fatal,
 }
 
-#[repr(C)]
 struct BitStream {
     handle: File,
     buffer: i32,
@@ -377,7 +376,7 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn main() -> ExitCode {
+fn main() -> ExitCode {
     let mut it = ::std::env::args_os();
 
     let program_name = PathBuf::from(it.next().unwrap());
