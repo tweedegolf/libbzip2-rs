@@ -3,10 +3,12 @@
 #![allow(non_upper_case_globals)]
 
 use std::ffi::{c_char, CStr, OsStr};
+use std::fs::Metadata;
 use std::io::IsTerminal;
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
+use std::time::SystemTime;
 
 use libbzip2_rs_sys::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
@@ -975,19 +977,25 @@ unsafe fn saveInputFileMetaInfo(srcName: *mut c_char) {
         ioError();
     }
 }
-#[cfg(unix)]
-unsafe fn applySavedTimeInfoToOutputFile(dstName: *mut c_char) {
-    let mut uTimBuf: utimbuf = utimbuf {
-        actime: 0,
-        modtime: 0,
-    };
-    uTimBuf.actime = fileMetaInfo.st_atime;
-    uTimBuf.modtime = fileMetaInfo.st_mtime;
-    let retVal = libc::utime(dstName, &uTimBuf);
-    if retVal != 0 as libc::c_int {
-        ioError();
+
+fn apply_saved_time_info_to_output_file(dst_name: &CStr, metadata: Metadata) {
+    #[cfg(unix)]
+    {
+        let convert =
+            |x: SystemTime| x.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as i64;
+
+        let actime = convert(metadata.accessed().unwrap_or(SystemTime::UNIX_EPOCH));
+        let modtime = convert(metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH));
+
+        let buf = utimbuf { actime, modtime };
+
+        match unsafe { libc::utime(dst_name.as_ptr(), &buf) } {
+            0 => {}
+            _ => unsafe { ioError() },
+        }
     }
 }
+
 #[cfg(not(unix))]
 unsafe fn applySavedTimeInfoToOutputFile(_dstName: *mut c_char) {}
 #[cfg(unix)]
@@ -1146,9 +1154,17 @@ unsafe fn compress(name: Option<&str>) {
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode == SourceMode::F2F {
-        saveInputFileMetaInfo(inName.as_mut_ptr());
-    }
+
+    // Save the file's meta-info before we open it.
+    // Doing it later means we mess up the access times.
+    let metadata = match srcMode {
+        SourceMode::F2F => match std::fs::metadata(in_name) {
+            Ok(metadata) => Some(metadata),
+            Err(_) => ioError(),
+        },
+        _ => None,
+    };
+
     match srcMode {
         SourceMode::I2O => {
             inStr = stdin;
@@ -1242,8 +1258,9 @@ unsafe fn compress(name: Option<&str>) {
     delete_output_on_interrupt = true;
     compressStream(inStr, outStr);
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-    if srcMode == SourceMode::F2F {
-        applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
+
+    if let Some(metadata) = metadata {
+        apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
         delete_output_on_interrupt = false;
         if !keep_input_files && std::fs::remove_file(in_name).is_err() {
             ioError();
@@ -1395,6 +1412,16 @@ unsafe fn uncompress(name: Option<&str>) {
         unsafe { saveInputFileMetaInfo(inName.as_mut_ptr()) };
     }
 
+    // Save the file's meta-info before we open it.
+    // Doing it later means we mess up the access times.
+    let metadata = match srcMode {
+        SourceMode::F2F => match std::fs::metadata(&in_name) {
+            Ok(metadata) => Some(metadata),
+            Err(_) => ioError(),
+        },
+        _ => None,
+    };
+
     match srcMode {
         SourceMode::I2O => {
             inStr = stdin;
@@ -1485,8 +1512,8 @@ unsafe fn uncompress(name: Option<&str>) {
 
     /*--- If there was an I/O error, we won't get here. ---*/
     if magicNumberOK {
-        if srcMode == SourceMode::F2F {
-            applySavedTimeInfoToOutputFile(outName.as_mut_ptr());
+        if let Some(metadata) = metadata {
+            apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
             delete_output_on_interrupt = false;
             if !keep_input_files {
                 let retVal: IntNative = remove(inName.as_mut_ptr());
