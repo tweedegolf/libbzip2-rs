@@ -1598,9 +1598,12 @@ mod compress_command {
             ),
         );
 
-        let output_metadata = std::fs::metadata(sample1_bz2).unwrap();
+        let output_metadata = std::fs::metadata(&sample1_bz2).unwrap();
 
         assert_eq!(timestamps(input_metadata), timestamps(output_metadata));
+
+        // just to make sure the permissions are set correctly
+        let _ = std::fs::read(sample1_bz2).unwrap();
     }
 
     #[test]
