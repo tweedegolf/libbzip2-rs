@@ -4,7 +4,7 @@
 
 use std::ffi::{c_char, CStr, OsStr};
 use std::fs::Metadata;
-use std::io::{IsTerminal, Write};
+use std::io::{IsTerminal, Read, Write};
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -152,7 +152,21 @@ unsafe fn myfeof(f: *mut FILE) -> Bool {
     0 as Bool
 }
 
-unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE, metadata: Option<&Metadata>) {
+enum InputStream {
+    Stdin(std::io::Stdin),
+    File(std::fs::File),
+}
+
+impl std::io::Read for InputStream {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        match self {
+            InputStream::Stdin(_stdin) => _stdin.read(buf),
+            InputStream::File(file) => file.read(buf),
+        }
+    }
+}
+
+unsafe fn compressStream(mut stream: InputStream, zStream: *mut FILE, metadata: Option<&Metadata>) {
     let mut ibuf: [u8; 5000] = [0; 5000];
     let mut nbytes_in_lo32: u32 = 0;
     let mut nbytes_in_hi32: u32 = 0;
@@ -162,13 +176,8 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE, metadata: Option
     let mut bzerr_dummy: i32 = 0;
     let mut ret: i32;
 
-    set_binary_mode(stream);
     set_binary_mode(zStream);
 
-    if ferror(stream) != 0 {
-        // diverges
-        ioError()
-    }
     if ferror(zStream) != 0 {
         // diverges
         ioError()
@@ -186,28 +195,19 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE, metadata: Option
         }
 
         loop {
-            if myfeof(stream) != 0 {
-                break;
-            }
+            let nIbuf = match stream.read(&mut ibuf) {
+                Ok(0) => break, // EOF
+                Ok(n) => n,
+                Err(e) => exit_with_io_error(e),
+            };
 
-            let nIbuf = fread(
+            BZ2_bzWrite(
+                &mut bzerr,
+                bzf,
                 ibuf.as_mut_ptr() as *mut libc::c_void,
-                core::mem::size_of::<u8>() as libc::size_t,
-                5000 as libc::c_int as libc::size_t,
-                stream,
-            ) as i32;
-            if ferror(stream) != 0 {
-                // diverges
-                ioError()
-            }
-            if nIbuf > 0 as libc::c_int {
-                BZ2_bzWrite(
-                    &mut bzerr,
-                    bzf,
-                    ibuf.as_mut_ptr() as *mut libc::c_void,
-                    nIbuf,
-                );
-            }
+                nIbuf as i32,
+            );
+
             if bzerr != libbzip2_rs_sys::BZ_OK {
                 break 'errhandler;
             }
@@ -239,8 +239,8 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE, metadata: Option
 
         if let Some(metadata) = metadata {
             set_permissions(zStream, metadata);
-            ret = fclose(zStream);
             outputHandleJustInCase = core::ptr::null_mut();
+            ret = fclose(zStream);
             if ret == libc::EOF {
                 // diverges
                 ioError()
@@ -248,15 +248,6 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE, metadata: Option
         }
 
         outputHandleJustInCase = core::ptr::null_mut();
-        if ferror(stream) != 0 {
-            // diverges
-            ioError()
-        }
-        ret = fclose(stream);
-        if ret == libc::EOF {
-            // diverges
-            ioError()
-        }
 
         if verbosity >= 1 {
             if nbytes_in_lo32 == 0 && nbytes_in_hi32 == 0 {
@@ -1084,8 +1075,9 @@ unsafe fn compress(name: Option<&str>) {
     let in_name;
     let out_name;
 
-    let inStr: *mut FILE;
+    let input_stream;
     let outStr: *mut FILE;
+
     let mut n: u64 = 0;
     delete_output_on_interrupt = false;
 
@@ -1214,7 +1206,7 @@ unsafe fn compress(name: Option<&str>) {
 
     match srcMode {
         SourceMode::I2O => {
-            inStr = STDIN!();
+            input_stream = InputStream::Stdin(std::io::stdin());
             outStr = STDOUT!();
             if std::io::stdout().is_terminal() {
                 eprintln!(
@@ -1231,10 +1223,6 @@ unsafe fn compress(name: Option<&str>) {
             }
         }
         SourceMode::F2O => {
-            inStr = fopen(
-                inName.as_mut_ptr(),
-                b"rb\0" as *const u8 as *const libc::c_char,
-            );
             outStr = STDOUT!();
             if std::io::stdout().is_terminal() {
                 eprintln!(
@@ -1246,28 +1234,25 @@ unsafe fn compress(name: Option<&str>) {
                     get_program_name().display(),
                     get_program_name().display(),
                 );
-                if !inStr.is_null() {
-                    fclose(inStr);
+                setExit(1 as libc::c_int);
+                return;
+            }
+
+            input_stream = match std::fs::File::open(in_name) {
+                Ok(file) => InputStream::File(file),
+                Err(e) => {
+                    eprintln!(
+                        "{}: Can't open input file {}: {}.",
+                        get_program_name().display(),
+                        in_name.display(),
+                        display_os_error(e),
+                    );
+                    setExit(1 as libc::c_int);
+                    return;
                 }
-                setExit(1 as libc::c_int);
-                return;
-            }
-            if inStr.is_null() {
-                eprintln!(
-                    "{}: Can't open input file {}: {}.",
-                    get_program_name().display(),
-                    in_name.display(),
-                    display_last_os_error(),
-                );
-                setExit(1 as libc::c_int);
-                return;
-            }
+            };
         }
         SourceMode::F2F => {
-            inStr = fopen(
-                inName.as_mut_ptr(),
-                b"rb\0" as *const u8 as *const libc::c_char,
-            );
             outStr = fopen_output_safely(&out_name);
             if outStr.is_null() {
                 eprintln!(
@@ -1276,25 +1261,23 @@ unsafe fn compress(name: Option<&str>) {
                     in_name.display(),
                     display_last_os_error(),
                 );
-                if !inStr.is_null() {
-                    fclose(inStr);
-                }
                 setExit(1 as libc::c_int);
                 return;
             }
-            if inStr.is_null() {
-                eprintln!(
-                    "{}: Can't open input file {}: {}.",
-                    std::env::args().next().unwrap(),
-                    in_name.display(),
-                    display_last_os_error(),
-                );
-                if !outStr.is_null() {
-                    fclose(outStr);
+
+            input_stream = match std::fs::File::open(in_name) {
+                Ok(file) => InputStream::File(file),
+                Err(e) => {
+                    eprintln!(
+                        "{}: Can't open input file {}: {}.",
+                        get_program_name().display(),
+                        in_name.display(),
+                        display_os_error(e),
+                    );
+                    setExit(1 as libc::c_int);
+                    return;
                 }
-                setExit(1 as libc::c_int);
-                return;
-            }
+            };
         }
     }
     if verbosity >= 1 as libc::c_int {
@@ -1303,7 +1286,7 @@ unsafe fn compress(name: Option<&str>) {
     }
     outputHandleJustInCase = outStr;
     delete_output_on_interrupt = true;
-    compressStream(inStr, outStr, metadata.as_ref());
+    compressStream(input_stream, outStr, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     if let Some(metadata) = metadata {
