@@ -804,7 +804,7 @@ mod decompress_command {
         let input_metadata = std::fs::metadata(&sample1_tar_bz2).unwrap();
 
         // sleep so that we'd notice if the timestamp was not set correctly
-        std::thread::sleep(Duration::from_secs(1));
+        std::thread::sleep(Duration::from_millis(1700));
 
         expect_success!(
             cmd.arg("-d").arg("-vvvf").arg(&sample1_tar_bz2),
@@ -1570,7 +1570,7 @@ mod compress_command {
         let input_metadata = std::fs::metadata(&sample1_ref).unwrap();
 
         // sleep so that we'd notice if the timestamp was not set correctly
-        std::thread::sleep(Duration::from_secs(1));
+        std::thread::sleep(Duration::from_millis(1700));
 
         expect_success!(
             cmd.arg("-z").arg("-vvvf").arg(&sample1_ref),
