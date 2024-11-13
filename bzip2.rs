@@ -4,7 +4,7 @@
 
 use std::ffi::{c_char, CStr, OsStr};
 use std::fs::Metadata;
-use std::io::IsTerminal;
+use std::io::{IsTerminal, Write};
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -16,8 +16,8 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    _exit, exit, fclose, ferror, fflush, fgetc, fileno, fopen, fread, fwrite, perror, remove,
-    rewind, signal, stat, strlen, ungetc, write, FILE, SIGINT, SIGSEGV, SIGTERM,
+    _exit, exit, fclose, ferror, fflush, fgetc, fileno, fopen, fread, perror, remove, rewind,
+    signal, stat, strlen, ungetc, write, FILE, SIGINT, SIGSEGV, SIGTERM,
 };
 
 // FIXME remove this
@@ -128,7 +128,11 @@ static mut workFactor: i32 = 0;
 
 /// Strictly for compatibility with the original bzip2 output
 fn display_last_os_error() -> String {
-    let mut error = std::io::Error::last_os_error().to_string();
+    display_os_error(std::io::Error::last_os_error())
+}
+
+fn display_os_error(error: std::io::Error) -> String {
+    let mut error = error.to_string();
 
     // now strip off the ` (os error x)` part
     if let Some(index) = error.find(" (os error") {
@@ -300,13 +304,12 @@ unsafe fn compressStream(stream: *mut FILE, zStream: *mut FILE, metadata: Option
 
 unsafe fn uncompressStream(
     zStream: *mut FILE,
-    stream: *mut FILE,
+    mut stream: OutputStream,
     metadata: Option<&Metadata>,
 ) -> bool {
     let mut bzf = std::ptr::null_mut();
     let mut bzerr: i32 = 0;
     let mut bzerr_dummy: i32 = 0;
-    let mut ret: i32;
     let mut nread: i32;
     let mut obuf: [u8; 5000] = [0; 5000];
     let mut unused: [u8; 5000] = [0; 5000];
@@ -324,10 +327,9 @@ unsafe fn uncompressStream(
 
     let mut state = State::Standard;
 
-    set_binary_mode(stream);
     set_binary_mode(zStream);
 
-    if ferror(stream) != 0 || ferror(zStream) != 0 {
+    if ferror(zStream) != 0 {
         // diverges
         ioError()
     }
@@ -363,16 +365,9 @@ unsafe fn uncompressStream(
                     if (bzerr == libbzip2_rs_sys::BZ_OK || bzerr == libbzip2_rs_sys::BZ_STREAM_END)
                         && nread > 0
                     {
-                        fwrite(
-                            obuf.as_mut_ptr() as *const libc::c_void,
-                            core::mem::size_of::<u8>() as libc::size_t,
-                            nread as libc::size_t,
-                            stream,
-                        );
-                    }
-                    if ferror(stream) != 0 {
-                        // diverges
-                        ioError()
+                        if let Err(e) = stream.write_all(&obuf[..nread as usize]) {
+                            exit_with_io_error(e) // diverges
+                        }
                     }
                 }
 
@@ -410,33 +405,18 @@ unsafe fn uncompressStream(
                 }
 
                 if let Some(metadata) = metadata {
-                    set_permissions(stream, metadata);
-                }
-
-                ret = fclose(zStream);
-                if ret == libc::EOF {
-                    ioError()
-                }
-
-                if ferror(stream) != 0 {
-                    // diverges
-                    ioError()
-                }
-
-                ret = fflush(stream);
-                if ret != 0 {
-                    // diverges
-                    ioError()
-                }
-
-                if stream != STDOUT!() {
-                    ret = fclose(stream);
-                    outputHandleJustInCase = core::ptr::null_mut();
-                    if ret == libc::EOF {
-                        ioError()
+                    if let OutputStream::File(file) = &stream {
+                        set_permissions_rust(file, metadata);
                     }
                 }
-                outputHandleJustInCase = core::ptr::null_mut();
+
+                if let libc::EOF = fclose(zStream) {
+                    ioError()
+                }
+
+                if let Err(e) = stream.flush() {
+                    exit_with_io_error(e) // diverges
+                }
 
                 if verbosity >= 2 {
                     eprint!("\n    ");
@@ -462,16 +442,9 @@ unsafe fn uncompressStream(
                             ioError()
                         }
                         if nread > 0 {
-                            fwrite(
-                                obuf.as_mut_ptr() as *const libc::c_void,
-                                core::mem::size_of::<u8>() as libc::size_t,
-                                nread as libc::size_t,
-                                stream,
-                            );
-                        }
-                        if ferror(stream) != 0 {
-                            // diverges
-                            ioError()
+                            if let Err(e) = stream.write_all(&obuf[..nread as usize]) {
+                                exit_with_io_error(e) // diverges
+                            }
                         }
                     }
 
@@ -495,9 +468,7 @@ unsafe fn uncompressStream(
                         if zStream != STDIN!() {
                             fclose(zStream);
                         }
-                        if stream != STDOUT!() {
-                            fclose(stream);
-                        }
+
                         if streamNo == 1 {
                             return false;
                         } else {
@@ -772,6 +743,17 @@ unsafe fn compressedStreamEOF() -> ! {
     }
     cleanUpAndFail(2 as libc::c_int);
 }
+
+unsafe fn exit_with_io_error(error: std::io::Error) -> ! {
+    eprintln!(
+        "\n{}: I/O or other error, bailing out.  Possible reason follows.",
+        get_program_name().display(),
+    );
+    eprintln!("{}", display_os_error(error));
+    showFileNames();
+    cleanUpAndFail(1 as libc::c_int);
+}
+
 unsafe fn ioError() -> ! {
     eprintln!(
         "\n{}: I/O or other error, bailing out.  Possible reason follows.",
@@ -1025,22 +1007,35 @@ fn apply_saved_time_info_to_output_file(_dst_name: &CStr, _metadata: Metadata) {
 unsafe fn set_permissions(_handle: *mut FILE, _metadata: &Metadata) {
     #[cfg(unix)]
     {
-        use std::os::unix::fs::MetadataExt;
-
         let fd = fileno(_handle);
         if fd < 0 {
             // diverges
             ioError()
         }
 
-        let retVal = libc::fchmod(fd, _metadata.mode() as libc::mode_t);
-        if retVal != 0 as libc::c_int {
-            ioError();
-        }
-
-        // chown() will in many cases return with EPERM, which can be safely ignored.
-        libc::fchown(fd, _metadata.uid(), _metadata.gid());
+        set_permissions_fd(fd, _metadata)
     }
+}
+
+unsafe fn set_permissions_rust(_file: &std::fs::File, _metadata: &Metadata) {
+    #[cfg(unix)]
+    {
+        use std::os::fd::AsRawFd;
+        set_permissions_fd(_file.as_raw_fd(), _metadata)
+    }
+}
+
+#[cfg(unix)]
+unsafe fn set_permissions_fd(fd: core::ffi::c_int, metadata: &Metadata) {
+    use std::os::unix::fs::MetadataExt;
+
+    let retVal = libc::fchmod(fd, metadata.mode() as libc::mode_t);
+    if retVal != 0 as libc::c_int {
+        ioError();
+    }
+
+    // chown() will in many cases return with EPERM, which can be safely ignored.
+    libc::fchown(fd, metadata.uid(), metadata.gid());
 }
 
 #[cfg(unix)]
@@ -1321,9 +1316,37 @@ unsafe fn compress(name: Option<&str>) {
     delete_output_on_interrupt = false;
 }
 
+enum OutputStream {
+    Stdout(std::io::Stdout),
+    File(std::fs::File),
+}
+
+impl std::io::Write for OutputStream {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        match self {
+            OutputStream::Stdout(_stdout) => _stdout.write(buf),
+            OutputStream::File(file) => file.write(buf),
+        }
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
+        match self {
+            OutputStream::Stdout(_stdout) => _stdout.write_all(buf),
+            OutputStream::File(file) => file.write_all(buf),
+        }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        match self {
+            OutputStream::Stdout(_stdout) => _stdout.flush(),
+            OutputStream::File(file) => file.flush(),
+        }
+    }
+}
+
 unsafe fn uncompress(name: Option<&str>) {
     let inStr: *mut FILE;
-    let outStr: *mut FILE;
+    let output_stream;
     let n: u64;
 
     delete_output_on_interrupt = false;
@@ -1471,7 +1494,7 @@ unsafe fn uncompress(name: Option<&str>) {
     match srcMode {
         SourceMode::I2O => {
             inStr = STDIN!();
-            outStr = STDOUT!();
+            output_stream = OutputStream::Stdout(std::io::stdout());
             if std::io::stdin().is_terminal() {
                 eprint!(
                     concat!(
@@ -1489,7 +1512,7 @@ unsafe fn uncompress(name: Option<&str>) {
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
             );
-            outStr = STDOUT!();
+            output_stream = OutputStream::Stdout(std::io::stdout());
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
@@ -1510,21 +1533,26 @@ unsafe fn uncompress(name: Option<&str>) {
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
             );
-            outStr = fopen_output_safely(&out_name);
 
-            if outStr.is_null() {
-                eprintln!(
-                    "{}: Can't create output file {}: {}.",
-                    get_program_name().display(),
-                    out_name.display(),
-                    display_last_os_error(),
-                );
-                if !inStr.is_null() {
-                    fclose(inStr);
+            let mut options = std::fs::File::options();
+            options.write(true).create_new(true);
+
+            output_stream = match options.open(&out_name) {
+                Ok(file) => OutputStream::File(file),
+                Err(e) => {
+                    eprintln!(
+                        "{}: Can't create output file {}: {}.",
+                        get_program_name().display(),
+                        out_name.display(),
+                        display_os_error(e),
+                    );
+                    if !inStr.is_null() {
+                        fclose(inStr);
+                    }
+                    setExit(1);
+                    return;
                 }
-                setExit(1);
-                return;
-            }
+            };
 
             if inStr.is_null() {
                 eprintln!(
@@ -1533,9 +1561,6 @@ unsafe fn uncompress(name: Option<&str>) {
                     in_name.display(),
                     display_last_os_error(),
                 );
-                if !outStr.is_null() {
-                    fclose(outStr);
-                }
                 setExit(1);
                 return;
             }
@@ -1548,9 +1573,8 @@ unsafe fn uncompress(name: Option<&str>) {
     }
 
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
-    outputHandleJustInCase = outStr;
     delete_output_on_interrupt = true;
-    let magicNumberOK = uncompressStream(inStr, outStr, metadata.as_ref());
+    let magicNumberOK = uncompressStream(inStr, output_stream, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     /*--- If there was an I/O error, we won't get here. ---*/
