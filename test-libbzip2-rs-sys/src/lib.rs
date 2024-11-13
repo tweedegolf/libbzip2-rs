@@ -4,7 +4,6 @@
 use std::{
     ffi::{c_char, c_int, c_void, CStr},
     mem::MaybeUninit,
-    os::fd::{AsRawFd, IntoRawFd},
     path::{Path, PathBuf},
 };
 
@@ -1319,7 +1318,10 @@ mod high_level_interface {
     }
 
     #[test]
+    #[cfg(unix)]
     fn open_and_close() {
+        use std::os::fd::{AsRawFd, IntoRawFd};
+
         let p = std::env::temp_dir().join("open_and_close.bz2");
 
         const RB: *const c_char = b"rb\0".as_ptr().cast::<c_char>();

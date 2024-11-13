@@ -347,14 +347,11 @@ fn main_help(program_name: &Path, in_filename: &Path) -> Result<(), Error> {
             );
 
             let mut options = std::fs::File::options();
-            options.write(true).create(true);
+            options.write(true).create_new(true);
 
             #[cfg(unix)]
             #[allow(clippy::unnecessary_cast)]
             options.mode(libc::S_IWUSR as u32 | libc::S_IRUSR as u32);
-
-            #[cfg(unix)]
-            options.custom_flags(libc::O_EXCL);
 
             let Ok(output_file) = options.open(&out_filename) else {
                 eprintln!("{}: can't write `{}'", progname, out_filename.display());
