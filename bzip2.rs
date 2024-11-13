@@ -969,8 +969,9 @@ unsafe fn count_hardlinks(path: &Path) -> u64 {
 fn apply_saved_time_info_to_output_file(_dst_name: &CStr, _metadata: Metadata) {
     #[cfg(unix)]
     {
-        let convert =
-            |x: SystemTime| x.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as i64;
+        let convert = |x: SystemTime| {
+            x.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as libc::time_t
+        };
 
         let actime = convert(_metadata.accessed().unwrap_or(SystemTime::UNIX_EPOCH));
         let modtime = convert(_metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH));
