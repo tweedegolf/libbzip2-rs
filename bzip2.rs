@@ -967,18 +967,18 @@ unsafe fn count_hardlinks(path: &Path) -> u64 {
     0 // FIXME
 }
 
-fn apply_saved_time_info_to_output_file(dst_name: &CStr, metadata: Metadata) {
+fn apply_saved_time_info_to_output_file(_dst_name: &CStr, _metadata: Metadata) {
     #[cfg(unix)]
     {
         let convert =
             |x: SystemTime| x.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as i64;
 
-        let actime = convert(metadata.accessed().unwrap_or(SystemTime::UNIX_EPOCH));
-        let modtime = convert(metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH));
+        let actime = convert(_metadata.accessed().unwrap_or(SystemTime::UNIX_EPOCH));
+        let modtime = convert(_metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH));
 
         let buf = utimbuf { actime, modtime };
 
-        match unsafe { libc::utime(dst_name.as_ptr(), &buf) } {
+        match unsafe { libc::utime(_dst_name.as_ptr(), &buf) } {
             0 => {}
             _ => unsafe { ioError() },
         }
