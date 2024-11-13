@@ -910,7 +910,8 @@ fn fopen_output_safely_rust(name: impl AsRef<Path>) -> *mut FILE {
 
     opts.write(true).create_new(true);
 
-    opts.mode(libc::S_IWUSR | libc::S_IRUSR);
+    #[allow(clippy::unnecessary_cast)]
+    opts.mode((libc::S_IWUSR | libc::S_IRUSR) as u32);
 
     let Ok(file) = opts.open(name) else {
         return std::ptr::null_mut::<FILE>();
