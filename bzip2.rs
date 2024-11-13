@@ -996,7 +996,7 @@ unsafe fn set_permissions(handle: *mut FILE, metadata: &Metadata) {
             ioError()
         }
 
-        let retVal = libc::fchmod(fd, metadata.mode());
+        let retVal = libc::fchmod(fd, metadata.mode() as libc::mode_t);
         if retVal != 0 as libc::c_int {
             ioError();
         }
