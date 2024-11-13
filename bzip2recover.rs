@@ -125,52 +125,59 @@ impl core::fmt::Display for EmitError<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.error {
             Error::Reading(ref io_error) => {
-                f.write_fmt(format_args!(
-                    "{}: I/O error reading `{}', possible reason follows.\n",
+                writeln!(
+                    f,
+                    "{}: I/O error reading `{}', possible reason follows.",
                     self.program_name.display(),
                     self.in_filename.display(),
-                ))?;
+                )?;
 
-                f.write_fmt(format_args!("{}\n", io_error))?;
+                writeln!(f, "{}", io_error)?;
 
-                f.write_fmt(format_args!(
-                    "{}: warning: output file(s) may be incomplete.\n",
+                writeln!(
+                    f,
+                    "{}: warning: output file(s) may be incomplete.",
                     self.program_name.display(),
-                ))?;
+                )?;
 
                 Ok(())
             }
             Error::Writing(ref io_error) => {
-                f.write_fmt(format_args!(
-                    "{}: I/O error writing `{}', possible reason follows.\n",
+                writeln!(
+                    f,
+                    "{}: I/O error writing `{}', possible reason follows.",
                     self.program_name.display(),
                     self.in_filename.display(),
-                ))?;
+                )?;
 
-                f.write_fmt(format_args!("{}\n", io_error))?;
+                writeln!(f, "{}", io_error)?;
 
-                f.write_fmt(format_args!(
-                    "{}: warning: output file(s) may be incomplete.\n",
+                writeln!(
+                    f,
+                    "{}: warning: output file(s) may be incomplete.",
                     self.program_name.display(),
-                ))?;
+                )?;
 
                 Ok(())
             }
             Error::TooManyBlocks(max_handled_blocks) => {
                 let program_name = self.program_name.display();
 
-                f.write_fmt(format_args!(
-                    "{}: `{}' appears to contain more than {max_handled_blocks} blocks\n",
+                writeln!(
+                    f,
+                    "{}: `{}' appears to contain more than {max_handled_blocks} blocks",
                     program_name,
                     self.in_filename.display(),
-                ))?;
+                )?;
 
-                f.write_fmt(format_args!(
-                    "{program_name}: and cannot be handled.  To fix, increase\n"
-                ))?;
-                f.write_fmt(format_args!(
-                    "{program_name}: BZ_MAX_HANDLED_BLOCKS in bzip2recover.rs, and recompile.\n"
-                ))?;
+                writeln!(
+                    f,
+                    "{program_name}: and cannot be handled.  To fix, increase"
+                )?;
+                writeln!(
+                    f,
+                    "{program_name}: BZ_MAX_HANDLED_BLOCKS in bzip2recover.rs, and recompile."
+                )?;
 
                 Ok(())
             }
