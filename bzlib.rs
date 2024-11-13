@@ -2657,20 +2657,23 @@ unsafe fn bzopen_or_bzdopen(path: Option<&CStr>, open_mode: OpenMode, mode: &CSt
         },
     };
 
-    let mode2 = mode.as_ptr().cast_mut().cast::<c_char>();
+    let mode_cstr = mode.as_ptr().cast_mut().cast::<c_char>();
 
-    let default_file = match operation {
-        Operation::Reading => stdin,
-        Operation::Writing => stdout,
+    let opt_fp = match open_mode {
+        OpenMode::Pointer => match path {
+            None => None,
+            Some(path) if path.is_empty() => None,
+            Some(path) => Some(fopen(path.as_ptr(), mode_cstr)),
+        },
+        OpenMode::FileDescriptor(fd) => Some(fdopen(fd, mode_cstr)),
     };
 
-    let fp = match open_mode {
-        OpenMode::Pointer => match path {
-            None => default_file,
-            Some(path) if path.is_empty() => default_file,
-            Some(path) => fopen(path.as_ptr(), mode2),
+    let fp = match opt_fp {
+        Some(fp) => fp,
+        None => match operation {
+            Operation::Reading => fdopen(0, mode_cstr),
+            Operation::Writing => fdopen(1, mode_cstr),
         },
-        OpenMode::FileDescriptor(fd) => fdopen(fd, mode2),
     };
 
     if fp.is_null() {
@@ -2696,7 +2699,7 @@ unsafe fn bzopen_or_bzdopen(path: Option<&CStr>, open_mode: OpenMode, mode: &CSt
     };
 
     if bzfp.is_null() {
-        if fp != stdin && fp != stdout {
+        if let Some(fp) = opt_fp {
             fclose(fp);
         }
         return ptr::null_mut();
