@@ -936,7 +936,7 @@ unsafe fn copy_filename(to: *mut c_char, from: &str) {
     *to.wrapping_add(FILE_NAME_LEN - 10) = '\0' as i32 as c_char;
 }
 
-fn fopen_output_safely_rust(name: impl AsRef<Path>) -> *mut FILE {
+fn fopen_output_safely(name: impl AsRef<Path>) -> *mut FILE {
     #[cfg(unix)]
     {
         use std::os::fd::IntoRawFd;
@@ -975,27 +975,6 @@ fn fopen_output_safely_rust(name: impl AsRef<Path>) -> *mut FILE {
             b"wb\0".as_ptr().cast::<c_char>(),
         )
     }
-}
-
-unsafe fn fopen_output_safely(name: *mut c_char, mode: *const libc::c_char) -> *mut FILE {
-    #[cfg(unix)]
-    {
-        let fh = libc::open(
-            name,
-            libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL,
-            libc::S_IWUSR as libc::c_uint | libc::S_IRUSR as libc::c_uint,
-        );
-        if fh == -1 as libc::c_int {
-            return std::ptr::null_mut::<FILE>();
-        }
-        let fp = libc::fdopen(fh, mode);
-        if fp.is_null() {
-            libc::close(fh);
-        }
-        fp
-    }
-    #[cfg(not(unix))]
-    libc::fopen(name, mode)
 }
 
 fn not_a_standard_file(path: &Path) -> bool {
@@ -1294,7 +1273,7 @@ unsafe fn compress(name: Option<&str>) {
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
             );
-            outStr = fopen_output_safely_rust(&out_name);
+            outStr = fopen_output_safely(&out_name);
             if outStr.is_null() {
                 eprintln!(
                     "{}: Can't create output file {}: {}.",
@@ -1531,10 +1510,7 @@ unsafe fn uncompress(name: Option<&str>) {
                 inName.as_mut_ptr(),
                 b"rb\0" as *const u8 as *const libc::c_char,
             );
-            outStr = fopen_output_safely(
-                outName.as_mut_ptr(),
-                b"wb\0" as *const u8 as *const libc::c_char,
-            );
+            outStr = fopen_output_safely(&out_name);
 
             if outStr.is_null() {
                 eprintln!(
