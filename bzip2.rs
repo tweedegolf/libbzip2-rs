@@ -903,7 +903,7 @@ unsafe fn copy_filename(to: *mut c_char, from: &str) {
 }
 
 fn fopen_output_safely_rust(name: impl AsRef<Path>) -> *mut FILE {
-    use std::os::fd::AsRawFd;
+    use std::os::fd::IntoRawFd;
     use std::os::unix::fs::OpenOptionsExt;
 
     let mut opts = std::fs::File::options();
@@ -916,12 +916,11 @@ fn fopen_output_safely_rust(name: impl AsRef<Path>) -> *mut FILE {
         return std::ptr::null_mut::<FILE>();
     };
 
+    let fd = file.into_raw_fd();
     let mode = b"wb\0".as_ptr().cast::<c_char>();
-    let fp = unsafe { fdopen(file.as_raw_fd(), mode) };
+    let fp = unsafe { fdopen(fd, mode) };
     if fp.is_null() {
-        drop(file)
-    } else {
-        core::mem::forget(file)
+        unsafe { close(fd) };
     }
 
     fp
