@@ -23,10 +23,12 @@ use libc::{
 // FIXME remove this
 #[cfg(not(target_os = "windows"))]
 extern "C" {
+    #[cfg_attr(not(target_os = "macos"), link_name = "stdin")]
     #[cfg_attr(target_os = "macos", link_name = "__stdinp")]
-    static mut stdin: *mut FILE;
+    static mut stdin_handle: *mut FILE;
+    #[cfg_attr(not(target_os = "macos"), link_name = "stdout")]
     #[cfg_attr(target_os = "macos", link_name = "__stdoutp")]
-    static mut stdout: *mut FILE;
+    static mut stdout_handle: *mut FILE;
 }
 
 #[cfg(all(target_os = "windows", target_env = "gnu"))]
@@ -37,7 +39,7 @@ extern "C" {
 #[cfg(not(target_os = "windows"))]
 macro_rules! STDIN {
     () => {
-        stdin
+        stdin_handle
     };
 }
 
@@ -51,7 +53,7 @@ macro_rules! STDIN {
 #[cfg(not(target_os = "windows"))]
 macro_rules! STDOUT {
     () => {
-        stdout
+        stdout_handle
     };
 }
 
@@ -160,7 +162,7 @@ enum InputStream {
 impl std::io::Read for InputStream {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         match self {
-            InputStream::Stdin(_stdin) => _stdin.read(buf),
+            InputStream::Stdin(stdin) => stdin.read(buf),
             InputStream::File(file) => file.read(buf),
         }
     }
@@ -1307,21 +1309,21 @@ enum OutputStream {
 impl std::io::Write for OutputStream {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         match self {
-            OutputStream::Stdout(_stdout) => _stdout.write(buf),
+            OutputStream::Stdout(stdout) => stdout.write(buf),
             OutputStream::File(file) => file.write(buf),
         }
     }
 
     fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
         match self {
-            OutputStream::Stdout(_stdout) => _stdout.write_all(buf),
+            OutputStream::Stdout(stdout) => stdout.write_all(buf),
             OutputStream::File(file) => file.write_all(buf),
         }
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
         match self {
-            OutputStream::Stdout(_stdout) => _stdout.flush(),
+            OutputStream::Stdout(stdout) => stdout.flush(),
             OutputStream::File(file) => file.flush(),
         }
     }
