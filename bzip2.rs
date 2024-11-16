@@ -1266,20 +1266,21 @@ unsafe fn compress(config: &Config) {
         }
     }
 
-    let mut n: u64 = 0;
-    if srcMode == SourceMode::F2F && !config.force_overwrite && {
-        n = count_hardlinks(config.input);
-        n > 0
-    } {
-        eprintln!(
-            "{}: Input file {} has {} other link{}.",
-            config.program_name.display(),
-            config.input.display(),
-            n,
-            if n > 1 { "s" } else { "" },
-        );
-        setExit(1 as libc::c_int);
-        return;
+    if srcMode == SourceMode::F2F && !config.force_overwrite {
+        match count_hardlinks(config.input) {
+            0 => { /* fallthrough */ }
+            n => {
+                eprintln!(
+                    "{}: Input file {} has {} other link{}.",
+                    config.program_name.display(),
+                    config.input.display(),
+                    n,
+                    if n > 1 { "s" } else { "" },
+                );
+                setExit(1 as libc::c_int);
+                return;
+            }
+        }
     }
 
     // Save the file's meta-info before we open it.
@@ -1419,8 +1420,6 @@ impl std::io::Write for OutputStream {
 }
 
 unsafe fn uncompress(config: &Config) {
-    let n: u64;
-
     delete_output_on_interrupt = false;
 
     let cannot_guess = config.output.extension() == Some(OsStr::new("out"));
@@ -1494,19 +1493,21 @@ unsafe fn uncompress(config: &Config) {
         }
     }
 
-    if srcMode == SourceMode::F2F && !config.force_overwrite && {
-        n = count_hardlinks(config.input);
-        n > 0
-    } {
-        eprintln!(
-            "{}: Input file {} has {} other link{}.",
-            config.program_name.display(),
-            config.input.display(),
-            n,
-            if n > 1 { "s" } else { "" },
-        );
-        setExit(1 as libc::c_int);
-        return;
+    if srcMode == SourceMode::F2F && !config.force_overwrite {
+        match count_hardlinks(config.input) {
+            0 => { /* fallthrough */ }
+            n => {
+                eprintln!(
+                    "{}: Input file {} has {} other link{}.",
+                    config.program_name.display(),
+                    config.input.display(),
+                    n,
+                    if n > 1 { "s" } else { "" },
+                );
+                setExit(1 as libc::c_int);
+                return;
+            }
+        }
     }
 
     // Save the file's meta-info before we open it.
