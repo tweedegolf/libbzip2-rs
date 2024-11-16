@@ -1191,72 +1191,38 @@ unsafe fn set_binary_mode(file: *mut FILE) {
 /// Prevent Windows from mangling the read data.
 unsafe fn set_binary_mode(_file: *mut FILE) {}
 
-unsafe fn compress(config: &Config, name: Option<&str>) {
-    let in_name;
-    let out_name;
-
-    let input_stream;
-    let outStr: *mut FILE;
-
-    let mut n: u64 = 0;
+unsafe fn compress(config: &Config) {
     delete_output_on_interrupt = false;
 
-    match (name, srcMode) {
-        (_, SourceMode::I2O) => {
-            in_name = Path::new("(stdin)");
-            out_name = PathBuf::from("(stdout)");
-
-            copy_filename(inName.as_mut_ptr(), "(stdin)");
-            copy_filename(outName.as_mut_ptr(), "(stdout)");
-        }
-        (Some(name), SourceMode::F2O) => {
-            in_name = Path::new(name);
-            out_name = PathBuf::from("(stdout)");
-
-            copy_filename(inName.as_mut_ptr(), name);
-            copy_filename(outName.as_mut_ptr(), "(stdout)");
-        }
-        (Some(name), SourceMode::F2F) => {
-            in_name = Path::new(name);
-            out_name = PathBuf::from(format!("{name}.bz2"));
-
-            copy_filename(inName.as_mut_ptr(), in_name.to_str().unwrap());
-            copy_filename(outName.as_mut_ptr(), out_name.to_str().unwrap());
-        }
-        (None, SourceMode::F2O | SourceMode::F2F) => {
-            panic_str("compress: bad modes\n");
-        }
-    }
-
-    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(in_name) {
+    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
         if noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
                 config.program_name.display(),
-                in_name.display(),
+                config.input.display(),
             );
         }
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode != SourceMode::I2O && !in_name.exists() {
+    if srcMode != SourceMode::I2O && !config.input.exists() {
         eprintln!(
             "{}: Can't open input file {}: {}.",
-            std::env::args().next().unwrap(),
-            in_name.display(),
+            config.program_name.display(),
+            config.input.display(),
             display_last_os_error(),
         );
         setExit(1 as libc::c_int);
         return;
     }
-    if let Some(extension) = in_name.extension() {
+    if let Some(extension) = config.input.extension() {
         for bz2_extension in Z_SUFFIX {
             if extension == OsStr::new(&bz2_extension[1..]) {
                 if noisy {
                     eprintln!(
                         "{}: Input file {} already has {} suffix.",
-                        std::env::args().next().unwrap(),
-                        in_name.display(),
+                        config.program_name.display(),
+                        config.input.display(),
                         &bz2_extension[1..],
                     );
                 }
@@ -1265,48 +1231,50 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
             }
         }
     }
-    if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && in_name.is_dir() {
+    if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && config.input.is_dir() {
         eprintln!(
             "{}: Input file {} is a directory.",
             config.program_name.display(),
-            in_name.display(),
+            config.input.display(),
         );
         setExit(1 as libc::c_int);
         return;
     }
 
-    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(in_name) {
+    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(config.input) {
         if noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
                 config.program_name.display(),
-                in_name.display(),
+                config.input.display(),
             );
         }
         setExit(1 as libc::c_int);
         return;
     }
-    if srcMode == SourceMode::F2F && out_name.exists() {
+    if srcMode == SourceMode::F2F && config.output.exists() {
         if config.force_overwrite {
-            let _ = std::fs::remove_file(&out_name);
+            let _ = std::fs::remove_file(&config.output);
         } else {
             eprintln!(
                 "{}: Output file {} already exists.",
                 config.program_name.display(),
-                out_name.display(),
+                config.output.display(),
             );
             setExit(1 as libc::c_int);
             return;
         }
     }
+
+    let mut n: u64 = 0;
     if srcMode == SourceMode::F2F && !config.force_overwrite && {
-        n = count_hardlinks(in_name);
+        n = count_hardlinks(config.input);
         n > 0
     } {
         eprintln!(
             "{}: Input file {} has {} other link{}.",
             config.program_name.display(),
-            in_name.display(),
+            config.input.display(),
             n,
             if n > 1 { "s" } else { "" },
         );
@@ -1317,12 +1285,15 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
     // Save the file's meta-info before we open it.
     // Doing it later means we mess up the access times.
     let metadata = match srcMode {
-        SourceMode::F2F => match std::fs::metadata(in_name) {
+        SourceMode::F2F => match std::fs::metadata(config.input) {
             Ok(metadata) => Some(metadata),
             Err(_) => ioError(),
         },
         _ => None,
     };
+
+    let input_stream;
+    let outStr: *mut FILE;
 
     match srcMode {
         SourceMode::I2O => {
@@ -1358,13 +1329,13 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
                 return;
             }
 
-            input_stream = match std::fs::File::open(in_name) {
+            input_stream = match std::fs::File::open(config.input) {
                 Ok(file) => InputStream::File(file),
                 Err(e) => {
                     eprintln!(
                         "{}: Can't open input file {}: {}.",
                         config.program_name.display(),
-                        in_name.display(),
+                        config.input.display(),
                         display_os_error(e),
                     );
                     setExit(1 as libc::c_int);
@@ -1373,25 +1344,25 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
             };
         }
         SourceMode::F2F => {
-            outStr = fopen_output_safely(&out_name);
+            outStr = fopen_output_safely(&config.output);
             if outStr.is_null() {
                 eprintln!(
                     "{}: Can't create output file {}: {}.",
-                    std::env::args().next().unwrap(),
-                    in_name.display(),
+                    config.program_name.display(),
+                    config.input.display(),
                     display_last_os_error(),
                 );
                 setExit(1 as libc::c_int);
                 return;
             }
 
-            input_stream = match std::fs::File::open(in_name) {
+            input_stream = match std::fs::File::open(config.input) {
                 Ok(file) => InputStream::File(file),
                 Err(e) => {
                     eprintln!(
                         "{}: Can't open input file {}: {}.",
                         config.program_name.display(),
-                        in_name.display(),
+                        config.input.display(),
                         display_os_error(e),
                     );
                     setExit(1 as libc::c_int);
@@ -1401,8 +1372,8 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
         }
     }
     if config.verbosity >= 1 as libc::c_int {
-        eprint!("  {}: ", in_name.display());
-        pad(in_name);
+        eprint!("  {}: ", config.input.display());
+        pad(config.input);
     }
     outputHandleJustInCase = outStr;
     delete_output_on_interrupt = true;
@@ -1412,7 +1383,7 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
     if let Some(metadata) = metadata {
         apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
         delete_output_on_interrupt = false;
-        if !config.keep_input_files && std::fs::remove_file(in_name).is_err() {
+        if !config.keep_input_files && std::fs::remove_file(config.input).is_err() {
             ioError();
         }
     }
@@ -2115,7 +2086,9 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         );
     }
 
-    let config = Config {
+    let arg_list = &arg_list;
+
+    let mut config = Config {
         program_name,
 
         input: Path::new("(none)"),
@@ -2137,7 +2110,8 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     match opMode {
         OperationMode::Zip => {
             if srcMode == SourceMode::I2O {
-                compress(&config, None);
+                config.with_input(opMode, None, srcMode);
+                compress(&config);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2145,7 +2119,8 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        compress(&config, Some(name.as_str()));
+                        config.with_input(opMode, Some(name.as_str()), srcMode);
+                        compress(&config);
                     }
                 }
             }
