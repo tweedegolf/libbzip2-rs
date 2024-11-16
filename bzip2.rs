@@ -1418,98 +1418,52 @@ impl std::io::Write for OutputStream {
     }
 }
 
-unsafe fn uncompress(config: &Config, name: Option<&str>) {
-    let inStr: *mut FILE;
-    let output_stream;
+unsafe fn uncompress(config: &Config) {
     let n: u64;
 
     delete_output_on_interrupt = false;
 
-    let mut cannot_guess = false;
+    let cannot_guess = config.output.extension() == Some(OsStr::new("out"));
 
-    let in_name: PathBuf;
-    let out_name: PathBuf;
-
-    match (name, srcMode) {
-        (_, SourceMode::I2O) => {
-            in_name = PathBuf::from("(stdin)");
-            out_name = PathBuf::from("(stdout)");
-
-            copy_filename(inName.as_mut_ptr(), "(stdin)");
-            copy_filename(outName.as_mut_ptr(), "(stdout)");
-        }
-        (Some(name), SourceMode::F2O) => {
-            in_name = PathBuf::from(&name);
-            out_name = PathBuf::from("(stdout)");
-
-            copy_filename(inName.as_mut_ptr(), name);
-            copy_filename(outName.as_mut_ptr(), "(stdout)");
-        }
-        (Some(name), SourceMode::F2F) => {
-            in_name = PathBuf::from(name);
-            copy_filename(inName.as_mut_ptr(), name);
-
-            let mut name = name.to_owned();
-
-            cannot_guess = 'blk: {
-                for (old, new) in Z_SUFFIX.iter().zip(UNZ_SUFFIX) {
-                    if name.ends_with(old) {
-                        name.truncate(name.len() - old.len());
-                        name += new;
-                        break 'blk false;
-                    }
-                }
-
-                name += ".out";
-                true
-            };
-
-            copy_filename(outName.as_mut_ptr(), &name);
-
-            out_name = PathBuf::from(name);
-        }
-        (None, SourceMode::F2O | SourceMode::F2F) => panic_str("uncompress: bad modes\n"),
-    }
-
-    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&in_name) {
+    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
         if noisy {
             eprintln!(
                 "%{}: There are no files matching `{}'.",
                 config.program_name.display(),
-                in_name.display(),
+                config.input.display(),
             );
         }
         setExit(1);
         return;
     }
 
-    if srcMode != SourceMode::I2O && !in_name.exists() {
+    if srcMode != SourceMode::I2O && !config.input.exists() {
         eprintln!(
             "{}: Can't open input file {}: {}.",
             config.program_name.display(),
-            in_name.display(),
+            config.input.display(),
             display_last_os_error(),
         );
         setExit(1);
         return;
     }
 
-    if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && in_name.is_dir() {
+    if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && config.input.is_dir() {
         eprintln!(
             "{}: Input file {} is a directory.",
             config.program_name.display(),
-            in_name.display(),
+            config.input.display(),
         );
         setExit(1);
         return;
     }
 
-    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(&in_name) {
+    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(config.input) {
         if noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
                 config.program_name.display(),
-                in_name.display(),
+                config.input.display(),
             );
         }
         setExit(1);
@@ -1521,19 +1475,19 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
         eprintln!(
             "{}: Can't guess original name for {} -- using {}",
             config.program_name.display(),
-            in_name.display(),
-            out_name.display(),
+            config.input.display(),
+            config.output.display(),
         );
     }
 
-    if srcMode == SourceMode::F2F && out_name.exists() {
+    if srcMode == SourceMode::F2F && config.output.exists() {
         if config.force_overwrite {
-            let _ = std::fs::remove_file(&out_name);
+            let _ = std::fs::remove_file(&config.output);
         } else {
             eprintln!(
                 "{}: Output file {} already exists.",
                 config.program_name.display(),
-                out_name.display(),
+                config.output.display(),
             );
             setExit(1);
             return;
@@ -1541,13 +1495,13 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
     }
 
     if srcMode == SourceMode::F2F && !config.force_overwrite && {
-        n = count_hardlinks(&in_name);
+        n = count_hardlinks(config.input);
         n > 0
     } {
         eprintln!(
             "{}: Input file {} has {} other link{}.",
             config.program_name.display(),
-            in_name.display(),
+            config.input.display(),
             n,
             if n > 1 { "s" } else { "" },
         );
@@ -1558,12 +1512,15 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
     // Save the file's meta-info before we open it.
     // Doing it later means we mess up the access times.
     let metadata = match srcMode {
-        SourceMode::F2F => match std::fs::metadata(&in_name) {
+        SourceMode::F2F => match std::fs::metadata(config.input) {
             Ok(metadata) => Some(metadata),
             Err(_) => ioError(),
         },
         _ => None,
     };
+
+    let inStr: *mut FILE;
+    let output_stream;
 
     match srcMode {
         SourceMode::I2O => {
@@ -1591,7 +1548,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
                     config.program_name.display(),
-                    in_name.display(),
+                    config.input.display(),
                     display_last_os_error(),
                 );
                 if !inStr.is_null() {
@@ -1611,13 +1568,13 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
             let mut options = std::fs::File::options();
             options.write(true).create_new(true);
 
-            output_stream = match options.open(&out_name) {
+            output_stream = match options.open(&config.output) {
                 Ok(file) => OutputStream::File(file),
                 Err(e) => {
                     eprintln!(
                         "{}: Can't create output file {}: {}.",
                         config.program_name.display(),
-                        out_name.display(),
+                        config.output.display(),
                         display_os_error(e),
                     );
                     if !inStr.is_null() {
@@ -1632,7 +1589,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
                     config.program_name.display(),
-                    in_name.display(),
+                    config.input.display(),
                     display_last_os_error(),
                 );
                 setExit(1);
@@ -1642,8 +1599,8 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
     }
 
     if config.verbosity >= 1 {
-        eprint!("  {}: ", in_name.display(),);
-        pad(&in_name);
+        eprint!("  {}: ", config.input.display());
+        pad(config.input);
     }
 
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
@@ -1688,7 +1645,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
             eprintln!(
                 "{}: {} is not a bzip2 file.",
                 config.program_name.display(),
-                in_name.display(),
+                config.input.display(),
             );
         }
     };
@@ -2128,7 +2085,8 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         OperationMode::Unzip => {
             unz_fails_exist = false;
             if srcMode == SourceMode::I2O {
-                uncompress(&config, None);
+                config.with_input(opMode, None, srcMode);
+                uncompress(&config);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2136,7 +2094,8 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        uncompress(&config, Some(name.as_str()));
+                        config.with_input(opMode, Some(name.as_str()), srcMode);
+                        uncompress(&config);
                     }
                 }
             }
