@@ -75,7 +75,7 @@ enum DecompressMode {
     Small = 1,
 }
 
-static mut decompress_mode: DecompressMode = DecompressMode::Fast;
+// static mut decompress_mode: DecompressMode = DecompressMode::Fast;
 
 static mut delete_output_on_interrupt: bool = false;
 static mut force_overwrite: bool = false;
@@ -85,6 +85,10 @@ static mut noisy: bool = false;
 static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
 static mut exitValue: i32 = 0;
+
+struct UncompressConfig {
+    decompress_mode: DecompressMode,
+}
 
 struct CompressConfig {
     blockSize100k: i32,
@@ -308,6 +312,7 @@ unsafe fn compressStream(
 }
 
 unsafe fn uncompressStream(
+    config: &UncompressConfig,
     zStream: *mut FILE,
     mut stream: OutputStream,
     metadata: Option<&Metadata>,
@@ -346,7 +351,7 @@ unsafe fn uncompressStream(
                     &mut bzerr,
                     zStream,
                     verbosity,
-                    decompress_mode as libc::c_int,
+                    config.decompress_mode as libc::c_int,
                     unused.as_mut_ptr() as *mut libc::c_void,
                     nUnused,
                 );
@@ -494,7 +499,7 @@ unsafe fn uncompressStream(
     }
 }
 
-unsafe fn testStream(zStream: *mut FILE) -> bool {
+unsafe fn testStream(config: &UncompressConfig, zStream: *mut FILE) -> bool {
     let mut bzf: *mut BZFILE;
     let mut bzerr: i32 = 0;
     let mut i: i32;
@@ -510,7 +515,7 @@ unsafe fn testStream(zStream: *mut FILE) -> bool {
                 &mut bzerr,
                 zStream,
                 verbosity,
-                decompress_mode as libc::c_int,
+                config.decompress_mode as libc::c_int,
                 unused.as_mut_ptr() as *mut libc::c_void,
                 nUnused,
             );
@@ -1341,7 +1346,7 @@ impl std::io::Write for OutputStream {
     }
 }
 
-unsafe fn uncompress(name: Option<&str>) {
+unsafe fn uncompress(config: &UncompressConfig, name: Option<&str>) {
     let inStr: *mut FILE;
     let output_stream;
     let n: u64;
@@ -1571,7 +1576,7 @@ unsafe fn uncompress(name: Option<&str>) {
 
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
     delete_output_on_interrupt = true;
-    let magicNumberOK = uncompressStream(inStr, output_stream, metadata.as_ref());
+    let magicNumberOK = uncompressStream(config, inStr, output_stream, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     /*--- If there was an I/O error, we won't get here. ---*/
@@ -1617,7 +1622,7 @@ unsafe fn uncompress(name: Option<&str>) {
     };
 }
 
-unsafe fn testf(name: Option<&str>) {
+unsafe fn testf(config: &UncompressConfig, name: Option<&str>) {
     let inStr: *mut FILE;
     delete_output_on_interrupt = false;
 
@@ -1712,7 +1717,7 @@ unsafe fn testf(name: Option<&str>) {
         pad(&in_name);
     }
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-    let allOK = testStream(inStr);
+    let allOK = testStream(config, inStr);
     if allOK && verbosity >= 1 {
         eprintln!("ok");
     }
@@ -1805,7 +1810,6 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     let program_name = Path::new(program_path.file_name().unwrap());
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-    decompress_mode = DecompressMode::Fast;
     keep_input_files = false;
     force_overwrite = false;
     noisy = true;
@@ -1817,8 +1821,12 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     delete_output_on_interrupt = false;
     exitValue = 0;
 
+    // compress config
     let mut blockSize100k = 9;
     let mut workFactor = 30;
+
+    // uncompress config
+    let mut decompress_mode = DecompressMode::Fast;
 
     signal(
         SIGSEGV,
@@ -2025,9 +2033,11 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Unzip => {
+            let config = UncompressConfig { decompress_mode };
+
             unz_fails_exist = false;
             if srcMode == SourceMode::I2O {
-                uncompress(None);
+                uncompress(&config, None);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2035,7 +2045,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        uncompress(Some(name.as_str()));
+                        uncompress(&config, Some(name.as_str()));
                     }
                 }
             }
@@ -2045,9 +2055,11 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Test => {
+            let config = UncompressConfig { decompress_mode };
+
             test_fails_exists = false;
             if srcMode == SourceMode::I2O {
-                testf(None);
+                testf(&config, None);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2055,7 +2067,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        testf(Some(name.as_str()));
+                        testf(&config, Some(name.as_str()));
                     }
                 }
             }
