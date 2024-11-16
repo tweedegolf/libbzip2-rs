@@ -66,7 +66,6 @@ macro_rules! STDOUT {
 
 type IntNative = libc::c_int;
 
-static mut verbosity: i32 = 0;
 static mut keep_input_files: bool = false;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -87,12 +86,13 @@ static mut numFilesProcessed: i32 = 0;
 static mut exitValue: i32 = 0;
 
 struct UncompressConfig {
+    verbosity: i32,
     decompress_mode: DecompressMode,
 }
 
 struct CompressConfig {
     blockSize100k: i32,
-    // verbosity: i32,
+    verbosity: i32,
     workFactor: i32,
 }
 
@@ -199,7 +199,7 @@ unsafe fn compressStream(
         &mut bzerr,
         zStream,
         config.blockSize100k,
-        verbosity,
+        config.verbosity,
         config.workFactor,
     );
 
@@ -208,7 +208,7 @@ unsafe fn compressStream(
             break 'errhandler;
         }
 
-        if verbosity >= 2 {
+        if config.verbosity >= 2 {
             eprintln!();
         }
 
@@ -267,7 +267,7 @@ unsafe fn compressStream(
 
         outputHandleJustInCase = core::ptr::null_mut();
 
-        if verbosity >= 1 {
+        if config.verbosity >= 1 {
             if nbytes_in_lo32 == 0 && nbytes_in_hi32 == 0 {
                 eprintln!(" no data compressed.");
             } else {
@@ -350,7 +350,7 @@ unsafe fn uncompressStream(
                 bzf = BZ2_bzReadOpen(
                     &mut bzerr,
                     zStream,
-                    verbosity,
+                    config.verbosity,
                     config.decompress_mode as libc::c_int,
                     unused.as_mut_ptr() as *mut libc::c_void,
                     nUnused,
@@ -428,7 +428,7 @@ unsafe fn uncompressStream(
                     exit_with_io_error(e) // diverges
                 }
 
-                if verbosity >= 2 {
+                if config.verbosity >= 2 {
                     eprint!("\n    ");
                 }
 
@@ -514,7 +514,7 @@ unsafe fn testStream(config: &UncompressConfig, zStream: *mut FILE) -> bool {
             bzf = BZ2_bzReadOpen(
                 &mut bzerr,
                 zStream,
-                verbosity,
+                config.verbosity,
                 config.decompress_mode as libc::c_int,
                 unused.as_mut_ptr() as *mut libc::c_void,
                 nUnused,
@@ -572,7 +572,7 @@ unsafe fn testStream(config: &UncompressConfig, zStream: *mut FILE) -> bool {
             ioError() // diverges
         }
 
-        if verbosity >= 2 {
+        if config.verbosity >= 2 {
             eprintln!()
         }
 
@@ -582,7 +582,7 @@ unsafe fn testStream(config: &UncompressConfig, zStream: *mut FILE) -> bool {
     // errhandler:
 
     BZ2_bzReadClose(&mut 0, bzf);
-    if verbosity == 0 {
+    if config.verbosity == 0 {
         eprintln!(
             "{}: {}: ",
             get_program_name().display(),
@@ -1299,7 +1299,7 @@ unsafe fn compress(config: &CompressConfig, name: Option<&str>) {
             };
         }
     }
-    if verbosity >= 1 as libc::c_int {
+    if config.verbosity >= 1 as libc::c_int {
         eprint!("  {}: ", in_name.display());
         pad(in_name);
     }
@@ -1569,7 +1569,7 @@ unsafe fn uncompress(config: &UncompressConfig, name: Option<&str>) {
         }
     }
 
-    if verbosity >= 1 {
+    if config.verbosity >= 1 {
         eprint!("  {}: ", in_name.display(),);
         pad(&in_name);
     }
@@ -1605,12 +1605,12 @@ unsafe fn uncompress(config: &UncompressConfig, name: Option<&str>) {
     delete_output_on_interrupt = false;
 
     if magicNumberOK {
-        if verbosity >= 1 {
+        if config.verbosity >= 1 {
             eprintln!("done");
         }
     } else {
         setExit(2);
-        if verbosity >= 1 {
+        if config.verbosity >= 1 {
             eprintln!("not a bzip2 file.");
         } else {
             eprintln!(
@@ -1712,13 +1712,13 @@ unsafe fn testf(config: &UncompressConfig, name: Option<&str>) {
             }
         }
     }
-    if verbosity >= 1 {
+    if config.verbosity >= 1 {
         eprint!("  {}: ", in_name.display());
         pad(&in_name);
     }
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     let allOK = testStream(config, inStr);
-    if allOK && verbosity >= 1 {
+    if allOK && config.verbosity >= 1 {
         eprintln!("ok");
     }
     if !allOK {
@@ -1813,13 +1813,16 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     keep_input_files = false;
     force_overwrite = false;
     noisy = true;
-    verbosity = 0;
     test_fails_exists = false;
     unz_fails_exist = false;
     numFileNames = 0;
     numFilesProcessed = 0;
     delete_output_on_interrupt = false;
+
     exitValue = 0;
+
+    // general config
+    let mut verbosity = 0;
 
     // compress config
     let mut blockSize100k = 9;
@@ -2015,6 +2018,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         OperationMode::Zip => {
             let config = CompressConfig {
                 blockSize100k,
+                verbosity,
                 workFactor,
             };
 
@@ -2033,7 +2037,10 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Unzip => {
-            let config = UncompressConfig { decompress_mode };
+            let config = UncompressConfig {
+                verbosity,
+                decompress_mode,
+            };
 
             unz_fails_exist = false;
             if srcMode == SourceMode::I2O {
@@ -2055,7 +2062,10 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Test => {
-            let config = UncompressConfig { decompress_mode };
+            let config = UncompressConfig {
+                verbosity,
+                decompress_mode,
+            };
 
             test_fails_exists = false;
             if srcMode == SourceMode::I2O {
