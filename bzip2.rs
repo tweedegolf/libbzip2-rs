@@ -9,7 +9,7 @@ use std::io::{IsTerminal, Read, Write};
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use libbzip2_rs_sys::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
@@ -73,10 +73,8 @@ enum DecompressMode {
     Small = 1,
 }
 
-// static mut decompress_mode: DecompressMode = DecompressMode::Fast;
+static delete_output_on_interrupt: AtomicBool = AtomicBool::new(false);
 
-static mut delete_output_on_interrupt: bool = false;
-// static mut force_overwrite: bool = false;
 static mut test_fails_exists: bool = false;
 static mut unz_fails_exist: bool = false;
 static mut noisy: bool = false;
@@ -754,7 +752,10 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
     let program_name = CStr::from_ptr(progName).to_string_lossy();
 
     let mut statBuf: stat = zeroed();
-    if srcMode == SourceMode::F2F && opMode != OperationMode::Test && delete_output_on_interrupt {
+    if srcMode == SourceMode::F2F
+        && opMode != OperationMode::Test
+        && delete_output_on_interrupt.load(Ordering::Relaxed)
+    {
         if stat(inName.as_mut_ptr(), &mut statBuf) == 0 {
             if noisy {
                 eprintln!(
@@ -1192,7 +1193,7 @@ unsafe fn set_binary_mode(file: *mut FILE) {
 unsafe fn set_binary_mode(_file: *mut FILE) {}
 
 unsafe fn compress(config: &Config) {
-    delete_output_on_interrupt = false;
+    delete_output_on_interrupt.store(false, Ordering::Relaxed);
 
     if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
         if noisy {
@@ -1377,18 +1378,18 @@ unsafe fn compress(config: &Config) {
         pad(config.input);
     }
     outputHandleJustInCase = outStr;
-    delete_output_on_interrupt = true;
+    delete_output_on_interrupt.store(true, Ordering::Relaxed);
     compressStream(config, input_stream, outStr, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     if let Some(metadata) = metadata {
         apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
-        delete_output_on_interrupt = false;
+        delete_output_on_interrupt.store(false, Ordering::Relaxed);
         if !config.keep_input_files && std::fs::remove_file(config.input).is_err() {
             ioError();
         }
     }
-    delete_output_on_interrupt = false;
+    delete_output_on_interrupt.store(false, Ordering::Relaxed);
 }
 
 enum OutputStream {
@@ -1420,7 +1421,7 @@ impl std::io::Write for OutputStream {
 }
 
 unsafe fn uncompress(config: &Config) {
-    delete_output_on_interrupt = false;
+    delete_output_on_interrupt.store(false, Ordering::Relaxed);
 
     let cannot_guess = config.output.extension() == Some(OsStr::new("out"));
 
@@ -1605,7 +1606,7 @@ unsafe fn uncompress(config: &Config) {
     }
 
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
-    delete_output_on_interrupt = true;
+    delete_output_on_interrupt.store(true, Ordering::Relaxed);
     let magicNumberOK = uncompressStream(config, inStr, output_stream, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
@@ -1613,7 +1614,7 @@ unsafe fn uncompress(config: &Config) {
     if magicNumberOK {
         if let Some(metadata) = metadata {
             apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
-            delete_output_on_interrupt = false;
+            delete_output_on_interrupt.store(false, Ordering::Relaxed);
             if !config.keep_input_files {
                 let retVal: IntNative = remove(inName.as_mut_ptr());
                 if retVal != 0 {
@@ -1623,7 +1624,7 @@ unsafe fn uncompress(config: &Config) {
         }
     } else {
         unz_fails_exist = true;
-        delete_output_on_interrupt = false;
+        delete_output_on_interrupt.store(false, Ordering::Relaxed);
         if srcMode == SourceMode::F2F {
             let retVal_0: IntNative = remove(outName.as_mut_ptr());
             if retVal_0 != 0 {
@@ -1632,7 +1633,7 @@ unsafe fn uncompress(config: &Config) {
         }
     }
 
-    delete_output_on_interrupt = false;
+    delete_output_on_interrupt.store(false, Ordering::Relaxed);
 
     if magicNumberOK {
         if config.verbosity >= 1 {
@@ -1653,8 +1654,7 @@ unsafe fn uncompress(config: &Config) {
 }
 
 unsafe fn testf(config: &Config) {
-    let inStr: *mut FILE;
-    delete_output_on_interrupt = false;
+    delete_output_on_interrupt.store(false, Ordering::Relaxed);
 
     if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
         if noisy {
@@ -1686,6 +1686,8 @@ unsafe fn testf(config: &Config) {
         setExit(1);
         return;
     }
+
+    let inStr: *mut FILE;
     match srcMode {
         SourceMode::I2O => {
             if std::io::stdin().is_terminal() {
@@ -1823,7 +1825,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     unz_fails_exist = false;
     numFileNames = 0;
     numFilesProcessed = 0;
-    delete_output_on_interrupt = false;
+    delete_output_on_interrupt.store(false, Ordering::Relaxed);
 
     exitValue = 0;
 
