@@ -83,19 +83,18 @@ static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
 static mut exitValue: i32 = 0;
 
-struct UncompressConfig {
+struct Config {
+    // general
     verbosity: i32,
-    decompress_mode: DecompressMode,
     force_overwrite: bool,
     keep_input_files: bool,
-}
 
-struct CompressConfig {
+    // compress
     blockSize100k: i32,
-    verbosity: i32,
     workFactor: i32,
-    force_overwrite: bool,
-    keep_input_files: bool,
+
+    // uncompress
+    decompress_mode: DecompressMode,
 }
 
 /// source modes
@@ -177,7 +176,7 @@ impl std::io::Read for InputStream {
 }
 
 unsafe fn compressStream(
-    config: &CompressConfig,
+    config: &Config,
     mut stream: InputStream,
     zStream: *mut FILE,
     metadata: Option<&Metadata>,
@@ -314,7 +313,7 @@ unsafe fn compressStream(
 }
 
 unsafe fn uncompressStream(
-    config: &UncompressConfig,
+    config: &Config,
     zStream: *mut FILE,
     mut stream: OutputStream,
     metadata: Option<&Metadata>,
@@ -501,7 +500,7 @@ unsafe fn uncompressStream(
     }
 }
 
-unsafe fn testStream(config: &UncompressConfig, zStream: *mut FILE) -> bool {
+unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
     let mut bzf: *mut BZFILE;
     let mut bzerr: i32 = 0;
     let mut i: i32;
@@ -1092,7 +1091,7 @@ unsafe fn set_binary_mode(file: *mut FILE) {
 /// Prevent Windows from mangling the read data.
 unsafe fn set_binary_mode(_file: *mut FILE) {}
 
-unsafe fn compress(config: &CompressConfig, name: Option<&str>) {
+unsafe fn compress(config: &Config, name: Option<&str>) {
     let in_name;
     let out_name;
 
@@ -1348,7 +1347,7 @@ impl std::io::Write for OutputStream {
     }
 }
 
-unsafe fn uncompress(config: &UncompressConfig, name: Option<&str>) {
+unsafe fn uncompress(config: &Config, name: Option<&str>) {
     let inStr: *mut FILE;
     let output_stream;
     let n: u64;
@@ -1624,7 +1623,7 @@ unsafe fn uncompress(config: &UncompressConfig, name: Option<&str>) {
     };
 }
 
-unsafe fn testf(config: &UncompressConfig, name: Option<&str>) {
+unsafe fn testf(config: &Config, name: Option<&str>) {
     let inStr: *mut FILE;
     delete_output_on_interrupt = false;
 
@@ -2016,16 +2015,22 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         );
     }
 
+    let config = Config {
+        // general
+        verbosity,
+        force_overwrite,
+        keep_input_files,
+
+        // compress
+        blockSize100k,
+        workFactor,
+
+        // uncompress
+        decompress_mode,
+    };
+
     match opMode {
         OperationMode::Zip => {
-            let config = CompressConfig {
-                blockSize100k,
-                verbosity,
-                workFactor,
-                force_overwrite,
-                keep_input_files,
-            };
-
             if srcMode == SourceMode::I2O {
                 compress(&config, None);
             } else {
@@ -2041,13 +2046,6 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Unzip => {
-            let config = UncompressConfig {
-                verbosity,
-                decompress_mode,
-                force_overwrite,
-                keep_input_files,
-            };
-
             unz_fails_exist = false;
             if srcMode == SourceMode::I2O {
                 uncompress(&config, None);
@@ -2068,13 +2066,6 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Test => {
-            let config = UncompressConfig {
-                verbosity,
-                decompress_mode,
-                force_overwrite,
-                keep_input_files,
-            };
-
             test_fails_exists = false;
             if srcMode == SourceMode::I2O {
                 testf(&config, None);
