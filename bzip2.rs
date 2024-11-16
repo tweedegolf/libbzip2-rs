@@ -66,8 +66,6 @@ macro_rules! STDOUT {
 
 type IntNative = libc::c_int;
 
-static mut keep_input_files: bool = false;
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum DecompressMode {
     Fast = 0,
@@ -89,6 +87,7 @@ struct UncompressConfig {
     verbosity: i32,
     decompress_mode: DecompressMode,
     force_overwrite: bool,
+    keep_input_files: bool,
 }
 
 struct CompressConfig {
@@ -96,6 +95,7 @@ struct CompressConfig {
     verbosity: i32,
     workFactor: i32,
     force_overwrite: bool,
+    keep_input_files: bool,
 }
 
 /// source modes
@@ -1313,7 +1313,7 @@ unsafe fn compress(config: &CompressConfig, name: Option<&str>) {
     if let Some(metadata) = metadata {
         apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
         delete_output_on_interrupt = false;
-        if !keep_input_files && std::fs::remove_file(in_name).is_err() {
+        if !config.keep_input_files && std::fs::remove_file(in_name).is_err() {
             ioError();
         }
     }
@@ -1586,7 +1586,7 @@ unsafe fn uncompress(config: &UncompressConfig, name: Option<&str>) {
         if let Some(metadata) = metadata {
             apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
             delete_output_on_interrupt = false;
-            if !keep_input_files {
+            if !config.keep_input_files {
                 let retVal: IntNative = remove(inName.as_mut_ptr());
                 if retVal != 0 {
                     ioError();
@@ -1812,7 +1812,6 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     let program_name = Path::new(program_path.file_name().unwrap());
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-    keep_input_files = false;
     noisy = true;
     test_fails_exists = false;
     unz_fails_exist = false;
@@ -1825,6 +1824,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     // general config
     let mut verbosity = 0;
     let mut force_overwrite = false;
+    let mut keep_input_files = false;
 
     // compress config
     let mut blockSize100k = 9;
@@ -2023,6 +2023,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                 verbosity,
                 workFactor,
                 force_overwrite,
+                keep_input_files,
             };
 
             if srcMode == SourceMode::I2O {
@@ -2044,6 +2045,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                 verbosity,
                 decompress_mode,
                 force_overwrite,
+                keep_input_files,
             };
 
             unz_fails_exist = false;
@@ -2070,6 +2072,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                 verbosity,
                 decompress_mode,
                 force_overwrite,
+                keep_input_files,
             };
 
             test_fails_exists = false;
