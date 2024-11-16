@@ -75,7 +75,6 @@ enum DecompressMode {
 
 static delete_output_on_interrupt: AtomicBool = AtomicBool::new(false);
 
-static mut unz_fails_exist: bool = false;
 static mut noisy: bool = false;
 static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
@@ -1419,7 +1418,7 @@ impl std::io::Write for OutputStream {
     }
 }
 
-unsafe fn uncompress(config: &Config) {
+unsafe fn uncompress(config: &Config) -> bool {
     delete_output_on_interrupt.store(false, Ordering::Relaxed);
 
     let cannot_guess = config.output.extension() == Some(OsStr::new("out"));
@@ -1433,7 +1432,7 @@ unsafe fn uncompress(config: &Config) {
             );
         }
         setExit(1);
-        return;
+        return true;
     }
 
     if srcMode != SourceMode::I2O && !config.input.exists() {
@@ -1444,7 +1443,7 @@ unsafe fn uncompress(config: &Config) {
             display_last_os_error(),
         );
         setExit(1);
-        return;
+        return true;
     }
 
     if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && config.input.is_dir() {
@@ -1454,7 +1453,7 @@ unsafe fn uncompress(config: &Config) {
             config.input.display(),
         );
         setExit(1);
-        return;
+        return true;
     }
 
     if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(config.input) {
@@ -1466,7 +1465,7 @@ unsafe fn uncompress(config: &Config) {
             );
         }
         setExit(1);
-        return;
+        return true;
     }
 
     if cannot_guess && noisy {
@@ -1489,7 +1488,7 @@ unsafe fn uncompress(config: &Config) {
                 config.output.display(),
             );
             setExit(1);
-            return;
+            return true;
         }
     }
 
@@ -1505,7 +1504,7 @@ unsafe fn uncompress(config: &Config) {
                     if n > 1 { "s" } else { "" },
                 );
                 setExit(1 as libc::c_int);
-                return;
+                return true;
             }
         }
     }
@@ -1536,7 +1535,7 @@ unsafe fn uncompress(config: &Config) {
                     program_name = config.program_name.display(),
                 );
                 setExit(1);
-                return;
+                return true;
             }
         }
         SourceMode::F2O => {
@@ -1557,7 +1556,7 @@ unsafe fn uncompress(config: &Config) {
                     fclose(inStr);
                 }
                 setExit(1);
-                return;
+                return true;
             }
         }
         SourceMode::F2F => {
@@ -1582,7 +1581,7 @@ unsafe fn uncompress(config: &Config) {
                         fclose(inStr);
                     }
                     setExit(1);
-                    return;
+                    return true;
                 }
             };
 
@@ -1594,7 +1593,7 @@ unsafe fn uncompress(config: &Config) {
                     display_last_os_error(),
                 );
                 setExit(1);
-                return;
+                return true;
             }
         }
     }
@@ -1622,7 +1621,6 @@ unsafe fn uncompress(config: &Config) {
             }
         }
     } else {
-        unz_fails_exist = true;
         delete_output_on_interrupt.store(false, Ordering::Relaxed);
         if srcMode == SourceMode::F2F {
             let retVal_0: IntNative = remove(outName.as_mut_ptr());
@@ -1650,6 +1648,8 @@ unsafe fn uncompress(config: &Config) {
             );
         }
     };
+
+    magicNumberOK
 }
 
 unsafe fn testf(config: &Config) -> bool {
@@ -1819,7 +1819,6 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     noisy = true;
-    unz_fails_exist = false;
     numFileNames = 0;
     numFilesProcessed = 0;
     delete_output_on_interrupt.store(false, Ordering::Relaxed);
@@ -2061,10 +2060,10 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Unzip => {
-            unz_fails_exist = false;
+            let mut all_ok = true;
             if srcMode == SourceMode::I2O {
                 config.with_input(opMode, None, srcMode);
-                uncompress(&config);
+                all_ok &= uncompress(&config);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2073,11 +2072,11 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
                         config.with_input(opMode, Some(name.as_str()), srcMode);
-                        uncompress(&config);
+                        all_ok &= uncompress(&config);
                     }
                 }
             }
-            if unz_fails_exist {
+            if !all_ok {
                 setExit(2);
                 exit(exitValue);
             }
