@@ -2,6 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
+use std::borrow::Cow;
 use std::ffi::{c_char, CStr, OsStr};
 use std::fs::Metadata;
 use std::io::{IsTerminal, Read, Write};
@@ -86,6 +87,9 @@ static mut exitValue: i32 = 0;
 struct Config<'a> {
     program_name: &'a Path,
 
+    input: &'a Path,
+    output: Cow<'a, Path>,
+
     // general
     verbosity: i32,
     force_overwrite: bool,
@@ -97,6 +101,100 @@ struct Config<'a> {
 
     // uncompress
     decompress_mode: DecompressMode,
+}
+
+impl<'a> Config<'a> {
+    fn with_input(
+        &mut self,
+        operation: OperationMode,
+        name: Option<&'a str>,
+        source_mode: SourceMode,
+    ) {
+        match operation {
+            OperationMode::Zip => self.with_compress_input(name, source_mode),
+            OperationMode::Unzip => self.with_uncompress_input(name, source_mode),
+            OperationMode::Test => self.with_test_input(name, source_mode),
+        }
+
+        unsafe {
+            copy_filename(inName.as_mut_ptr(), &self.input.display().to_string());
+            copy_filename(outName.as_mut_ptr(), &self.output.display().to_string());
+        }
+    }
+
+    fn with_compress_input(&mut self, name: Option<&'a str>, mode: SourceMode) {
+        match (name, mode) {
+            (_, SourceMode::I2O) => {
+                self.input = Path::new("(stdin)");
+                self.output = Cow::Borrowed(Path::new("(stdout)"));
+            }
+            (Some(name), SourceMode::F2O) => {
+                self.input = Path::new(name);
+                self.output = Cow::Borrowed(Path::new("(stdout)"));
+            }
+            (Some(name), SourceMode::F2F) => {
+                self.input = Path::new(name);
+                self.output = Cow::Owned(PathBuf::from(format!("{name}.bz2")));
+            }
+            (None, SourceMode::F2O | SourceMode::F2F) => unsafe {
+                panic_str("compress: bad modes\n")
+            },
+        }
+    }
+
+    fn with_uncompress_input(&mut self, name: Option<&'a str>, mode: SourceMode) {
+        match (name, mode) {
+            (_, SourceMode::I2O) => {
+                self.input = Path::new("(stdin)");
+                self.output = Cow::Borrowed(Path::new("(stdout)"));
+            }
+            (Some(name), SourceMode::F2O) => {
+                self.input = Path::new(name);
+                self.output = Cow::Borrowed(Path::new("(stdout)"));
+            }
+            (Some(name), SourceMode::F2F) => {
+                self.input = Path::new(name);
+
+                let mut name = name.to_owned();
+
+                'blk: {
+                    for (old, new) in Z_SUFFIX.iter().zip(UNZ_SUFFIX) {
+                        if name.ends_with(old) {
+                            name.truncate(name.len() - old.len());
+                            name += new;
+                            break 'blk;
+                        }
+                    }
+
+                    name += ".out";
+                };
+
+                self.output = Cow::Owned(PathBuf::from(name));
+            }
+            (None, SourceMode::F2O | SourceMode::F2F) => unsafe {
+                panic_str("uncompress: bad modes\n")
+            },
+        }
+    }
+
+    fn with_test_input(&mut self, name: Option<&'a str>, mode: SourceMode) {
+        self.output = Cow::Borrowed(Path::new("(none)"));
+
+        match (name, mode) {
+            (_, SourceMode::I2O) => {
+                self.input = Path::new("(stdin)");
+            }
+            (Some(name), SourceMode::F2O) => {
+                self.input = Path::new(name);
+            }
+            (Some(name), SourceMode::F2F) => {
+                self.input = Path::new(name);
+            }
+            (None, SourceMode::F2O | SourceMode::F2F) => unsafe {
+                panic_str("testf: bad modes");
+            },
+        }
+    }
 }
 
 /// source modes
@@ -2018,8 +2116,12 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     }
 
     let config = Config {
-        // general
         program_name,
+
+        input: Path::new("(none)"),
+        output: Cow::Borrowed(Path::new("(none)")),
+
+        // general
         verbosity,
         force_overwrite,
         keep_input_files,
