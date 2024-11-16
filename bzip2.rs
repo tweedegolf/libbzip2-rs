@@ -77,7 +77,7 @@ enum DecompressMode {
 // static mut decompress_mode: DecompressMode = DecompressMode::Fast;
 
 static mut delete_output_on_interrupt: bool = false;
-static mut force_overwrite: bool = false;
+// static mut force_overwrite: bool = false;
 static mut test_fails_exists: bool = false;
 static mut unz_fails_exist: bool = false;
 static mut noisy: bool = false;
@@ -88,12 +88,14 @@ static mut exitValue: i32 = 0;
 struct UncompressConfig {
     verbosity: i32,
     decompress_mode: DecompressMode,
+    force_overwrite: bool,
 }
 
 struct CompressConfig {
     blockSize100k: i32,
     verbosity: i32,
     workFactor: i32,
+    force_overwrite: bool,
 }
 
 /// source modes
@@ -435,7 +437,7 @@ unsafe fn uncompressStream(
                 return true;
             }
             State::TryCat => {
-                if force_overwrite {
+                if config.force_overwrite {
                     rewind(zStream);
                     loop {
                         if myfeof(zStream) {
@@ -1174,7 +1176,7 @@ unsafe fn compress(config: &CompressConfig, name: Option<&str>) {
         return;
     }
 
-    if srcMode == SourceMode::F2F && !force_overwrite && not_a_standard_file(in_name) {
+    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(in_name) {
         if noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
@@ -1186,7 +1188,7 @@ unsafe fn compress(config: &CompressConfig, name: Option<&str>) {
         return;
     }
     if srcMode == SourceMode::F2F && out_name.exists() {
-        if force_overwrite {
+        if config.force_overwrite {
             let _ = std::fs::remove_file(&out_name);
         } else {
             eprintln!(
@@ -1198,7 +1200,7 @@ unsafe fn compress(config: &CompressConfig, name: Option<&str>) {
             return;
         }
     }
-    if srcMode == SourceMode::F2F && !force_overwrite && {
+    if srcMode == SourceMode::F2F && !config.force_overwrite && {
         n = count_hardlinks(in_name);
         n > 0
     } {
@@ -1432,7 +1434,7 @@ unsafe fn uncompress(config: &UncompressConfig, name: Option<&str>) {
         return;
     }
 
-    if srcMode == SourceMode::F2F && !force_overwrite && not_a_standard_file(&in_name) {
+    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(&in_name) {
         if noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
@@ -1455,7 +1457,7 @@ unsafe fn uncompress(config: &UncompressConfig, name: Option<&str>) {
     }
 
     if srcMode == SourceMode::F2F && out_name.exists() {
-        if force_overwrite {
+        if config.force_overwrite {
             let _ = std::fs::remove_file(&out_name);
         } else {
             eprintln!(
@@ -1468,7 +1470,7 @@ unsafe fn uncompress(config: &UncompressConfig, name: Option<&str>) {
         }
     }
 
-    if srcMode == SourceMode::F2F && !force_overwrite && {
+    if srcMode == SourceMode::F2F && !config.force_overwrite && {
         n = count_hardlinks(&in_name);
         n > 0
     } {
@@ -1811,7 +1813,6 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     keep_input_files = false;
-    force_overwrite = false;
     noisy = true;
     test_fails_exists = false;
     unz_fails_exist = false;
@@ -1823,6 +1824,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     // general config
     let mut verbosity = 0;
+    let mut force_overwrite = false;
 
     // compress config
     let mut blockSize100k = 9;
@@ -2020,6 +2022,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                 blockSize100k,
                 verbosity,
                 workFactor,
+                force_overwrite,
             };
 
             if srcMode == SourceMode::I2O {
@@ -2040,6 +2043,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             let config = UncompressConfig {
                 verbosity,
                 decompress_mode,
+                force_overwrite,
             };
 
             unz_fails_exist = false;
@@ -2065,6 +2069,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             let config = UncompressConfig {
                 verbosity,
                 decompress_mode,
+                force_overwrite,
             };
 
             test_fails_exists = false;
