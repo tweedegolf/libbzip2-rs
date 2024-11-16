@@ -10,8 +10,10 @@ crate-type = ["staticlib", "rlib"]
 
 
 [features]
-default = ["std"]
-std = []
+default = ["std", "c-allocator"]
+c-allocator = [] # use a malloc-based C allocator (rust is picked over c if both are configured)
+rust-allocator = [] # use a rust global alloctor (rust is picked over c if both are configured)
+std = ["rust-allocator"]
 custom-prefix = [] # use the LIBBZIP2_RS_SYS_PREFIX to prefix all exported symbols
 testing-prefix = [] # prefix all symbols with LIBBZIP2_RS_SYS_TEST_ for testing
 

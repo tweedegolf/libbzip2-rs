@@ -1,0 +1,183 @@
+use core::ffi::{c_int, c_void};
+
+type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
+type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
+
+pub(crate) enum Allocator {
+    #[cfg(feature = "rust-allocator")]
+    Rust,
+    #[cfg(feature = "c-allocator")]
+    C,
+    Custom {
+        allocate: AllocFunc,
+        deallocate: FreeFunc,
+        opaque: *mut c_void,
+    },
+}
+
+impl Allocator {
+    #[allow(unreachable_code)]
+    pub(crate) const DEFAULT: Option<Self> = 'blk: {
+        #[cfg(feature = "rust-allocator")]
+        break 'blk Some(Self::Rust);
+
+        #[cfg(feature = "c-allocator")]
+        break 'blk Some(Self::C);
+
+        None
+    };
+
+    pub(crate) fn from_bz_stream(strm: &crate::bz_stream) -> Option<Self> {
+        let bzalloc = strm.bzalloc?;
+        let bzfree = strm.bzfree?;
+
+        #[cfg(feature = "rust-allocator")]
+        if (bzalloc, bzfree) == rust_allocator::ALLOCATOR {
+            return Some(Self::Rust);
+        }
+
+        #[cfg(feature = "c-allocator")]
+        if (bzalloc, bzfree) == c_allocator::ALLOCATOR {
+            return Some(Self::C);
+        }
+
+        Some(Self::custom(bzalloc, bzfree, strm.opaque))
+    }
+
+    /// # Safety
+    ///
+    /// - `allocate` and `opaque` must form a valid allocator, meaning `allocate` returns either
+    ///     * a `NULL` pointer
+    ///     * a valid pointer to an allocation of `len * size_of::<T>()` bytes aligned to at least `align_of::<usize>()`
+    /// - `deallocate` frees memory allocated by `allocate`
+    pub(crate) fn custom(allocate: AllocFunc, deallocate: FreeFunc, opaque: *mut c_void) -> Self {
+        Self::Custom {
+            allocate,
+            deallocate,
+            opaque,
+        }
+    }
+
+    pub(crate) fn function_pointers(&self) -> (AllocFunc, FreeFunc) {
+        match self {
+            #[cfg(feature = "rust-allocator")]
+            Allocator::Rust => rust_allocator::ALLOCATOR,
+            #[cfg(feature = "c-allocator")]
+            Allocator::C => c_allocator::ALLOCATOR,
+            Allocator::Custom {
+                allocate,
+                deallocate,
+                ..
+            } => (*allocate, *deallocate),
+        }
+    }
+}
+
+#[cfg(feature = "c-allocator")]
+#[allow(non_camel_case_types)]
+type c_size_t = usize;
+
+#[cfg(feature = "c-allocator")]
+extern "C" {
+    fn malloc(size: c_size_t) -> *mut c_void;
+    fn calloc(nitems: c_size_t, size: c_size_t) -> *mut c_void;
+    fn free(p: *mut c_void);
+}
+
+#[cfg(feature = "c-allocator")]
+mod c_allocator {
+    use super::*;
+
+    // make sure that the only way these function pointers leave this module is via this constant
+    // that way the function pointer address is a reliable way to know that the default C allocator
+    // is used.
+    pub(crate) const ALLOCATOR: (AllocFunc, FreeFunc) = (self::allocate, self::deallocate);
+
+    unsafe extern "C" fn allocate(_opaque: *mut c_void, count: c_int, size: c_int) -> *mut c_void {
+        malloc((count * size) as usize)
+    }
+
+    unsafe extern "C" fn deallocate(_opaque: *mut c_void, ptr: *mut c_void) {
+        if !ptr.is_null() {
+            free(ptr);
+        }
+    }
+}
+
+#[cfg(feature = "c-allocator")]
+mod rust_allocator {
+    use super::*;
+
+    // make sure that the only way these function pointers leave this module is via this constant
+    // that way the function pointer address is a reliable way to know that the default C allocator
+    // is used.
+    pub(crate) const ALLOCATOR: (AllocFunc, FreeFunc) = (self::allocate, self::deallocate);
+
+    unsafe extern "C" fn allocate(
+        _opaque: *mut c_void,
+        _count: c_int,
+        _size: c_int,
+    ) -> *mut c_void {
+        unreachable!("the default rust allocation function should never be called directly");
+    }
+
+    unsafe extern "C" fn deallocate(_opaque: *mut c_void, _ptr: *mut c_void) {
+        unreachable!("the default rust deallocation function should never be called directly");
+    }
+}
+
+impl Allocator {
+    /// Allocates `count` contiguous values of type `T`, and zeros out all elements.
+    pub(crate) unsafe fn allocate_zeroed<T>(&self, count: usize) -> Option<*mut T> {
+        match self {
+            #[cfg(feature = "rust-allocator")]
+            Allocator::Rust => {
+                let layout = core::alloc::Layout::array::<T>(count).unwrap();
+                let ptr = unsafe { std::alloc::alloc_zeroed(layout) };
+                (!ptr.is_null()).then_some(ptr.cast())
+            }
+            #[cfg(feature = "c-allocator")]
+            Allocator::C => {
+                let ptr = unsafe { calloc(count, core::mem::size_of::<T>()) };
+                (!ptr.is_null()).then_some(ptr.cast())
+            }
+            Allocator::Custom {
+                allocate, opaque, ..
+            } => unsafe {
+                let ptr = (allocate)(*opaque, count as i32, core::mem::size_of::<T>() as i32);
+                let ptr = ptr.cast::<T>();
+
+                if ptr.is_null() {
+                    return None;
+                }
+
+                core::ptr::write_bytes(ptr, 0, count);
+
+                Some(ptr)
+            },
+        }
+    }
+
+    pub(crate) unsafe fn deallocate<T>(&self, ptr: *mut T, count: usize) {
+        if ptr.is_null() || count == 0 {
+            return;
+        }
+
+        match self {
+            #[cfg(feature = "rust-allocator")]
+            Allocator::Rust => {
+                let layout = core::alloc::Layout::array::<T>(count).unwrap();
+                unsafe { std::alloc::dealloc(ptr.cast(), layout) }
+            }
+            #[cfg(feature = "c-allocator")]
+            Allocator::C => {
+                unsafe { free(ptr.cast()) };
+            }
+            Allocator::Custom {
+                deallocate, opaque, ..
+            } => {
+                unsafe { deallocate(*opaque, ptr.cast()) };
+            }
+        }
+    }
+}

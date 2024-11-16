@@ -11,6 +11,7 @@ extern crate std;
 
 use core::ffi::c_int;
 
+mod allocator;
 mod blocksort;
 mod bzlib;
 mod compress;
