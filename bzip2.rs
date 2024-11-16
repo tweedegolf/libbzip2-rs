@@ -85,12 +85,10 @@ static mut noisy: bool = false;
 static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
 static mut exitValue: i32 = 0;
-static mut blockSize100k: i32 = 0;
-static mut workFactor: i32 = 0;
 
 struct CompressConfig {
     blockSize100k: i32,
-    verbosity: i32,
+    // verbosity: i32,
     workFactor: i32,
 }
 
@@ -172,7 +170,12 @@ impl std::io::Read for InputStream {
     }
 }
 
-unsafe fn compressStream(mut stream: InputStream, zStream: *mut FILE, metadata: Option<&Metadata>) {
+unsafe fn compressStream(
+    config: &CompressConfig,
+    mut stream: InputStream,
+    zStream: *mut FILE,
+    metadata: Option<&Metadata>,
+) {
     let mut ibuf: [u8; 5000] = [0; 5000];
     let mut nbytes_in_lo32: u32 = 0;
     let mut nbytes_in_hi32: u32 = 0;
@@ -188,7 +191,13 @@ unsafe fn compressStream(mut stream: InputStream, zStream: *mut FILE, metadata: 
         ioError()
     }
 
-    let bzf = BZ2_bzWriteOpen(&mut bzerr, zStream, blockSize100k, verbosity, workFactor);
+    let bzf = BZ2_bzWriteOpen(
+        &mut bzerr,
+        zStream,
+        config.blockSize100k,
+        verbosity,
+        config.workFactor,
+    );
 
     'errhandler: {
         if bzerr != libbzip2_rs_sys::BZ_OK {
@@ -1076,7 +1085,7 @@ unsafe fn set_binary_mode(file: *mut FILE) {
 /// Prevent Windows from mangling the read data.
 unsafe fn set_binary_mode(_file: *mut FILE) {}
 
-unsafe fn compress(name: Option<&str>) {
+unsafe fn compress(config: &CompressConfig, name: Option<&str>) {
     let in_name;
     let out_name;
 
@@ -1291,7 +1300,7 @@ unsafe fn compress(name: Option<&str>) {
     }
     outputHandleJustInCase = outStr;
     delete_output_on_interrupt = true;
-    compressStream(input_stream, outStr, metadata.as_ref());
+    compressStream(config, input_stream, outStr, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     if let Some(metadata) = metadata {
@@ -1801,14 +1810,15 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     force_overwrite = false;
     noisy = true;
     verbosity = 0;
-    blockSize100k = 9;
     test_fails_exists = false;
     unz_fails_exist = false;
     numFileNames = 0;
     numFilesProcessed = 0;
-    workFactor = 30;
     delete_output_on_interrupt = false;
     exitValue = 0;
+
+    let mut blockSize100k = 9;
+    let mut workFactor = 30;
 
     signal(
         SIGSEGV,
@@ -1995,8 +2005,13 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     match opMode {
         OperationMode::Zip => {
+            let config = CompressConfig {
+                blockSize100k,
+                workFactor,
+            };
+
             if srcMode == SourceMode::I2O {
-                compress(None);
+                compress(&config, None);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2004,7 +2019,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        compress(Some(name.as_str()));
+                        compress(&config, Some(name.as_str()));
                     }
                 }
             }
