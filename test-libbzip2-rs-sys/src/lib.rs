@@ -9,6 +9,9 @@ use std::{
 
 mod chunked;
 
+type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
+type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
+
 const SAMPLE1_REF: &[u8] = include_bytes!("../../tests/input/quick/sample1.ref");
 const SAMPLE1_BZ2: &[u8] = include_bytes!("../../tests/input/quick/sample1.bz2");
 
@@ -550,8 +553,6 @@ fn miri_decompress_init_edge_cases() {
         );
     });
 
-    type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
-
     unsafe extern "C" fn failing_allocator(
         _opaque: *mut c_void,
         _items: i32,
@@ -756,24 +757,15 @@ fn miri_compress_init_edge_cases() {
         BZ2_bzCompressEnd(strm.as_mut_ptr())
     });
 
-    type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
-
     // allocation failures
     crate::assert_eq_rs_c!({
         use core::sync::atomic::{AtomicUsize, Ordering};
-
-        let mut strm: MaybeUninit<bz_stream> = MaybeUninit::zeroed();
-        BZ2_bzCompressInit(strm.as_mut_ptr(), blockSize100k, verbosity, workFactor);
-        let bzalloc: *mut c_void = core::ptr::addr_of_mut!((*strm.as_mut_ptr()).bzalloc)
-            .cast::<*mut c_void>()
-            .read();
-        BZ2_bzCompressEnd(strm.as_mut_ptr());
 
         static TOTAL_BUDGET: AtomicUsize = AtomicUsize::new(0);
         static BUDGET: AtomicUsize = AtomicUsize::new(0);
 
         unsafe extern "C" fn failing_allocator(
-            opaque: *mut c_void,
+            _opaque: *mut c_void,
             items: i32,
             size: i32,
         ) -> *mut c_void {
@@ -782,12 +774,17 @@ fn miri_compress_init_edge_cases() {
             if extra <= BUDGET.load(Ordering::Relaxed) {
                 BUDGET.fetch_sub(extra, Ordering::Relaxed);
 
-                let bzalloc: AllocFunc = core::mem::transmute(opaque);
-                (bzalloc)(core::ptr::null_mut(), items, size)
+                libc::malloc((items * size) as usize)
             } else {
                 let total = TOTAL_BUDGET.fetch_add(extra, Ordering::Relaxed);
                 BUDGET.store(total + extra, Ordering::Relaxed);
                 core::ptr::null_mut()
+            }
+        }
+
+        unsafe extern "C" fn deallocate(_opaque: *mut c_void, ptr: *mut c_void) {
+            if !ptr.is_null() {
+                libc::free(ptr);
             }
         }
 
@@ -798,7 +795,9 @@ fn miri_compress_init_edge_cases() {
                 .cast::<AllocFunc>()
                 .write(failing_allocator);
 
-            core::ptr::addr_of_mut!((*strm.as_mut_ptr()).opaque).write(bzalloc);
+            core::ptr::addr_of_mut!((*strm.as_mut_ptr()).bzfree)
+                .cast::<FreeFunc>()
+                .write(deallocate);
 
             assert_eq!(
                 BZ_MEM_ERROR,

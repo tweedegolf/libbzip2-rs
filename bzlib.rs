@@ -4,6 +4,7 @@ use core::{mem, ptr};
 use libc::FILE;
 use libc::{fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, ungetc};
 
+use crate::allocator::Allocator;
 use crate::compress::compress_block;
 use crate::crctable::BZ2_CRC32TABLE;
 use crate::decompress::{self, decompress};
@@ -263,12 +264,12 @@ pub(crate) struct Arr1 {
 }
 
 impl Arr1 {
-    unsafe fn alloc(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) -> Option<Self> {
-        let ptr = bzalloc_array(bzalloc, opaque, len)?;
+    unsafe fn alloc(allocator: &Allocator, len: usize) -> Option<Self> {
+        let ptr = allocator.allocate_zeroed(len)?;
         Some(Self { ptr, len })
     }
 
-    unsafe fn dealloc(&mut self, bzfree: FreeFunc, opaque: *mut c_void) {
+    unsafe fn dealloc(&mut self, allocator: &Allocator) {
         let this = mem::replace(
             self,
             Self {
@@ -277,7 +278,7 @@ impl Arr1 {
             },
         );
         if this.len != 0 {
-            bzfree(opaque, this.ptr.cast())
+            allocator.deallocate(this.ptr, this.len)
         }
     }
 
@@ -296,12 +297,12 @@ pub(crate) struct Arr2 {
 }
 
 impl Arr2 {
-    unsafe fn alloc(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) -> Option<Self> {
-        let ptr = bzalloc_array(bzalloc, opaque, len)?;
+    unsafe fn alloc(allocator: &Allocator, len: usize) -> Option<Self> {
+        let ptr = allocator.allocate_zeroed(len)?;
         Some(Self { ptr, len })
     }
 
-    unsafe fn dealloc(&mut self, bzfree: FreeFunc, opaque: *mut c_void) {
+    unsafe fn dealloc(&mut self, allocator: &Allocator) {
         let this = mem::replace(
             self,
             Self {
@@ -310,7 +311,7 @@ impl Arr2 {
             },
         );
         if this.len != 0 {
-            bzfree(opaque, this.ptr.cast())
+            allocator.deallocate(this.ptr, this.len)
         }
     }
 
@@ -357,12 +358,12 @@ pub(crate) struct Ftab {
 }
 
 impl Ftab {
-    unsafe fn alloc(bzalloc: AllocFunc, opaque: *mut c_void) -> Option<Self> {
-        let ptr = bzalloc_array(bzalloc, opaque, FTAB_LEN)?;
+    unsafe fn alloc(allocator: &Allocator) -> Option<Self> {
+        let ptr = allocator.allocate_zeroed(FTAB_LEN)?;
         Some(Self { ptr })
     }
 
-    unsafe fn dealloc(&mut self, bzfree: FreeFunc, opaque: *mut c_void) {
+    unsafe fn dealloc(&mut self, allocator: &Allocator) {
         let this = mem::replace(
             self,
             Self {
@@ -370,7 +371,7 @@ impl Ftab {
             },
         );
         if !this.ptr.is_null() {
-            bzfree(opaque, this.ptr.cast())
+            allocator.deallocate(this.ptr, FTAB_LEN)
         }
     }
 
@@ -460,19 +461,15 @@ impl<T> DSlice<T> {
         }
     }
 
-    pub(crate) unsafe fn alloc(
-        bzalloc: AllocFunc,
-        opaque: *mut c_void,
-        len: usize,
-    ) -> Option<Self> {
-        let ptr = bzalloc_array::<T>(bzalloc, opaque, len)?;
+    pub(crate) unsafe fn alloc(allocator: &Allocator, len: usize) -> Option<Self> {
+        let ptr = allocator.allocate_zeroed::<T>(len)?;
         Some(Self { ptr, len })
     }
 
-    pub(crate) unsafe fn dealloc(&mut self, bzfree: FreeFunc, opaque: *mut c_void) {
+    pub(crate) unsafe fn dealloc(&mut self, allocator: &Allocator) {
         let this = mem::replace(self, Self::new());
         if this.len != 0 {
-            bzfree(opaque, this.ptr.cast())
+            allocator.deallocate(this.ptr, this.len)
         }
     }
 
@@ -516,11 +513,6 @@ const _C_CHAR_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_char>() == 1)
 unsafe extern "C" fn default_bzalloc(_opaque: *mut c_void, items: i32, size: i32) -> *mut c_void {
     malloc((items * size) as usize)
 }
-unsafe extern "C" fn default_bzfree(_opaque: *mut c_void, addr: *mut c_void) {
-    if !addr.is_null() {
-        free(addr);
-    }
-}
 
 fn prepare_new_block(s: &mut EState) {
     s.nblock = 0;
@@ -563,6 +555,24 @@ unsafe fn bzalloc_array<T>(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) 
     ptr::write_bytes(ptr, 0, len as usize);
 
     Some(ptr)
+}
+
+unsafe fn configure_allocator(strm: *mut bz_stream) -> Option<Allocator> {
+    match ((*strm).bzalloc, (*strm).bzfree) {
+        (Some(allocate), Some(deallocate)) => {
+            Some(Allocator::custom(allocate, deallocate, (*strm).opaque))
+        }
+        _ => {
+            // return a param error when no allocator can be configured
+            let allocator = Allocator::DEFAULT?;
+
+            let (bzalloc, bzfree) = allocator.function_pointers();
+            (*strm).bzalloc = Some(bzalloc);
+            (*strm).bzfree = Some(bzfree);
+
+            Some(allocator)
+        }
+    }
 }
 
 /// Prepares the stream for compression.
@@ -609,10 +619,12 @@ unsafe fn BZ2_bzCompressInitHelp(
         workFactor = 30;
     }
 
-    let bzalloc = *(*strm).bzalloc.get_or_insert(default_bzalloc);
-    let bzfree = *(*strm).bzfree.get_or_insert(default_bzfree);
+    // return a param error when no allocator can be configured
+    let Some(allocator) = configure_allocator(strm) else {
+        return ReturnCode::BZ_PARAM_ERROR;
+    };
 
-    let Some(s) = bzalloc_array::<EState>(bzalloc, (*strm).opaque, 1) else {
+    let Some(s) = allocator.allocate_zeroed::<EState>(1) else {
         return ReturnCode::BZ_MEM_ERROR;
     };
 
@@ -623,12 +635,12 @@ unsafe fn BZ2_bzCompressInitHelp(
     let n = 100000 * blockSize100k;
 
     let arr1_len = n as usize;
-    let arr1 = Arr1::alloc(bzalloc, (*strm).opaque, arr1_len);
+    let arr1 = Arr1::alloc(&allocator, arr1_len);
 
     let arr2_len = n as usize + (2 + 12 + 18 + 2);
-    let arr2 = Arr2::alloc(bzalloc, (*strm).opaque, arr2_len);
+    let arr2 = Arr2::alloc(&allocator, arr2_len);
 
-    let ftab = Ftab::alloc(bzalloc, (*strm).opaque);
+    let ftab = Ftab::alloc(&allocator);
 
     match (arr1, arr2, ftab) {
         (Some(arr1), Some(arr2), Some(ftab)) => {
@@ -638,18 +650,18 @@ unsafe fn BZ2_bzCompressInitHelp(
         }
         (arr1, arr2, ftab) => {
             if let Some(mut arr1) = arr1 {
-                arr1.dealloc(bzfree, (*strm).opaque);
+                arr1.dealloc(&allocator);
             }
 
             if let Some(mut arr2) = arr2 {
-                arr2.dealloc(bzfree, (*strm).opaque);
+                arr2.dealloc(&allocator);
             }
 
             if let Some(mut ftab) = ftab {
-                ftab.dealloc(bzfree, (*strm).opaque);
+                ftab.dealloc(&allocator);
             }
 
-            (bzfree)((*strm).opaque, s as *mut c_void);
+            allocator.deallocate(s, 1);
 
             return ReturnCode::BZ_MEM_ERROR;
         }
@@ -1027,15 +1039,15 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
-    let Some(bzfree) = strm.bzfree else {
+    let Some(allocator) = Allocator::from_bz_stream(strm) else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
-    s.arr1.dealloc(bzfree, strm.opaque);
-    s.arr2.dealloc(bzfree, strm.opaque);
-    s.ftab.dealloc(bzfree, strm.opaque);
+    s.arr1.dealloc(&allocator);
+    s.arr2.dealloc(&allocator);
+    s.ftab.dealloc(&allocator);
 
-    (bzfree)(strm.opaque, strm.state);
+    allocator.deallocate(strm.state, 1);
     strm.state = ptr::null_mut::<c_void>();
 
     ReturnCode::BZ_OK as c_int
@@ -1090,10 +1102,13 @@ unsafe fn BZ2_bzDecompressInitHelp(
     if !(0..=4).contains(&verbosity) {
         return ReturnCode::BZ_PARAM_ERROR;
     }
-    let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
-    let _bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
 
-    let Some(s) = bzalloc_array::<DState>(*bzalloc, (*strm).opaque, 1) else {
+    // return a param error when no allocator can be configured
+    let Some(allocator) = configure_allocator(strm) else {
+        return ReturnCode::BZ_PARAM_ERROR;
+    };
+
+    let Some(s) = allocator.allocate_zeroed::<DState>(1) else {
         return ReturnCode::BZ_MEM_ERROR;
     };
 
@@ -1728,15 +1743,15 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> c_int {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
-    let Some(bzfree) = strm.bzfree else {
+    let Some(allocator) = Allocator::from_bz_stream(strm) else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
-    s.tt.dealloc(bzfree, strm.opaque);
-    s.ll16.dealloc(bzfree, strm.opaque);
-    s.ll4.dealloc(bzfree, strm.opaque);
+    s.tt.dealloc(&allocator);
+    s.ll16.dealloc(&allocator);
+    s.ll4.dealloc(&allocator);
 
-    (bzfree)(strm.opaque, strm.state.cast::<c_void>());
+    allocator.deallocate(strm.state, 1);
     strm.state = ptr::null_mut::<c_void>();
 
     ReturnCode::BZ_OK as c_int
