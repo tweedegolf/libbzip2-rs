@@ -84,8 +84,15 @@ static mut unz_fails_exist: bool = false;
 static mut noisy: bool = false;
 static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
-static mut blockSize100k: i32 = 0;
 static mut exitValue: i32 = 0;
+static mut blockSize100k: i32 = 0;
+static mut workFactor: i32 = 0;
+
+struct CompressConfig {
+    blockSize100k: i32,
+    verbosity: i32,
+    workFactor: i32,
+}
 
 /// source modes
 ///
@@ -124,7 +131,6 @@ fn get_program_name() -> PathBuf {
 }
 
 static mut outputHandleJustInCase: *mut FILE = ptr::null_mut();
-static mut workFactor: i32 = 0;
 
 /// Strictly for compatibility with the original bzip2 output
 fn display_last_os_error() -> String {
@@ -173,7 +179,6 @@ unsafe fn compressStream(mut stream: InputStream, zStream: *mut FILE, metadata: 
     let mut nbytes_out_lo32: u32 = 0;
     let mut nbytes_out_hi32: u32 = 0;
     let mut bzerr: i32 = 0;
-    let mut bzerr_dummy: i32 = 0;
     let mut ret: i32;
 
     set_binary_mode(zStream);
@@ -276,7 +281,7 @@ unsafe fn compressStream(mut stream: InputStream, zStream: *mut FILE, metadata: 
     // errhandler:
 
     BZ2_bzWriteClose64(
-        &mut bzerr_dummy,
+        &mut 0,
         bzf,
         1,
         &mut nbytes_in_lo32,
