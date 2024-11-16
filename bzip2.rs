@@ -75,7 +75,6 @@ enum DecompressMode {
 
 static delete_output_on_interrupt: AtomicBool = AtomicBool::new(false);
 
-static mut test_fails_exists: bool = false;
 static mut unz_fails_exist: bool = false;
 static mut noisy: bool = false;
 static mut numFileNames: i32 = 0;
@@ -1653,7 +1652,7 @@ unsafe fn uncompress(config: &Config) {
     };
 }
 
-unsafe fn testf(config: &Config) {
+unsafe fn testf(config: &Config) -> bool {
     delete_output_on_interrupt.store(false, Ordering::Relaxed);
 
     if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
@@ -1665,7 +1664,7 @@ unsafe fn testf(config: &Config) {
             );
         }
         setExit(1);
-        return;
+        return true;
     }
     if srcMode != SourceMode::I2O && !config.input.exists() {
         eprintln!(
@@ -1675,7 +1674,7 @@ unsafe fn testf(config: &Config) {
             display_last_os_error(),
         );
         setExit(1);
-        return;
+        return true;
     }
     if srcMode != SourceMode::I2O && config.input.is_dir() {
         eprintln!(
@@ -1684,7 +1683,7 @@ unsafe fn testf(config: &Config) {
             config.input.display(),
         );
         setExit(1);
-        return;
+        return true;
     }
 
     let inStr: *mut FILE;
@@ -1701,7 +1700,7 @@ unsafe fn testf(config: &Config) {
                     config.program_name.display(),
                 );
                 setExit(1);
-                return;
+                return true;
             }
             inStr = STDIN!();
         }
@@ -1718,7 +1717,7 @@ unsafe fn testf(config: &Config) {
                     display_last_os_error(),
                 );
                 setExit(1);
-                return;
+                return true;
             }
         }
     }
@@ -1731,9 +1730,8 @@ unsafe fn testf(config: &Config) {
     if allOK && config.verbosity >= 1 {
         eprintln!("ok");
     }
-    if !allOK {
-        test_fails_exists = true;
-    }
+
+    allOK
 }
 
 const BZLIB_VERSION: &str = unsafe {
@@ -1821,7 +1819,6 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     noisy = true;
-    test_fails_exists = false;
     unz_fails_exist = false;
     numFileNames = 0;
     numFilesProcessed = 0;
@@ -2086,10 +2083,10 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             }
         }
         OperationMode::Test => {
-            test_fails_exists = false;
+            let mut all_ok = true;
             if srcMode == SourceMode::I2O {
                 config.with_input(opMode, None, srcMode);
-                testf(&config);
+                all_ok &= testf(&config);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2098,11 +2095,12 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
                         config.with_input(opMode, Some(name.as_str()), srcMode);
-                        testf(&config);
+                        all_ok &= testf(&config);
                     }
                 }
             }
-            if test_fails_exists {
+
+            if !all_ok {
                 if noisy {
                     eprintln!(concat!(
                         "\n",
