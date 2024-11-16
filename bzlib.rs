@@ -2,7 +2,7 @@ use core::ffi::{c_char, c_int, c_uint, c_void, CStr};
 use core::{mem, ptr};
 
 use libc::FILE;
-use libc::{fclose, fdopen, ferror, fflush, fgetc, fopen, fread, free, fwrite, malloc, ungetc};
+use libc::{fclose, fdopen, ferror, fflush, fgetc, fopen, fread, fwrite, ungetc};
 
 use crate::allocator::Allocator;
 use crate::compress::compress_block;
@@ -140,7 +140,7 @@ type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
 ///
 /// - a call `bzalloc(opaque, n, m)` must return a pointer `p` to `n * m` bytes of memory, or
 ///     `NULL` if out of memory
-/// - a call `free(opaque, p)` must free that memory
+/// - a call `bzfree(opaque, p)` must free that memory
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -510,10 +510,6 @@ const _C_INT_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_int>() == 4);
 const _C_SHORT_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_short>() == 2);
 const _C_CHAR_SIZE: () = assert!(core::mem::size_of::<core::ffi::c_char>() == 1);
 
-unsafe extern "C" fn default_bzalloc(_opaque: *mut c_void, items: i32, size: i32) -> *mut c_void {
-    malloc((items * size) as usize)
-}
-
 fn prepare_new_block(s: &mut EState) {
     s.nblock = 0;
     s.writer.num_z = 0;
@@ -532,45 +528,34 @@ fn isempty_rl(s: &mut EState) -> bool {
     !(s.state_in_ch < 256 && s.state_in_len > 0)
 }
 
-/// Allocates `len` contiguous values of type `T`, and zeros out all elements.
-///
-/// # Safety
-///
-/// - `bzalloc` and `opaque` must form a valid allocator, meaning `bzalloc` returns either
-///     * a `NULL` pointer
-///     * a valid pointer to an allocation of `len * size_of::<T>()` bytes aligned to at least `align_of::<usize>()`
-/// - the type `T` must be zeroable (i.e. an all-zero bit pattern is valid for `T`)
-unsafe fn bzalloc_array<T>(bzalloc: AllocFunc, opaque: *mut c_void, len: usize) -> Option<*mut T> {
-    assert!(core::mem::align_of::<T>() <= 16);
-
-    let len = i32::try_from(len).ok()?;
-    let width = i32::try_from(mem::size_of::<T>()).ok()?;
-
-    let ptr = bzalloc(opaque, len, width).cast::<T>();
-
-    if ptr.is_null() {
-        return None;
-    }
-
-    ptr::write_bytes(ptr, 0, len as usize);
-
-    Some(ptr)
-}
-
 unsafe fn configure_allocator(strm: *mut bz_stream) -> Option<Allocator> {
     match ((*strm).bzalloc, (*strm).bzfree) {
         (Some(allocate), Some(deallocate)) => {
             Some(Allocator::custom(allocate, deallocate, (*strm).opaque))
         }
-        _ => {
-            // return a param error when no allocator can be configured
+        (None, None) => {
             let allocator = Allocator::DEFAULT?;
-
             let (bzalloc, bzfree) = allocator.function_pointers();
+
             (*strm).bzalloc = Some(bzalloc);
             (*strm).bzfree = Some(bzfree);
 
             Some(allocator)
+        }
+        _ => {
+            // this is almost certainly a bug, but replicates the original C behavior.
+            //
+            // Note that this logic does not really work with the default rust allocator, because
+            // it will panic at runtime when called directly. Usually the idea here is that
+            // allocation is special, and free is just the default `libc::free` that we configure
+            // by default with the default C allocator.
+            let allocator = Allocator::DEFAULT?;
+            let (default_bzalloc, default_bzfree) = allocator.function_pointers();
+
+            let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
+            let bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
+
+            Some(Allocator::custom(*bzalloc, *bzfree, (*strm).opaque))
         }
     }
 }
@@ -1047,7 +1032,7 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     s.arr2.dealloc(&allocator);
     s.ftab.dealloc(&allocator);
 
-    allocator.deallocate(strm.state, 1);
+    allocator.deallocate(strm.state.cast::<EState>(), 1);
     strm.state = ptr::null_mut::<c_void>();
 
     ReturnCode::BZ_OK as c_int
@@ -1751,7 +1736,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> c_int {
     s.ll16.dealloc(&allocator);
     s.ll4.dealloc(&allocator);
 
-    allocator.deallocate(strm.state, 1);
+    allocator.deallocate(strm.state.cast::<DState>(), 1);
     strm.state = ptr::null_mut::<c_void>();
 
     ReturnCode::BZ_OK as c_int
@@ -1848,7 +1833,12 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
         return ptr::null_mut();
     }
 
-    let Some(bzf) = bzalloc_array::<BZFILE>(default_bzalloc, ptr::null_mut(), 1) else {
+    let Some(allocator) = Allocator::DEFAULT else {
+        BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_CONFIG_ERROR);
+        return ptr::null_mut();
+    };
+
+    let Some(bzf) = allocator.allocate_zeroed::<BZFILE>(1) else {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_MEM_ERROR);
         return ptr::null_mut();
     };
@@ -1879,7 +1869,7 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
         }
         error => {
             BZ_SETERR!(bzerror, bzf, error);
-            free(bzf as *mut BZFILE as *mut c_void);
+            allocator.deallocate(bzf, 1);
 
             ptr::null_mut()
         }
@@ -2153,7 +2143,13 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
     BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_OK);
 
     BZ2_bzCompressEnd(&mut bzf.strm);
-    free(bzf as *mut BZFILE as *mut c_void);
+
+    let Some(allocator) = Allocator::DEFAULT else {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_CONFIG_ERROR);
+        return;
+    };
+
+    allocator.deallocate(bzf, 1);
 }
 
 /// Prepare to read compressed data from a file handle.
@@ -2226,7 +2222,12 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         return ptr::null_mut::<BZFILE>();
     }
 
-    let Some(bzf) = bzalloc_array::<BZFILE>(default_bzalloc, ptr::null_mut(), 1) else {
+    let Some(allocator) = Allocator::DEFAULT else {
+        BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_CONFIG_ERROR);
+        return ptr::null_mut();
+    };
+
+    let Some(bzf) = allocator.allocate_zeroed::<BZFILE>(1) else {
         BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_MEM_ERROR);
         return ptr::null_mut();
     };
@@ -2261,7 +2262,9 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
         }
         ret => {
             BZ_SETERR!(bzerror, bzf, ret);
-            free(bzf as *mut BZFILE as *mut c_void);
+
+            allocator.deallocate(bzf, 1);
+
             return ptr::null_mut();
         }
     }
@@ -2310,7 +2313,12 @@ pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut c_int, b: *mut BZFILE) {
         BZ2_bzDecompressEnd(&mut bzf.strm);
     }
 
-    free(bzf as *mut BZFILE as *mut c_void);
+    let Some(allocator) = Allocator::DEFAULT else {
+        BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_CONFIG_ERROR);
+        return;
+    };
+
+    allocator.deallocate(bzf, 1)
 }
 
 /// Reads up to `len` (uncompressed) bytes from the compressed file `b` into the buffer `buf`.
