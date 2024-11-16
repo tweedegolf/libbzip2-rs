@@ -64,8 +64,6 @@ macro_rules! STDOUT {
     };
 }
 
-type Bool = libc::c_uchar;
-
 type IntNative = libc::c_int;
 
 static mut verbosity: i32 = 0;
@@ -145,13 +143,13 @@ fn display_os_error(error: std::io::Error) -> String {
     error.replace("Bad address", "No such file or directory")
 }
 
-unsafe fn myfeof(f: *mut FILE) -> Bool {
+unsafe fn myfeof(f: *mut FILE) -> bool {
     let c: i32 = fgetc(f);
     if c == -1 as libc::c_int {
-        return 1 as Bool;
+        return true;
     }
     ungetc(c, f);
-    0 as Bool
+    false
 }
 
 enum InputStream {
@@ -386,7 +384,7 @@ unsafe fn uncompressStream(
                     panic_str("decompress:bzReadGetUnused")
                 }
 
-                if nUnused == 0 && myfeof(zStream) != 0 {
+                if nUnused == 0 && myfeof(zStream) {
                     state = State::CloseOk;
                     continue 'outer;
                 }
@@ -421,7 +419,7 @@ unsafe fn uncompressStream(
                 if force_overwrite {
                     rewind(zStream);
                     loop {
-                        if myfeof(zStream) != 0 {
+                        if myfeof(zStream) {
                             break;
                         }
                         nread = fread(
@@ -543,7 +541,7 @@ unsafe fn testStream(zStream: *mut FILE) -> bool {
             if bzerr != libbzip2_rs_sys::BZ_OK {
                 panic_str("test:bzReadClose");
             }
-            if nUnused == 0 && myfeof(zStream) != 0 {
+            if nUnused == 0 && myfeof(zStream) {
                 break;
             }
         }
