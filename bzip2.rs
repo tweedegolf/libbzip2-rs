@@ -83,7 +83,9 @@ static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
 static mut exitValue: i32 = 0;
 
-struct Config {
+struct Config<'a> {
+    program_name: &'a Path,
+
     // general
     verbosity: i32,
     force_overwrite: bool,
@@ -1132,7 +1134,7 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
         if noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
-                get_program_name().display(),
+                config.program_name.display(),
                 in_name.display(),
             );
         }
@@ -1168,7 +1170,7 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
     if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && in_name.is_dir() {
         eprintln!(
             "{}: Input file {} is a directory.",
-            get_program_name().display(),
+            config.program_name.display(),
             in_name.display(),
         );
         setExit(1 as libc::c_int);
@@ -1179,7 +1181,7 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
         if noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
-                get_program_name().display(),
+                config.program_name.display(),
                 in_name.display(),
             );
         }
@@ -1192,7 +1194,7 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
         } else {
             eprintln!(
                 "{}: Output file {} already exists.",
-                get_program_name().display(),
+                config.program_name.display(),
                 out_name.display(),
             );
             setExit(1 as libc::c_int);
@@ -1205,7 +1207,7 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
     } {
         eprintln!(
             "{}: Input file {} has {} other link{}.",
-            get_program_name().display(),
+            config.program_name.display(),
             in_name.display(),
             n,
             if n > 1 { "s" } else { "" },
@@ -1231,12 +1233,12 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
             if std::io::stdout().is_terminal() {
                 eprintln!(
                     "{}: I won't write compressed data to a terminal.",
-                    get_program_name().display(),
+                    config.program_name.display(),
                 );
                 eprintln!(
                     "{}: For help, type: `{} --help'.",
-                    get_program_name().display(),
-                    get_program_name().display(),
+                    config.program_name.display(),
+                    config.program_name.display(),
                 );
                 setExit(1 as libc::c_int);
                 return;
@@ -1247,12 +1249,12 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
             if std::io::stdout().is_terminal() {
                 eprintln!(
                     "{}: I won't write compressed data to a terminal.",
-                    get_program_name().display(),
+                    config.program_name.display(),
                 );
                 eprintln!(
                     "{}: For help, type: `{} --help'.",
-                    get_program_name().display(),
-                    get_program_name().display(),
+                    config.program_name.display(),
+                    config.program_name.display(),
                 );
                 setExit(1 as libc::c_int);
                 return;
@@ -1263,7 +1265,7 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
                 Err(e) => {
                     eprintln!(
                         "{}: Can't open input file {}: {}.",
-                        get_program_name().display(),
+                        config.program_name.display(),
                         in_name.display(),
                         display_os_error(e),
                     );
@@ -1290,7 +1292,7 @@ unsafe fn compress(config: &Config, name: Option<&str>) {
                 Err(e) => {
                     eprintln!(
                         "{}: Can't open input file {}: {}.",
-                        get_program_name().display(),
+                        config.program_name.display(),
                         in_name.display(),
                         display_os_error(e),
                     );
@@ -1404,7 +1406,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
         if noisy {
             eprintln!(
                 "%{}: There are no files matching `{}'.",
-                get_program_name().display(),
+                config.program_name.display(),
                 in_name.display(),
             );
         }
@@ -1415,7 +1417,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
     if srcMode != SourceMode::I2O && !in_name.exists() {
         eprintln!(
             "{}: Can't open input file {}: {}.",
-            get_program_name().display(),
+            config.program_name.display(),
             in_name.display(),
             display_last_os_error(),
         );
@@ -1426,7 +1428,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
     if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && in_name.is_dir() {
         eprintln!(
             "{}: Input file {} is a directory.",
-            get_program_name().display(),
+            config.program_name.display(),
             in_name.display(),
         );
         setExit(1);
@@ -1437,7 +1439,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
         if noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
-                get_program_name().display(),
+                config.program_name.display(),
                 in_name.display(),
             );
         }
@@ -1449,7 +1451,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
         // just a warning, no return
         eprintln!(
             "{}: Can't guess original name for {} -- using {}",
-            get_program_name().display(),
+            config.program_name.display(),
             in_name.display(),
             out_name.display(),
         );
@@ -1461,7 +1463,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
         } else {
             eprintln!(
                 "{}: Output file {} already exists.",
-                get_program_name().display(),
+                config.program_name.display(),
                 out_name.display(),
             );
             setExit(1);
@@ -1475,7 +1477,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
     } {
         eprintln!(
             "{}: Input file {} has {} other link{}.",
-            get_program_name().display(),
+            config.program_name.display(),
             in_name.display(),
             n,
             if n > 1 { "s" } else { "" },
@@ -1504,7 +1506,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
                         "{program_name}: I won't read compressed data from a terminal.\n",
                         "{program_name}: For help, type: `{program_name} --help'.\n",
                     ),
-                    program_name = get_program_name().display(),
+                    program_name = config.program_name.display(),
                 );
                 setExit(1);
                 return;
@@ -1519,7 +1521,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
-                    get_program_name().display(),
+                    config.program_name.display(),
                     in_name.display(),
                     display_last_os_error(),
                 );
@@ -1545,7 +1547,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
                 Err(e) => {
                     eprintln!(
                         "{}: Can't create output file {}: {}.",
-                        get_program_name().display(),
+                        config.program_name.display(),
                         out_name.display(),
                         display_os_error(e),
                     );
@@ -1560,7 +1562,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
-                    get_program_name().display(),
+                    config.program_name.display(),
                     in_name.display(),
                     display_last_os_error(),
                 );
@@ -1616,7 +1618,7 @@ unsafe fn uncompress(config: &Config, name: Option<&str>) {
         } else {
             eprintln!(
                 "{}: {} is not a bzip2 file.",
-                get_program_name().display(),
+                config.program_name.display(),
                 in_name.display(),
             );
         }
@@ -1653,7 +1655,7 @@ unsafe fn testf(config: &Config, name: Option<&str>) {
         if noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
-                get_program_name().display(),
+                config.program_name.display(),
                 in_name.display(),
             );
         }
@@ -1663,7 +1665,7 @@ unsafe fn testf(config: &Config, name: Option<&str>) {
     if srcMode != SourceMode::I2O && !in_name.exists() {
         eprintln!(
             "{}: Can't open input {}: {}.",
-            get_program_name().display(),
+            config.program_name.display(),
             in_name.display(),
             display_last_os_error(),
         );
@@ -1673,7 +1675,7 @@ unsafe fn testf(config: &Config, name: Option<&str>) {
     if srcMode != SourceMode::I2O && in_name.is_dir() {
         eprintln!(
             "{}: Input file {} is a directory.",
-            get_program_name().display(),
+            config.program_name.display(),
             in_name.display(),
         );
         setExit(1);
@@ -1684,12 +1686,12 @@ unsafe fn testf(config: &Config, name: Option<&str>) {
             if std::io::stdin().is_terminal() {
                 eprintln!(
                     "{}: I won't read compressed data from a terminal.",
-                    get_program_name().display(),
+                    config.program_name.display(),
                 );
                 eprintln!(
                     "{}: For help, type: `{} --help'.",
-                    get_program_name().display(),
-                    get_program_name().display(),
+                    config.program_name.display(),
+                    config.program_name.display(),
                 );
                 setExit(1);
                 return;
@@ -1704,7 +1706,7 @@ unsafe fn testf(config: &Config, name: Option<&str>) {
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input {}: {}.",
-                    get_program_name().display(),
+                    config.program_name.display(),
                     in_name.display(),
                     display_last_os_error(),
                 );
@@ -2017,6 +2019,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     let config = Config {
         // general
+        program_name,
         verbosity,
         force_overwrite,
         keep_input_files,
