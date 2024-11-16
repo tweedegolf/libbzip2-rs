@@ -1651,58 +1651,36 @@ unsafe fn uncompress(config: &Config) {
     };
 }
 
-unsafe fn testf(config: &Config, name: Option<&str>) {
+unsafe fn testf(config: &Config) {
     let inStr: *mut FILE;
     delete_output_on_interrupt = false;
 
-    copy_filename(outName.as_mut_ptr(), "(none)");
-
-    let in_name;
-
-    match (name, srcMode) {
-        (_, SourceMode::I2O) => {
-            in_name = PathBuf::from("(stdin)");
-            copy_filename(inName.as_mut_ptr(), "(stdin)");
-        }
-        (Some(name), SourceMode::F2O) => {
-            in_name = PathBuf::from(&name);
-            copy_filename(inName.as_mut_ptr(), name);
-        }
-        (Some(name), SourceMode::F2F) => {
-            in_name = PathBuf::from(&name);
-            copy_filename(inName.as_mut_ptr(), name);
-        }
-        (None, SourceMode::F2O | SourceMode::F2F) => {
-            panic_str("testf: bad modes");
-        }
-    }
-
-    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&in_name) {
+    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
         if noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
                 config.program_name.display(),
-                in_name.display(),
+                config.input.display(),
             );
         }
         setExit(1);
         return;
     }
-    if srcMode != SourceMode::I2O && !in_name.exists() {
+    if srcMode != SourceMode::I2O && !config.input.exists() {
         eprintln!(
             "{}: Can't open input {}: {}.",
             config.program_name.display(),
-            in_name.display(),
+            config.input.display(),
             display_last_os_error(),
         );
         setExit(1);
         return;
     }
-    if srcMode != SourceMode::I2O && in_name.is_dir() {
+    if srcMode != SourceMode::I2O && config.input.is_dir() {
         eprintln!(
             "{}: Input file {} is a directory.",
             config.program_name.display(),
-            in_name.display(),
+            config.input.display(),
         );
         setExit(1);
         return;
@@ -1733,7 +1711,7 @@ unsafe fn testf(config: &Config, name: Option<&str>) {
                 eprintln!(
                     "{}: Can't open input {}: {}.",
                     config.program_name.display(),
-                    in_name.display(),
+                    config.input.display(),
                     display_last_os_error(),
                 );
                 setExit(1);
@@ -1742,8 +1720,8 @@ unsafe fn testf(config: &Config, name: Option<&str>) {
         }
     }
     if config.verbosity >= 1 {
-        eprint!("  {}: ", in_name.display());
-        pad(&in_name);
+        eprint!("  {}: ", config.input.display());
+        pad(config.input);
     }
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     let allOK = testStream(config, inStr);
@@ -2107,7 +2085,8 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
         OperationMode::Test => {
             test_fails_exists = false;
             if srcMode == SourceMode::I2O {
-                testf(&config, None);
+                config.with_input(opMode, None, srcMode);
+                testf(&config);
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2115,7 +2094,8 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed += 1;
-                        testf(&config, Some(name.as_str()));
+                        config.with_input(opMode, Some(name.as_str()), srcMode);
+                        testf(&config);
                     }
                 }
             }
