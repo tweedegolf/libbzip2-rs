@@ -88,17 +88,6 @@ impl Allocator {
 }
 
 #[cfg(feature = "c-allocator")]
-#[allow(non_camel_case_types)]
-type c_size_t = usize;
-
-#[cfg(feature = "c-allocator")]
-extern "C" {
-    fn malloc(size: c_size_t) -> *mut c_void;
-    fn calloc(nitems: c_size_t, size: c_size_t) -> *mut c_void;
-    fn free(p: *mut c_void);
-}
-
-#[cfg(feature = "c-allocator")]
 mod c_allocator {
     use super::*;
 
@@ -108,12 +97,12 @@ mod c_allocator {
     pub(crate) static ALLOCATOR: (AllocFunc, FreeFunc) = (self::allocate, self::deallocate);
 
     unsafe extern "C" fn allocate(_opaque: *mut c_void, count: c_int, size: c_int) -> *mut c_void {
-        malloc((count * size) as usize)
+        libc::malloc((count * size) as usize)
     }
 
     unsafe extern "C" fn deallocate(_opaque: *mut c_void, ptr: *mut c_void) {
         if !ptr.is_null() {
-            free(ptr);
+            libc::free(ptr);
         }
     }
 }
@@ -152,7 +141,7 @@ impl Allocator {
             }
             #[cfg(feature = "c-allocator")]
             Allocator::C => {
-                let ptr = unsafe { calloc(count, core::mem::size_of::<T>()) };
+                let ptr = unsafe { libc::calloc(count, core::mem::size_of::<T>()) };
                 (!ptr.is_null()).then_some(ptr.cast())
             }
             Allocator::Custom {
@@ -185,7 +174,7 @@ impl Allocator {
             }
             #[cfg(feature = "c-allocator")]
             Allocator::C => {
-                unsafe { free(ptr.cast()) };
+                unsafe { libc::free(ptr.cast()) };
             }
             Allocator::Custom {
                 deallocate, opaque, ..
