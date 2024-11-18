@@ -1,3 +1,17 @@
+//! # allocator infrastructure
+//!
+//! The public interface allows setting a custom allocator, but we need to configure a default
+//! allocator if the user did not configure one. We have two choices, configured by feature flags:
+//!
+//! - `"rust-allocator"` uses the rust global allocator
+//! - `"c-allocator"` uses an allocator based on `malloc` and `free`
+//!
+//! When both configured, `"rust-allocator"` is preferred.
+//!
+//! The interface for the allocator is not a great fit for rust. In particular, rust always needs
+//! the layout of an allocation to deallocate it, and C interfaces don't usually provide this
+//! information. Luckily in the library we know in all cases how big the allocation was at the
+//! point where we deallocate it.
 use core::ffi::{c_int, c_void};
 
 type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
