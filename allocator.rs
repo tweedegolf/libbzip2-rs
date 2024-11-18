@@ -105,7 +105,7 @@ mod c_allocator {
     // make sure that the only way these function pointers leave this module is via this constant
     // that way the function pointer address is a reliable way to know that the default C allocator
     // is used.
-    pub(crate) const ALLOCATOR: (AllocFunc, FreeFunc) = (self::allocate, self::deallocate);
+    pub(crate) static ALLOCATOR: (AllocFunc, FreeFunc) = (self::allocate, self::deallocate);
 
     unsafe extern "C" fn allocate(_opaque: *mut c_void, count: c_int, size: c_int) -> *mut c_void {
         malloc((count * size) as usize)
@@ -125,7 +125,7 @@ mod rust_allocator {
     // make sure that the only way these function pointers leave this module is via this constant
     // that way the function pointer address is a reliable way to know that the default C allocator
     // is used.
-    pub(crate) const ALLOCATOR: (AllocFunc, FreeFunc) = (self::allocate, self::deallocate);
+    pub(crate) static ALLOCATOR: (AllocFunc, FreeFunc) = (self::allocate, self::deallocate);
 
     unsafe extern "C" fn allocate(
         _opaque: *mut c_void,
