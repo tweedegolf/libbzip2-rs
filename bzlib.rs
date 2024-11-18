@@ -130,17 +130,27 @@ type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
 ///     pub opaque: *mut c_void,
 /// }
 /// ```
-/// The `strm.opaque` value is passed to as the first argument to all calls to `bzalloc`
-/// and `bzfree`, but is otherwise ignored by the library.
 ///
-/// When these fields are `NULL` and zero, the initialization functions will put in a default
-/// allocator (currently based on `malloc` and `free`).
+/// When these fields are `None` (or `NULL` in C), the initialization functions will try to
+/// put in a default allocator, based on feature flags:
 ///
-/// When custom functions are given, they must adhere to the following contract to be safe:
+/// - `"rust-allocator"` uses the rust global allocator
+/// - `"c-allocator"` uses an allocator based on `malloc` and `free`
+///
+/// When both configured, `"rust-allocator"` is preferred. When no default allocator is configured,
+/// the high-level interface will return a [`BZ_CONFIG_ERROR`]. The low-level interface (the
+/// functions that take a [`bz_stream`] as their argument) return a [`BZ_PARAM_ERROR`], unless the
+/// user set the `bzalloc` and `bzfree` fields.
+///
+/// When custom `bzalloc` and `bzfree` functions are given, they must adhere to the following contract
+/// to be safe:
 ///
 /// - a call `bzalloc(opaque, n, m)` must return a pointer `p` to `n * m` bytes of memory, or
 ///     `NULL` if out of memory
 /// - a call `bzfree(opaque, p)` must free that memory
+///
+/// The `strm.opaque` value is passed to as the first argument to all calls to `bzalloc`
+/// and `bzfree`, but is otherwise ignored by the library.
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -569,6 +579,7 @@ unsafe fn configure_allocator(strm: *mut bz_stream) -> Option<Allocator> {
 ///     - `!(1..=9).contains(&blockSize100k)`
 ///     - `!(0..=4).contains(&verbosity)`
 ///     - `!(0..=250).contains(&workFactor)`
+///     - no [valid allocator](bz_stream#custom-allocators) could be configured
 /// - [`BZ_MEM_ERROR`] if insufficient memory is available
 /// - [`BZ_OK`] otherwise
 ///
@@ -604,7 +615,7 @@ unsafe fn BZ2_bzCompressInitHelp(
         workFactor = 30;
     }
 
-    // return a param error when no allocator can be configured
+    // return a param error when no [valid allocator](bz_stream#custom-allocators) could be configured
     let Some(allocator) = configure_allocator(strm) else {
         return ReturnCode::BZ_PARAM_ERROR;
     };
@@ -999,10 +1010,11 @@ unsafe fn compress_loop(strm: &mut bz_stream, s: &mut EState, action: i32) -> Re
 ///
 /// # Returns
 ///
-/// - [`BZ_OK`] if success
 /// - [`BZ_PARAM_ERROR`] if any of
 ///     - `strm.is_null()`
 ///     - `strm.s.is_null()`
+///     - no [valid allocator](bz_stream#custom-allocators) could be configured
+/// - [`BZ_OK`] otherwise
 ///
 /// # Safety
 ///
@@ -1051,6 +1063,7 @@ pub(crate) enum DecompressMode {
 ///     - `strm.is_null()`
 ///     - `!(0..=1).contains(&small)`
 ///     - `!(0..=4).contains(&verbosity)`
+///     - no [valid allocator](bz_stream#custom-allocators) could be configured
 /// - [`BZ_MEM_ERROR`] if insufficient memory is available
 /// - [`BZ_OK`] otherwise
 ///
@@ -1088,7 +1101,7 @@ unsafe fn BZ2_bzDecompressInitHelp(
         return ReturnCode::BZ_PARAM_ERROR;
     }
 
-    // return a param error when no allocator can be configured
+    // return a param error when no [valid allocator](bz_stream#custom-allocators) could be configured
     let Some(allocator) = configure_allocator(strm) else {
         return ReturnCode::BZ_PARAM_ERROR;
     };
@@ -1703,10 +1716,11 @@ unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
 ///
 /// # Returns
 ///
-/// - [`BZ_OK`] if success
 /// - [`BZ_PARAM_ERROR`] if any of
 ///     - `strm.is_null()`
 ///     - `strm.s.is_null()`
+///     - no [valid allocator](bz_stream#custom-allocators) could be configured
+/// - [`BZ_OK`] otherwise
 ///
 /// # Safety
 ///
@@ -1793,6 +1807,7 @@ macro_rules! BZ_SETERR {
 ///     - `!(1..=9).contains(&blockSize100k)`
 ///     - `!(0..=4).contains(&verbosity)`
 ///     - `!(0..=250).contains(&workFactor)`
+/// - [`BZ_CONFIG_ERROR`] if no default allocator is configured
 /// - [`BZ_IO_ERROR`] if `libc::ferror(f)` is nonzero
 /// - [`BZ_MEM_ERROR`] if insufficient memory is available
 /// - [`BZ_OK`] otherwise
@@ -1984,6 +1999,7 @@ pub unsafe extern "C" fn BZ2_bzWrite(
 ///
 /// # Possible assignments to `bzerror`
 ///
+/// - [`BZ_CONFIG_ERROR`] if no default allocator is configured
 /// - [`BZ_SEQUENCE_ERROR`] if b was opened with [`BZ2_bzWriteOpen`]
 /// - [`BZ_IO_ERROR`] if there is an error writing to the compressed file
 /// - [`BZ_OK`] otherwise
@@ -2032,6 +2048,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose(
 ///
 /// # Possible assignments to `bzerror`
 ///
+/// - [`BZ_CONFIG_ERROR`] if no default allocator is configured
 /// - [`BZ_SEQUENCE_ERROR`] if b was opened with [`BZ2_bzWriteOpen`]
 /// - [`BZ_IO_ERROR`] if there is an error writing to the compressed file
 /// - [`BZ_OK`] otherwise
@@ -2180,6 +2197,7 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
 ///     - `(!unused.is_null() && !(0..=BZ_MAX_UNUSED).contains(&nUnused))`
 ///     - `!(0..=1).contains(&small)`
 ///     - `!(0..=4).contains(&verbosity)`
+/// - [`BZ_CONFIG_ERROR`] if no default allocator is configured
 /// - [`BZ_IO_ERROR`] if `libc::ferror(f)` is nonzero
 /// - [`BZ_MEM_ERROR`] if insufficient memory is available
 /// - [`BZ_OK`] otherwise
@@ -2282,6 +2300,7 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
 ///
 /// # Possible assignments to `bzerror`
 ///
+/// - [`BZ_CONFIG_ERROR`] if no default allocator is configured
 /// - [`BZ_SEQUENCE_ERROR`] if b was opened with [`BZ2_bzWriteOpen`]
 /// - [`BZ_OK`] otherwise
 ///
