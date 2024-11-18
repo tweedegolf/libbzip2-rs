@@ -73,6 +73,7 @@ enum DecompressMode {
     Small = 1,
 }
 
+// NOTE: we use Ordering::SeqCst to synchronize with the signal handler
 static delete_output_on_interrupt: AtomicBool = AtomicBool::new(false);
 
 static mut noisy: bool = false;
@@ -217,7 +218,9 @@ const FILE_NAME_LEN: usize = 1034;
 static mut opMode: OperationMode = OperationMode::Zip;
 static mut srcMode: SourceMode = SourceMode::I2O;
 
+// NOTE: we use Ordering::SeqCst to synchronize with the signal handler
 static LONGEST_FILENAME: AtomicUsize = AtomicUsize::new(0);
+
 static mut inName: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
 static mut outName: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
 static mut progName: *mut c_char = ptr::null_mut();
@@ -752,7 +755,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
     let mut statBuf: stat = zeroed();
     if srcMode == SourceMode::F2F
         && opMode != OperationMode::Test
-        && delete_output_on_interrupt.load(Ordering::Relaxed)
+        && delete_output_on_interrupt.load(Ordering::SeqCst)
     {
         if stat(inName.as_mut_ptr(), &mut statBuf) == 0 {
             if noisy {
@@ -994,7 +997,7 @@ unsafe fn configError() -> ! {
 
 fn pad(s: &Path) {
     let len = s.as_os_str().as_encoded_bytes().len();
-    let longest_filename = LONGEST_FILENAME.load(Ordering::Relaxed);
+    let longest_filename = LONGEST_FILENAME.load(Ordering::SeqCst);
 
     if len >= longest_filename {
         return;
@@ -1191,7 +1194,7 @@ unsafe fn set_binary_mode(file: *mut FILE) {
 unsafe fn set_binary_mode(_file: *mut FILE) {}
 
 unsafe fn compress(config: &Config) {
-    delete_output_on_interrupt.store(false, Ordering::Relaxed);
+    delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
         if noisy {
@@ -1376,18 +1379,18 @@ unsafe fn compress(config: &Config) {
         pad(config.input);
     }
     outputHandleJustInCase = outStr;
-    delete_output_on_interrupt.store(true, Ordering::Relaxed);
+    delete_output_on_interrupt.store(true, Ordering::SeqCst);
     compressStream(config, input_stream, outStr, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     if let Some(metadata) = metadata {
         apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
-        delete_output_on_interrupt.store(false, Ordering::Relaxed);
+        delete_output_on_interrupt.store(false, Ordering::SeqCst);
         if !config.keep_input_files && std::fs::remove_file(config.input).is_err() {
             ioError();
         }
     }
-    delete_output_on_interrupt.store(false, Ordering::Relaxed);
+    delete_output_on_interrupt.store(false, Ordering::SeqCst);
 }
 
 enum OutputStream {
@@ -1419,7 +1422,7 @@ impl std::io::Write for OutputStream {
 }
 
 unsafe fn uncompress(config: &Config) -> bool {
-    delete_output_on_interrupt.store(false, Ordering::Relaxed);
+    delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     let cannot_guess = config.output.extension() == Some(OsStr::new("out"));
 
@@ -1604,7 +1607,7 @@ unsafe fn uncompress(config: &Config) -> bool {
     }
 
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
-    delete_output_on_interrupt.store(true, Ordering::Relaxed);
+    delete_output_on_interrupt.store(true, Ordering::SeqCst);
     let magicNumberOK = uncompressStream(config, inStr, output_stream, metadata.as_ref());
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
@@ -1612,7 +1615,7 @@ unsafe fn uncompress(config: &Config) -> bool {
     if magicNumberOK {
         if let Some(metadata) = metadata {
             apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
-            delete_output_on_interrupt.store(false, Ordering::Relaxed);
+            delete_output_on_interrupt.store(false, Ordering::SeqCst);
             if !config.keep_input_files {
                 let retVal: IntNative = remove(inName.as_mut_ptr());
                 if retVal != 0 {
@@ -1621,7 +1624,7 @@ unsafe fn uncompress(config: &Config) -> bool {
             }
         }
     } else {
-        delete_output_on_interrupt.store(false, Ordering::Relaxed);
+        delete_output_on_interrupt.store(false, Ordering::SeqCst);
         if srcMode == SourceMode::F2F {
             let retVal_0: IntNative = remove(outName.as_mut_ptr());
             if retVal_0 != 0 {
@@ -1630,7 +1633,7 @@ unsafe fn uncompress(config: &Config) -> bool {
         }
     }
 
-    delete_output_on_interrupt.store(false, Ordering::Relaxed);
+    delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     if magicNumberOK {
         if config.verbosity >= 1 {
@@ -1653,7 +1656,7 @@ unsafe fn uncompress(config: &Config) -> bool {
 }
 
 unsafe fn testf(config: &Config) -> bool {
-    delete_output_on_interrupt.store(false, Ordering::Relaxed);
+    delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
         if noisy {
@@ -1821,7 +1824,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     noisy = true;
     numFileNames = 0;
     numFilesProcessed = 0;
-    delete_output_on_interrupt.store(false, Ordering::Relaxed);
+    delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     exitValue = 0;
 
@@ -1870,7 +1873,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
 
     arg_list.extend(std::env::args().skip(1));
 
-    LONGEST_FILENAME.store(7, Ordering::Relaxed);
+    LONGEST_FILENAME.store(7, Ordering::SeqCst);
     numFileNames = 0;
     let mut decode = true;
 
@@ -1879,7 +1882,7 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
             decode = false;
         } else if !(name.starts_with('-') && decode) {
             numFileNames += 1;
-            LONGEST_FILENAME.fetch_max(name.len(), Ordering::Relaxed);
+            LONGEST_FILENAME.fetch_max(name.len(), Ordering::SeqCst);
         }
     }
 
