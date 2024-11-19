@@ -1279,7 +1279,7 @@ unsafe fn compress(config: &Config) {
     let metadata = match srcMode {
         SourceMode::F2F => match std::fs::metadata(config.input) {
             Ok(metadata) => Some(metadata),
-            Err(_) => ioError(),
+            Err(error) => exit_with_io_error(error),
         },
         _ => None,
     };
@@ -1377,8 +1377,10 @@ unsafe fn compress(config: &Config) {
             exit_with_io_error(error);
         }
         delete_output_on_interrupt.store(false, Ordering::SeqCst);
-        if !config.keep_input_files && std::fs::remove_file(config.input).is_err() {
-            ioError();
+        if !config.keep_input_files {
+            if let Err(error) = std::fs::remove_file(config.input) {
+                exit_with_io_error(error)
+            }
         }
     }
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
@@ -1508,7 +1510,7 @@ unsafe fn uncompress(config: &Config) -> bool {
     let metadata = match srcMode {
         SourceMode::F2F => match std::fs::metadata(config.input) {
             Ok(metadata) => Some(metadata),
-            Err(_) => ioError(),
+            Err(error) => exit_with_io_error(error),
         },
         _ => None,
     };
