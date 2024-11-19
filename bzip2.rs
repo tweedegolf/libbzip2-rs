@@ -75,8 +75,8 @@ enum DecompressMode {
 static delete_output_on_interrupt: AtomicBool = AtomicBool::new(false);
 
 static noisy: AtomicBool = AtomicBool::new(false);
-static mut numFileNames: i32 = 0;
-static mut numFilesProcessed: i32 = 0;
+static numFileNames: AtomicI32 = AtomicI32::new(0);
+static numFilesProcessed: AtomicI32 = AtomicI32::new(0);
 static exitValue: AtomicI32 = AtomicI32::new(0);
 
 struct Config<'a> {
@@ -792,8 +792,8 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
         }
     }
     if noisy.load(Ordering::SeqCst)
-        && numFileNames > 0 as libc::c_int
-        && numFilesProcessed < numFileNames
+        && numFileNames.load(Ordering::SeqCst) > 0 as libc::c_int
+        && numFilesProcessed.load(Ordering::SeqCst) < numFileNames.load(Ordering::SeqCst)
     {
         eprint!(
             concat!(
@@ -803,8 +803,8 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
             ),
             program_name,
             program_name,
-            numFileNames,
-            numFileNames - numFilesProcessed,
+            numFileNames.load(Ordering::SeqCst),
+            numFileNames.load(Ordering::SeqCst) - numFilesProcessed.load(Ordering::SeqCst),
         );
     }
     setExit(ec);
@@ -1805,8 +1805,8 @@ unsafe fn main_0(program_path: &Path) -> c_int {
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     noisy.store(true, Ordering::SeqCst);
-    numFileNames = 0;
-    numFilesProcessed = 0;
+    numFileNames.store(0, Ordering::SeqCst);
+    numFilesProcessed.store(0, Ordering::SeqCst);
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     exitValue.store(0, Ordering::SeqCst);
@@ -1857,19 +1857,19 @@ unsafe fn main_0(program_path: &Path) -> c_int {
     arg_list.extend(std::env::args().skip(1));
 
     LONGEST_FILENAME.store(7, Ordering::SeqCst);
-    numFileNames = 0;
+    numFileNames.store(0, Ordering::SeqCst);
     let mut decode = true;
 
     for name in &arg_list {
         if name == "--" {
             decode = false;
         } else if !(name.starts_with('-') && decode) {
-            numFileNames += 1;
+            numFileNames.fetch_add(1, Ordering::SeqCst);
             LONGEST_FILENAME.fetch_max(name.len(), Ordering::SeqCst);
         }
     }
 
-    srcMode = match numFileNames {
+    srcMode = match numFileNames.load(Ordering::SeqCst) {
         0 => SourceMode::I2O,
         _ => SourceMode::F2F,
     };
@@ -1883,7 +1883,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         || contains_osstr(program_name, "ZCAT")
     {
         opMode = OperationMode::Unzip;
-        srcMode = match numFileNames {
+        srcMode = match numFileNames.load(Ordering::SeqCst) {
             0 => SourceMode::F2O,
             _ => SourceMode::F2F,
         };
@@ -1984,7 +1984,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         );
         exit(1);
     }
-    if srcMode == SourceMode::F2O && numFileNames == 0 {
+    if srcMode == SourceMode::F2O && numFileNames.load(Ordering::SeqCst) == 0 {
         srcMode = SourceMode::I2O;
     }
     if opMode != OperationMode::Zip {
@@ -2039,7 +2039,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
                     if name == "--" {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
-                        numFilesProcessed += 1;
+                        numFilesProcessed.fetch_add(1, Ordering::SeqCst);
                         config.with_input(opMode, Some(name.as_str()), srcMode);
                         compress(&config);
                     }
@@ -2057,7 +2057,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
                     if name == "--" {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
-                        numFilesProcessed += 1;
+                        numFilesProcessed.fetch_add(1, Ordering::SeqCst);
                         config.with_input(opMode, Some(name.as_str()), srcMode);
                         all_ok &= uncompress(&config);
                     }
@@ -2079,7 +2079,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
                     if name == "--" {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
-                        numFilesProcessed += 1;
+                        numFilesProcessed.fetch_add(1, Ordering::SeqCst);
                         config.with_input(opMode, Some(name.as_str()), srcMode);
                         all_ok &= testf(&config);
                     }
