@@ -3,7 +3,7 @@
 #![allow(non_upper_case_globals)]
 
 use std::borrow::Cow;
-use std::ffi::{c_char, CStr, OsStr};
+use std::ffi::{c_char, c_int, CStr, OsStr};
 use std::fs::Metadata;
 use std::io::{self, IsTerminal, Read, Write};
 use std::mem::zeroed;
@@ -64,8 +64,6 @@ macro_rules! STDOUT {
         __acrt_iob_func(1)
     };
 }
-
-type IntNative = libc::c_int;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum DecompressMode {
@@ -1810,7 +1808,7 @@ fn contains_osstr(haystack: impl AsRef<OsStr>, needle: impl AsRef<OsStr>) -> boo
     haystack.windows(needle.len()).any(|h| h == needle)
 }
 
-unsafe fn main_0(program_path: &Path) -> IntNative {
+unsafe fn main_0(program_path: &Path) -> c_int {
     let program_name = Path::new(program_path.file_name().unwrap());
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
@@ -2003,16 +2001,16 @@ unsafe fn main_0(program_path: &Path) -> IntNative {
     if srcMode == SourceMode::F2F {
         signal(
             SIGINT,
-            mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
+            mySignalCatcher as unsafe extern "C" fn(c_int) as usize,
         );
         signal(
             SIGTERM,
-            mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
+            mySignalCatcher as unsafe extern "C" fn(c_int) as usize,
         );
         #[cfg(not(target_os = "windows"))]
         signal(
             libc::SIGHUP,
-            mySignalCatcher as unsafe extern "C" fn(IntNative) as usize,
+            mySignalCatcher as unsafe extern "C" fn(c_int) as usize,
         );
     }
 
