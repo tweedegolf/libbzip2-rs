@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 use std::ffi::{c_char, CStr, OsStr};
 use std::fs::Metadata;
-use std::io::{IsTerminal, Read, Write};
+use std::io::{self, IsTerminal, Read, Write};
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
@@ -585,8 +585,8 @@ unsafe fn uncompressStream(
                             if noisy {
                                 eprintln!(
                                     "\n{}: {}: trailing garbage after EOF ignored",
-                                    get_program_name().display(),
-                                    CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+                                    config.program_name.display(),
+                                    config.input.display(),
                                 );
                             }
                             return true;
@@ -685,8 +685,8 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
     if config.verbosity == 0 {
         eprintln!(
             "{}: {}: ",
-            get_program_name().display(),
-            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
+            config.program_name.display(),
+            config.input.display(),
         );
     }
     match bzerr {
@@ -1096,25 +1096,14 @@ unsafe fn count_hardlinks(_path: &Path) -> u64 {
     0 // FIXME
 }
 
-fn apply_saved_time_info_to_output_file(_dst_name: &CStr, _metadata: Metadata) {
-    #[cfg(unix)]
-    {
-        use std::time::SystemTime;
-
-        let convert = |x: SystemTime| {
-            x.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as libc::time_t
-        };
-
-        let actime = convert(_metadata.accessed().unwrap_or(SystemTime::UNIX_EPOCH));
-        let modtime = convert(_metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH));
-
-        let buf = libc::utimbuf { actime, modtime };
-
-        match unsafe { libc::utime(_dst_name.as_ptr(), &buf) } {
-            0 => {}
-            _ => unsafe { ioError() },
-        }
-    }
+fn apply_saved_time_info_to_output_file(dst_name: &Path, metadata: Metadata) -> io::Result<()> {
+    let times = std::fs::FileTimes::new()
+        .set_accessed(metadata.accessed()?)
+        .set_modified(metadata.modified()?);
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(dst_name)?
+        .set_times(times)
 }
 
 unsafe fn set_permissions(_handle: *mut FILE, _metadata: &Metadata) {
@@ -1384,7 +1373,9 @@ unsafe fn compress(config: &Config) {
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     if let Some(metadata) = metadata {
-        apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
+        if let Err(error) = apply_saved_time_info_to_output_file(&config.output, metadata) {
+            exit_with_io_error(error);
+        }
         delete_output_on_interrupt.store(false, Ordering::SeqCst);
         if !config.keep_input_files && std::fs::remove_file(config.input).is_err() {
             ioError();
@@ -1614,21 +1605,21 @@ unsafe fn uncompress(config: &Config) -> bool {
     /*--- If there was an I/O error, we won't get here. ---*/
     if magicNumberOK {
         if let Some(metadata) = metadata {
-            apply_saved_time_info_to_output_file(CStr::from_ptr(outName.as_mut_ptr()), metadata);
+            if let Err(error) = apply_saved_time_info_to_output_file(&config.output, metadata) {
+                exit_with_io_error(error);
+            }
             delete_output_on_interrupt.store(false, Ordering::SeqCst);
             if !config.keep_input_files {
-                let retVal: IntNative = remove(inName.as_mut_ptr());
-                if retVal != 0 {
-                    ioError();
+                if let Err(error) = std::fs::remove_file(config.input) {
+                    exit_with_io_error(error);
                 }
             }
         }
     } else {
         delete_output_on_interrupt.store(false, Ordering::SeqCst);
         if srcMode == SourceMode::F2F {
-            let retVal_0: IntNative = remove(outName.as_mut_ptr());
-            if retVal_0 != 0 {
-                ioError();
+            if let Err(error) = std::fs::remove_file(&config.output) {
+                exit_with_io_error(error);
             }
         }
     }
