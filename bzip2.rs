@@ -9,7 +9,7 @@ use std::io::{self, IsTerminal, Read, Write};
 use std::mem::zeroed;
 use std::path::{Path, PathBuf};
 use std::ptr;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
 
 use libbzip2_rs_sys::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
@@ -74,10 +74,10 @@ enum DecompressMode {
 // NOTE: we use Ordering::SeqCst to synchronize with the signal handler
 static delete_output_on_interrupt: AtomicBool = AtomicBool::new(false);
 
-static mut noisy: bool = false;
+static noisy: AtomicBool = AtomicBool::new(false);
 static mut numFileNames: i32 = 0;
 static mut numFilesProcessed: i32 = 0;
-static mut exitValue: i32 = 0;
+static exitValue: AtomicI32 = AtomicI32::new(0);
 
 struct Config<'a> {
     program_name: &'a Path,
@@ -86,6 +86,7 @@ struct Config<'a> {
     output: Cow<'a, Path>,
 
     // general
+    noisy: bool,
     verbosity: i32,
     force_overwrite: bool,
     keep_input_files: bool,
@@ -580,7 +581,7 @@ unsafe fn uncompressStream(
                         if streamNo == 1 {
                             return false;
                         } else {
-                            if noisy {
+                            if config.noisy {
                                 eprintln!(
                                     "\n{}: {}: trailing garbage after EOF ignored",
                                     config.program_name.display(),
@@ -707,7 +708,7 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
                 eprintln!("bad magic number (file not created by bzip2)");
                 false
             } else {
-                if noisy {
+                if config.noisy {
                     eprintln!("trailing garbage after EOF ignored");
                 }
                 true
@@ -717,14 +718,12 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
     }
 }
 
-unsafe fn setExit(v: i32) {
-    if v > exitValue {
-        exitValue = v;
-    }
+fn setExit(v: i32) {
+    exitValue.fetch_max(v, Ordering::SeqCst);
 }
 
-unsafe fn cadvise() {
-    if noisy {
+fn cadvise() {
+    if noisy.load(Ordering::SeqCst) {
         eprint!(concat!(
             "\n",
             "It is possible that the compressed file(s) have become corrupted.\n",
@@ -738,7 +737,7 @@ unsafe fn cadvise() {
 }
 
 unsafe fn showFileNames() {
-    if noisy {
+    if noisy.load(Ordering::SeqCst) {
         eprintln!(
             "\tInput file = {}, output file = {}",
             CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
@@ -756,7 +755,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
         && delete_output_on_interrupt.load(Ordering::SeqCst)
     {
         if stat(inName.as_mut_ptr(), &mut statBuf) == 0 {
-            if noisy {
+            if noisy.load(Ordering::SeqCst) {
                 eprintln!(
                     "{}: Deleting output file {}, if it exists.",
                     program_name,
@@ -792,7 +791,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
             );
         }
     }
-    if noisy as libc::c_int != 0
+    if noisy.load(Ordering::SeqCst)
         && numFileNames > 0 as libc::c_int
         && numFilesProcessed < numFileNames
     {
@@ -809,7 +808,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
         );
     }
     setExit(ec);
-    exit(exitValue);
+    exit(exitValue.load(Ordering::SeqCst));
 }
 
 unsafe fn panic_str(s: &str) -> ! {
@@ -839,7 +838,7 @@ unsafe fn crcError() -> ! {
 }
 
 unsafe fn compressedStreamEOF() -> ! {
-    if noisy {
+    if noisy.load(Ordering::SeqCst) {
         eprint!(
             concat!(
                 "\n",
@@ -968,7 +967,7 @@ unsafe extern "C" fn mySIGSEGVorSIGBUScatcher(_: libc::c_int) {
         _ => setExit(2),
     }
 
-    _exit(exitValue);
+    _exit(exitValue.load(Ordering::SeqCst));
 }
 
 unsafe fn outOfMemory() -> ! {
@@ -990,7 +989,7 @@ unsafe fn configError() -> ! {
     );
     eprint!("{}", MSG);
     setExit(3 as libc::c_int);
-    exit(exitValue);
+    exit(exitValue.load(Ordering::SeqCst));
 }
 
 fn pad(s: &Path) {
@@ -1019,7 +1018,7 @@ unsafe fn copy_filename(to: *mut c_char, from: &str) {
             FILE_NAME_LEN - 10
         );
         setExit(1 as libc::c_int);
-        exit(exitValue);
+        exit(exitValue.load(Ordering::SeqCst));
     }
 
     std::ptr::copy(from.as_ptr().cast::<c_char>(), to, from.len());
@@ -1184,7 +1183,7 @@ unsafe fn compress(config: &Config) {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
-        if noisy {
+        if config.noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
                 config.program_name.display(),
@@ -1207,7 +1206,7 @@ unsafe fn compress(config: &Config) {
     if let Some(extension) = config.input.extension() {
         for bz2_extension in Z_SUFFIX {
             if extension == OsStr::new(&bz2_extension[1..]) {
-                if noisy {
+                if config.noisy {
                     eprintln!(
                         "{}: Input file {} already has {} suffix.",
                         config.program_name.display(),
@@ -1231,7 +1230,7 @@ unsafe fn compress(config: &Config) {
     }
 
     if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(config.input) {
-        if noisy {
+        if config.noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
                 config.program_name.display(),
@@ -1418,7 +1417,7 @@ unsafe fn uncompress(config: &Config) -> bool {
     let cannot_guess = config.output.extension() == Some(OsStr::new("out"));
 
     if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
-        if noisy {
+        if config.noisy {
             eprintln!(
                 "%{}: There are no files matching `{}'.",
                 config.program_name.display(),
@@ -1451,7 +1450,7 @@ unsafe fn uncompress(config: &Config) -> bool {
     }
 
     if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(config.input) {
-        if noisy {
+        if config.noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
                 config.program_name.display(),
@@ -1462,7 +1461,7 @@ unsafe fn uncompress(config: &Config) -> bool {
         return true;
     }
 
-    if cannot_guess && noisy {
+    if cannot_guess && config.noisy {
         // just a warning, no return
         eprintln!(
             "{}: Can't guess original name for {} -- using {}",
@@ -1650,7 +1649,7 @@ unsafe fn testf(config: &Config) -> bool {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
-        if noisy {
+        if config.noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
                 config.program_name.display(),
@@ -1812,12 +1811,12 @@ unsafe fn main_0(program_path: &Path) -> c_int {
     let program_name = Path::new(program_path.file_name().unwrap());
 
     outputHandleJustInCase = std::ptr::null_mut::<FILE>();
-    noisy = true;
+    noisy.store(true, Ordering::SeqCst);
     numFileNames = 0;
     numFilesProcessed = 0;
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
-    exitValue = 0;
+    exitValue.store(0, Ordering::SeqCst);
 
     // general config
     let mut verbosity = 0;
@@ -1913,7 +1912,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
                     b't' => opMode = OperationMode::Test,
                     b'k' => keep_input_files = true,
                     b's' => decompress_mode = DecompressMode::Small,
-                    b'q' => noisy = false,
+                    b'q' => noisy.store(false, Ordering::SeqCst),
                     b'1' => blockSize100k = 1,
                     b'2' => blockSize100k = 2,
                     b'3' => blockSize100k = 3,
@@ -1952,7 +1951,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
             "--test" => opMode = OperationMode::Test,
             "--keep" => keep_input_files = true,
             "--small" => decompress_mode = DecompressMode::Small,
-            "--quiet" => noisy = false,
+            "--quiet" => noisy.store(false, Ordering::SeqCst),
             "--version" | "--license" => {
                 license();
                 exit(0);
@@ -2023,6 +2022,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         output: Cow::Borrowed(Path::new("(none)")),
 
         // general
+        noisy: noisy.load(Ordering::SeqCst),
         verbosity,
         force_overwrite,
         keep_input_files,
@@ -2072,7 +2072,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
             }
             if !all_ok {
                 setExit(2);
-                exit(exitValue);
+                exit(exitValue.load(Ordering::SeqCst));
             }
         }
         OperationMode::Test => {
@@ -2094,7 +2094,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
             }
 
             if !all_ok {
-                if noisy {
+                if config.noisy {
                     eprintln!(concat!(
                         "\n",
                         "You can use the `bzip2recover' program to attempt to recover\n",
@@ -2102,12 +2102,12 @@ unsafe fn main_0(program_path: &Path) -> c_int {
                     ));
                 }
                 setExit(2);
-                exit(exitValue);
+                exit(exitValue.load(Ordering::SeqCst));
             }
         }
     }
 
-    exitValue
+    exitValue.load(Ordering::SeqCst)
 }
 
 fn main() {
