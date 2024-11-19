@@ -1106,35 +1106,28 @@ fn apply_saved_time_info_to_output_file(dst_name: &Path, metadata: Metadata) -> 
 unsafe fn set_permissions(_handle: *mut FILE, _metadata: &Metadata) {
     #[cfg(unix)]
     {
+        use std::os::unix::fs::MetadataExt;
+
         let fd = fileno(_handle);
         if fd < 0 {
             // diverges
             ioError()
         }
 
-        set_permissions_fd(fd, _metadata)
+        let retVal = libc::fchmod(fd, _metadata.mode() as libc::mode_t);
+        if retVal != 0 as libc::c_int {
+            ioError();
+        }
+
+        // chown() will in many cases return with EPERM, which can be safely ignored.
+        libc::fchown(fd, _metadata.uid(), _metadata.gid());
     }
 }
 
-unsafe fn set_permissions_rust(_file: &std::fs::File, _metadata: &Metadata) {
-    #[cfg(unix)]
-    {
-        use std::os::fd::AsRawFd;
-        set_permissions_fd(_file.as_raw_fd(), _metadata)
+unsafe fn set_permissions_rust(file: &std::fs::File, metadata: &Metadata) {
+    if let Err(error) = file.set_permissions(metadata.permissions()) {
+        exit_with_io_error(error);
     }
-}
-
-#[cfg(unix)]
-unsafe fn set_permissions_fd(fd: core::ffi::c_int, metadata: &Metadata) {
-    use std::os::unix::fs::MetadataExt;
-
-    let retVal = libc::fchmod(fd, metadata.mode() as libc::mode_t);
-    if retVal != 0 as libc::c_int {
-        ioError();
-    }
-
-    // chown() will in many cases return with EPERM, which can be safely ignored.
-    libc::fchown(fd, metadata.uid(), metadata.gid());
 }
 
 #[cfg(unix)]
