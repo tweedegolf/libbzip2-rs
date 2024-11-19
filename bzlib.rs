@@ -1732,18 +1732,21 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
+    BZ2_bzDecompressEndHelp(strm) as c_int
+}
 
+unsafe fn BZ2_bzDecompressEndHelp(strm: &mut bz_stream) -> ReturnCode {
     let Some(s) = (strm.state as *mut DState).as_mut() else {
-        return ReturnCode::BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR;
     };
 
     // FIXME use .addr() once stable
     if s.strm_addr != strm as *mut _ as usize {
-        return ReturnCode::BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR;
     }
 
     let Some(allocator) = Allocator::from_bz_stream(strm) else {
-        return ReturnCode::BZ_PARAM_ERROR as c_int;
+        return ReturnCode::BZ_PARAM_ERROR;
     };
 
     s.tt.dealloc(&allocator);
@@ -1753,7 +1756,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> c_int {
     allocator.deallocate(strm.state.cast::<DState>(), 1);
     strm.state = ptr::null_mut::<c_void>();
 
-    ReturnCode::BZ_OK as c_int
+    ReturnCode::BZ_OK
 }
 
 unsafe fn myfeof(f: *mut FILE) -> bool {
@@ -1769,11 +1772,11 @@ unsafe fn myfeof(f: *mut FILE) -> bool {
 
 macro_rules! BZ_SETERR_RAW {
     ($bzerror:expr, $bzf:expr, $return_code:expr) => {
-        if let Some(bzerror) = $bzerror.cast::<ReturnCode>().as_mut() {
-            *bzerror = $return_code;
+        if let Some(bzerror) = $bzerror.as_deref_mut() {
+            *bzerror = $return_code as c_int;
         }
 
-        if let Some(bzf) = $bzf.as_mut() {
+        if let Some(bzf) = $bzf.as_deref_mut() {
             bzf.lastErr = $return_code;
         }
     };
@@ -1781,8 +1784,8 @@ macro_rules! BZ_SETERR_RAW {
 
 macro_rules! BZ_SETERR {
     ($bzerror:expr, $bzf:expr, $return_code:expr) => {
-        if let Some(bzerror) = $bzerror.cast::<ReturnCode>().as_mut() {
-            *bzerror = $return_code;
+        if let Some(bzerror) = $bzerror.as_deref_mut() {
+            *bzerror = $return_code as c_int;
         }
 
         $bzf.lastErr = $return_code;
@@ -1828,9 +1831,19 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
     f: *mut FILE,
     blockSize100k: c_int,
     verbosity: c_int,
+    workFactor: c_int,
+) -> *mut BZFILE {
+    BZ2_bzWriteOpenHelp(bzerror.as_mut(), f, blockSize100k, verbosity, workFactor)
+}
+
+unsafe fn BZ2_bzWriteOpenHelp(
+    mut bzerror: Option<&mut c_int>,
+    f: *mut FILE,
+    blockSize100k: c_int,
+    verbosity: c_int,
     mut workFactor: c_int,
 ) -> *mut BZFILE {
-    let bzf = ptr::null_mut::<BZFILE>();
+    let mut bzf: Option<&mut BZFILE> = None;
 
     BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
 
@@ -1922,6 +1935,15 @@ pub unsafe extern "C" fn BZ2_bzWriteOpen(
 pub unsafe extern "C" fn BZ2_bzWrite(
     bzerror: *mut c_int,
     b: *mut BZFILE,
+    buf: *const c_void,
+    len: c_int,
+) {
+    BZ2_bzWriteHelp(bzerror.as_mut(), b.as_mut(), buf, len)
+}
+
+unsafe fn BZ2_bzWriteHelp(
+    mut bzerror: Option<&mut c_int>,
+    mut b: Option<&mut BZFILE>,
     buf: *const c_void,
     len: c_int,
 ) {
@@ -2024,15 +2046,23 @@ pub unsafe extern "C" fn BZ2_bzWriteClose(
     nbytes_in: *mut c_uint,
     nbytes_out: *mut c_uint,
 ) {
-    BZ2_bzWriteClose64(
-        bzerror,
-        b,
+    BZ2_bzWriteCloseHelp(
+        bzerror.as_mut(),
+        b.as_mut(),
         abandon,
-        nbytes_in,
-        ptr::null_mut::<c_uint>(),
-        nbytes_out,
-        ptr::null_mut::<c_uint>(),
-    );
+        nbytes_in.as_mut(),
+        nbytes_out.as_mut(),
+    )
+}
+
+unsafe fn BZ2_bzWriteCloseHelp(
+    bzerror: Option<&mut c_int>,
+    b: Option<&mut BZFILE>,
+    abandon: c_int,
+    nbytes_in: Option<&mut c_uint>,
+    nbytes_out: Option<&mut c_uint>,
+) {
+    BZ2_bzWriteClose64Help(bzerror, b, abandon, nbytes_in, None, nbytes_out, None);
 }
 
 /// Compresses and flushes to the compressed file all data so far supplied by [`BZ2_bzWrite`].
@@ -2077,7 +2107,27 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
     nbytes_out_lo32: *mut c_uint,
     nbytes_out_hi32: *mut c_uint,
 ) {
-    let Some(bzf) = b.as_mut() else {
+    BZ2_bzWriteClose64Help(
+        bzerror.as_mut(),
+        b.as_mut(),
+        abandon,
+        nbytes_in_lo32.as_mut(),
+        nbytes_in_hi32.as_mut(),
+        nbytes_out_lo32.as_mut(),
+        nbytes_out_hi32.as_mut(),
+    )
+}
+
+unsafe fn BZ2_bzWriteClose64Help(
+    mut bzerror: Option<&mut c_int>,
+    mut b: Option<&mut BZFILE>,
+    abandon: c_int,
+    mut nbytes_in_lo32: Option<&mut c_uint>,
+    mut nbytes_in_hi32: Option<&mut c_uint>,
+    mut nbytes_out_lo32: Option<&mut c_uint>,
+    mut nbytes_out_hi32: Option<&mut c_uint>,
+) {
+    let Some(bzf) = b else {
         BZ_SETERR_RAW!(bzerror, b, ReturnCode::BZ_PARAM_ERROR);
         return;
     };
@@ -2092,16 +2142,16 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
         return;
     }
 
-    if let Some(nbytes_in_lo32) = nbytes_in_lo32.as_mut() {
+    if let Some(nbytes_in_lo32) = nbytes_in_lo32.as_deref_mut() {
         *nbytes_in_lo32 = 0
     }
-    if let Some(nbytes_in_hi32) = nbytes_in_hi32.as_mut() {
+    if let Some(nbytes_in_hi32) = nbytes_in_hi32.as_deref_mut() {
         *nbytes_in_hi32 = 0;
     }
-    if let Some(nbytes_out_lo32) = nbytes_out_lo32.as_mut() {
+    if let Some(nbytes_out_lo32) = nbytes_out_lo32.as_deref_mut() {
         *nbytes_out_lo32 = 0;
     }
-    if let Some(nbytes_out_hi32) = nbytes_out_hi32.as_mut() {
+    if let Some(nbytes_out_hi32) = nbytes_out_hi32.as_deref_mut() {
         *nbytes_out_hi32 = 0;
     }
 
@@ -2144,16 +2194,16 @@ pub unsafe extern "C" fn BZ2_bzWriteClose64(
         }
     }
 
-    if let Some(nbytes_in_lo32) = nbytes_in_lo32.as_mut() {
+    if let Some(nbytes_in_lo32) = nbytes_in_lo32 {
         *nbytes_in_lo32 = bzf.strm.total_in_lo32;
     }
-    if let Some(nbytes_in_hi32) = nbytes_in_hi32.as_mut() {
+    if let Some(nbytes_in_hi32) = nbytes_in_hi32 {
         *nbytes_in_hi32 = bzf.strm.total_in_hi32;
     }
-    if let Some(nbytes_out_lo32) = nbytes_out_lo32.as_mut() {
+    if let Some(nbytes_out_lo32) = nbytes_out_lo32 {
         *nbytes_out_lo32 = bzf.strm.total_out_lo32;
     }
-    if let Some(nbytes_out_hi32) = nbytes_out_hi32.as_mut() {
+    if let Some(nbytes_out_hi32) = nbytes_out_hi32 {
         *nbytes_out_hi32 = bzf.strm.total_out_hi32;
     }
 
@@ -2221,7 +2271,18 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
     unused: *mut c_void,
     nUnused: c_int,
 ) -> *mut BZFILE {
-    let bzf: *mut BZFILE = ptr::null_mut::<BZFILE>();
+    BZ2_bzReadOpenHelp(bzerror.as_mut(), f, verbosity, small, unused, nUnused)
+}
+
+unsafe fn BZ2_bzReadOpenHelp(
+    mut bzerror: Option<&mut c_int>,
+    f: *mut FILE,
+    verbosity: c_int,
+    small: c_int,
+    unused: *mut c_void,
+    nUnused: c_int,
+) -> *mut BZFILE {
+    let mut bzf: Option<&mut BZFILE> = None;
 
     BZ_SETERR_RAW!(bzerror, bzf, ReturnCode::BZ_OK);
 
@@ -2316,9 +2377,13 @@ pub unsafe extern "C" fn BZ2_bzReadOpen(
 /// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzReadClose)]
 pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut c_int, b: *mut BZFILE) {
+    BZ2_bzReadCloseHelp(bzerror.as_mut(), b.as_mut())
+}
+
+unsafe fn BZ2_bzReadCloseHelp(mut bzerror: Option<&mut c_int>, mut b: Option<&mut BZFILE>) {
     BZ_SETERR_RAW!(bzerror, b, ReturnCode::BZ_OK);
 
-    let Some(bzf) = b.as_mut() else {
+    let Some(bzf) = b else {
         BZ_SETERR_RAW!(bzerror, b, ReturnCode::BZ_OK);
         return;
     };
@@ -2378,6 +2443,15 @@ pub unsafe extern "C" fn BZ2_bzReadClose(bzerror: *mut c_int, b: *mut BZFILE) {
 pub unsafe extern "C" fn BZ2_bzRead(
     bzerror: *mut c_int,
     b: *mut BZFILE,
+    buf: *mut c_void,
+    len: c_int,
+) -> c_int {
+    BZ2_bzReadHelp(bzerror.as_mut(), b.as_mut(), buf, len)
+}
+
+unsafe fn BZ2_bzReadHelp(
+    mut bzerror: Option<&mut c_int>,
+    mut b: Option<&mut BZFILE>,
     buf: *mut c_void,
     len: c_int,
 ) -> c_int {
@@ -2492,6 +2566,20 @@ pub unsafe extern "C" fn BZ2_bzReadGetUnused(
     unused: *mut *mut c_void,
     nUnused: *mut c_int,
 ) {
+    BZ2_bzReadGetUnusedHelp(
+        bzerror.as_mut(),
+        b.as_mut(),
+        unused.as_mut(),
+        nUnused.as_mut(),
+    )
+}
+
+unsafe fn BZ2_bzReadGetUnusedHelp(
+    mut bzerror: Option<&mut c_int>,
+    mut b: Option<&mut BZFILE>,
+    unused: Option<&mut *mut c_void>,
+    nUnused: Option<&mut c_int>,
+) {
     let Some(bzf) = b.as_mut() else {
         BZ_SETERR_RAW!(bzerror, b, ReturnCode::BZ_PARAM_ERROR);
         return;
@@ -2502,7 +2590,7 @@ pub unsafe extern "C" fn BZ2_bzReadGetUnused(
         return;
     }
 
-    let (Some(unused), Some(nUnused)) = (unused.as_mut(), nUnused.as_mut()) else {
+    let (Some(unused), Some(nUnused)) = (unused, nUnused) else {
         BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_PARAM_ERROR);
         return;
     };
@@ -2857,12 +2945,19 @@ pub unsafe extern "C" fn BZ2_bzdopen(fd: c_int, mode: *const c_char) -> *mut BZF
 /// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzread)]
 pub unsafe extern "C" fn BZ2_bzread(b: *mut BZFILE, buf: *mut c_void, len: c_int) -> c_int {
+    BZ2_bzreadHelp(b.as_mut(), buf, len)
+}
+
+unsafe fn BZ2_bzreadHelp(mut b: Option<&mut BZFILE>, buf: *mut c_void, len: c_int) -> c_int {
     let mut bzerr = 0;
 
-    if (*b).lastErr == ReturnCode::BZ_STREAM_END {
-        return 0;
+    if let Some(b) = b.as_deref_mut() {
+        if b.lastErr == ReturnCode::BZ_STREAM_END {
+            return 0;
+        }
     }
-    let nread = BZ2_bzRead(&mut bzerr, b, buf, len);
+
+    let nread = BZ2_bzReadHelp(Some(&mut bzerr), b, buf, len);
     if bzerr == 0 || bzerr == ReturnCode::BZ_STREAM_END as i32 {
         nread
     } else {
@@ -2892,8 +2987,12 @@ pub unsafe extern "C" fn BZ2_bzread(b: *mut BZFILE, buf: *mut c_void, len: c_int
 /// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzwrite)]
 pub unsafe extern "C" fn BZ2_bzwrite(b: *mut BZFILE, buf: *const c_void, len: c_int) -> c_int {
+    BZ2_bzwriteHelp(b.as_mut(), buf, len)
+}
+
+unsafe fn BZ2_bzwriteHelp(b: Option<&mut BZFILE>, buf: *const c_void, len: c_int) -> c_int {
     let mut bzerr = 0;
-    BZ2_bzWrite(&mut bzerr, b, buf, len);
+    BZ2_bzWriteHelp(Some(&mut bzerr), b, buf, len);
 
     match bzerr {
         0 => len,
@@ -2931,42 +3030,34 @@ pub unsafe extern "C" fn BZ2_bzflush(mut _b: *mut BZFILE) -> c_int {
 ///     - `b` is initialized with [`BZ2_bzReadOpen`] or [`BZ2_bzWriteOpen`]
 #[export_name = prefix!(BZ2_bzclose)]
 pub unsafe extern "C" fn BZ2_bzclose(b: *mut BZFILE) {
+    BZ2_bzcloseHelp(b.as_mut())
+}
+
+unsafe fn BZ2_bzcloseHelp(mut b: Option<&mut BZFILE>) {
     let mut bzerr: c_int = 0;
 
-    let (fp, operation) = {
-        let Some(bzf) = b.as_mut() else {
-            return;
-        };
-
-        (bzf.handle, bzf.operation)
+    let operation = if let Some(bzf) = &mut b {
+        bzf.operation
+    } else {
+        return;
     };
 
     match operation {
         Operation::Reading => {
-            BZ2_bzReadClose(&mut bzerr, b);
+            BZ2_bzReadCloseHelp(Some(&mut bzerr), b.as_deref_mut());
         }
         Operation::Writing => {
-            BZ2_bzWriteClose(
-                &mut bzerr,
-                b,
-                false as i32,
-                ptr::null_mut(),
-                ptr::null_mut(),
-            );
+            BZ2_bzWriteCloseHelp(Some(&mut bzerr), b.as_deref_mut(), false as i32, None, None);
             if bzerr != 0 {
-                BZ2_bzWriteClose(
-                    ptr::null_mut(),
-                    b,
-                    true as i32,
-                    ptr::null_mut(),
-                    ptr::null_mut(),
-                );
+                BZ2_bzWriteCloseHelp(None, b.as_deref_mut(), true as i32, None, None);
             }
         }
     }
 
-    if fp != STDIN!() && fp != STDOUT!() {
-        fclose(fp);
+    if let Some(bzf) = b {
+        if bzf.handle != STDIN!() && bzf.handle != STDOUT!() {
+            fclose(bzf.handle);
+        }
     }
 }
 
@@ -3007,8 +3098,15 @@ const BZERRORSTRINGS: [&str; 16] = [
 /// [`pointer::as_mut`]: https://doc.rust-lang.org/core/primitive.pointer.html#method.as_mut
 #[export_name = prefix!(BZ2_bzerror)]
 pub unsafe extern "C" fn BZ2_bzerror(b: *const BZFILE, errnum: *mut c_int) -> *const c_char {
-    let err = Ord::min(0, (*(b)).lastErr as c_int);
-    if let Some(errnum) = errnum.as_mut() {
+    BZ2_bzerrorHelp(
+        b.as_ref().expect("Passed null pointer to BZ2_bzerror"),
+        errnum.as_mut(),
+    )
+}
+
+fn BZ2_bzerrorHelp(b: &BZFILE, errnum: Option<&mut c_int>) -> *const c_char {
+    let err = Ord::min(0, b.lastErr as c_int);
+    if let Some(errnum) = errnum {
         *errnum = err;
     };
     let msg = match BZERRORSTRINGS.get(-err as usize) {
