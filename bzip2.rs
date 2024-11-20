@@ -7,7 +7,6 @@ use std::fs::Metadata;
 use std::io::{self, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use std::ptr;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
 
 use libbzip2_rs_sys::{
@@ -16,8 +15,7 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    fclose, ferror, fflush, fgetc, fileno, fopen, fread, rewind, signal, ungetc, FILE, SIGINT,
-    SIGTERM,
+    fclose, ferror, fflush, fgetc, fileno, fread, rewind, signal, ungetc, FILE, SIGINT, SIGTERM,
 };
 
 // FIXME remove this
@@ -112,9 +110,37 @@ impl Config {
             OperationMode::Test => self.with_test_input(name, source_mode),
         }
 
-        unsafe {
-            copy_filename(inName.as_mut_ptr(), &self.input.display().to_string());
-            copy_filename(outName.as_mut_ptr(), &self.output.display().to_string());
+        const FILE_NAME_LEN: usize = 1034;
+
+        if self.input.as_os_str().len() >= FILE_NAME_LEN - 10 {
+            eprint!(
+                concat!(
+                    "bzip2: file name\n",
+                    "`{}'\n",
+                    "is suspiciously (more than {} chars) long.\n",
+                    "Try using a reasonable file name instead.  Sorry! :-)\n",
+                ),
+                self.input.display(),
+                FILE_NAME_LEN - 10
+            );
+
+            exit(1);
+        }
+
+        if self.output.as_os_str().len() >= FILE_NAME_LEN - 10 {
+            eprint!(
+                concat!(
+                    "bzip2: file name\n",
+                    "`{}'\n",
+                    "is suspiciously (more than {} chars) long.\n",
+                    "Try using a reasonable file name instead.  Sorry! :-)\n",
+                ),
+                self.output.display(),
+                FILE_NAME_LEN - 10
+            );
+
+
+            exit(1);
         }
     }
 
@@ -206,18 +232,11 @@ enum OperationMode {
     Test = 3,
 }
 
-const FILE_NAME_LEN: usize = 1034;
-
 static mut opMode: OperationMode = OperationMode::Zip;
 static mut srcMode: SourceMode = SourceMode::I2O;
 
 // NOTE: we use Ordering::SeqCst to synchronize with the signal handler
 static LONGEST_FILENAME: AtomicUsize = AtomicUsize::new(0);
-
-static mut inName: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
-static mut outName: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
-static mut progName: *mut c_char = ptr::null_mut();
-static mut progNameReally: [c_char; FILE_NAME_LEN] = [0; FILE_NAME_LEN];
 
 // this should eventually be removed and just passed down into functions from the root
 fn get_program_name() -> PathBuf {
@@ -968,27 +987,19 @@ fn pad(s: &Path) {
     }
 }
 
-unsafe fn copy_filename(to: *mut c_char, from: &str) {
-    if from.len() > (FILE_NAME_LEN - 10) {
-        eprint!(
-            concat!(
-                "bzip2: file name\n",
-                "`{}'\n",
-                "is suspiciously (more than {} chars) long.\n",
-                "Try using a reasonable file name instead.  Sorry! :-)\n",
-            ),
-            from,
-            FILE_NAME_LEN - 10
-        );
-        setExit(1);
-        exit(exitValue.load(Ordering::SeqCst));
+fn fopen_input(name: impl AsRef<Path>) -> *mut FILE {
+    use std::ffi::CString;
+
+    unsafe {
+        // The CString really only needs to live for the duration of the fopen
+        #[allow(temporary_cstring_as_ptr)]
+        libc::fopen(
+            CString::new(name.as_ref().to_str().unwrap())
+                .unwrap()
+                .as_ptr(),
+            b"rb\0".as_ptr().cast::<c_char>(),
+        )
     }
-
-    std::ptr::copy(from.as_ptr().cast::<c_char>(), to, from.len());
-    *to.wrapping_add(from.len() + 1) = '\0' as i32 as c_char;
-
-    // make sure that the final byte is always 0
-    *to.wrapping_add(FILE_NAME_LEN - 10) = '\0' as i32 as c_char;
 }
 
 fn fopen_output_safely(name: impl AsRef<Path>) -> *mut FILE {
@@ -1513,10 +1524,7 @@ unsafe fn uncompress(config: &Config) -> bool {
             }
         }
         SourceMode::F2O => {
-            inStr = fopen(
-                inName.as_mut_ptr(),
-                b"rb\0" as *const u8 as *const libc::c_char,
-            );
+            inStr = fopen_input(&config.input);
             output_stream = OutputStream::Stdout(std::io::stdout());
             if inStr.is_null() {
                 eprintln!(
@@ -1534,10 +1542,7 @@ unsafe fn uncompress(config: &Config) -> bool {
             }
         }
         SourceMode::F2F => {
-            inStr = fopen(
-                inName.as_mut_ptr(),
-                b"rb\0" as *const u8 as *const libc::c_char,
-            );
+            inStr = fopen_input(&config.input);
 
             let mut options = std::fs::File::options();
             options.write(true).create_new(true);
@@ -1678,10 +1683,7 @@ unsafe fn testf(config: &Config) -> bool {
             inStr = STDIN!();
         }
         SourceMode::F2O | SourceMode::F2F => {
-            inStr = fopen(
-                inName.as_mut_ptr(),
-                b"rb\0" as *const u8 as *const libc::c_char,
-            );
+            inStr = fopen_input(&config.input);
             if inStr.is_null() {
                 eprintln!(
                     "{}: Can't open input {}: {}.",
@@ -1807,17 +1809,6 @@ unsafe fn main_0(program_path: &Path) -> c_int {
 
     // uncompress config
     let mut decompress_mode = DecompressMode::Fast;
-
-    copy_filename(inName.as_mut_ptr(), "(none)");
-    copy_filename(outName.as_mut_ptr(), "(none)");
-
-    let program_name_str = program_name.to_str().unwrap();
-    core::ptr::copy(
-        program_name_str.as_ptr().cast::<libc::c_char>(),
-        progNameReally.as_mut_ptr(),
-        program_name_str.len(),
-    );
-    progName = progNameReally.as_mut_ptr();
 
     let mut arg_list = Vec::with_capacity(16);
 
