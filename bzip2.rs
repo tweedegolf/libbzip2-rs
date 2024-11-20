@@ -238,12 +238,6 @@ static mut srcMode: SourceMode = SourceMode::I2O;
 // NOTE: we use Ordering::SeqCst to synchronize with the signal handler
 static LONGEST_FILENAME: AtomicUsize = AtomicUsize::new(0);
 
-// this should eventually be removed and just passed down into functions from the root
-fn get_program_name() -> PathBuf {
-    let program_path: PathBuf = std::env::args_os().next().unwrap().into();
-    PathBuf::from(program_path.file_name().unwrap())
-}
-
 /// Strictly for compatibility with the original bzip2 output
 fn display_last_os_error() -> String {
     display_os_error(std::io::Error::last_os_error())
@@ -824,7 +818,7 @@ fn panic_str(config: &Config, s: &str) -> ! {
             "\tThis is a BUG.  Please report it at:\n",
             "\thttps://github.com/trifectatechfoundation/libbzip2-rs/issues\n"
         ),
-        get_program_name().display(),
+        config.program_name.display(),
         s,
     );
     showFileNames(config);
@@ -834,7 +828,7 @@ fn panic_str(config: &Config, s: &str) -> ! {
 fn crcError(config: &Config) -> ! {
     eprintln!(
         "\n{}: Data integrity error when decompressing.",
-        get_program_name().display(),
+        config.program_name.display(),
     );
     showFileNames(config);
     cadvise();
@@ -849,7 +843,7 @@ unsafe fn compressedStreamEOF(config: &Config) -> ! {
                 "{}: Compressed file ends unexpectedly;\n",
                 "\tperhaps it is corrupted?  *Possible* reason follows.\n"
             ),
-            get_program_name().display(),
+            config.program_name.display(),
         );
         // The CString really only needs to live for the duration of the perror
         #[allow(temporary_cstring_as_ptr)]
@@ -867,7 +861,7 @@ unsafe fn compressedStreamEOF(config: &Config) -> ! {
 fn exit_with_io_error(config: &Config, error: std::io::Error) -> ! {
     eprintln!(
         "\n{}: I/O or other error, bailing out.  Possible reason follows.",
-        get_program_name().display(),
+        config.program_name.display(),
     );
     eprintln!("{}", display_os_error(error));
     showFileNames(config);
@@ -877,7 +871,7 @@ fn exit_with_io_error(config: &Config, error: std::io::Error) -> ! {
 unsafe fn ioError(config: &Config) -> ! {
     eprintln!(
         "\n{}: I/O or other error, bailing out.  Possible reason follows.",
-        get_program_name().display(),
+        config.program_name.display(),
     );
     // The CString really only needs to live for the duration of the perror
     #[allow(temporary_cstring_as_ptr)]
@@ -959,7 +953,7 @@ fn setup_ctrl_c_handler(config: &Config) {
 fn outOfMemory(config: &Config) -> ! {
     eprintln!(
         "\n{}: couldn't allocate enough memory",
-        get_program_name().display(),
+        config.program_name.display(),
     );
     showFileNames(config);
     cleanUpAndFail(config, 1);
