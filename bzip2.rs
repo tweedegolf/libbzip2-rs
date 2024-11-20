@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-use std::ffi::{c_char, c_int, CStr, OsStr};
+use std::ffi::{c_char, c_int, CStr, CString, OsStr};
 use std::fs::Metadata;
 use std::io::{self, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
@@ -15,7 +15,8 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    fclose, ferror, fflush, fgetc, fileno, fread, rewind, signal, ungetc, FILE, SIGINT, SIGTERM,
+    fclose, ferror, fflush, fgetc, fileno, fread, perror, rewind, signal, ungetc, FILE, SIGINT,
+    SIGTERM,
 };
 
 // FIXME remove this
@@ -138,7 +139,6 @@ impl Config {
                 self.output.display(),
                 FILE_NAME_LEN - 10
             );
-
 
             exit(1);
         }
@@ -841,7 +841,7 @@ fn crcError(config: &Config) -> ! {
     cleanUpAndFail(config, 2);
 }
 
-fn compressedStreamEOF(config: &Config) -> ! {
+unsafe fn compressedStreamEOF(config: &Config) -> ! {
     if noisy.load(Ordering::SeqCst) {
         eprint!(
             concat!(
@@ -851,10 +851,12 @@ fn compressedStreamEOF(config: &Config) -> ! {
             ),
             get_program_name().display(),
         );
-        eprintln!(
-            "{}: {}",
-            config.program_name.display(),
-            display_last_os_error()
+        // The CString really only needs to live for the duration of the perror
+        #[allow(temporary_cstring_as_ptr)]
+        perror(
+            CString::new(config.program_name.to_str().unwrap())
+                .unwrap()
+                .as_ptr(),
         );
         showFileNames(config);
         cadvise();
@@ -872,15 +874,17 @@ fn exit_with_io_error(config: &Config, error: std::io::Error) -> ! {
     cleanUpAndFail(config, 1);
 }
 
-fn ioError(config: &Config) -> ! {
+unsafe fn ioError(config: &Config) -> ! {
     eprintln!(
         "\n{}: I/O or other error, bailing out.  Possible reason follows.",
         get_program_name().display(),
     );
-    eprintln!(
-        "{}: {}",
-        config.program_name.display(),
-        display_last_os_error()
+    // The CString really only needs to live for the duration of the perror
+    #[allow(temporary_cstring_as_ptr)]
+    perror(
+        CString::new(config.program_name.to_str().unwrap())
+            .unwrap()
+            .as_ptr(),
     );
     showFileNames(config);
     cleanUpAndFail(config, 1);
@@ -988,8 +992,6 @@ fn pad(s: &Path) {
 }
 
 fn fopen_input(name: impl AsRef<Path>) -> *mut FILE {
-    use std::ffi::CString;
-
     unsafe {
         // The CString really only needs to live for the duration of the fopen
         #[allow(temporary_cstring_as_ptr)]
@@ -1057,8 +1059,6 @@ fn fopen_output_safely(name: impl AsRef<Path>) -> *mut FILE {
 
     #[cfg(not(any(unix, windows)))]
     unsafe {
-        use std::ffi::CString;
-
         // The CString really only needs to live for the duration of the fopen
         #[allow(temporary_cstring_as_ptr)]
         libc::fopen(
@@ -2063,5 +2063,5 @@ fn main() {
 
     let program_name = PathBuf::from(it.next().unwrap());
 
-    unsafe { exit(main_0(&program_name) as i32) }
+    unsafe { std::process::exit(main_0(&program_name) as i32) }
 }
