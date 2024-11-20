@@ -1,8 +1,6 @@
 use std::env;
-use std::fs::Metadata;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::SystemTime;
 
 /// Useful to test with the C binary
 fn bzip2_binary() -> &'static str {
@@ -118,7 +116,10 @@ fn setup_custom_tty() -> (std::process::Stdio, std::process::Stdio) {
     unsafe { (Stdio::from_raw_fd(master_fd), Stdio::from_raw_fd(slave_fd)) }
 }
 
-fn timestamps(metadata: Metadata) -> (u64, u64) {
+#[cfg(unix)]
+fn timestamps(metadata: std::fs::Metadata) -> (u64, u64) {
+    use std::time::SystemTime;
+
     let atime = {
         let system_time = metadata.accessed().unwrap_or(SystemTime::UNIX_EPOCH);
         let duration = system_time.duration_since(SystemTime::UNIX_EPOCH).unwrap();
