@@ -41,6 +41,17 @@ impl Allocator {
         None
     };
 
+    #[allow(unreachable_code)]
+    pub(crate) fn default_function_pointers() -> Option<(AllocFunc, FreeFunc)> {
+        #[cfg(feature = "rust-allocator")]
+        return Some(rust_allocator::ALLOCATOR);
+
+        #[cfg(feature = "c-allocator")]
+        return Some(c_allocator::ALLOCATOR);
+
+        None
+    }
+
     pub(crate) fn from_bz_stream(strm: &crate::bz_stream) -> Option<Self> {
         let bzalloc = strm.bzalloc?;
         let bzfree = strm.bzfree?;
@@ -69,20 +80,6 @@ impl Allocator {
             allocate,
             deallocate,
             opaque,
-        }
-    }
-
-    pub(crate) fn function_pointers(&self) -> (AllocFunc, FreeFunc) {
-        match self {
-            #[cfg(feature = "rust-allocator")]
-            Allocator::Rust => rust_allocator::ALLOCATOR,
-            #[cfg(feature = "c-allocator")]
-            Allocator::C => c_allocator::ALLOCATOR,
-            Allocator::Custom {
-                allocate,
-                deallocate,
-                ..
-            } => (*allocate, *deallocate),
         }
     }
 }

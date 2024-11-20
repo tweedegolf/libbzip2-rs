@@ -561,6 +561,8 @@ fn miri_decompress_init_edge_cases() {
         core::ptr::null_mut()
     }
 
+    unsafe extern "C" fn dummy_free(_opaque: *mut c_void, _ptr: *mut c_void) {}
+
     // fails to allocate
     crate::assert_eq_rs_c!({
         let mut strm: MaybeUninit<bz_stream> = MaybeUninit::zeroed();
@@ -568,6 +570,9 @@ fn miri_decompress_init_edge_cases() {
         core::ptr::addr_of_mut!((*strm.as_mut_ptr()).bzalloc)
             .cast::<AllocFunc>()
             .write(failing_allocator);
+        core::ptr::addr_of_mut!((*strm.as_mut_ptr()).bzfree)
+            .cast::<FreeFunc>()
+            .write(dummy_free);
 
         assert_eq!(BZ_MEM_ERROR, BZ2_bzDecompressInit(strm.as_mut_ptr(), 0, 0));
     });
