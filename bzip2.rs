@@ -5,8 +5,8 @@
 use std::ffi::{c_char, c_int, CStr, OsStr};
 use std::fs::Metadata;
 use std::io::{self, IsTerminal, Read, Write};
-use std::mem::zeroed;
 use std::path::{Path, PathBuf};
+use std::process::exit;
 use std::ptr;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
 
@@ -16,8 +16,8 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    exit, fclose, ferror, fflush, fgetc, fileno, fopen, fread, perror, remove, rewind, signal,
-    stat, ungetc, FILE, SIGINT, SIGTERM,
+    fclose, ferror, fflush, fgetc, fileno, fopen, fread, rewind, signal, ungetc, FILE, SIGINT,
+    SIGTERM,
 };
 
 // FIXME remove this
@@ -78,6 +78,7 @@ static numFileNames: AtomicI32 = AtomicI32::new(0);
 static numFilesProcessed: AtomicI32 = AtomicI32::new(0);
 static exitValue: AtomicI32 = AtomicI32::new(0);
 
+#[derive(Clone)]
 struct Config {
     program_name: PathBuf,
 
@@ -131,9 +132,7 @@ impl Config {
                 self.input = Path::new(name).to_owned();
                 self.output = PathBuf::from(format!("{name}.bz2"));
             }
-            (None, SourceMode::F2O | SourceMode::F2F) => unsafe {
-                panic_str("compress: bad modes\n")
-            },
+            (None, SourceMode::F2O | SourceMode::F2F) => panic!("compress: bad modes"),
         }
     }
 
@@ -166,9 +165,7 @@ impl Config {
 
                 self.output = PathBuf::from(name);
             }
-            (None, SourceMode::F2O | SourceMode::F2F) => unsafe {
-                panic_str("uncompress: bad modes\n")
-            },
+            (None, SourceMode::F2O | SourceMode::F2F) => panic!("uncompress: bad modes"),
         }
     }
 
@@ -185,9 +182,7 @@ impl Config {
             (Some(name), SourceMode::F2F) => {
                 self.input = Path::new(name).to_owned();
             }
-            (None, SourceMode::F2O | SourceMode::F2F) => unsafe {
-                panic_str("testf: bad modes");
-            },
+            (None, SourceMode::F2O | SourceMode::F2F) => panic!("testf: bad modes"),
         }
     }
 }
@@ -284,11 +279,11 @@ unsafe fn compressStream(
     let mut bzerr: i32 = 0;
     let mut ret: i32;
 
-    set_binary_mode(zStream);
+    set_binary_mode(config, zStream);
 
     if ferror(zStream) != 0 {
         // diverges
-        ioError()
+        ioError(config)
     }
 
     let bzf = BZ2_bzWriteOpen(
@@ -312,7 +307,7 @@ unsafe fn compressStream(
             let nIbuf = match stream.read(&mut ibuf) {
                 Ok(0) => break, // EOF
                 Ok(n) => n,
-                Err(e) => exit_with_io_error(e),
+                Err(e) => exit_with_io_error(config, e),
             };
 
             BZ2_bzWrite(
@@ -343,20 +338,20 @@ unsafe fn compressStream(
 
         if (ferror(zStream)) != 0 {
             // diverges
-            ioError()
+            ioError(config)
         }
         ret = fflush(zStream);
         if ret == libc::EOF {
             // diverges
-            ioError()
+            ioError(config)
         }
 
         if let Some(metadata) = metadata {
-            set_permissions(zStream, metadata);
+            set_permissions(config, zStream, metadata);
             ret = fclose(zStream);
             if ret == libc::EOF {
                 // diverges
-                ioError()
+                ioError(config)
             }
         }
 
@@ -398,9 +393,9 @@ unsafe fn compressStream(
 
     match bzerr {
         libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
-        libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(),
-        libbzip2_rs_sys::BZ_IO_ERROR => ioError(),
-        _ => panic_str("compress:unexpected error"),
+        libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
+        libbzip2_rs_sys::BZ_IO_ERROR => ioError(config),
+        _ => panic_str(config, "compress:unexpected error"),
     }
 }
 
@@ -430,11 +425,11 @@ unsafe fn uncompressStream(
 
     let mut state = State::Standard;
 
-    set_binary_mode(zStream);
+    set_binary_mode(config, zStream);
 
     if ferror(zStream) != 0 {
         // diverges
-        ioError()
+        ioError(config)
     }
 
     'outer: loop {
@@ -469,7 +464,7 @@ unsafe fn uncompressStream(
                         && nread > 0
                     {
                         if let Err(e) = stream.write_all(&obuf[..nread as usize]) {
-                            exit_with_io_error(e) // diverges
+                            exit_with_io_error(config, e) // diverges
                         }
                     }
                 }
@@ -482,7 +477,7 @@ unsafe fn uncompressStream(
                 BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
                 if bzerr != libbzip2_rs_sys::BZ_OK {
                     // diverges
-                    panic_str("decompress:bzReadGetUnused")
+                    panic_str(config, "decompress:bzReadGetUnused")
                 }
 
                 let unusedTmp = unusedTmpV as *mut u8;
@@ -493,7 +488,7 @@ unsafe fn uncompressStream(
                 BZ2_bzReadClose(&mut bzerr, bzf);
                 if bzerr != libbzip2_rs_sys::BZ_OK {
                     // diverges
-                    panic_str("decompress:bzReadGetUnused")
+                    panic_str(config, "decompress:bzReadGetUnused")
                 }
 
                 if nUnused == 0 && myfeof(zStream) {
@@ -504,21 +499,21 @@ unsafe fn uncompressStream(
             State::CloseOk => {
                 if ferror(zStream) != 0 {
                     // diverges
-                    ioError()
+                    ioError(config)
                 }
 
                 if let Some(metadata) = metadata {
                     if let OutputStream::File(file) = &stream {
-                        set_permissions_rust(file, metadata);
+                        set_permissions_rust(config, file, metadata);
                     }
                 }
 
                 if let libc::EOF = fclose(zStream) {
-                    ioError()
+                    ioError(config)
                 }
 
                 if let Err(e) = stream.flush() {
-                    exit_with_io_error(e) // diverges
+                    exit_with_io_error(config, e) // diverges
                 }
 
                 if config.verbosity >= 2 {
@@ -542,11 +537,11 @@ unsafe fn uncompressStream(
                         ) as i32;
                         if ferror(zStream) != 0 {
                             // diverges
-                            ioError()
+                            ioError(config)
                         }
                         if nread > 0 {
                             if let Err(e) = stream.write_all(&obuf[..nread as usize]) {
-                                exit_with_io_error(e) // diverges
+                                exit_with_io_error(config, e) // diverges
                             }
                         }
                     }
@@ -563,10 +558,10 @@ unsafe fn uncompressStream(
 
                 match bzerr {
                     libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
-                    libbzip2_rs_sys::BZ_IO_ERROR => ioError(),
-                    libbzip2_rs_sys::BZ_DATA_ERROR => crcError(),
-                    libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(),
-                    libbzip2_rs_sys::BZ_UNEXPECTED_EOF => compressedStreamEOF(),
+                    libbzip2_rs_sys::BZ_IO_ERROR => ioError(config),
+                    libbzip2_rs_sys::BZ_DATA_ERROR => crcError(config),
+                    libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
+                    libbzip2_rs_sys::BZ_UNEXPECTED_EOF => compressedStreamEOF(config),
                     libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC => {
                         if zStream != STDIN!() {
                             fclose(zStream);
@@ -585,7 +580,7 @@ unsafe fn uncompressStream(
                             return true;
                         }
                     }
-                    _ => panic_str("decompress:unexpected error"),
+                    _ => panic_str(config, "decompress:unexpected error"),
                 }
             }
         }
@@ -614,7 +609,7 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
             );
             if bzf.is_null() || bzerr != 0 {
                 // diverges
-                ioError()
+                ioError(config)
             }
 
             // there might be multiple files if the input stream is stdin
@@ -639,7 +634,7 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
             let mut unusedTmpV = std::ptr::null_mut();
             BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
             if bzerr != libbzip2_rs_sys::BZ_OK {
-                panic_str("test:bzReadGetUnused");
+                panic_str(config, "test:bzReadGetUnused");
             }
 
             let unusedTmp = unusedTmpV as *mut u8;
@@ -651,7 +646,7 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
 
             BZ2_bzReadClose(&mut bzerr, bzf);
             if bzerr != libbzip2_rs_sys::BZ_OK {
-                panic_str("test:bzReadClose");
+                panic_str(config, "test:bzReadClose");
             }
             if nUnused == 0 && myfeof(zStream) {
                 break;
@@ -659,10 +654,10 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
         }
 
         if ferror(zStream) != 0 {
-            ioError() // diverges
+            ioError(config) // diverges
         }
         if fclose(zStream) == libc::EOF {
-            ioError() // diverges
+            ioError(config) // diverges
         }
 
         if config.verbosity >= 2 {
@@ -684,12 +679,12 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
     }
     match bzerr {
         libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
-        libbzip2_rs_sys::BZ_IO_ERROR => ioError(),
+        libbzip2_rs_sys::BZ_IO_ERROR => ioError(config),
         libbzip2_rs_sys::BZ_DATA_ERROR => {
             eprintln!("data integrity (CRC) error in data");
             false
         }
-        libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(),
+        libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
         libbzip2_rs_sys::BZ_UNEXPECTED_EOF => {
             eprintln!("file ends unexpectedly");
             false
@@ -708,7 +703,7 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
                 true
             }
         }
-        _ => panic_str("test:unexpected error"),
+        _ => panic_str(config, "test:unexpected error"),
     }
 }
 
@@ -730,56 +725,54 @@ fn cadvise() {
     }
 }
 
-unsafe fn showFileNames() {
+fn showFileNames(config: &Config) {
     if noisy.load(Ordering::SeqCst) {
         eprintln!(
             "\tInput file = {}, output file = {}",
-            CStr::from_ptr(inName.as_ptr()).to_string_lossy(),
-            CStr::from_ptr(outName.as_ptr()).to_string_lossy(),
+            config.input.display(),
+            config.output.display(),
         );
     }
 }
 
-unsafe fn cleanUpAndFail(ec: i32) -> ! {
-    let program_name = CStr::from_ptr(progName).to_string_lossy();
-
-    let mut statBuf: stat = zeroed();
-    if srcMode == SourceMode::F2F
-        && opMode != OperationMode::Test
-        && delete_output_on_interrupt.load(Ordering::SeqCst)
-    {
-        if stat(inName.as_mut_ptr(), &mut statBuf) == 0 {
+fn cleanUpAndFail(config: &Config, ec: i32) -> ! {
+    if unsafe {
+        srcMode == SourceMode::F2F
+            && opMode != OperationMode::Test
+            && delete_output_on_interrupt.load(Ordering::SeqCst)
+    } {
+        if config.input.exists() {
             if noisy.load(Ordering::SeqCst) {
                 eprintln!(
                     "{}: Deleting output file {}, if it exists.",
-                    program_name,
-                    CStr::from_ptr(outName.as_ptr()).to_string_lossy(),
+                    config.program_name.display(),
+                    config.output.display(),
                 );
             }
             // This should work even on Windows as we opened the output file with FILE_SHARE_DELETE
-            if remove(outName.as_mut_ptr()) != 0 {
+            if std::fs::remove_file(&config.output).is_err() {
                 eprintln!(
                     "{}: WARNING: deletion of output file (apparently) failed.",
-                    program_name,
+                    config.program_name.display(),
                 );
             }
         } else {
             eprintln!(
                 "{}: WARNING: deletion of output file suppressed",
-                program_name,
+                config.program_name.display(),
             );
             eprintln!(
                 "{}:    since input file no longer exists.  Output file",
-                program_name,
+                config.program_name.display(),
             );
             eprintln!(
                 "{}:    `{}' may be incomplete.",
-                program_name,
-                CStr::from_ptr(outName.as_ptr()).to_string_lossy(),
+                config.program_name.display(),
+                config.output.display(),
             );
             eprintln!(
                 "{}:    I suggest doing an integrity test (bzip2 -tv) of it.",
-                program_name,
+                config.program_name.display(),
             );
         }
     }
@@ -793,8 +786,8 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
                 "{}:    {} specified on command line, {} not processed yet.\n",
                 "\n",
             ),
-            program_name,
-            program_name,
+            config.program_name.display(),
+            config.program_name.display(),
             numFileNames.load(Ordering::SeqCst),
             numFileNames.load(Ordering::SeqCst) - numFilesProcessed.load(Ordering::SeqCst),
         );
@@ -803,7 +796,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
     exit(exitValue.load(Ordering::SeqCst));
 }
 
-unsafe fn panic_str(s: &str) -> ! {
+fn panic_str(config: &Config, s: &str) -> ! {
     eprint!(
         concat!(
             "\n",
@@ -815,21 +808,21 @@ unsafe fn panic_str(s: &str) -> ! {
         get_program_name().display(),
         s,
     );
-    showFileNames();
-    cleanUpAndFail(3);
+    showFileNames(config);
+    cleanUpAndFail(config, 3);
 }
 
-unsafe fn crcError() -> ! {
+fn crcError(config: &Config) -> ! {
     eprintln!(
         "\n{}: Data integrity error when decompressing.",
         get_program_name().display(),
     );
-    showFileNames();
+    showFileNames(config);
     cadvise();
-    cleanUpAndFail(2);
+    cleanUpAndFail(config, 2);
 }
 
-unsafe fn compressedStreamEOF() -> ! {
+fn compressedStreamEOF(config: &Config) -> ! {
     if noisy.load(Ordering::SeqCst) {
         eprint!(
             concat!(
@@ -839,34 +832,42 @@ unsafe fn compressedStreamEOF() -> ! {
             ),
             get_program_name().display(),
         );
-        perror(progName);
-        showFileNames();
+        eprintln!(
+            "{}: {}",
+            config.program_name.display(),
+            display_last_os_error()
+        );
+        showFileNames(config);
         cadvise();
     }
-    cleanUpAndFail(2);
+    cleanUpAndFail(config, 2);
 }
 
-unsafe fn exit_with_io_error(error: std::io::Error) -> ! {
+fn exit_with_io_error(config: &Config, error: std::io::Error) -> ! {
     eprintln!(
         "\n{}: I/O or other error, bailing out.  Possible reason follows.",
         get_program_name().display(),
     );
     eprintln!("{}", display_os_error(error));
-    showFileNames();
-    cleanUpAndFail(1);
+    showFileNames(config);
+    cleanUpAndFail(config, 1);
 }
 
-unsafe fn ioError() -> ! {
+fn ioError(config: &Config) -> ! {
     eprintln!(
         "\n{}: I/O or other error, bailing out.  Possible reason follows.",
         get_program_name().display(),
     );
-    perror(progName);
-    showFileNames();
-    cleanUpAndFail(1);
+    eprintln!(
+        "{}: {}",
+        config.program_name.display(),
+        display_last_os_error()
+    );
+    showFileNames(config);
+    cleanUpAndFail(config, 1);
 }
 
-fn setup_ctrl_c_handler() {
+fn setup_ctrl_c_handler(config: &Config) {
     static ABORT_PIPE: AtomicI32 = AtomicI32::new(0);
     static TRIED_TO_CANCEL: AtomicBool = AtomicBool::new(false);
 
@@ -881,15 +882,18 @@ fn setup_ctrl_c_handler() {
 
     ABORT_PIPE.store(pair[1], Ordering::Relaxed);
 
+    let config = config.clone();
     std::thread::Builder::new()
         .name("ctrl-c listener".to_owned())
-        .spawn(move || unsafe {
-            libc::read(pair[0], &mut 0u8 as *mut u8 as *mut _, 1);
+        .spawn(move || {
+            unsafe {
+                libc::read(pair[0], &mut 0u8 as *mut u8 as *mut _, 1);
+            }
             eprintln!(
                 "\n{}: Control-C or similar caught, quitting.",
-                CStr::from_ptr(progName).to_string_lossy(),
+                config.program_name.display(),
             );
-            cleanUpAndFail(1);
+            cleanUpAndFail(&config, 1);
         })
         .unwrap();
 
@@ -929,16 +933,16 @@ fn setup_ctrl_c_handler() {
     }
 }
 
-unsafe fn outOfMemory() -> ! {
+fn outOfMemory(config: &Config) -> ! {
     eprintln!(
         "\n{}: couldn't allocate enough memory",
         get_program_name().display(),
     );
-    showFileNames();
-    cleanUpAndFail(1);
+    showFileNames(config);
+    cleanUpAndFail(config, 1);
 }
 
-unsafe fn configError() -> ! {
+fn configError() -> ! {
     const MSG: &str = concat!(
         "bzip2: I'm not configured correctly for this platform!\n",
         "\tI require Int32, Int16 and Char to have sizes\n",
@@ -1075,7 +1079,7 @@ fn count_hardlinks(path: &Path) -> u64 {
 }
 
 #[cfg(not(unix))]
-unsafe fn count_hardlinks(_path: &Path) -> u64 {
+fn count_hardlinks(_path: &Path) -> u64 {
     0 // FIXME
 }
 
@@ -1089,7 +1093,7 @@ fn apply_saved_time_info_to_output_file(dst_name: &Path, metadata: Metadata) -> 
         .set_times(times)
 }
 
-unsafe fn set_permissions(_handle: *mut FILE, _metadata: &Metadata) {
+unsafe fn set_permissions(_config: &Config, _handle: *mut FILE, _metadata: &Metadata) {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
@@ -1097,12 +1101,12 @@ unsafe fn set_permissions(_handle: *mut FILE, _metadata: &Metadata) {
         let fd = fileno(_handle);
         if fd < 0 {
             // diverges
-            ioError()
+            ioError(_config)
         }
 
         let retVal = libc::fchmod(fd, _metadata.mode() as libc::mode_t);
         if retVal != 0 {
-            ioError();
+            ioError(_config);
         }
 
         // chown() will in many cases return with EPERM, which can be safely ignored.
@@ -1110,9 +1114,9 @@ unsafe fn set_permissions(_handle: *mut FILE, _metadata: &Metadata) {
     }
 }
 
-unsafe fn set_permissions_rust(file: &std::fs::File, metadata: &Metadata) {
+fn set_permissions_rust(config: &Config, file: &std::fs::File, metadata: &Metadata) {
     if let Err(error) = file.set_permissions(metadata.permissions()) {
-        exit_with_io_error(error);
+        exit_with_io_error(config, error);
     }
 }
 
@@ -1142,7 +1146,7 @@ const UNZ_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = ["", "", ".tar", ".tar"];
 
 #[cfg(windows)]
 /// Prevent Windows from mangling the read data.
-unsafe fn set_binary_mode(file: *mut FILE) {
+unsafe fn set_binary_mode(config: &Config, file: *mut FILE) {
     use std::ffi::c_int;
 
     extern "C" {
@@ -1150,13 +1154,13 @@ unsafe fn set_binary_mode(file: *mut FILE) {
     }
 
     if _setmode(fileno(file), libc::O_BINARY) == -1 {
-        ioError();
+        ioError(config);
     }
 }
 
 #[cfg(not(windows))]
 /// Prevent Windows from mangling the read data.
-unsafe fn set_binary_mode(_file: *mut FILE) {}
+unsafe fn set_binary_mode(_config: &Config, _file: *mut FILE) {}
 
 unsafe fn compress(config: &Config) {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
@@ -1255,7 +1259,7 @@ unsafe fn compress(config: &Config) {
     let metadata = match srcMode {
         SourceMode::F2F => match std::fs::metadata(&config.input) {
             Ok(metadata) => Some(metadata),
-            Err(error) => exit_with_io_error(error),
+            Err(error) => exit_with_io_error(config, error),
         },
         _ => None,
     };
@@ -1348,12 +1352,12 @@ unsafe fn compress(config: &Config) {
 
     if let Some(metadata) = metadata {
         if let Err(error) = apply_saved_time_info_to_output_file(&config.output, metadata) {
-            exit_with_io_error(error);
+            exit_with_io_error(config, error);
         }
         delete_output_on_interrupt.store(false, Ordering::SeqCst);
         if !config.keep_input_files {
             if let Err(error) = std::fs::remove_file(&config.input) {
-                exit_with_io_error(error)
+                exit_with_io_error(config, error)
             }
         }
     }
@@ -1484,7 +1488,7 @@ unsafe fn uncompress(config: &Config) -> bool {
     let metadata = match srcMode {
         SourceMode::F2F => match std::fs::metadata(&config.input) {
             Ok(metadata) => Some(metadata),
-            Err(error) => exit_with_io_error(error),
+            Err(error) => exit_with_io_error(config, error),
         },
         _ => None,
     };
@@ -1581,12 +1585,12 @@ unsafe fn uncompress(config: &Config) -> bool {
     if magicNumberOK {
         if let Some(metadata) = metadata {
             if let Err(error) = apply_saved_time_info_to_output_file(&config.output, metadata) {
-                exit_with_io_error(error);
+                exit_with_io_error(config, error);
             }
             delete_output_on_interrupt.store(false, Ordering::SeqCst);
             if !config.keep_input_files {
                 if let Err(error) = std::fs::remove_file(&config.input) {
-                    exit_with_io_error(error);
+                    exit_with_io_error(config, error);
                 }
             }
         }
@@ -1594,7 +1598,7 @@ unsafe fn uncompress(config: &Config) -> bool {
         delete_output_on_interrupt.store(false, Ordering::SeqCst);
         if srcMode == SourceMode::F2F {
             if let Err(error) = std::fs::remove_file(&config.output) {
-                exit_with_io_error(error);
+                exit_with_io_error(config, error);
             }
         }
     }
@@ -1961,9 +1965,6 @@ unsafe fn main_0(program_path: &Path) -> c_int {
     if opMode != OperationMode::Zip {
         blockSize100k = 0;
     }
-    if srcMode == SourceMode::F2F {
-        setup_ctrl_c_handler();
-    }
 
     let arg_list = &arg_list;
 
@@ -1986,6 +1987,10 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         // uncompress
         decompress_mode,
     };
+
+    if srcMode == SourceMode::F2F {
+        setup_ctrl_c_handler(&config);
+    }
 
     match opMode {
         OperationMode::Zip => {
@@ -2067,5 +2072,5 @@ fn main() {
 
     let program_name = PathBuf::from(it.next().unwrap());
 
-    unsafe { std::process::exit(main_0(&program_name) as i32) }
+    unsafe { exit(main_0(&program_name) as i32) }
 }
