@@ -89,6 +89,8 @@ struct Config {
     verbosity: i32,
     force_overwrite: bool,
     keep_input_files: bool,
+    op_mode: OperationMode,
+    src_mode: SourceMode,
 
     // compress
     blockSize100k: i32,
@@ -99,16 +101,11 @@ struct Config {
 }
 
 impl Config {
-    fn with_input(
-        &mut self,
-        operation: OperationMode,
-        name: Option<&str>,
-        source_mode: SourceMode,
-    ) {
-        match operation {
-            OperationMode::Zip => self.with_compress_input(name, source_mode),
-            OperationMode::Unzip => self.with_uncompress_input(name, source_mode),
-            OperationMode::Test => self.with_test_input(name, source_mode),
+    fn with_input(&mut self, name: Option<&str>) {
+        match self.op_mode {
+            OperationMode::Zip => self.with_compress_input(name),
+            OperationMode::Unzip => self.with_uncompress_input(name),
+            OperationMode::Test => self.with_test_input(name),
         }
 
         const FILE_NAME_LEN: usize = 1034;
@@ -144,8 +141,8 @@ impl Config {
         }
     }
 
-    fn with_compress_input(&mut self, name: Option<&str>, mode: SourceMode) {
-        match (name, mode) {
+    fn with_compress_input(&mut self, name: Option<&str>) {
+        match (name, self.src_mode) {
             (_, SourceMode::I2O) => {
                 self.input = Path::new("(stdin)").to_owned();
                 self.output = Path::new("(stdout)").to_owned();
@@ -162,8 +159,8 @@ impl Config {
         }
     }
 
-    fn with_uncompress_input(&mut self, name: Option<&str>, mode: SourceMode) {
-        match (name, mode) {
+    fn with_uncompress_input(&mut self, name: Option<&str>) {
+        match (name, self.src_mode) {
             (_, SourceMode::I2O) => {
                 self.input = Path::new("(stdin)").to_owned();
                 self.output = Path::new("(stdout)").to_owned();
@@ -195,10 +192,10 @@ impl Config {
         }
     }
 
-    fn with_test_input(&mut self, name: Option<&str>, mode: SourceMode) {
+    fn with_test_input(&mut self, name: Option<&str>) {
         self.output = Path::new("(none)").to_owned();
 
-        match (name, mode) {
+        match (name, self.src_mode) {
             (_, SourceMode::I2O) => {
                 self.input = Path::new("(stdin)").to_owned();
             }
@@ -231,9 +228,6 @@ enum OperationMode {
     Unzip = 2,
     Test = 3,
 }
-
-static mut opMode: OperationMode = OperationMode::Zip;
-static mut srcMode: SourceMode = SourceMode::I2O;
 
 // NOTE: we use Ordering::SeqCst to synchronize with the signal handler
 static LONGEST_FILENAME: AtomicUsize = AtomicUsize::new(0);
@@ -766,11 +760,10 @@ fn showFileNames(config: &Config) {
 }
 
 fn cleanUpAndFail(config: &Config, ec: i32) -> ! {
-    if unsafe {
-        srcMode == SourceMode::F2F
-            && opMode != OperationMode::Test
-            && delete_output_on_interrupt.load(Ordering::SeqCst)
-    } {
+    if config.src_mode == SourceMode::F2F
+        && config.op_mode != OperationMode::Test
+        && delete_output_on_interrupt.load(Ordering::SeqCst)
+    {
         if config.input.exists() {
             if noisy.load(Ordering::SeqCst) {
                 eprintln!(
@@ -1280,7 +1273,7 @@ const UNZ_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = ["", "", ".tar", ".tar"];
 fn compress(config: &Config) {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
-    if unsafe { srcMode } != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
+    if config.src_mode != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
         if config.noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
@@ -1291,7 +1284,7 @@ fn compress(config: &Config) {
         setExit(1);
         return;
     }
-    if unsafe { srcMode } != SourceMode::I2O && !config.input.exists() {
+    if config.src_mode != SourceMode::I2O && !config.input.exists() {
         eprintln!(
             "{}: Can't open input file {}: {}.",
             config.program_name.display(),
@@ -1317,7 +1310,7 @@ fn compress(config: &Config) {
             }
         }
     }
-    if (unsafe { srcMode } == SourceMode::F2F || unsafe { srcMode } == SourceMode::F2O)
+    if (config.src_mode == SourceMode::F2F || config.src_mode == SourceMode::F2O)
         && config.input.is_dir()
     {
         eprintln!(
@@ -1329,7 +1322,7 @@ fn compress(config: &Config) {
         return;
     }
 
-    if unsafe { srcMode } == SourceMode::F2F
+    if config.src_mode == SourceMode::F2F
         && !config.force_overwrite
         && not_a_standard_file(&config.input)
     {
@@ -1343,7 +1336,7 @@ fn compress(config: &Config) {
         setExit(1);
         return;
     }
-    if unsafe { srcMode } == SourceMode::F2F && config.output.exists() {
+    if config.src_mode == SourceMode::F2F && config.output.exists() {
         if config.force_overwrite {
             let _ = std::fs::remove_file(&config.output);
         } else {
@@ -1357,7 +1350,7 @@ fn compress(config: &Config) {
         }
     }
 
-    if unsafe { srcMode } == SourceMode::F2F && !config.force_overwrite {
+    if config.src_mode == SourceMode::F2F && !config.force_overwrite {
         match count_hardlinks(&config.input) {
             0 => { /* fallthrough */ }
             n => {
@@ -1376,7 +1369,7 @@ fn compress(config: &Config) {
 
     // Save the file's meta-info before we open it.
     // Doing it later means we mess up the access times.
-    let metadata = match unsafe { srcMode } {
+    let metadata = match config.src_mode {
         SourceMode::F2F => match std::fs::metadata(&config.input) {
             Ok(metadata) => Some(metadata),
             Err(error) => exit_with_io_error(config, error),
@@ -1387,7 +1380,7 @@ fn compress(config: &Config) {
     let input_stream;
     let outStr: CFile;
 
-    match unsafe { srcMode } {
+    match config.src_mode {
         SourceMode::I2O => {
             input_stream = InputStream::Stdin(std::io::stdin());
             outStr = CFile::stdout();
@@ -1518,7 +1511,7 @@ fn uncompress(config: &Config) -> bool {
 
     let cannot_guess = config.output.extension() == Some(OsStr::new("out"));
 
-    if unsafe { srcMode } != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
+    if config.src_mode != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
         if config.noisy {
             eprintln!(
                 "%{}: There are no files matching `{}'.",
@@ -1530,7 +1523,7 @@ fn uncompress(config: &Config) -> bool {
         return true;
     }
 
-    if unsafe { srcMode } != SourceMode::I2O && !config.input.exists() {
+    if config.src_mode != SourceMode::I2O && !config.input.exists() {
         eprintln!(
             "{}: Can't open input file {}: {}.",
             config.program_name.display(),
@@ -1541,7 +1534,7 @@ fn uncompress(config: &Config) -> bool {
         return true;
     }
 
-    if (unsafe { srcMode } == SourceMode::F2F || unsafe { srcMode } == SourceMode::F2O)
+    if (config.src_mode == SourceMode::F2F || config.src_mode == SourceMode::F2O)
         && config.input.is_dir()
     {
         eprintln!(
@@ -1553,7 +1546,7 @@ fn uncompress(config: &Config) -> bool {
         return true;
     }
 
-    if unsafe { srcMode } == SourceMode::F2F
+    if config.src_mode == SourceMode::F2F
         && !config.force_overwrite
         && not_a_standard_file(&config.input)
     {
@@ -1578,7 +1571,7 @@ fn uncompress(config: &Config) -> bool {
         );
     }
 
-    if unsafe { srcMode } == SourceMode::F2F && config.output.exists() {
+    if config.src_mode == SourceMode::F2F && config.output.exists() {
         if config.force_overwrite {
             let _ = std::fs::remove_file(&config.output);
         } else {
@@ -1592,7 +1585,7 @@ fn uncompress(config: &Config) -> bool {
         }
     }
 
-    if unsafe { srcMode } == SourceMode::F2F && !config.force_overwrite {
+    if config.src_mode == SourceMode::F2F && !config.force_overwrite {
         match count_hardlinks(&config.input) {
             0 => { /* fallthrough */ }
             n => {
@@ -1611,7 +1604,7 @@ fn uncompress(config: &Config) -> bool {
 
     // Save the file's meta-info before we open it.
     // Doing it later means we mess up the access times.
-    let metadata = match unsafe { srcMode } {
+    let metadata = match config.src_mode {
         SourceMode::F2F => match std::fs::metadata(&config.input) {
             Ok(metadata) => Some(metadata),
             Err(error) => exit_with_io_error(config, error),
@@ -1622,7 +1615,7 @@ fn uncompress(config: &Config) -> bool {
     let inStr: CFile;
     let output_stream;
 
-    match unsafe { srcMode } {
+    match config.src_mode {
         SourceMode::I2O => {
             inStr = CFile::stdin();
             output_stream = OutputStream::Stdout(std::io::stdout());
@@ -1710,7 +1703,7 @@ fn uncompress(config: &Config) -> bool {
         }
     } else {
         delete_output_on_interrupt.store(false, Ordering::SeqCst);
-        if unsafe { srcMode } == SourceMode::F2F {
+        if config.src_mode == SourceMode::F2F {
             if let Err(error) = std::fs::remove_file(&config.output) {
                 exit_with_io_error(config, error);
             }
@@ -1742,7 +1735,7 @@ fn uncompress(config: &Config) -> bool {
 fn testf(config: &Config) -> bool {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
-    if unsafe { srcMode } != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
+    if config.src_mode != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
         if config.noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
@@ -1753,7 +1746,7 @@ fn testf(config: &Config) -> bool {
         setExit(1);
         return true;
     }
-    if unsafe { srcMode } != SourceMode::I2O && !config.input.exists() {
+    if config.src_mode != SourceMode::I2O && !config.input.exists() {
         eprintln!(
             "{}: Can't open input {}: {}.",
             config.program_name.display(),
@@ -1763,7 +1756,7 @@ fn testf(config: &Config) -> bool {
         setExit(1);
         return true;
     }
-    if unsafe { srcMode } != SourceMode::I2O && config.input.is_dir() {
+    if config.src_mode != SourceMode::I2O && config.input.is_dir() {
         eprintln!(
             "{}: Input file {} is a directory.",
             config.program_name.display(),
@@ -1773,7 +1766,7 @@ fn testf(config: &Config) -> bool {
         return true;
     }
 
-    let inStr = match unsafe { srcMode } {
+    let inStr = match config.src_mode {
         SourceMode::I2O => {
             if std::io::stdin().is_terminal() {
                 eprintln!(
@@ -1897,7 +1890,7 @@ fn contains_osstr(haystack: impl AsRef<OsStr>, needle: impl AsRef<OsStr>) -> boo
     haystack.windows(needle.len()).any(|h| h == needle)
 }
 
-unsafe fn main_0(program_path: &Path) -> c_int {
+fn main_0(program_path: &Path) -> c_int {
     let program_name = Path::new(program_path.file_name().unwrap());
 
     noisy.store(true, Ordering::SeqCst);
@@ -1944,21 +1937,21 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         }
     }
 
-    srcMode = match numFileNames.load(Ordering::SeqCst) {
+    let mut src_mode = match numFileNames.load(Ordering::SeqCst) {
         0 => SourceMode::I2O,
         _ => SourceMode::F2F,
     };
-    opMode = OperationMode::Zip;
+    let mut op_mode = OperationMode::Zip;
     if contains_osstr(program_name, "unzip") || contains_osstr(program_name, "UNZIP") {
-        opMode = OperationMode::Unzip;
+        op_mode = OperationMode::Unzip;
     }
     if contains_osstr(program_name, "z2cat")
         || contains_osstr(program_name, "Z2CAT")
         || contains_osstr(program_name, "zcat")
         || contains_osstr(program_name, "ZCAT")
     {
-        opMode = OperationMode::Unzip;
-        srcMode = match numFileNames.load(Ordering::SeqCst) {
+        op_mode = OperationMode::Unzip;
+        src_mode = match numFileNames.load(Ordering::SeqCst) {
             0 => SourceMode::F2O,
             _ => SourceMode::F2F,
         };
@@ -1973,11 +1966,11 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         if flag_name.as_bytes()[0] == b'-' && flag_name.as_bytes()[1] != b'-' {
             for c in &flag_name.as_bytes()[1..] {
                 match c {
-                    b'c' => srcMode = SourceMode::F2O,
-                    b'd' => opMode = OperationMode::Unzip,
-                    b'z' => opMode = OperationMode::Zip,
+                    b'c' => src_mode = SourceMode::F2O,
+                    b'd' => op_mode = OperationMode::Unzip,
+                    b'z' => op_mode = OperationMode::Zip,
                     b'f' => force_overwrite = true,
-                    b't' => opMode = OperationMode::Test,
+                    b't' => op_mode = OperationMode::Test,
                     b'k' => keep_input_files = true,
                     b's' => decompress_mode = DecompressMode::Small,
                     b'q' => noisy.store(false, Ordering::SeqCst),
@@ -2012,11 +2005,11 @@ unsafe fn main_0(program_path: &Path) -> c_int {
     for flag_name in &arg_list {
         match flag_name.as_str() {
             "--" => break,
-            "--stdout" => srcMode = SourceMode::F2O,
-            "--decompress" => opMode = OperationMode::Unzip,
-            "--compress" => opMode = OperationMode::Zip,
+            "--stdout" => src_mode = SourceMode::F2O,
+            "--decompress" => op_mode = OperationMode::Unzip,
+            "--compress" => op_mode = OperationMode::Zip,
             "--force" => force_overwrite = true,
-            "--test" => opMode = OperationMode::Test,
+            "--test" => op_mode = OperationMode::Test,
             "--keep" => keep_input_files = true,
             "--small" => decompress_mode = DecompressMode::Small,
             "--quiet" => noisy.store(false, Ordering::SeqCst),
@@ -2048,21 +2041,23 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         verbosity = 4;
     }
 
-    if opMode == OperationMode::Zip && decompress_mode == DecompressMode::Small && blockSize100k > 2
+    if op_mode == OperationMode::Zip
+        && decompress_mode == DecompressMode::Small
+        && blockSize100k > 2
     {
         blockSize100k = 2;
     }
-    if opMode == OperationMode::Test && srcMode == SourceMode::F2O {
+    if op_mode == OperationMode::Test && src_mode == SourceMode::F2O {
         eprintln!(
             "{}: -c and -t cannot be used together.",
             program_name.display(),
         );
         exit(1);
     }
-    if srcMode == SourceMode::F2O && numFileNames.load(Ordering::SeqCst) == 0 {
-        srcMode = SourceMode::I2O;
+    if src_mode == SourceMode::F2O && numFileNames.load(Ordering::SeqCst) == 0 {
+        src_mode = SourceMode::I2O;
     }
-    if opMode != OperationMode::Zip {
+    if op_mode != OperationMode::Zip {
         blockSize100k = 0;
     }
 
@@ -2079,6 +2074,8 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         verbosity,
         force_overwrite,
         keep_input_files,
+        op_mode,
+        src_mode,
 
         // compress
         blockSize100k,
@@ -2088,14 +2085,14 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         decompress_mode,
     };
 
-    if srcMode == SourceMode::F2F {
+    if src_mode == SourceMode::F2F {
         setup_ctrl_c_handler(&config);
     }
 
-    match opMode {
+    match op_mode {
         OperationMode::Zip => {
-            if srcMode == SourceMode::I2O {
-                config.with_input(opMode, None, srcMode);
+            if src_mode == SourceMode::I2O {
+                config.with_input(None);
                 compress(&config);
             } else {
                 decode = true;
@@ -2104,7 +2101,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed.fetch_add(1, Ordering::SeqCst);
-                        config.with_input(opMode, Some(name.as_str()), srcMode);
+                        config.with_input(Some(name.as_str()));
                         compress(&config);
                     }
                 }
@@ -2112,8 +2109,8 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         }
         OperationMode::Unzip => {
             let mut all_ok = true;
-            if srcMode == SourceMode::I2O {
-                config.with_input(opMode, None, srcMode);
+            if src_mode == SourceMode::I2O {
+                config.with_input(None);
                 all_ok &= uncompress(&config);
             } else {
                 decode = true;
@@ -2122,7 +2119,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed.fetch_add(1, Ordering::SeqCst);
-                        config.with_input(opMode, Some(name.as_str()), srcMode);
+                        config.with_input(Some(name.as_str()));
                         all_ok &= uncompress(&config);
                     }
                 }
@@ -2134,8 +2131,8 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         }
         OperationMode::Test => {
             let mut all_ok = true;
-            if srcMode == SourceMode::I2O {
-                config.with_input(opMode, None, srcMode);
+            if src_mode == SourceMode::I2O {
+                config.with_input(None);
                 all_ok &= testf(&config);
             } else {
                 decode = true;
@@ -2144,7 +2141,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed.fetch_add(1, Ordering::SeqCst);
-                        config.with_input(opMode, Some(name.as_str()), srcMode);
+                        config.with_input(Some(name.as_str()));
                         all_ok &= testf(&config);
                     }
                 }
@@ -2172,5 +2169,5 @@ fn main() {
 
     let program_name = PathBuf::from(it.next().unwrap());
 
-    unsafe { std::process::exit(main_0(&program_name) as i32) }
+    std::process::exit(main_0(&program_name) as i32)
 }
