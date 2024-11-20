@@ -1773,8 +1773,7 @@ fn testf(config: &Config) -> bool {
         return true;
     }
 
-    let inStr: CFile;
-    match unsafe { srcMode } {
+    let inStr = match unsafe { srcMode } {
         SourceMode::I2O => {
             if std::io::stdin().is_terminal() {
                 eprintln!(
@@ -1789,10 +1788,10 @@ fn testf(config: &Config) -> bool {
                 setExit(1);
                 return true;
             }
-            inStr = CFile::stdin();
+            CFile::stdin()
         }
         SourceMode::F2O | SourceMode::F2F => {
-            inStr = if let Some(file) = CFile::open_input(&config.input) {
+            if let Some(file) = CFile::open_input(&config.input) {
                 file
             } else {
                 eprintln!(
@@ -1803,9 +1802,9 @@ fn testf(config: &Config) -> bool {
                 );
                 setExit(1);
                 return true;
-            };
+            }
         }
-    }
+    };
     if config.verbosity >= 1 {
         eprint!("  {}: ", config.input.display());
         pad(&config.input);
