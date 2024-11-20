@@ -231,8 +231,6 @@ fn get_program_name() -> PathBuf {
     PathBuf::from(program_path.file_name().unwrap())
 }
 
-static mut outputHandleJustInCase: *mut FILE = ptr::null_mut();
-
 /// Strictly for compatibility with the original bzip2 output
 fn display_last_os_error() -> String {
     display_os_error(std::io::Error::last_os_error())
@@ -356,15 +354,12 @@ unsafe fn compressStream(
 
         if let Some(metadata) = metadata {
             set_permissions(zStream, metadata);
-            outputHandleJustInCase = core::ptr::null_mut();
             ret = fclose(zStream);
             if ret == libc::EOF {
                 // diverges
                 ioError()
             }
         }
-
-        outputHandleJustInCase = core::ptr::null_mut();
 
         if config.verbosity >= 1 {
             if nbytes_in_lo32 == 0 && nbytes_in_hi32 == 0 {
@@ -762,9 +757,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
                     CStr::from_ptr(outName.as_ptr()).to_string_lossy(),
                 );
             }
-            if !outputHandleJustInCase.is_null() {
-                fclose(outputHandleJustInCase);
-            }
+            // This should work even on Windows as we opened the output file with FILE_SHARE_DELETE
             if remove(outName.as_mut_ptr()) != 0 {
                 eprintln!(
                     "{}: WARNING: deletion of output file (apparently) failed.",
@@ -874,12 +867,67 @@ unsafe fn ioError() -> ! {
     cleanUpAndFail(1);
 }
 
-unsafe extern "C" fn mySignalCatcher(_: libc::c_int) {
-    eprintln!(
-        "\n{}: Control-C or similar caught, quitting.",
-        CStr::from_ptr(progName).to_string_lossy(),
-    );
-    cleanUpAndFail(1);
+fn setup_ctrl_c_handler() {
+    static ABORT_PIPE: AtomicI32 = AtomicI32::new(0);
+    static TRIED_TO_CANCEL: AtomicBool = AtomicBool::new(false);
+
+    let mut pair = [0; 2];
+    unsafe {
+        #[cfg(windows)]
+        assert_eq!(libc::pipe(&mut pair as *mut [i32; 2] as *mut i32, 1, 0), 0);
+
+        #[cfg(not(windows))]
+        assert_eq!(libc::pipe(&mut pair as *mut [i32; 2] as *mut i32), 0);
+    }
+
+    ABORT_PIPE.store(pair[1], Ordering::Relaxed);
+
+    std::thread::Builder::new()
+        .name("ctrl-c listener".to_owned())
+        .spawn(move || unsafe {
+            libc::read(pair[0], &mut 0u8 as *mut u8 as *mut _, 1);
+            eprintln!(
+                "\n{}: Control-C or similar caught, quitting.",
+                CStr::from_ptr(progName).to_string_lossy(),
+            );
+            cleanUpAndFail(1);
+        })
+        .unwrap();
+
+    unsafe extern "C" fn signal_handler(_: libc::c_int) {
+        if TRIED_TO_CANCEL.swap(true, Ordering::SeqCst) {
+            // The previous ctrl-c usage didn't cause the process to exit yet. Exit immediately to
+            // avoid the user from getting stuck.
+            libc::exit(1);
+        }
+
+        unsafe {
+            if libc::write(
+                ABORT_PIPE.load(Ordering::Relaxed),
+                &0u8 as *const u8 as *const _,
+                1,
+            ) != 1
+            {
+                libc::abort();
+            }
+        }
+    }
+
+    unsafe {
+        signal(
+            SIGINT,
+            signal_handler as unsafe extern "C" fn(c_int) as usize,
+        );
+        signal(
+            SIGTERM,
+            signal_handler as unsafe extern "C" fn(c_int) as usize,
+        );
+        #[cfg(not(target_os = "windows"))]
+        signal(
+            libc::SIGHUP,
+            signal_handler as unsafe extern "C" fn(c_int) as usize,
+        );
+    }
 }
 
 unsafe fn outOfMemory() -> ! {
@@ -966,7 +1014,34 @@ fn fopen_output_safely(name: impl AsRef<Path>) -> *mut FILE {
         fp
     }
 
-    #[cfg(not(unix))]
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        use std::os::windows::io::IntoRawHandle;
+
+        let mut opts = std::fs::File::options();
+
+        opts.write(true).create_new(true);
+
+        // Allow the ctrl-c handler to delete the file
+        const FILE_SHARE_DELETE: u32 = 4u32;
+        opts.share_mode(FILE_SHARE_DELETE);
+
+        let Ok(file) = opts.open(name) else {
+            return std::ptr::null_mut::<FILE>();
+        };
+        let handle = file.into_raw_handle();
+
+        let fd = unsafe { libc::open_osfhandle(handle as isize, 0) };
+        let mode = b"wb\0".as_ptr().cast::<c_char>();
+        let fp = unsafe { libc::fdopen(fd, mode) };
+        if fp.is_null() {
+            unsafe { libc::close(fd) };
+        }
+        fp
+    }
+
+    #[cfg(not(any(unix, windows)))]
     unsafe {
         use std::ffi::CString;
 
@@ -1269,10 +1344,8 @@ unsafe fn compress(config: &Config) {
         eprint!("  {}: ", config.input.display());
         pad(config.input);
     }
-    outputHandleJustInCase = outStr;
     delete_output_on_interrupt.store(true, Ordering::SeqCst);
     compressStream(config, input_stream, outStr, metadata.as_ref());
-    outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     if let Some(metadata) = metadata {
         if let Err(error) = apply_saved_time_info_to_output_file(&config.output, metadata) {
@@ -1504,7 +1577,6 @@ unsafe fn uncompress(config: &Config) -> bool {
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
     delete_output_on_interrupt.store(true, Ordering::SeqCst);
     let magicNumberOK = uncompressStream(config, inStr, output_stream, metadata.as_ref());
-    outputHandleJustInCase = std::ptr::null_mut::<FILE>();
 
     /*--- If there was an I/O error, we won't get here. ---*/
     if magicNumberOK {
@@ -1623,7 +1695,6 @@ unsafe fn testf(config: &Config) -> bool {
         eprint!("  {}: ", config.input.display());
         pad(config.input);
     }
-    outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     let allOK = testStream(config, inStr);
     if allOK && config.verbosity >= 1 {
         eprintln!("ok");
@@ -1715,7 +1786,6 @@ fn contains_osstr(haystack: impl AsRef<OsStr>, needle: impl AsRef<OsStr>) -> boo
 unsafe fn main_0(program_path: &Path) -> c_int {
     let program_name = Path::new(program_path.file_name().unwrap());
 
-    outputHandleJustInCase = std::ptr::null_mut::<FILE>();
     noisy.store(true, Ordering::SeqCst);
     numFileNames.store(0, Ordering::SeqCst);
     numFilesProcessed.store(0, Ordering::SeqCst);
@@ -1893,19 +1963,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         blockSize100k = 0;
     }
     if srcMode == SourceMode::F2F {
-        signal(
-            SIGINT,
-            mySignalCatcher as unsafe extern "C" fn(c_int) as usize,
-        );
-        signal(
-            SIGTERM,
-            mySignalCatcher as unsafe extern "C" fn(c_int) as usize,
-        );
-        #[cfg(not(target_os = "windows"))]
-        signal(
-            libc::SIGHUP,
-            mySignalCatcher as unsafe extern "C" fn(c_int) as usize,
-        );
+        setup_ctrl_c_handler();
     }
 
     let arg_list = &arg_list;
@@ -2006,9 +2064,9 @@ unsafe fn main_0(program_path: &Path) -> c_int {
 }
 
 fn main() {
-    let mut it = ::std::env::args_os();
+    let mut it = std::env::args_os();
 
     let program_name = PathBuf::from(it.next().unwrap());
 
-    unsafe { ::std::process::exit(main_0(&program_name) as i32) }
+    unsafe { std::process::exit(main_0(&program_name) as i32) }
 }
