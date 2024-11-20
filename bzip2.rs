@@ -255,15 +255,6 @@ fn display_os_error(error: std::io::Error) -> String {
     error.replace("Bad address", "No such file or directory")
 }
 
-unsafe fn myfeof(f: *mut FILE) -> bool {
-    let c: i32 = fgetc(f);
-    if c == -1 {
-        return true;
-    }
-    ungetc(c, f);
-    false
-}
-
 enum InputStream {
     Stdin(std::io::Stdin),
     File(std::fs::File),
@@ -278,10 +269,10 @@ impl std::io::Read for InputStream {
     }
 }
 
-unsafe fn compressStream(
+fn compressStream(
     config: &Config,
     mut stream: InputStream,
-    zStream: *mut FILE,
+    zStream: CFile,
     metadata: Option<&Metadata>,
 ) {
     let mut ibuf: [u8; 5000] = [0; 5000];
@@ -292,20 +283,22 @@ unsafe fn compressStream(
     let mut bzerr: i32 = 0;
     let mut ret: i32;
 
-    set_binary_mode(config, zStream);
+    zStream.set_binary_mode(config);
 
-    if ferror(zStream) != 0 {
+    if zStream.has_error() {
         // diverges
         ioError(config)
     }
 
-    let bzf = BZ2_bzWriteOpen(
-        &mut bzerr,
-        zStream,
-        config.blockSize100k,
-        config.verbosity,
-        config.workFactor,
-    );
+    let bzf = unsafe {
+        BZ2_bzWriteOpen(
+            &mut bzerr,
+            zStream.file,
+            config.blockSize100k,
+            config.verbosity,
+            config.workFactor,
+        )
+    };
 
     'errhandler: {
         if bzerr != libbzip2_rs_sys::BZ_OK {
@@ -323,45 +316,49 @@ unsafe fn compressStream(
                 Err(e) => exit_with_io_error(config, e),
             };
 
-            BZ2_bzWrite(
-                &mut bzerr,
-                bzf,
-                ibuf.as_mut_ptr() as *mut libc::c_void,
-                nIbuf as i32,
-            );
+            unsafe {
+                BZ2_bzWrite(
+                    &mut bzerr,
+                    bzf,
+                    ibuf.as_mut_ptr() as *mut libc::c_void,
+                    nIbuf as i32,
+                );
+            }
 
             if bzerr != libbzip2_rs_sys::BZ_OK {
                 break 'errhandler;
             }
         }
 
-        BZ2_bzWriteClose64(
-            &mut bzerr,
-            bzf,
-            0,
-            &mut nbytes_in_lo32,
-            &mut nbytes_in_hi32,
-            &mut nbytes_out_lo32,
-            &mut nbytes_out_hi32,
-        );
+        unsafe {
+            BZ2_bzWriteClose64(
+                &mut bzerr,
+                bzf,
+                0,
+                &mut nbytes_in_lo32,
+                &mut nbytes_in_hi32,
+                &mut nbytes_out_lo32,
+                &mut nbytes_out_hi32,
+            );
+        }
 
         if bzerr != libbzip2_rs_sys::BZ_OK {
             break 'errhandler;
         }
 
-        if (ferror(zStream)) != 0 {
+        if zStream.has_error() {
             // diverges
             ioError(config)
         }
-        ret = fflush(zStream);
+        ret = zStream.flush();
         if ret == libc::EOF {
             // diverges
             ioError(config)
         }
 
         if let Some(metadata) = metadata {
-            set_permissions(config, zStream, metadata);
-            ret = fclose(zStream);
+            set_permissions(config, &zStream, metadata);
+            ret = zStream.close();
             if ret == libc::EOF {
                 // diverges
                 ioError(config)
@@ -394,15 +391,17 @@ unsafe fn compressStream(
 
     // errhandler:
 
-    BZ2_bzWriteClose64(
-        &mut 0,
-        bzf,
-        1,
-        &mut nbytes_in_lo32,
-        &mut nbytes_in_hi32,
-        &mut nbytes_out_lo32,
-        &mut nbytes_out_hi32,
-    );
+    unsafe {
+        BZ2_bzWriteClose64(
+            &mut 0,
+            bzf,
+            1,
+            &mut nbytes_in_lo32,
+            &mut nbytes_in_hi32,
+            &mut nbytes_out_lo32,
+            &mut nbytes_out_hi32,
+        );
+    }
 
     match bzerr {
         libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
@@ -412,9 +411,9 @@ unsafe fn compressStream(
     }
 }
 
-unsafe fn uncompressStream(
+fn uncompressStream(
     config: &Config,
-    zStream: *mut FILE,
+    zStream: CFile,
     mut stream: OutputStream,
     metadata: Option<&Metadata>,
 ) -> bool {
@@ -438,9 +437,9 @@ unsafe fn uncompressStream(
 
     let mut state = State::Standard;
 
-    set_binary_mode(config, zStream);
+    zStream.set_binary_mode(config);
 
-    if ferror(zStream) != 0 {
+    if zStream.has_error() {
         // diverges
         ioError(config)
     }
@@ -448,14 +447,16 @@ unsafe fn uncompressStream(
     'outer: loop {
         match state {
             State::Standard => loop {
-                bzf = BZ2_bzReadOpen(
-                    &mut bzerr,
-                    zStream,
-                    config.verbosity,
-                    config.decompress_mode as libc::c_int,
-                    unused.as_mut_ptr() as *mut libc::c_void,
-                    nUnused,
-                );
+                bzf = unsafe {
+                    BZ2_bzReadOpen(
+                        &mut bzerr,
+                        zStream.file,
+                        config.verbosity,
+                        config.decompress_mode as libc::c_int,
+                        unused.as_mut_ptr() as *mut libc::c_void,
+                        nUnused,
+                    )
+                };
                 if bzf.is_null() || bzerr != 0 {
                     state = State::ErrHandler;
                     continue 'outer;
@@ -463,12 +464,14 @@ unsafe fn uncompressStream(
                 streamNo += 1;
 
                 while bzerr == 0 {
-                    nread = BZ2_bzRead(
-                        &mut bzerr,
-                        bzf,
-                        obuf.as_mut_ptr() as *mut libc::c_void,
-                        5000,
-                    );
+                    nread = unsafe {
+                        BZ2_bzRead(
+                            &mut bzerr,
+                            bzf,
+                            obuf.as_mut_ptr() as *mut libc::c_void,
+                            5000,
+                        )
+                    };
                     if bzerr == libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC {
                         state = State::TryCat;
                         continue 'outer;
@@ -487,7 +490,9 @@ unsafe fn uncompressStream(
                     continue 'outer;
                 }
 
-                BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
+                unsafe {
+                    BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
+                }
                 if bzerr != libbzip2_rs_sys::BZ_OK {
                     // diverges
                     panic_str(config, "decompress:bzReadGetUnused")
@@ -495,22 +500,24 @@ unsafe fn uncompressStream(
 
                 let unusedTmp = unusedTmpV as *mut u8;
                 for i in 0..nUnused {
-                    unused[i as usize] = *unusedTmp.offset(i as isize);
+                    unused[i as usize] = unsafe { *unusedTmp.offset(i as isize) };
                 }
 
-                BZ2_bzReadClose(&mut bzerr, bzf);
+                unsafe {
+                    BZ2_bzReadClose(&mut bzerr, bzf);
+                }
                 if bzerr != libbzip2_rs_sys::BZ_OK {
                     // diverges
                     panic_str(config, "decompress:bzReadGetUnused")
                 }
 
-                if nUnused == 0 && myfeof(zStream) {
+                if nUnused == 0 && zStream.is_eof() {
                     state = State::CloseOk;
                     continue 'outer;
                 }
             },
             State::CloseOk => {
-                if ferror(zStream) != 0 {
+                if zStream.has_error() {
                     // diverges
                     ioError(config)
                 }
@@ -521,7 +528,7 @@ unsafe fn uncompressStream(
                     }
                 }
 
-                if let libc::EOF = fclose(zStream) {
+                if let libc::EOF = zStream.close() {
                     ioError(config)
                 }
 
@@ -537,18 +544,20 @@ unsafe fn uncompressStream(
             }
             State::TryCat => {
                 if config.force_overwrite {
-                    rewind(zStream);
+                    zStream.rewind();
                     loop {
-                        if myfeof(zStream) {
+                        if zStream.is_eof() {
                             break;
                         }
-                        nread = fread(
-                            obuf.as_mut_ptr() as *mut libc::c_void,
-                            core::mem::size_of::<u8>() as libc::size_t,
-                            5000,
-                            zStream,
-                        ) as i32;
-                        if ferror(zStream) != 0 {
+                        nread = unsafe {
+                            fread(
+                                obuf.as_mut_ptr() as *mut libc::c_void,
+                                core::mem::size_of::<u8>() as libc::size_t,
+                                5000,
+                                zStream.file,
+                            )
+                        } as i32;
+                        if zStream.has_error() {
                             // diverges
                             ioError(config)
                         }
@@ -567,7 +576,9 @@ unsafe fn uncompressStream(
                 }
             }
             State::ErrHandler => {
-                BZ2_bzReadClose(&mut bzerr_dummy, bzf);
+                unsafe {
+                    BZ2_bzReadClose(&mut bzerr_dummy, bzf);
+                }
 
                 match bzerr {
                     libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
@@ -576,9 +587,7 @@ unsafe fn uncompressStream(
                     libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
                     libbzip2_rs_sys::BZ_UNEXPECTED_EOF => compressedStreamEOF(config),
                     libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC => {
-                        if zStream != STDIN!() {
-                            fclose(zStream);
-                        }
+                        zStream.close();
 
                         if streamNo == 1 {
                             return false;
@@ -600,7 +609,7 @@ unsafe fn uncompressStream(
     }
 }
 
-unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
+fn testStream(config: &Config, zStream: CFile) -> bool {
     let mut bzf: *mut BZFILE;
     let mut bzerr: i32 = 0;
     let mut i: i32;
@@ -612,14 +621,16 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
 
     'errhandler: {
         loop {
-            bzf = BZ2_bzReadOpen(
-                &mut bzerr,
-                zStream,
-                config.verbosity,
-                config.decompress_mode as libc::c_int,
-                unused.as_mut_ptr() as *mut libc::c_void,
-                nUnused,
-            );
+            bzf = unsafe {
+                BZ2_bzReadOpen(
+                    &mut bzerr,
+                    zStream.file,
+                    config.verbosity,
+                    config.decompress_mode as libc::c_int,
+                    unused.as_mut_ptr() as *mut libc::c_void,
+                    nUnused,
+                )
+            };
             if bzf.is_null() || bzerr != 0 {
                 // diverges
                 ioError(config)
@@ -629,12 +640,14 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
             streamNo += 1;
 
             while bzerr == 0 {
-                BZ2_bzRead(
-                    &mut bzerr,
-                    bzf,
-                    obuf.as_mut_ptr() as *mut libc::c_void,
-                    5000,
-                );
+                unsafe {
+                    BZ2_bzRead(
+                        &mut bzerr,
+                        bzf,
+                        obuf.as_mut_ptr() as *mut libc::c_void,
+                        5000,
+                    );
+                }
                 if bzerr == libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC {
                     break 'errhandler;
                 }
@@ -645,7 +658,9 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
             }
 
             let mut unusedTmpV = std::ptr::null_mut();
-            BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
+            unsafe {
+                BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
+            }
             if bzerr != libbzip2_rs_sys::BZ_OK {
                 panic_str(config, "test:bzReadGetUnused");
             }
@@ -653,23 +668,25 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
             let unusedTmp = unusedTmpV as *mut u8;
             i = 0;
             while i < nUnused {
-                unused[i as usize] = *unusedTmp.offset(i as isize);
+                unused[i as usize] = unsafe { *unusedTmp.offset(i as isize) };
                 i += 1;
             }
 
-            BZ2_bzReadClose(&mut bzerr, bzf);
+            unsafe {
+                BZ2_bzReadClose(&mut bzerr, bzf);
+            }
             if bzerr != libbzip2_rs_sys::BZ_OK {
                 panic_str(config, "test:bzReadClose");
             }
-            if nUnused == 0 && myfeof(zStream) {
+            if nUnused == 0 && zStream.is_eof() {
                 break;
             }
         }
 
-        if ferror(zStream) != 0 {
+        if zStream.has_error() {
             ioError(config) // diverges
         }
-        if fclose(zStream) == libc::EOF {
+        if zStream.close() == libc::EOF {
             ioError(config) // diverges
         }
 
@@ -682,7 +699,9 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
 
     // errhandler:
 
-    BZ2_bzReadClose(&mut 0, bzf);
+    unsafe {
+        BZ2_bzReadClose(&mut 0, bzf);
+    }
     if config.verbosity == 0 {
         eprintln!(
             "{}: {}: ",
@@ -703,9 +722,7 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
             false
         }
         libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC => {
-            if zStream != STDIN!() {
-                fclose(zStream);
-            }
+            zStream.close();
             if streamNo == 1 {
                 eprintln!("bad magic number (file not created by bzip2)");
                 false
@@ -835,7 +852,7 @@ fn crcError(config: &Config) -> ! {
     cleanUpAndFail(config, 2);
 }
 
-unsafe fn compressedStreamEOF(config: &Config) -> ! {
+fn compressedStreamEOF(config: &Config) -> ! {
     if noisy.load(Ordering::SeqCst) {
         eprint!(
             concat!(
@@ -847,11 +864,13 @@ unsafe fn compressedStreamEOF(config: &Config) -> ! {
         );
         // The CString really only needs to live for the duration of the perror
         #[allow(temporary_cstring_as_ptr)]
-        perror(
-            CString::new(config.program_name.to_str().unwrap())
-                .unwrap()
-                .as_ptr(),
-        );
+        unsafe {
+            perror(
+                CString::new(config.program_name.to_str().unwrap())
+                    .unwrap()
+                    .as_ptr(),
+            );
+        }
         showFileNames(config);
         cadvise();
     }
@@ -868,18 +887,20 @@ fn exit_with_io_error(config: &Config, error: std::io::Error) -> ! {
     cleanUpAndFail(config, 1);
 }
 
-unsafe fn ioError(config: &Config) -> ! {
+fn ioError(config: &Config) -> ! {
     eprintln!(
         "\n{}: I/O or other error, bailing out.  Possible reason follows.",
         config.program_name.display(),
     );
     // The CString really only needs to live for the duration of the perror
     #[allow(temporary_cstring_as_ptr)]
-    perror(
-        CString::new(config.program_name.to_str().unwrap())
-            .unwrap()
-            .as_ptr(),
-    );
+    unsafe {
+        perror(
+            CString::new(config.program_name.to_str().unwrap())
+                .unwrap()
+                .as_ptr(),
+        );
+    }
     showFileNames(config);
     cleanUpAndFail(config, 1);
 }
@@ -985,82 +1006,189 @@ fn pad(s: &Path) {
     }
 }
 
-fn fopen_input(name: impl AsRef<Path>) -> *mut FILE {
-    unsafe {
-        // The CString really only needs to live for the duration of the fopen
-        #[allow(temporary_cstring_as_ptr)]
-        libc::fopen(
-            CString::new(name.as_ref().to_str().unwrap())
-                .unwrap()
-                .as_ptr(),
-            b"rb\0".as_ptr().cast::<c_char>(),
-        )
-    }
+/// A safe wrapper around `*mut FILE`.
+///
+/// # Safety invariant
+///
+/// The file pointer must either point to a valid open [`FILE`].
+/// The must_not_close flag must be set for stdin and stdout.
+struct CFile {
+    file: *mut FILE,
+    must_not_close: bool,
 }
 
-fn fopen_output_safely(name: impl AsRef<Path>) -> *mut FILE {
-    #[cfg(unix)]
-    {
-        use std::os::fd::IntoRawFd;
-        use std::os::unix::fs::OpenOptionsExt;
-
-        let mut opts = std::fs::File::options();
-
-        opts.write(true).create_new(true);
-
-        #[allow(clippy::unnecessary_cast)]
-        opts.mode((libc::S_IWUSR | libc::S_IRUSR) as u32);
-
-        let Ok(file) = opts.open(name) else {
-            return std::ptr::null_mut::<FILE>();
-        };
-
-        let fd = file.into_raw_fd();
-        let mode = b"wb\0".as_ptr().cast::<c_char>();
-        let fp = unsafe { libc::fdopen(fd, mode) };
-        if fp.is_null() {
-            unsafe { libc::close(fd) };
+impl CFile {
+    fn stdin() -> Self {
+        CFile {
+            file: unsafe { STDIN!() },
+            must_not_close: true,
         }
-        fp
+    }
+
+    fn stdout() -> Self {
+        CFile {
+            file: unsafe { STDOUT!() },
+            must_not_close: true,
+        }
+    }
+
+    fn open_input(name: impl AsRef<Path>) -> Option<Self> {
+        // The CString really only needs to live for the duration of the fopen
+        #[allow(temporary_cstring_as_ptr)]
+        let fp = unsafe {
+            libc::fopen(
+                CString::new(name.as_ref().to_str().unwrap())
+                    .unwrap()
+                    .as_ptr(),
+                b"rb\0".as_ptr().cast::<c_char>(),
+            )
+        };
+        if fp.is_null() {
+            None
+        } else {
+            Some(CFile {
+                file: fp,
+                must_not_close: false,
+            })
+        }
+    }
+
+    fn open_output_safely(name: impl AsRef<Path>) -> Option<Self> {
+        #[cfg(unix)]
+        {
+            use std::os::fd::IntoRawFd;
+            use std::os::unix::fs::OpenOptionsExt;
+
+            let mut opts = std::fs::File::options();
+
+            opts.write(true).create_new(true);
+
+            #[allow(clippy::unnecessary_cast)]
+            opts.mode((libc::S_IWUSR | libc::S_IRUSR) as u32);
+
+            let Ok(file) = opts.open(name) else {
+                return None;
+            };
+
+            let fd = file.into_raw_fd();
+            let mode = b"wb\0".as_ptr().cast::<c_char>();
+            let fp = unsafe { libc::fdopen(fd, mode) };
+            if fp.is_null() {
+                unsafe { libc::close(fd) };
+                return None;
+            }
+            Some(CFile {
+                file: fp,
+                must_not_close: false,
+            })
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::OpenOptionsExt;
+            use std::os::windows::io::IntoRawHandle;
+
+            let mut opts = std::fs::File::options();
+
+            opts.write(true).create_new(true);
+
+            // Allow the ctrl-c handler to delete the file
+            const FILE_SHARE_DELETE: u32 = 4u32;
+            opts.share_mode(FILE_SHARE_DELETE);
+
+            let Ok(file) = opts.open(name) else {
+                return None;
+            };
+            let handle = file.into_raw_handle();
+
+            let fd = unsafe { libc::open_osfhandle(handle as isize, 0) };
+            let mode = b"wb\0".as_ptr().cast::<c_char>();
+            let fp = unsafe { libc::fdopen(fd, mode) };
+            if fp.is_null() {
+                unsafe { libc::close(fd) };
+                return None;
+            }
+            Some(CFile {
+                file: fp,
+                must_not_close: false,
+            })
+        }
+
+        #[cfg(not(any(unix, windows)))]
+        {
+            // The CString really only needs to live for the duration of the fopen
+            #[allow(temporary_cstring_as_ptr)]
+            let fp = unsafe {
+                libc::fopen(
+                    CString::new(name.as_ref().to_str().unwrap())
+                        .unwrap()
+                        .as_ptr(),
+                    b"wb\0".as_ptr().cast::<c_char>(),
+                )
+            };
+
+            if fp.is_null() {
+                None
+            } else {
+                Some(CFile {
+                    file: fp,
+                    must_not_close: false,
+                })
+            }
+        }
+    }
+
+    fn is_eof(&self) -> bool {
+        unsafe {
+            let c: i32 = fgetc(self.file);
+            if c == -1 {
+                return true;
+            }
+            ungetc(c, self.file);
+            false
+        }
+    }
+
+    fn has_error(&self) -> bool {
+        unsafe { ferror(self.file) != 0 }
     }
 
     #[cfg(windows)]
-    {
-        use std::os::windows::fs::OpenOptionsExt;
-        use std::os::windows::io::IntoRawHandle;
+    /// Prevent Windows from mangling the read data.
+    fn set_binary_mode(&self, config: &Config) {
+        use std::ffi::c_int;
 
-        let mut opts = std::fs::File::options();
-
-        opts.write(true).create_new(true);
-
-        // Allow the ctrl-c handler to delete the file
-        const FILE_SHARE_DELETE: u32 = 4u32;
-        opts.share_mode(FILE_SHARE_DELETE);
-
-        let Ok(file) = opts.open(name) else {
-            return std::ptr::null_mut::<FILE>();
-        };
-        let handle = file.into_raw_handle();
-
-        let fd = unsafe { libc::open_osfhandle(handle as isize, 0) };
-        let mode = b"wb\0".as_ptr().cast::<c_char>();
-        let fp = unsafe { libc::fdopen(fd, mode) };
-        if fp.is_null() {
-            unsafe { libc::close(fd) };
+        extern "C" {
+            fn _setmode(fd: c_int, mode: c_int) -> c_int;
         }
-        fp
+
+        unsafe {
+            if _setmode(fileno(self.file), libc::O_BINARY) == -1 {
+                ioError(config);
+            }
+        }
     }
 
-    #[cfg(not(any(unix, windows)))]
-    unsafe {
-        // The CString really only needs to live for the duration of the fopen
-        #[allow(temporary_cstring_as_ptr)]
-        libc::fopen(
-            CString::new(name.as_ref().to_str().unwrap())
-                .unwrap()
-                .as_ptr(),
-            b"wb\0".as_ptr().cast::<c_char>(),
-        )
+    #[cfg(not(windows))]
+    /// Prevent Windows from mangling the read data.
+    fn set_binary_mode(&self, _config: &Config) {}
+
+    fn rewind(&self) {
+        unsafe {
+            rewind(self.file);
+        }
+    }
+
+    fn flush(&self) -> c_int {
+        unsafe { fflush(self.file) }
+    }
+
+    /// Close the file if it isn't stdin or stdout
+    fn close(self) -> c_int {
+        if self.must_not_close {
+            return 0;
+        }
+        unsafe { fclose(self.file) }
     }
 }
 
@@ -1098,24 +1226,24 @@ fn apply_saved_time_info_to_output_file(dst_name: &Path, metadata: Metadata) -> 
         .set_times(times)
 }
 
-unsafe fn set_permissions(_config: &Config, _handle: *mut FILE, _metadata: &Metadata) {
+fn set_permissions(_config: &Config, _handle: &CFile, _metadata: &Metadata) {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
 
-        let fd = fileno(_handle);
+        let fd = unsafe { fileno(_handle.file) };
         if fd < 0 {
             // diverges
             ioError(_config)
         }
 
-        let retVal = libc::fchmod(fd, _metadata.mode() as libc::mode_t);
+        let retVal = unsafe { libc::fchmod(fd, _metadata.mode() as libc::mode_t) };
         if retVal != 0 {
             ioError(_config);
         }
 
         // chown() will in many cases return with EPERM, which can be safely ignored.
-        libc::fchown(fd, _metadata.uid(), _metadata.gid());
+        unsafe { libc::fchown(fd, _metadata.uid(), _metadata.gid()) };
     }
 }
 
@@ -1149,28 +1277,10 @@ const BZ_N_SUFFIX_PAIRS: usize = 4;
 const Z_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = [".bz2", ".bz", ".tbz2", ".tbz"];
 const UNZ_SUFFIX: [&str; BZ_N_SUFFIX_PAIRS] = ["", "", ".tar", ".tar"];
 
-#[cfg(windows)]
-/// Prevent Windows from mangling the read data.
-unsafe fn set_binary_mode(config: &Config, file: *mut FILE) {
-    use std::ffi::c_int;
-
-    extern "C" {
-        fn _setmode(fd: c_int, mode: c_int) -> c_int;
-    }
-
-    if _setmode(fileno(file), libc::O_BINARY) == -1 {
-        ioError(config);
-    }
-}
-
-#[cfg(not(windows))]
-/// Prevent Windows from mangling the read data.
-unsafe fn set_binary_mode(_config: &Config, _file: *mut FILE) {}
-
-unsafe fn compress(config: &Config) {
+fn compress(config: &Config) {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
-    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
+    if unsafe { srcMode } != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
         if config.noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
@@ -1181,7 +1291,7 @@ unsafe fn compress(config: &Config) {
         setExit(1);
         return;
     }
-    if srcMode != SourceMode::I2O && !config.input.exists() {
+    if unsafe { srcMode } != SourceMode::I2O && !config.input.exists() {
         eprintln!(
             "{}: Can't open input file {}: {}.",
             config.program_name.display(),
@@ -1207,7 +1317,9 @@ unsafe fn compress(config: &Config) {
             }
         }
     }
-    if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && config.input.is_dir() {
+    if (unsafe { srcMode } == SourceMode::F2F || unsafe { srcMode } == SourceMode::F2O)
+        && config.input.is_dir()
+    {
         eprintln!(
             "{}: Input file {} is a directory.",
             config.program_name.display(),
@@ -1217,7 +1329,10 @@ unsafe fn compress(config: &Config) {
         return;
     }
 
-    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(&config.input) {
+    if unsafe { srcMode } == SourceMode::F2F
+        && !config.force_overwrite
+        && not_a_standard_file(&config.input)
+    {
         if config.noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
@@ -1228,7 +1343,7 @@ unsafe fn compress(config: &Config) {
         setExit(1);
         return;
     }
-    if srcMode == SourceMode::F2F && config.output.exists() {
+    if unsafe { srcMode } == SourceMode::F2F && config.output.exists() {
         if config.force_overwrite {
             let _ = std::fs::remove_file(&config.output);
         } else {
@@ -1242,7 +1357,7 @@ unsafe fn compress(config: &Config) {
         }
     }
 
-    if srcMode == SourceMode::F2F && !config.force_overwrite {
+    if unsafe { srcMode } == SourceMode::F2F && !config.force_overwrite {
         match count_hardlinks(&config.input) {
             0 => { /* fallthrough */ }
             n => {
@@ -1261,7 +1376,7 @@ unsafe fn compress(config: &Config) {
 
     // Save the file's meta-info before we open it.
     // Doing it later means we mess up the access times.
-    let metadata = match srcMode {
+    let metadata = match unsafe { srcMode } {
         SourceMode::F2F => match std::fs::metadata(&config.input) {
             Ok(metadata) => Some(metadata),
             Err(error) => exit_with_io_error(config, error),
@@ -1270,12 +1385,12 @@ unsafe fn compress(config: &Config) {
     };
 
     let input_stream;
-    let outStr: *mut FILE;
+    let outStr: CFile;
 
-    match srcMode {
+    match unsafe { srcMode } {
         SourceMode::I2O => {
             input_stream = InputStream::Stdin(std::io::stdin());
-            outStr = STDOUT!();
+            outStr = CFile::stdout();
             if std::io::stdout().is_terminal() {
                 eprintln!(
                     "{}: I won't write compressed data to a terminal.",
@@ -1291,7 +1406,7 @@ unsafe fn compress(config: &Config) {
             }
         }
         SourceMode::F2O => {
-            outStr = STDOUT!();
+            outStr = CFile::stdout();
             if std::io::stdout().is_terminal() {
                 eprintln!(
                     "{}: I won't write compressed data to a terminal.",
@@ -1321,8 +1436,9 @@ unsafe fn compress(config: &Config) {
             };
         }
         SourceMode::F2F => {
-            outStr = fopen_output_safely(&config.output);
-            if outStr.is_null() {
+            outStr = if let Some(file) = CFile::open_output_safely(&config.output) {
+                file
+            } else {
                 eprintln!(
                     "{}: Can't create output file {}: {}.",
                     config.program_name.display(),
@@ -1331,7 +1447,7 @@ unsafe fn compress(config: &Config) {
                 );
                 setExit(1);
                 return;
-            }
+            };
 
             input_stream = match std::fs::File::open(&config.input) {
                 Ok(file) => InputStream::File(file),
@@ -1397,12 +1513,12 @@ impl std::io::Write for OutputStream {
     }
 }
 
-unsafe fn uncompress(config: &Config) -> bool {
+fn uncompress(config: &Config) -> bool {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     let cannot_guess = config.output.extension() == Some(OsStr::new("out"));
 
-    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
+    if unsafe { srcMode } != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
         if config.noisy {
             eprintln!(
                 "%{}: There are no files matching `{}'.",
@@ -1414,7 +1530,7 @@ unsafe fn uncompress(config: &Config) -> bool {
         return true;
     }
 
-    if srcMode != SourceMode::I2O && !config.input.exists() {
+    if unsafe { srcMode } != SourceMode::I2O && !config.input.exists() {
         eprintln!(
             "{}: Can't open input file {}: {}.",
             config.program_name.display(),
@@ -1425,7 +1541,9 @@ unsafe fn uncompress(config: &Config) -> bool {
         return true;
     }
 
-    if (srcMode == SourceMode::F2F || srcMode == SourceMode::F2O) && config.input.is_dir() {
+    if (unsafe { srcMode } == SourceMode::F2F || unsafe { srcMode } == SourceMode::F2O)
+        && config.input.is_dir()
+    {
         eprintln!(
             "{}: Input file {} is a directory.",
             config.program_name.display(),
@@ -1435,7 +1553,10 @@ unsafe fn uncompress(config: &Config) -> bool {
         return true;
     }
 
-    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(&config.input) {
+    if unsafe { srcMode } == SourceMode::F2F
+        && !config.force_overwrite
+        && not_a_standard_file(&config.input)
+    {
         if config.noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
@@ -1457,7 +1578,7 @@ unsafe fn uncompress(config: &Config) -> bool {
         );
     }
 
-    if srcMode == SourceMode::F2F && config.output.exists() {
+    if unsafe { srcMode } == SourceMode::F2F && config.output.exists() {
         if config.force_overwrite {
             let _ = std::fs::remove_file(&config.output);
         } else {
@@ -1471,7 +1592,7 @@ unsafe fn uncompress(config: &Config) -> bool {
         }
     }
 
-    if srcMode == SourceMode::F2F && !config.force_overwrite {
+    if unsafe { srcMode } == SourceMode::F2F && !config.force_overwrite {
         match count_hardlinks(&config.input) {
             0 => { /* fallthrough */ }
             n => {
@@ -1490,7 +1611,7 @@ unsafe fn uncompress(config: &Config) -> bool {
 
     // Save the file's meta-info before we open it.
     // Doing it later means we mess up the access times.
-    let metadata = match srcMode {
+    let metadata = match unsafe { srcMode } {
         SourceMode::F2F => match std::fs::metadata(&config.input) {
             Ok(metadata) => Some(metadata),
             Err(error) => exit_with_io_error(config, error),
@@ -1498,12 +1619,12 @@ unsafe fn uncompress(config: &Config) -> bool {
         _ => None,
     };
 
-    let inStr: *mut FILE;
+    let inStr: CFile;
     let output_stream;
 
-    match srcMode {
+    match unsafe { srcMode } {
         SourceMode::I2O => {
-            inStr = STDIN!();
+            inStr = CFile::stdin();
             output_stream = OutputStream::Stdout(std::io::stdout());
             if std::io::stdin().is_terminal() {
                 eprint!(
@@ -1518,26 +1639,21 @@ unsafe fn uncompress(config: &Config) -> bool {
             }
         }
         SourceMode::F2O => {
-            inStr = fopen_input(&config.input);
-            output_stream = OutputStream::Stdout(std::io::stdout());
-            if inStr.is_null() {
+            inStr = if let Some(file) = CFile::open_input(&config.input) {
+                file
+            } else {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
                     config.program_name.display(),
                     config.input.display(),
                     display_last_os_error(),
                 );
-                if !inStr.is_null() {
-                    // this is unreachable, but it exists in the original C source code
-                    fclose(inStr);
-                }
                 setExit(1);
                 return true;
-            }
+            };
+            output_stream = OutputStream::Stdout(std::io::stdout());
         }
         SourceMode::F2F => {
-            inStr = fopen_input(&config.input);
-
             let mut options = std::fs::File::options();
             options.write(true).create_new(true);
 
@@ -1550,15 +1666,14 @@ unsafe fn uncompress(config: &Config) -> bool {
                         config.output.display(),
                         display_os_error(e),
                     );
-                    if !inStr.is_null() {
-                        fclose(inStr);
-                    }
                     setExit(1);
                     return true;
                 }
             };
 
-            if inStr.is_null() {
+            inStr = if let Some(file) = CFile::open_input(&config.input) {
+                file
+            } else {
                 eprintln!(
                     "{}: Can't open input file {}: {}.",
                     config.program_name.display(),
@@ -1595,7 +1710,7 @@ unsafe fn uncompress(config: &Config) -> bool {
         }
     } else {
         delete_output_on_interrupt.store(false, Ordering::SeqCst);
-        if srcMode == SourceMode::F2F {
+        if unsafe { srcMode } == SourceMode::F2F {
             if let Err(error) = std::fs::remove_file(&config.output) {
                 exit_with_io_error(config, error);
             }
@@ -1624,10 +1739,10 @@ unsafe fn uncompress(config: &Config) -> bool {
     magicNumberOK
 }
 
-unsafe fn testf(config: &Config) -> bool {
+fn testf(config: &Config) -> bool {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
-    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
+    if unsafe { srcMode } != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
         if config.noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
@@ -1638,7 +1753,7 @@ unsafe fn testf(config: &Config) -> bool {
         setExit(1);
         return true;
     }
-    if srcMode != SourceMode::I2O && !config.input.exists() {
+    if unsafe { srcMode } != SourceMode::I2O && !config.input.exists() {
         eprintln!(
             "{}: Can't open input {}: {}.",
             config.program_name.display(),
@@ -1648,7 +1763,7 @@ unsafe fn testf(config: &Config) -> bool {
         setExit(1);
         return true;
     }
-    if srcMode != SourceMode::I2O && config.input.is_dir() {
+    if unsafe { srcMode } != SourceMode::I2O && config.input.is_dir() {
         eprintln!(
             "{}: Input file {} is a directory.",
             config.program_name.display(),
@@ -1658,8 +1773,8 @@ unsafe fn testf(config: &Config) -> bool {
         return true;
     }
 
-    let inStr: *mut FILE;
-    match srcMode {
+    let inStr: CFile;
+    match unsafe { srcMode } {
         SourceMode::I2O => {
             if std::io::stdin().is_terminal() {
                 eprintln!(
@@ -1674,11 +1789,12 @@ unsafe fn testf(config: &Config) -> bool {
                 setExit(1);
                 return true;
             }
-            inStr = STDIN!();
+            inStr = CFile::stdin();
         }
         SourceMode::F2O | SourceMode::F2F => {
-            inStr = fopen_input(&config.input);
-            if inStr.is_null() {
+            inStr = if let Some(file) = CFile::open_input(&config.input) {
+                file
+            } else {
                 eprintln!(
                     "{}: Can't open input {}: {}.",
                     config.program_name.display(),
@@ -1687,7 +1803,7 @@ unsafe fn testf(config: &Config) -> bool {
                 );
                 setExit(1);
                 return true;
-            }
+            };
         }
     }
     if config.verbosity >= 1 {
