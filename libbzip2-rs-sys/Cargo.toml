@@ -5,7 +5,6 @@ edition.workspace = true
 
 [lib]
 name = "libbzip2_rs_sys"
-path = "../c2rust-lib.rs"
 crate-type = ["staticlib", "rlib"]
 
 
