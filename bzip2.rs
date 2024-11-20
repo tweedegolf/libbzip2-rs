@@ -1890,7 +1890,8 @@ fn contains_osstr(haystack: impl AsRef<OsStr>, needle: impl AsRef<OsStr>) -> boo
     haystack.windows(needle.len()).any(|h| h == needle)
 }
 
-fn main_0(program_path: &Path) -> c_int {
+fn main() {
+    let program_path = PathBuf::from(std::env::args_os().next().unwrap());
     let program_name = Path::new(program_path.file_name().unwrap());
 
     noisy.store(true, Ordering::SeqCst);
@@ -2161,13 +2162,5 @@ fn main_0(program_path: &Path) -> c_int {
         }
     }
 
-    exitValue.load(Ordering::SeqCst)
-}
-
-fn main() {
-    let mut it = std::env::args_os();
-
-    let program_name = PathBuf::from(it.next().unwrap());
-
-    std::process::exit(main_0(&program_name) as i32)
+    exit(exitValue.load(Ordering::SeqCst))
 }
