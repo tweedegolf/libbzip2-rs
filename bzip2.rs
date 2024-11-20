@@ -15,8 +15,8 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    fclose, ferror, fflush, fgetc, fileno, fread, perror, rewind, signal, ungetc, FILE, SIGINT,
-    SIGTERM,
+    fclose, ferror, fflush, fgetc, fileno, fread, perror, rewind, signal, size_t, ungetc, FILE,
+    SIGINT, SIGTERM,
 };
 
 // FIXME remove this
@@ -543,14 +543,7 @@ fn uncompressStream(
                         if zStream.is_eof() {
                             break;
                         }
-                        nread = unsafe {
-                            fread(
-                                obuf.as_mut_ptr() as *mut libc::c_void,
-                                core::mem::size_of::<u8>() as libc::size_t,
-                                5000,
-                                zStream.file,
-                            )
-                        } as i32;
+                        nread = zStream.read(&mut obuf) as i32;
                         if zStream.has_error() {
                             // diverges
                             ioError(config)
@@ -1165,6 +1158,17 @@ impl CFile {
     #[cfg(not(windows))]
     /// Prevent Windows from mangling the read data.
     fn set_binary_mode(&self, _config: &Config) {}
+
+    fn read(&self, buf: &mut [u8]) -> size_t {
+        unsafe {
+            fread(
+                buf.as_mut_ptr() as *mut libc::c_void,
+                1,
+                buf.len(),
+                self.file,
+            )
+        }
+    }
 
     fn rewind(&self) {
         unsafe {
