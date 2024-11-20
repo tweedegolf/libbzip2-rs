@@ -17,8 +17,8 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    _exit, exit, fclose, ferror, fflush, fgetc, fileno, fopen, fread, perror, remove, rewind,
-    signal, stat, strlen, ungetc, write, FILE, SIGINT, SIGSEGV, SIGTERM,
+    exit, fclose, ferror, fflush, fgetc, fileno, fopen, fread, perror, remove, rewind, signal,
+    stat, ungetc, FILE, SIGINT, SIGTERM,
 };
 
 // FIXME remove this
@@ -252,7 +252,7 @@ fn display_os_error(error: std::io::Error) -> String {
 
 unsafe fn myfeof(f: *mut FILE) -> bool {
     let c: i32 = fgetc(f);
-    if c == -1 as libc::c_int {
+    if c == -1 {
         return true;
     }
     ungetc(c, f);
@@ -333,7 +333,7 @@ unsafe fn compressStream(
         BZ2_bzWriteClose64(
             &mut bzerr,
             bzf,
-            0 as libc::c_int,
+            0,
             &mut nbytes_in_lo32,
             &mut nbytes_in_hi32,
             &mut nbytes_out_lo32,
@@ -454,18 +454,18 @@ unsafe fn uncompressStream(
                     unused.as_mut_ptr() as *mut libc::c_void,
                     nUnused,
                 );
-                if bzf.is_null() || bzerr != 0 as libc::c_int {
+                if bzf.is_null() || bzerr != 0 {
                     state = State::ErrHandler;
                     continue 'outer;
                 }
                 streamNo += 1;
 
-                while bzerr == 0 as libc::c_int {
+                while bzerr == 0 {
                     nread = BZ2_bzRead(
                         &mut bzerr,
                         bzf,
                         obuf.as_mut_ptr() as *mut libc::c_void,
-                        5000 as libc::c_int,
+                        5000,
                     );
                     if bzerr == libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC {
                         state = State::TryCat;
@@ -543,7 +543,7 @@ unsafe fn uncompressStream(
                         nread = fread(
                             obuf.as_mut_ptr() as *mut libc::c_void,
                             core::mem::size_of::<u8>() as libc::size_t,
-                            5000 as libc::c_int as libc::size_t,
+                            5000,
                             zStream,
                         ) as i32;
                         if ferror(zStream) != 0 {
@@ -649,7 +649,7 @@ unsafe fn testStream(config: &Config, zStream: *mut FILE) -> bool {
             }
 
             let unusedTmp = unusedTmpV as *mut u8;
-            i = 0 as libc::c_int;
+            i = 0;
             while i < nUnused {
                 unused[i as usize] = *unusedTmp.offset(i as isize);
                 i += 1;
@@ -792,7 +792,7 @@ unsafe fn cleanUpAndFail(ec: i32) -> ! {
         }
     }
     if noisy.load(Ordering::SeqCst)
-        && numFileNames.load(Ordering::SeqCst) > 0 as libc::c_int
+        && numFileNames.load(Ordering::SeqCst) > 0
         && numFilesProcessed.load(Ordering::SeqCst) < numFileNames.load(Ordering::SeqCst)
     {
         eprint!(
@@ -824,7 +824,7 @@ unsafe fn panic_str(s: &str) -> ! {
         s,
     );
     showFileNames();
-    cleanUpAndFail(3 as libc::c_int);
+    cleanUpAndFail(3);
 }
 
 unsafe fn crcError() -> ! {
@@ -834,7 +834,7 @@ unsafe fn crcError() -> ! {
     );
     showFileNames();
     cadvise();
-    cleanUpAndFail(2 as libc::c_int);
+    cleanUpAndFail(2);
 }
 
 unsafe fn compressedStreamEOF() -> ! {
@@ -851,7 +851,7 @@ unsafe fn compressedStreamEOF() -> ! {
         showFileNames();
         cadvise();
     }
-    cleanUpAndFail(2 as libc::c_int);
+    cleanUpAndFail(2);
 }
 
 unsafe fn exit_with_io_error(error: std::io::Error) -> ! {
@@ -861,7 +861,7 @@ unsafe fn exit_with_io_error(error: std::io::Error) -> ! {
     );
     eprintln!("{}", display_os_error(error));
     showFileNames();
-    cleanUpAndFail(1 as libc::c_int);
+    cleanUpAndFail(1);
 }
 
 unsafe fn ioError() -> ! {
@@ -871,7 +871,7 @@ unsafe fn ioError() -> ! {
     );
     perror(progName);
     showFileNames();
-    cleanUpAndFail(1 as libc::c_int);
+    cleanUpAndFail(1);
 }
 
 unsafe extern "C" fn mySignalCatcher(_: libc::c_int) {
@@ -879,7 +879,7 @@ unsafe extern "C" fn mySignalCatcher(_: libc::c_int) {
         "\n{}: Control-C or similar caught, quitting.",
         CStr::from_ptr(progName).to_string_lossy(),
     );
-    cleanUpAndFail(1 as libc::c_int);
+    cleanUpAndFail(1);
 }
 
 unsafe extern "C" fn mySIGSEGVorSIGBUScatcher(_: libc::c_int) {
@@ -976,7 +976,7 @@ unsafe fn outOfMemory() -> ! {
         get_program_name().display(),
     );
     showFileNames();
-    cleanUpAndFail(1 as libc::c_int);
+    cleanUpAndFail(1);
 }
 
 unsafe fn configError() -> ! {
@@ -988,7 +988,7 @@ unsafe fn configError() -> ! {
         "\tand recompiling.  Bye!\n",
     );
     eprint!("{}", MSG);
-    setExit(3 as libc::c_int);
+    setExit(3);
     exit(exitValue.load(Ordering::SeqCst));
 }
 
@@ -1017,7 +1017,7 @@ unsafe fn copy_filename(to: *mut c_char, from: &str) {
             from,
             FILE_NAME_LEN - 10
         );
-        setExit(1 as libc::c_int);
+        setExit(1);
         exit(exitValue.load(Ordering::SeqCst));
     }
 
@@ -1115,7 +1115,7 @@ unsafe fn set_permissions(_handle: *mut FILE, _metadata: &Metadata) {
         }
 
         let retVal = libc::fchmod(fd, _metadata.mode() as libc::mode_t);
-        if retVal != 0 as libc::c_int {
+        if retVal != 0 {
             ioError();
         }
 
@@ -1183,7 +1183,7 @@ unsafe fn compress(config: &Config) {
                 config.input.display(),
             );
         }
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
     if srcMode != SourceMode::I2O && !config.input.exists() {
@@ -1193,7 +1193,7 @@ unsafe fn compress(config: &Config) {
             config.input.display(),
             display_last_os_error(),
         );
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
     if let Some(extension) = config.input.extension() {
@@ -1207,7 +1207,7 @@ unsafe fn compress(config: &Config) {
                         &bz2_extension[1..],
                     );
                 }
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
         }
@@ -1218,7 +1218,7 @@ unsafe fn compress(config: &Config) {
             config.program_name.display(),
             config.input.display(),
         );
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
 
@@ -1230,7 +1230,7 @@ unsafe fn compress(config: &Config) {
                 config.input.display(),
             );
         }
-        setExit(1 as libc::c_int);
+        setExit(1);
         return;
     }
     if srcMode == SourceMode::F2F && config.output.exists() {
@@ -1242,7 +1242,7 @@ unsafe fn compress(config: &Config) {
                 config.program_name.display(),
                 config.output.display(),
             );
-            setExit(1 as libc::c_int);
+            setExit(1);
             return;
         }
     }
@@ -1258,7 +1258,7 @@ unsafe fn compress(config: &Config) {
                     n,
                     if n > 1 { "s" } else { "" },
                 );
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
         }
@@ -1291,7 +1291,7 @@ unsafe fn compress(config: &Config) {
                     config.program_name.display(),
                     config.program_name.display(),
                 );
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
         }
@@ -1307,7 +1307,7 @@ unsafe fn compress(config: &Config) {
                     config.program_name.display(),
                     config.program_name.display(),
                 );
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
 
@@ -1320,7 +1320,7 @@ unsafe fn compress(config: &Config) {
                         config.input.display(),
                         display_os_error(e),
                     );
-                    setExit(1 as libc::c_int);
+                    setExit(1);
                     return;
                 }
             };
@@ -1334,7 +1334,7 @@ unsafe fn compress(config: &Config) {
                     config.input.display(),
                     display_last_os_error(),
                 );
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return;
             }
 
@@ -1347,13 +1347,13 @@ unsafe fn compress(config: &Config) {
                         config.input.display(),
                         display_os_error(e),
                     );
-                    setExit(1 as libc::c_int);
+                    setExit(1);
                     return;
                 }
             };
         }
     }
-    if config.verbosity >= 1 as libc::c_int {
+    if config.verbosity >= 1 {
         eprint!("  {}: ", config.input.display());
         pad(config.input);
     }
@@ -1489,7 +1489,7 @@ unsafe fn uncompress(config: &Config) -> bool {
                     n,
                     if n > 1 { "s" } else { "" },
                 );
-                setExit(1 as libc::c_int);
+                setExit(1);
                 return true;
             }
         }
@@ -1823,16 +1823,6 @@ unsafe fn main_0(program_path: &Path) -> c_int {
     // uncompress config
     let mut decompress_mode = DecompressMode::Fast;
 
-    signal(
-        SIGSEGV,
-        mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(libc::c_int) as usize,
-    );
-    #[cfg(not(target_os = "windows"))]
-    signal(
-        libc::SIGBUS,
-        mySIGSEGVorSIGBUScatcher as unsafe extern "C" fn(libc::c_int) as usize,
-    );
-
     copy_filename(inName.as_mut_ptr(), "(none)");
     copy_filename(outName.as_mut_ptr(), "(none)");
 
@@ -1969,7 +1959,7 @@ unsafe fn main_0(program_path: &Path) -> c_int {
         }
     }
 
-    if verbosity > 4 as libc::c_int {
+    if verbosity > 4 {
         verbosity = 4;
     }
 
