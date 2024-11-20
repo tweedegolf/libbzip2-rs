@@ -2,7 +2,6 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 
-use std::borrow::Cow;
 use std::ffi::{c_char, c_int, CStr, OsStr};
 use std::fs::Metadata;
 use std::io::{self, IsTerminal, Read, Write};
@@ -79,11 +78,11 @@ static numFileNames: AtomicI32 = AtomicI32::new(0);
 static numFilesProcessed: AtomicI32 = AtomicI32::new(0);
 static exitValue: AtomicI32 = AtomicI32::new(0);
 
-struct Config<'a> {
-    program_name: &'a Path,
+struct Config {
+    program_name: PathBuf,
 
-    input: &'a Path,
-    output: Cow<'a, Path>,
+    input: PathBuf,
+    output: PathBuf,
 
     // general
     noisy: bool,
@@ -99,11 +98,11 @@ struct Config<'a> {
     decompress_mode: DecompressMode,
 }
 
-impl<'a> Config<'a> {
+impl Config {
     fn with_input(
         &mut self,
         operation: OperationMode,
-        name: Option<&'a str>,
+        name: Option<&str>,
         source_mode: SourceMode,
     ) {
         match operation {
@@ -118,19 +117,19 @@ impl<'a> Config<'a> {
         }
     }
 
-    fn with_compress_input(&mut self, name: Option<&'a str>, mode: SourceMode) {
+    fn with_compress_input(&mut self, name: Option<&str>, mode: SourceMode) {
         match (name, mode) {
             (_, SourceMode::I2O) => {
-                self.input = Path::new("(stdin)");
-                self.output = Cow::Borrowed(Path::new("(stdout)"));
+                self.input = Path::new("(stdin)").to_owned();
+                self.output = Path::new("(stdout)").to_owned();
             }
             (Some(name), SourceMode::F2O) => {
-                self.input = Path::new(name);
-                self.output = Cow::Borrowed(Path::new("(stdout)"));
+                self.input = Path::new(name).to_owned();
+                self.output = Path::new("(stdout)").to_owned();
             }
             (Some(name), SourceMode::F2F) => {
-                self.input = Path::new(name);
-                self.output = Cow::Owned(PathBuf::from(format!("{name}.bz2")));
+                self.input = Path::new(name).to_owned();
+                self.output = PathBuf::from(format!("{name}.bz2"));
             }
             (None, SourceMode::F2O | SourceMode::F2F) => unsafe {
                 panic_str("compress: bad modes\n")
@@ -138,18 +137,18 @@ impl<'a> Config<'a> {
         }
     }
 
-    fn with_uncompress_input(&mut self, name: Option<&'a str>, mode: SourceMode) {
+    fn with_uncompress_input(&mut self, name: Option<&str>, mode: SourceMode) {
         match (name, mode) {
             (_, SourceMode::I2O) => {
-                self.input = Path::new("(stdin)");
-                self.output = Cow::Borrowed(Path::new("(stdout)"));
+                self.input = Path::new("(stdin)").to_owned();
+                self.output = Path::new("(stdout)").to_owned();
             }
             (Some(name), SourceMode::F2O) => {
-                self.input = Path::new(name);
-                self.output = Cow::Borrowed(Path::new("(stdout)"));
+                self.input = Path::new(name).to_owned();
+                self.output = Path::new("(stdout)").to_owned();
             }
             (Some(name), SourceMode::F2F) => {
-                self.input = Path::new(name);
+                self.input = Path::new(name).to_owned();
 
                 let mut name = name.to_owned();
 
@@ -165,7 +164,7 @@ impl<'a> Config<'a> {
                     name += ".out";
                 };
 
-                self.output = Cow::Owned(PathBuf::from(name));
+                self.output = PathBuf::from(name);
             }
             (None, SourceMode::F2O | SourceMode::F2F) => unsafe {
                 panic_str("uncompress: bad modes\n")
@@ -173,18 +172,18 @@ impl<'a> Config<'a> {
         }
     }
 
-    fn with_test_input(&mut self, name: Option<&'a str>, mode: SourceMode) {
-        self.output = Cow::Borrowed(Path::new("(none)"));
+    fn with_test_input(&mut self, name: Option<&str>, mode: SourceMode) {
+        self.output = Path::new("(none)").to_owned();
 
         match (name, mode) {
             (_, SourceMode::I2O) => {
-                self.input = Path::new("(stdin)");
+                self.input = Path::new("(stdin)").to_owned();
             }
             (Some(name), SourceMode::F2O) => {
-                self.input = Path::new(name);
+                self.input = Path::new(name).to_owned();
             }
             (Some(name), SourceMode::F2F) => {
-                self.input = Path::new(name);
+                self.input = Path::new(name).to_owned();
             }
             (None, SourceMode::F2O | SourceMode::F2F) => unsafe {
                 panic_str("testf: bad modes");
@@ -1162,7 +1161,7 @@ unsafe fn set_binary_mode(_file: *mut FILE) {}
 unsafe fn compress(config: &Config) {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
-    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
+    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
         if config.noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
@@ -1209,7 +1208,7 @@ unsafe fn compress(config: &Config) {
         return;
     }
 
-    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(config.input) {
+    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(&config.input) {
         if config.noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
@@ -1235,7 +1234,7 @@ unsafe fn compress(config: &Config) {
     }
 
     if srcMode == SourceMode::F2F && !config.force_overwrite {
-        match count_hardlinks(config.input) {
+        match count_hardlinks(&config.input) {
             0 => { /* fallthrough */ }
             n => {
                 eprintln!(
@@ -1254,7 +1253,7 @@ unsafe fn compress(config: &Config) {
     // Save the file's meta-info before we open it.
     // Doing it later means we mess up the access times.
     let metadata = match srcMode {
-        SourceMode::F2F => match std::fs::metadata(config.input) {
+        SourceMode::F2F => match std::fs::metadata(&config.input) {
             Ok(metadata) => Some(metadata),
             Err(error) => exit_with_io_error(error),
         },
@@ -1298,7 +1297,7 @@ unsafe fn compress(config: &Config) {
                 return;
             }
 
-            input_stream = match std::fs::File::open(config.input) {
+            input_stream = match std::fs::File::open(&config.input) {
                 Ok(file) => InputStream::File(file),
                 Err(e) => {
                     eprintln!(
@@ -1325,7 +1324,7 @@ unsafe fn compress(config: &Config) {
                 return;
             }
 
-            input_stream = match std::fs::File::open(config.input) {
+            input_stream = match std::fs::File::open(&config.input) {
                 Ok(file) => InputStream::File(file),
                 Err(e) => {
                     eprintln!(
@@ -1342,7 +1341,7 @@ unsafe fn compress(config: &Config) {
     }
     if config.verbosity >= 1 {
         eprint!("  {}: ", config.input.display());
-        pad(config.input);
+        pad(&config.input);
     }
     delete_output_on_interrupt.store(true, Ordering::SeqCst);
     compressStream(config, input_stream, outStr, metadata.as_ref());
@@ -1353,7 +1352,7 @@ unsafe fn compress(config: &Config) {
         }
         delete_output_on_interrupt.store(false, Ordering::SeqCst);
         if !config.keep_input_files {
-            if let Err(error) = std::fs::remove_file(config.input) {
+            if let Err(error) = std::fs::remove_file(&config.input) {
                 exit_with_io_error(error)
             }
         }
@@ -1394,7 +1393,7 @@ unsafe fn uncompress(config: &Config) -> bool {
 
     let cannot_guess = config.output.extension() == Some(OsStr::new("out"));
 
-    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
+    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
         if config.noisy {
             eprintln!(
                 "%{}: There are no files matching `{}'.",
@@ -1427,7 +1426,7 @@ unsafe fn uncompress(config: &Config) -> bool {
         return true;
     }
 
-    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(config.input) {
+    if srcMode == SourceMode::F2F && !config.force_overwrite && not_a_standard_file(&config.input) {
         if config.noisy {
             eprintln!(
                 "{}: Input file {} is not a normal file.",
@@ -1464,7 +1463,7 @@ unsafe fn uncompress(config: &Config) -> bool {
     }
 
     if srcMode == SourceMode::F2F && !config.force_overwrite {
-        match count_hardlinks(config.input) {
+        match count_hardlinks(&config.input) {
             0 => { /* fallthrough */ }
             n => {
                 eprintln!(
@@ -1483,7 +1482,7 @@ unsafe fn uncompress(config: &Config) -> bool {
     // Save the file's meta-info before we open it.
     // Doing it later means we mess up the access times.
     let metadata = match srcMode {
-        SourceMode::F2F => match std::fs::metadata(config.input) {
+        SourceMode::F2F => match std::fs::metadata(&config.input) {
             Ok(metadata) => Some(metadata),
             Err(error) => exit_with_io_error(error),
         },
@@ -1571,7 +1570,7 @@ unsafe fn uncompress(config: &Config) -> bool {
 
     if config.verbosity >= 1 {
         eprint!("  {}: ", config.input.display());
-        pad(config.input);
+        pad(&config.input);
     }
 
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
@@ -1586,7 +1585,7 @@ unsafe fn uncompress(config: &Config) -> bool {
             }
             delete_output_on_interrupt.store(false, Ordering::SeqCst);
             if !config.keep_input_files {
-                if let Err(error) = std::fs::remove_file(config.input) {
+                if let Err(error) = std::fs::remove_file(&config.input) {
                     exit_with_io_error(error);
                 }
             }
@@ -1625,7 +1624,7 @@ unsafe fn uncompress(config: &Config) -> bool {
 unsafe fn testf(config: &Config) -> bool {
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
-    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(config.input) {
+    if srcMode != SourceMode::I2O && contains_dubious_chars_safe(&config.input) {
         if config.noisy {
             eprintln!(
                 "{}: There are no files matching `{}'.",
@@ -1693,7 +1692,7 @@ unsafe fn testf(config: &Config) -> bool {
     }
     if config.verbosity >= 1 {
         eprint!("  {}: ", config.input.display());
-        pad(config.input);
+        pad(&config.input);
     }
     let allOK = testStream(config, inStr);
     if allOK && config.verbosity >= 1 {
@@ -1969,10 +1968,10 @@ unsafe fn main_0(program_path: &Path) -> c_int {
     let arg_list = &arg_list;
 
     let mut config = Config {
-        program_name,
+        program_name: program_name.to_owned(),
 
-        input: Path::new("(none)"),
-        output: Cow::Borrowed(Path::new("(none)")),
+        input: Path::new("(none)").to_owned(),
+        output: Path::new("(none)").to_owned(),
 
         // general
         noisy: noisy.load(Ordering::SeqCst),
