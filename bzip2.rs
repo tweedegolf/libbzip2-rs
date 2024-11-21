@@ -7,7 +7,7 @@ use std::fs::Metadata;
 use std::io::{self, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::{Arc, RwLock};
 
 use libbzip2_rs_sys::{
@@ -72,7 +72,6 @@ enum DecompressMode {
 // NOTE: we use Ordering::SeqCst to synchronize with the signal handler
 static delete_output_on_interrupt: AtomicBool = AtomicBool::new(false);
 static exitValue: AtomicI32 = AtomicI32::new(0);
-static LONGEST_FILENAME: AtomicUsize = AtomicUsize::new(0);
 
 struct Config {
     program_name: PathBuf,
@@ -82,6 +81,7 @@ struct Config {
 
     // general
     noisy: bool,
+    longest_filename: usize,
     num_files_total: u32,
     num_files_processed: u32,
     verbosity: i32,
@@ -973,15 +973,14 @@ fn configError() -> ! {
     exit(exitValue.load(Ordering::SeqCst));
 }
 
-fn pad(s: &Path) {
-    let len = s.as_os_str().as_encoded_bytes().len();
-    let longest_filename = LONGEST_FILENAME.load(Ordering::SeqCst);
+fn pad(config: &Config) {
+    let len = config.input.as_os_str().as_encoded_bytes().len();
 
-    if len >= longest_filename {
+    if len >= config.longest_filename {
         return;
     }
 
-    for _ in 1..=longest_filename - len {
+    for _ in 1..=config.longest_filename - len {
         eprint!(" ");
     }
 }
@@ -1464,7 +1463,7 @@ fn compress(config: &Config) {
     }
     if config.verbosity >= 1 {
         eprint!("  {}: ", config.input.display());
-        pad(&config.input);
+        pad(config);
     }
     delete_output_on_interrupt.store(true, Ordering::SeqCst);
     compressStream(config, input_stream, outStr, metadata.as_ref());
@@ -1686,7 +1685,7 @@ fn uncompress(config: &Config) -> bool {
 
     if config.verbosity >= 1 {
         eprint!("  {}: ", config.input.display());
-        pad(&config.input);
+        pad(config);
     }
 
     /*--- Now the input and output handles are sane.  Do the Biz. ---*/
@@ -1805,7 +1804,7 @@ fn testf(config: &Config) -> bool {
     };
     if config.verbosity >= 1 {
         eprint!("  {}: ", config.input.display());
-        pad(&config.input);
+        pad(config);
     }
     let allOK = testStream(config, inStr);
     if allOK && config.verbosity >= 1 {
@@ -1928,7 +1927,7 @@ fn main() {
 
     arg_list.extend(std::env::args().skip(1));
 
-    LONGEST_FILENAME.store(7, Ordering::SeqCst);
+    let mut longest_filename = 7;
     let mut num_files_total = 0;
     let mut decode = true;
 
@@ -1937,7 +1936,7 @@ fn main() {
             decode = false;
         } else if !(name.starts_with('-') && decode) {
             num_files_total += 1;
-            LONGEST_FILENAME.fetch_max(name.len(), Ordering::SeqCst);
+            longest_filename = Ord::max(longest_filename, name.len());
         }
     }
 
@@ -2075,6 +2074,7 @@ fn main() {
 
         // general
         noisy,
+        longest_filename,
         num_files_total,
         num_files_processed: 0,
         verbosity,
