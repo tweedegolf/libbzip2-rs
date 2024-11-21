@@ -15,8 +15,8 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    fclose, ferror, fflush, fgetc, fileno, fread, perror, rewind, signal, size_t, ungetc, FILE,
-    SIGINT, SIGTERM,
+    fclose, ferror, fflush, fgetc, fileno, fread, rewind, signal, size_t, ungetc, FILE, SIGINT,
+    SIGTERM,
 };
 
 // FIXME remove this
@@ -848,15 +848,11 @@ fn compressedStreamEOF(config: &Config) -> ! {
             ),
             config.program_name.display(),
         );
-        // The CString really only needs to live for the duration of the perror
-        #[allow(temporary_cstring_as_ptr)]
-        unsafe {
-            perror(
-                CString::new(config.program_name.to_str().unwrap())
-                    .unwrap()
-                    .as_ptr(),
-            );
-        }
+        eprintln!(
+            "{}: {}",
+            config.program_name.display(),
+            display_last_os_error()
+        );
         showFileNames(config);
         cadvise();
     }
@@ -878,15 +874,11 @@ fn ioError(config: &Config) -> ! {
         "\n{}: I/O or other error, bailing out.  Possible reason follows.",
         config.program_name.display(),
     );
-    // The CString really only needs to live for the duration of the perror
-    #[allow(temporary_cstring_as_ptr)]
-    unsafe {
-        perror(
-            CString::new(config.program_name.to_str().unwrap())
-                .unwrap()
-                .as_ptr(),
-        );
-    }
+    eprintln!(
+        "{}: {}",
+        config.program_name.display(),
+        display_last_os_error()
+    );
     showFileNames(config);
     cleanUpAndFail(config, 1);
 }

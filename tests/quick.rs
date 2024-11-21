@@ -444,7 +444,7 @@ mod decompress_command {
                     "\n",
                     "bzip2: Compressed file ends unexpectedly;\n",
                     "	perhaps it is corrupted?  *Possible* reason follows.\n",
-                    "bzip2: No error\n",
+                    "bzip2: The handle is invalid.\n",
                     "	Input file = (stdin), output file = (stdout)\n",
                     "\n",
                     "It is possible that the compressed file(s) have become corrupted.\n",
