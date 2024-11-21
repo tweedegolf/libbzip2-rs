@@ -71,10 +71,8 @@ enum DecompressMode {
 
 // NOTE: we use Ordering::SeqCst to synchronize with the signal handler
 static delete_output_on_interrupt: AtomicBool = AtomicBool::new(false);
-
-static numFileNames: AtomicI32 = AtomicI32::new(0);
-static numFilesProcessed: AtomicI32 = AtomicI32::new(0);
 static exitValue: AtomicI32 = AtomicI32::new(0);
+static LONGEST_FILENAME: AtomicUsize = AtomicUsize::new(0);
 
 struct Config {
     program_name: PathBuf,
@@ -84,6 +82,8 @@ struct Config {
 
     // general
     noisy: bool,
+    num_files_total: u32,
+    num_files_processed: u32,
     verbosity: i32,
     force_overwrite: bool,
     keep_input_files: bool,
@@ -226,9 +226,6 @@ enum OperationMode {
     Unzip = 2,
     Test = 3,
 }
-
-// NOTE: we use Ordering::SeqCst to synchronize with the signal handler
-static LONGEST_FILENAME: AtomicUsize = AtomicUsize::new(0);
 
 /// Strictly for compatibility with the original bzip2 output
 fn display_last_os_error() -> String {
@@ -793,8 +790,8 @@ fn cleanUpAndFail(config: &Config, ec: i32) -> ! {
         }
     }
     if config.noisy
-        && numFileNames.load(Ordering::SeqCst) > 0
-        && numFilesProcessed.load(Ordering::SeqCst) < numFileNames.load(Ordering::SeqCst)
+        && config.num_files_total > 0
+        && config.num_files_processed < config.num_files_total
     {
         eprint!(
             concat!(
@@ -804,8 +801,8 @@ fn cleanUpAndFail(config: &Config, ec: i32) -> ! {
             ),
             config.program_name.display(),
             config.program_name.display(),
-            numFileNames.load(Ordering::SeqCst),
-            numFileNames.load(Ordering::SeqCst) - numFilesProcessed.load(Ordering::SeqCst),
+            config.num_files_total,
+            config.num_files_total - config.num_files_processed,
         );
     }
     setExit(ec);
@@ -1902,8 +1899,6 @@ fn main() {
     let program_path = PathBuf::from(std::env::args_os().next().unwrap());
     let program_name = Path::new(program_path.file_name().unwrap());
 
-    numFileNames.store(0, Ordering::SeqCst);
-    numFilesProcessed.store(0, Ordering::SeqCst);
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
 
     exitValue.store(0, Ordering::SeqCst);
@@ -1934,19 +1929,19 @@ fn main() {
     arg_list.extend(std::env::args().skip(1));
 
     LONGEST_FILENAME.store(7, Ordering::SeqCst);
-    numFileNames.store(0, Ordering::SeqCst);
+    let mut num_files_total = 0;
     let mut decode = true;
 
     for name in &arg_list {
         if name == "--" {
             decode = false;
         } else if !(name.starts_with('-') && decode) {
-            numFileNames.fetch_add(1, Ordering::SeqCst);
+            num_files_total += 1;
             LONGEST_FILENAME.fetch_max(name.len(), Ordering::SeqCst);
         }
     }
 
-    let mut src_mode = match numFileNames.load(Ordering::SeqCst) {
+    let mut src_mode = match num_files_total {
         0 => SourceMode::I2O,
         _ => SourceMode::F2F,
     };
@@ -1960,7 +1955,7 @@ fn main() {
         || contains_osstr(program_name, "ZCAT")
     {
         op_mode = OperationMode::Unzip;
-        src_mode = match numFileNames.load(Ordering::SeqCst) {
+        src_mode = match num_files_total {
             0 => SourceMode::F2O,
             _ => SourceMode::F2F,
         };
@@ -2063,7 +2058,7 @@ fn main() {
         );
         exit(1);
     }
-    if src_mode == SourceMode::F2O && numFileNames.load(Ordering::SeqCst) == 0 {
+    if src_mode == SourceMode::F2O && num_files_total == 0 {
         src_mode = SourceMode::I2O;
     }
     if op_mode != OperationMode::Zip {
@@ -2080,6 +2075,8 @@ fn main() {
 
         // general
         noisy,
+        num_files_total,
+        num_files_processed: 0,
         verbosity,
         force_overwrite,
         keep_input_files,
@@ -2109,8 +2106,11 @@ fn main() {
                     if name == "--" {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
-                        numFilesProcessed.fetch_add(1, Ordering::SeqCst);
-                        config.write().unwrap().with_input(Some(name.as_str()));
+                        {
+                            let mut config = config.write().unwrap();
+                            config.num_files_processed += 1;
+                            config.with_input(Some(name.as_str()));
+                        }
                         compress(&config.read().unwrap());
                     }
                 }
@@ -2127,8 +2127,11 @@ fn main() {
                     if name == "--" {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
-                        numFilesProcessed.fetch_add(1, Ordering::SeqCst);
-                        config.write().unwrap().with_input(Some(name.as_str()));
+                        {
+                            let mut config = config.write().unwrap();
+                            config.num_files_processed += 1;
+                            config.with_input(Some(name.as_str()));
+                        }
                         all_ok &= uncompress(&config.read().unwrap());
                     }
                 }
@@ -2149,8 +2152,11 @@ fn main() {
                     if name == "--" {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
-                        numFilesProcessed.fetch_add(1, Ordering::SeqCst);
-                        config.write().unwrap().with_input(Some(name.as_str()));
+                        {
+                            let mut config = config.write().unwrap();
+                            config.num_files_processed += 1;
+                            config.with_input(Some(name.as_str()));
+                        }
                         all_ok &= testf(&config.read().unwrap());
                     }
                 }
