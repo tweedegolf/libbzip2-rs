@@ -8,6 +8,7 @@ use std::io::{self, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering};
+use std::sync::{Arc, RwLock};
 
 use libbzip2_rs_sys::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
@@ -76,7 +77,6 @@ static numFileNames: AtomicI32 = AtomicI32::new(0);
 static numFilesProcessed: AtomicI32 = AtomicI32::new(0);
 static exitValue: AtomicI32 = AtomicI32::new(0);
 
-#[derive(Clone)]
 struct Config {
     program_name: PathBuf,
 
@@ -884,7 +884,7 @@ fn ioError(config: &Config) -> ! {
     cleanUpAndFail(config, 1);
 }
 
-fn setup_ctrl_c_handler(config: &Config) {
+fn setup_ctrl_c_handler(config: &Arc<RwLock<Config>>) {
     static ABORT_PIPE: AtomicI32 = AtomicI32::new(0);
     static TRIED_TO_CANCEL: AtomicBool = AtomicBool::new(false);
 
@@ -906,6 +906,11 @@ fn setup_ctrl_c_handler(config: &Config) {
             unsafe {
                 libc::read(pair[0], &mut 0u8 as *mut u8 as *mut _, 1);
             }
+            let Ok(config) = config.read() else {
+                // This happens when the main thread panicked. When that happens the process will
+                // exit soon anyway.
+                return;
+            };
             eprintln!(
                 "\n{}: Control-C or similar caught, quitting.",
                 config.program_name.display(),
@@ -2068,7 +2073,7 @@ fn main() {
 
     let arg_list = &arg_list;
 
-    let mut config = Config {
+    let config = Arc::new(RwLock::new(Config {
         program_name: program_name.to_owned(),
 
         input: Path::new("(none)").to_owned(),
@@ -2088,7 +2093,7 @@ fn main() {
 
         // uncompress
         decompress_mode,
-    };
+    }));
 
     if src_mode == SourceMode::F2F {
         setup_ctrl_c_handler(&config);
@@ -2097,8 +2102,8 @@ fn main() {
     match op_mode {
         OperationMode::Zip => {
             if src_mode == SourceMode::I2O {
-                config.with_input(None);
-                compress(&config);
+                config.write().unwrap().with_input(None);
+                compress(&config.read().unwrap());
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2106,8 +2111,8 @@ fn main() {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed.fetch_add(1, Ordering::SeqCst);
-                        config.with_input(Some(name.as_str()));
-                        compress(&config);
+                        config.write().unwrap().with_input(Some(name.as_str()));
+                        compress(&config.read().unwrap());
                     }
                 }
             }
@@ -2115,8 +2120,8 @@ fn main() {
         OperationMode::Unzip => {
             let mut all_ok = true;
             if src_mode == SourceMode::I2O {
-                config.with_input(None);
-                all_ok &= uncompress(&config);
+                config.write().unwrap().with_input(None);
+                all_ok &= uncompress(&config.read().unwrap());
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2124,8 +2129,8 @@ fn main() {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed.fetch_add(1, Ordering::SeqCst);
-                        config.with_input(Some(name.as_str()));
-                        all_ok &= uncompress(&config);
+                        config.write().unwrap().with_input(Some(name.as_str()));
+                        all_ok &= uncompress(&config.read().unwrap());
                     }
                 }
             }
@@ -2137,8 +2142,8 @@ fn main() {
         OperationMode::Test => {
             let mut all_ok = true;
             if src_mode == SourceMode::I2O {
-                config.with_input(None);
-                all_ok &= testf(&config);
+                config.write().unwrap().with_input(None);
+                all_ok &= testf(&config.read().unwrap());
             } else {
                 decode = true;
                 for name in arg_list {
@@ -2146,14 +2151,14 @@ fn main() {
                         decode = false;
                     } else if !(name.starts_with('-') && decode) {
                         numFilesProcessed.fetch_add(1, Ordering::SeqCst);
-                        config.with_input(Some(name.as_str()));
-                        all_ok &= testf(&config);
+                        config.write().unwrap().with_input(Some(name.as_str()));
+                        all_ok &= testf(&config.read().unwrap());
                     }
                 }
             }
 
             if !all_ok {
-                if config.noisy {
+                if config.read().unwrap().noisy {
                     eprintln!(concat!(
                         "\n",
                         "You can use the `bzip2recover' program to attempt to recover\n",
