@@ -72,7 +72,6 @@ enum DecompressMode {
 // NOTE: we use Ordering::SeqCst to synchronize with the signal handler
 static delete_output_on_interrupt: AtomicBool = AtomicBool::new(false);
 
-static noisy: AtomicBool = AtomicBool::new(false);
 static numFileNames: AtomicI32 = AtomicI32::new(0);
 static numFilesProcessed: AtomicI32 = AtomicI32::new(0);
 static exitValue: AtomicI32 = AtomicI32::new(0);
@@ -729,8 +728,8 @@ fn setExit(v: i32) {
     exitValue.fetch_max(v, Ordering::SeqCst);
 }
 
-fn cadvise() {
-    if noisy.load(Ordering::SeqCst) {
+fn cadvise(config: &Config) {
+    if config.noisy {
         eprint!(concat!(
             "\n",
             "It is possible that the compressed file(s) have become corrupted.\n",
@@ -744,7 +743,7 @@ fn cadvise() {
 }
 
 fn showFileNames(config: &Config) {
-    if noisy.load(Ordering::SeqCst) {
+    if config.noisy {
         eprintln!(
             "\tInput file = {}, output file = {}",
             config.input.display(),
@@ -759,7 +758,7 @@ fn cleanUpAndFail(config: &Config, ec: i32) -> ! {
         && delete_output_on_interrupt.load(Ordering::SeqCst)
     {
         if config.input.exists() {
-            if noisy.load(Ordering::SeqCst) {
+            if config.noisy {
                 eprintln!(
                     "{}: Deleting output file {}, if it exists.",
                     config.program_name.display(),
@@ -793,7 +792,7 @@ fn cleanUpAndFail(config: &Config, ec: i32) -> ! {
             );
         }
     }
-    if noisy.load(Ordering::SeqCst)
+    if config.noisy
         && numFileNames.load(Ordering::SeqCst) > 0
         && numFilesProcessed.load(Ordering::SeqCst) < numFileNames.load(Ordering::SeqCst)
     {
@@ -835,12 +834,12 @@ fn crcError(config: &Config) -> ! {
         config.program_name.display(),
     );
     showFileNames(config);
-    cadvise();
+    cadvise(config);
     cleanUpAndFail(config, 2);
 }
 
 fn compressedStreamEOF(config: &Config) -> ! {
-    if noisy.load(Ordering::SeqCst) {
+    if config.noisy {
         eprint!(
             concat!(
                 "\n",
@@ -855,7 +854,7 @@ fn compressedStreamEOF(config: &Config) -> ! {
             display_last_os_error()
         );
         showFileNames(config);
-        cadvise();
+        cadvise(config);
     }
     cleanUpAndFail(config, 2);
 }
@@ -1903,7 +1902,6 @@ fn main() {
     let program_path = PathBuf::from(std::env::args_os().next().unwrap());
     let program_name = Path::new(program_path.file_name().unwrap());
 
-    noisy.store(true, Ordering::SeqCst);
     numFileNames.store(0, Ordering::SeqCst);
     numFilesProcessed.store(0, Ordering::SeqCst);
     delete_output_on_interrupt.store(false, Ordering::SeqCst);
@@ -1911,6 +1909,7 @@ fn main() {
     exitValue.store(0, Ordering::SeqCst);
 
     // general config
+    let mut noisy = true;
     let mut verbosity = 0;
     let mut force_overwrite = false;
     let mut keep_input_files = false;
@@ -1983,7 +1982,7 @@ fn main() {
                     b't' => op_mode = OperationMode::Test,
                     b'k' => keep_input_files = true,
                     b's' => decompress_mode = DecompressMode::Small,
-                    b'q' => noisy.store(false, Ordering::SeqCst),
+                    b'q' => noisy = false,
                     b'1' => blockSize100k = 1,
                     b'2' => blockSize100k = 2,
                     b'3' => blockSize100k = 3,
@@ -2022,7 +2021,7 @@ fn main() {
             "--test" => op_mode = OperationMode::Test,
             "--keep" => keep_input_files = true,
             "--small" => decompress_mode = DecompressMode::Small,
-            "--quiet" => noisy.store(false, Ordering::SeqCst),
+            "--quiet" => noisy = false,
             "--version" | "--license" => {
                 license();
                 exit(0);
@@ -2080,7 +2079,7 @@ fn main() {
         output: Path::new("(none)").to_owned(),
 
         // general
-        noisy: noisy.load(Ordering::SeqCst),
+        noisy,
         verbosity,
         force_overwrite,
         keep_input_files,
