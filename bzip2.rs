@@ -989,8 +989,8 @@ fn pad(config: &Config) {
 ///
 /// # Safety invariant
 ///
-/// The file pointer must either point to a valid open [`FILE`].
-/// The must_not_close flag must be set for stdin and stdout.
+/// - The file pointer must point to a valid open [`FILE`].
+/// - The must_not_close flag must be set for stdin and stdout.
 struct CFile {
     file: *mut FILE,
     must_not_close: bool,
@@ -1210,7 +1210,8 @@ fn count_hardlinks(path: &Path) -> u64 {
 
 #[cfg(not(unix))]
 fn count_hardlinks(_path: &Path) -> u64 {
-    0 // FIXME
+    // FIXME use https://doc.rust-lang.org/stable/std/os/windows/fs/trait.MetadataExt.html#tymethod.number_of_links when stable
+    0
 }
 
 fn apply_saved_time_info_to_output_file(dst_name: &Path, metadata: Metadata) -> io::Result<()> {
