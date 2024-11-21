@@ -15,8 +15,7 @@ use libbzip2_rs_sys::{
 };
 
 use libc::{
-    fclose, ferror, fflush, fgetc, fileno, fread, rewind, signal, size_t, ungetc, FILE, SIGINT,
-    SIGTERM,
+    fclose, ferror, fflush, fgetc, fileno, fread, rewind, signal, ungetc, FILE, SIGINT, SIGTERM,
 };
 
 // FIXME remove this
@@ -407,14 +406,13 @@ fn compressStream(
 
 fn uncompressStream(
     config: &Config,
-    zStream: CFile,
+    mut zStream: CFile,
     mut stream: OutputStream,
     metadata: Option<&Metadata>,
 ) -> bool {
     let mut bzf = std::ptr::null_mut();
     let mut bzerr: i32 = 0;
     let mut bzerr_dummy: i32 = 0;
-    let mut nread: i32;
     let mut obuf: [u8; 5000] = [0; 5000];
     let mut unused: [u8; 5000] = [0; 5000];
     let mut unusedTmpV: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
@@ -458,7 +456,7 @@ fn uncompressStream(
                 streamNo += 1;
 
                 while bzerr == 0 {
-                    nread = unsafe {
+                    let nread = unsafe {
                         BZ2_bzRead(
                             &mut bzerr,
                             bzf,
@@ -543,7 +541,10 @@ fn uncompressStream(
                         if zStream.is_eof() {
                             break;
                         }
-                        nread = zStream.read(&mut obuf) as i32;
+                        let nread = match zStream.read(&mut obuf) {
+                            Ok(nread) => nread as i32,
+                            Err(error) => exit_with_io_error(config, error),
+                        };
                         if zStream.has_error() {
                             // diverges
                             ioError(config)
@@ -1151,17 +1152,6 @@ impl CFile {
     /// Prevent Windows from mangling the read data.
     fn set_binary_mode(&self, _config: &Config) {}
 
-    fn read(&self, buf: &mut [u8]) -> size_t {
-        unsafe {
-            fread(
-                buf.as_mut_ptr() as *mut libc::c_void,
-                1,
-                buf.len(),
-                self.file,
-            )
-        }
-    }
-
     fn rewind(&self) {
         unsafe {
             rewind(self.file);
@@ -1178,6 +1168,24 @@ impl CFile {
             return 0;
         }
         unsafe { fclose(self.file) }
+    }
+}
+
+impl Read for CFile {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let nread = unsafe {
+            fread(
+                buf.as_mut_ptr() as *mut libc::c_void,
+                1,
+                buf.len(),
+                self.file,
+            ) as usize
+        };
+        if self.has_error() {
+            Err(io::Error::last_os_error())
+        } else {
+            Ok(nread)
+        }
     }
 }
 
