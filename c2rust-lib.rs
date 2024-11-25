@@ -17,6 +17,7 @@ mod bzlib;
 mod compress;
 mod crctable;
 mod decompress;
+mod high_level;
 mod huffman;
 mod randtable;
 
