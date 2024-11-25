@@ -17,6 +17,7 @@ mod bzlib;
 mod compress;
 mod crctable;
 mod decompress;
+#[cfg(feature = "stdio")]
 mod high_level;
 mod huffman;
 mod randtable;
@@ -46,6 +47,7 @@ pub const BZ_MAX_UNUSED: c_int = bzlib::BZ_MAX_UNUSED_U32 as c_int;
 
 // types
 pub use bzlib::bz_stream;
+#[cfg(feature = "stdio")]
 pub use bzlib::BZFILE;
 
 // the low-level interface
@@ -56,10 +58,13 @@ pub use bzlib::{BZ2_bzDecompress, BZ2_bzDecompressEnd, BZ2_bzDecompressInit};
 pub use bzlib::{BZ2_bzBuffToBuffCompress, BZ2_bzBuffToBuffDecompress};
 
 // the high-level interface
+#[cfg(feature = "stdio")]
 pub use bzlib::{BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen};
+#[cfg(feature = "stdio")]
 pub use bzlib::{BZ2_bzWrite, BZ2_bzWriteClose, BZ2_bzWriteClose64, BZ2_bzWriteOpen};
 
 // zlib compatibility functions
+#[cfg(feature = "stdio")]
 pub use bzlib::{
     BZ2_bzclose, BZ2_bzdopen, BZ2_bzerror, BZ2_bzflush, BZ2_bzlibVersion, BZ2_bzopen, BZ2_bzread,
     BZ2_bzwrite,
