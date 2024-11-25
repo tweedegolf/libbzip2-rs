@@ -7,6 +7,7 @@ use crate::crctable::BZ2_CRC32TABLE;
 use crate::decompress::{self, decompress};
 use crate::libbzip2_rs_sys_version;
 
+#[cfg(feature = "stdio")]
 pub use crate::high_level::*;
 
 pub(crate) const BZ_MAX_ALPHA_SIZE: usize = 258;
@@ -76,6 +77,8 @@ pub const extern "C" fn BZ2_bzlibVersion() -> *const core::ffi::c_char {
 type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
 type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
 
+/// The current stream state.
+///
 /// # Custom allocators
 ///
 /// The low-level API supports passing in a custom allocator as part of the [`bz_stream`]:
