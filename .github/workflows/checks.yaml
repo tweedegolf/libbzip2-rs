@@ -375,3 +375,23 @@ jobs:
           cargo +nightly miri nextest run -j4 -p test-libbzip2-rs-sys miri_
       - name: Run unit tests with miri
         run: "cargo +nightly miri nextest run -j4 -p libbzip2-rs-sys"
+
+  no_stdio:
+    name: "test no_stdio compile + run"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        with:
+          persist-credentials: false
+          submodules: true
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
+        with:
+          toolchain: "stable"
+      - name: build static library
+        run: "cargo build --release -p libbzip2-rs-sys --no-default-features --features='c-allocator,std'"
+      - name: build C binary
+        run: "cc test-libbzip2-rs-sys/no_stdio.c -o no_stdio target/release/liblibbzip2_rs_sys.a -I ."
+      - name: run C binary
+        run: "./no_stdio | grep 'hello world!'"
