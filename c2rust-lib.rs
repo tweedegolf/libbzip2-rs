@@ -84,6 +84,7 @@ pub(crate) use libbzip2_rs_sys_version;
 
 macro_rules! assert_h {
     ($condition:expr, $errcode:expr) => {{
+        #[cfg(feature = "stdio")]
         if !$condition {
             #[cfg(feature = "std")]
             std::eprint!("{}", $crate::AssertFail($errcode));
@@ -93,7 +94,21 @@ macro_rules! assert_h {
             #[cfg(not(feature = "std"))]
             panic!("{}", $crate::AssertFail($errcode));
         }
+
+        #[cfg(not(feature = "stdio"))]
+        if !$condition {
+            $crate::no_stdio_internal_error($errcode)
+        }
     }};
+}
+
+#[cfg(not(feature = "stdio"))]
+pub(crate) fn no_stdio_internal_error(errcode: c_int) {
+    extern "C" {
+        fn bz_internal_error(errcode: c_int);
+    }
+
+    unsafe { bz_internal_error(errcode) }
 }
 
 pub(crate) use assert_h;

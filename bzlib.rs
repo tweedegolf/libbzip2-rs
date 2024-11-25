@@ -5,6 +5,7 @@ use crate::allocator::Allocator;
 use crate::compress::compress_block;
 use crate::crctable::BZ2_CRC32TABLE;
 use crate::decompress::{self, decompress};
+#[cfg(feature = "stdio")]
 use crate::libbzip2_rs_sys_version;
 
 #[cfg(feature = "stdio")]
@@ -57,8 +58,6 @@ macro_rules! prefix {
 
 pub(crate) use prefix;
 
-const LIBBZIP2_RS_SYS_VERSION: &str = concat!(libbzip2_rs_sys_version!(), "\0");
-
 /// The version of the zlib library.
 ///
 /// Its value is a pointer to a NULL-terminated sequence of bytes.
@@ -70,7 +69,9 @@ const LIBBZIP2_RS_SYS_VERSION: &str = concat!(libbzip2_rs_sys_version!(), "\0");
 /// - The first component is the version of stock zlib that this release is compatible with
 /// - The final component is the zlib-rs version used to build this release.
 #[export_name = prefix!(BZ2_bzlibVersion)]
+#[cfg(feature = "stdio")]
 pub const extern "C" fn BZ2_bzlibVersion() -> *const core::ffi::c_char {
+    const LIBBZIP2_RS_SYS_VERSION: &str = concat!(libbzip2_rs_sys_version!(), "\0");
     LIBBZIP2_RS_SYS_VERSION.as_ptr().cast::<core::ffi::c_char>()
 }
 
