@@ -261,20 +261,11 @@ pub(crate) fn decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                         break;
                     }
 
-                    if $strm.avail_in == 0 {
+                    if let Some(next_byte) = strm.read_byte() {
+                        $s.bsBuff = $s.bsBuff << 8 | next_byte as u32;
+                        $s.bsLive += 8;
+                    } else {
                         break 'save_state_and_return ReturnCode::BZ_OK;
-                    }
-
-                    // SAFETY: `next_in` is valid to read for `avail_in` bytes
-                    let next_byte = unsafe { *($strm.next_in as *mut u8) } as u32;
-
-                    $s.bsBuff = $s.bsBuff << 8 | next_byte;
-                    $s.bsLive += 8;
-                    $strm.next_in = $strm.next_in.wrapping_add(1);
-                    $strm.avail_in -= 1;
-                    $strm.total_in_lo32 += 1;
-                    if $strm.total_in_lo32 == 0 {
-                        $strm.total_in_hi32 += 1;
                     }
                 }
             };
