@@ -17,7 +17,6 @@ use core::ffi::{c_int, c_void};
 type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
 type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
 
-#[derive(Clone)]
 pub(crate) enum Allocator {
     #[cfg(feature = "rust-allocator")]
     Rust,

@@ -156,7 +156,11 @@ impl GetBitsConvert for i32 {
     }
 }
 
-pub(crate) fn decompress(strm: &mut bz_stream, s: &mut DState, allocator: Allocator) -> ReturnCode {
+pub(crate) fn decompress(
+    strm: &mut bz_stream,
+    s: &mut DState,
+    allocator: &Allocator,
+) -> ReturnCode {
     let mut current_block: Block;
     let mut uc: u8;
     let mut minLen: i32;
@@ -389,13 +393,13 @@ pub(crate) fn decompress(strm: &mut bz_stream, s: &mut DState, allocator: Alloca
                 DecompressMode::Small => {
                     // SAFETY: we assume allocation is safe
                     let ll16_len = s.blockSize100k as usize * 100000;
-                    let Some(ll16) = DSlice::alloc(&allocator, ll16_len) else {
+                    let Some(ll16) = DSlice::alloc(allocator, ll16_len) else {
                         error!(BZ_MEM_ERROR);
                     };
 
                     // SAFETY: we assume allocation is safe
                     let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
-                    let Some(ll4) = DSlice::alloc(&allocator, ll4_len) else {
+                    let Some(ll4) = DSlice::alloc(allocator, ll4_len) else {
                         error!(BZ_MEM_ERROR);
                     };
 
@@ -405,7 +409,7 @@ pub(crate) fn decompress(strm: &mut bz_stream, s: &mut DState, allocator: Alloca
                 DecompressMode::Fast => {
                     // SAFETY: we assume allocation is safe
                     let tt_len = s.blockSize100k as usize * 100000;
-                    let Some(tt) = DSlice::alloc(&allocator, tt_len) else {
+                    let Some(tt) = DSlice::alloc(allocator, tt_len) else {
                         error!(BZ_MEM_ERROR);
                     };
 
