@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use core::ffi::{c_int, c_uint};
 
 use crate::allocator::Allocator;
@@ -154,7 +156,7 @@ impl GetBitsConvert for i32 {
     }
 }
 
-pub(crate) fn decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
+pub(crate) fn decompress(strm: &mut bz_stream, s: &mut DState, allocator: Allocator) -> ReturnCode {
     let mut current_block: Block;
     let mut uc: u8;
     let mut minLen: i32;
@@ -383,21 +385,17 @@ pub(crate) fn decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
 
             s.blockSize100k -= b'0' as i32;
 
-            let Some(allocator) = Allocator::from_bz_stream(strm) else {
-                error!(BZ_PARAM_ERROR);
-            };
-
             match s.smallDecompress {
                 DecompressMode::Small => {
                     // SAFETY: we assume allocation is safe
                     let ll16_len = s.blockSize100k as usize * 100000;
-                    let Some(ll16) = (unsafe { DSlice::alloc(&allocator, ll16_len) }) else {
+                    let Some(ll16) = DSlice::alloc(&allocator, ll16_len) else {
                         error!(BZ_MEM_ERROR);
                     };
 
                     // SAFETY: we assume allocation is safe
                     let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
-                    let Some(ll4) = (unsafe { DSlice::alloc(&allocator, ll4_len) }) else {
+                    let Some(ll4) = DSlice::alloc(&allocator, ll4_len) else {
                         error!(BZ_MEM_ERROR);
                     };
 
@@ -407,7 +405,7 @@ pub(crate) fn decompress(strm: &mut bz_stream, s: &mut DState) -> ReturnCode {
                 DecompressMode::Fast => {
                     // SAFETY: we assume allocation is safe
                     let tt_len = s.blockSize100k as usize * 100000;
-                    let Some(tt) = (unsafe { DSlice::alloc(&allocator, tt_len) }) else {
+                    let Some(tt) = DSlice::alloc(&allocator, tt_len) else {
                         error!(BZ_MEM_ERROR);
                     };
 
