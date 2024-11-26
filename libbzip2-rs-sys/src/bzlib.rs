@@ -266,7 +266,7 @@ pub(crate) struct Arr1 {
 }
 
 impl Arr1 {
-    unsafe fn alloc(allocator: &Allocator, len: usize) -> Option<Self> {
+    fn alloc(allocator: &Allocator, len: usize) -> Option<Self> {
         let ptr = allocator.allocate_zeroed(len)?;
         Some(Self { ptr, len })
     }
@@ -299,7 +299,7 @@ pub(crate) struct Arr2 {
 }
 
 impl Arr2 {
-    unsafe fn alloc(allocator: &Allocator, len: usize) -> Option<Self> {
+    fn alloc(allocator: &Allocator, len: usize) -> Option<Self> {
         let ptr = allocator.allocate_zeroed(len)?;
         Some(Self { ptr, len })
     }
@@ -360,7 +360,7 @@ pub(crate) struct Ftab {
 }
 
 impl Ftab {
-    unsafe fn alloc(allocator: &Allocator) -> Option<Self> {
+    fn alloc(allocator: &Allocator) -> Option<Self> {
         let ptr = allocator.allocate_zeroed(FTAB_LEN)?;
         Some(Self { ptr })
     }
@@ -463,7 +463,7 @@ impl<T> DSlice<T> {
         }
     }
 
-    pub(crate) unsafe fn alloc(allocator: &Allocator, len: usize) -> Option<Self> {
+    pub(crate) fn alloc(allocator: &Allocator, len: usize) -> Option<Self> {
         let ptr = allocator.allocate_zeroed::<T>(len)?;
         Some(Self { ptr, len })
     }
@@ -1624,26 +1624,31 @@ pub(crate) unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
 
         match s.state {
             decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT => continue,
-            _ => match decompress(strm, s) {
-                ReturnCode::BZ_STREAM_END => {
-                    if s.verbosity >= 3 {
-                        #[cfg(feature = "std")]
-                        std::eprint!(
-                            "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
-                            s.storedCombinedCRC,
-                            s.calculatedCombinedCRC,
-                        );
+            _ => {
+                let Some(allocator) = (unsafe { Allocator::from_bz_stream(strm) }) else {
+                    return ReturnCode::BZ_PARAM_ERROR;
+                };
+                match decompress(strm, s, allocator) {
+                    ReturnCode::BZ_STREAM_END => {
+                        if s.verbosity >= 3 {
+                            #[cfg(feature = "std")]
+                            std::eprint!(
+                                "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
+                                s.storedCombinedCRC,
+                                s.calculatedCombinedCRC,
+                            );
+                        }
+                        if s.calculatedCombinedCRC != s.storedCombinedCRC {
+                            return ReturnCode::BZ_DATA_ERROR;
+                        }
+                        return ReturnCode::BZ_STREAM_END;
                     }
-                    if s.calculatedCombinedCRC != s.storedCombinedCRC {
-                        return ReturnCode::BZ_DATA_ERROR;
-                    }
-                    return ReturnCode::BZ_STREAM_END;
+                    return_code => match s.state {
+                        decompress::State::BZ_X_OUTPUT => continue,
+                        _ => return return_code,
+                    },
                 }
-                return_code => match s.state {
-                    decompress::State::BZ_X_OUTPUT => continue,
-                    _ => return return_code,
-                },
-            },
+            }
         }
     }
 }

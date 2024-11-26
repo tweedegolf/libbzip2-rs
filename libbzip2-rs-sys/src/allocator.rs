@@ -52,7 +52,13 @@ impl Allocator {
         None
     }
 
-    pub(crate) fn from_bz_stream(strm: &crate::bz_stream) -> Option<Self> {
+    /// # Safety
+    ///
+    /// - `strm.bzalloc` and `strm.opaque` must form a valid allocator, meaning `strm.bzalloc` returns either
+    ///     * a `NULL` pointer
+    ///     * a valid pointer to an allocation of `len * size_of::<T>()` bytes aligned to at least `align_of::<usize>()`
+    /// - `strm.bzfree` frees memory allocated by `strm.bzalloc`
+    pub(crate) unsafe fn from_bz_stream(strm: &crate::bz_stream) -> Option<Self> {
         let bzalloc = strm.bzalloc?;
         let bzfree = strm.bzfree?;
 
@@ -128,7 +134,12 @@ mod rust_allocator {
 
 impl Allocator {
     /// Allocates `count` contiguous values of type `T`, and zeros out all elements.
-    pub(crate) unsafe fn allocate_zeroed<T>(&self, count: usize) -> Option<*mut T> {
+    pub(crate) fn allocate_zeroed<T>(&self, count: usize) -> Option<*mut T> {
+        const {
+            assert!(size_of::<T>() != 0);
+        }
+        assert_ne!(count, 0);
+
         match self {
             #[cfg(feature = "rust-allocator")]
             Allocator::Rust => {
