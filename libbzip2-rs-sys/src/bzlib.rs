@@ -1642,7 +1642,7 @@ pub(crate) unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
 
         match s.state {
             decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT => continue,
-            _ => match decompress(strm, s, allocator.clone()) {
+            _ => match decompress(strm, s, &allocator) {
                 ReturnCode::BZ_STREAM_END => {
                     if s.verbosity >= 3 {
                         #[cfg(feature = "std")]
