@@ -149,6 +149,7 @@ impl bz_stream {
         }
     }
 
+    #[must_use]
     pub(crate) fn read_byte(&mut self) -> Option<u8> {
         if self.avail_in == 0 {
             return None;
@@ -163,6 +164,7 @@ impl bz_stream {
         Some(b)
     }
 
+    #[must_use]
     fn write_byte(&mut self, byte: u8) -> bool {
         if self.avail_out == 0 {
             return false;
@@ -1233,9 +1235,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut bz_stream, s: &mut DState) -> bool {
                     if c_state_out_len == 1 {
                         break;
                     }
-                    unsafe {
-                        *(cs_next_out as *mut u8) = c_state_out_ch;
-                    }
+                    unsafe { *(cs_next_out as *mut u8) = c_state_out_ch };
                     BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
                     c_state_out_len -= 1;
                     cs_next_out = unsafe { cs_next_out.offset(1) };
@@ -1253,9 +1253,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut bz_stream, s: &mut DState) -> bool {
                             c_state_out_len = 1;
                             break 'return_notr;
                         } else {
-                            unsafe {
-                                *(cs_next_out as *mut u8) = c_state_out_ch;
-                            }
+                            unsafe { *(cs_next_out as *mut u8) = c_state_out_ch };
                             BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
                             cs_next_out = unsafe { cs_next_out.offset(1) };
                             cs_avail_out -= 1;
@@ -1398,10 +1396,9 @@ fn un_rle_obuf_to_output_small(strm: &mut bz_stream, s: &mut DState) -> bool {
             /* try to finish existing run */
             loop {
                 if s.state_out_len == 0 {
-                    if strm.avail_out == 0 {
-                        return false;
-                    } else {
-                        break;
+                    match strm.avail_out {
+                        0 => return false,
+                        _ => break,
                     }
                 }
                 if !strm.write_byte(s.state_out_ch) {
@@ -1583,6 +1580,10 @@ pub(crate) unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
         return ReturnCode::BZ_PARAM_ERROR;
     }
 
+    let Some(allocator) = (unsafe { Allocator::from_bz_stream(strm) }) else {
+        return ReturnCode::BZ_PARAM_ERROR;
+    };
+
     loop {
         if let decompress::State::BZ_X_IDLE = s.state {
             return ReturnCode::BZ_SEQUENCE_ERROR;
@@ -1624,31 +1625,26 @@ pub(crate) unsafe fn BZ2_bzDecompressHelp(strm: &mut bz_stream) -> ReturnCode {
 
         match s.state {
             decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT => continue,
-            _ => {
-                let Some(allocator) = (unsafe { Allocator::from_bz_stream(strm) }) else {
-                    return ReturnCode::BZ_PARAM_ERROR;
-                };
-                match decompress(strm, s, allocator) {
-                    ReturnCode::BZ_STREAM_END => {
-                        if s.verbosity >= 3 {
-                            #[cfg(feature = "std")]
-                            std::eprint!(
-                                "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
-                                s.storedCombinedCRC,
-                                s.calculatedCombinedCRC,
-                            );
-                        }
-                        if s.calculatedCombinedCRC != s.storedCombinedCRC {
-                            return ReturnCode::BZ_DATA_ERROR;
-                        }
-                        return ReturnCode::BZ_STREAM_END;
+            _ => match decompress(strm, s, allocator.clone()) {
+                ReturnCode::BZ_STREAM_END => {
+                    if s.verbosity >= 3 {
+                        #[cfg(feature = "std")]
+                        std::eprint!(
+                            "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
+                            s.storedCombinedCRC,
+                            s.calculatedCombinedCRC,
+                        );
                     }
-                    return_code => match s.state {
-                        decompress::State::BZ_X_OUTPUT => continue,
-                        _ => return return_code,
-                    },
+                    if s.calculatedCombinedCRC != s.storedCombinedCRC {
+                        return ReturnCode::BZ_DATA_ERROR;
+                    }
+                    return ReturnCode::BZ_STREAM_END;
                 }
-            }
+                return_code => match s.state {
+                    decompress::State::BZ_X_OUTPUT => continue,
+                    _ => return return_code,
+                },
+            },
         }
     }
 }
