@@ -155,7 +155,7 @@ impl bz_stream {
         }
         let b = unsafe { *(self.next_in as *mut u8) };
         self.next_in = unsafe { (self.next_in).offset(1) };
-        self.avail_in = (self.avail_in).wrapping_sub(1);
+        self.avail_in -= 1;
         self.total_in_lo32 = (self.total_in_lo32).wrapping_add(1);
         if self.total_in_lo32 == 0 {
             self.total_in_hi32 = (self.total_in_hi32).wrapping_add(1);
@@ -170,7 +170,7 @@ impl bz_stream {
         unsafe {
             *self.next_out = byte as c_char;
         }
-        self.avail_out = (self.avail_out).wrapping_sub(1);
+        self.avail_out -= 1;
         self.next_out = unsafe { (self.next_out).offset(1) };
         self.total_out_lo32 = (self.total_out_lo32).wrapping_add(1);
         if self.total_out_lo32 == 0 {
@@ -747,7 +747,7 @@ fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
             } else {
                 break;
             }
-            s.avail_in_expect = (s.avail_in_expect).wrapping_sub(1);
+            s.avail_in_expect -= 1;
         },
     }
     progress_in
@@ -1239,7 +1239,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut bz_stream, s: &mut DState) -> bool {
                     BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
                     c_state_out_len -= 1;
                     cs_next_out = unsafe { cs_next_out.offset(1) };
-                    cs_avail_out = cs_avail_out.wrapping_sub(1);
+                    cs_avail_out -= 1;
                 }
                 current_block = NextState::OutLenEqOne;
             } else {
@@ -1258,7 +1258,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut bz_stream, s: &mut DState) -> bool {
                             }
                             BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
                             cs_next_out = unsafe { cs_next_out.offset(1) };
-                            cs_avail_out = cs_avail_out.wrapping_sub(1);
+                            cs_avail_out -= 1;
                             current_block = NextState::Remainder;
                         }
                     }
@@ -1774,7 +1774,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
             ReturnCode::BZ_OUTBUFF_FULL as c_int
         }
         ReturnCode::BZ_STREAM_END => {
-            *destLen = (*destLen).wrapping_sub(strm.avail_out);
+            *destLen -= strm.avail_out;
             BZ2_bzCompressEnd(&mut strm);
 
             ReturnCode::BZ_OK as c_int
@@ -1863,7 +1863,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
             }
         }
         ReturnCode::BZ_STREAM_END => {
-            *destLen = (*destLen).wrapping_sub(strm.avail_out);
+            *destLen -= strm.avail_out;
             BZ2_bzDecompressEnd(&mut strm);
 
             ReturnCode::BZ_OK as c_int

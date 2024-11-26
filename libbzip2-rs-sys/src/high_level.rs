@@ -312,7 +312,7 @@ unsafe fn BZ2_bzWriteHelp(
         match BZ2_bzCompressHelp(&mut bzf.strm, Action::Run as c_int) {
             ReturnCode::BZ_RUN_OK => {
                 if bzf.strm.avail_out < BZ_MAX_UNUSED_U32 {
-                    let n1 = BZ_MAX_UNUSED_U32.wrapping_sub(bzf.strm.avail_out) as usize;
+                    let n1 = (BZ_MAX_UNUSED_U32 - bzf.strm.avail_out) as usize;
                     let n2 = fwrite(
                         bzf.buf.as_mut_ptr().cast::<c_void>(),
                         mem::size_of::<u8>(),
@@ -491,7 +491,7 @@ unsafe fn BZ2_bzWriteClose64Help(
             match BZ2_bzCompressHelp(&mut bzf.strm, 2 as c_int) {
                 ret @ (ReturnCode::BZ_FINISH_OK | ReturnCode::BZ_STREAM_END) => {
                     if bzf.strm.avail_out < BZ_MAX_UNUSED_U32 {
-                        let n1 = BZ_MAX_UNUSED_U32.wrapping_sub(bzf.strm.avail_out) as usize;
+                        let n1 = (BZ_MAX_UNUSED_U32 - bzf.strm.avail_out) as usize;
                         let n2 = fwrite(
                             bzf.buf.as_mut_ptr().cast::<c_void>(),
                             mem::size_of::<u8>(),
@@ -846,7 +846,7 @@ unsafe fn BZ2_bzReadHelp(
             }
             ReturnCode::BZ_STREAM_END => {
                 BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_STREAM_END);
-                return (len as c_uint).wrapping_sub(bzf.strm.avail_out) as c_int;
+                return (len as c_uint - bzf.strm.avail_out) as c_int;
             }
             error => {
                 BZ_SETERR!(bzerror, bzf, error);
