@@ -92,7 +92,7 @@ impl Allocator {
 }
 
 #[cfg(feature = "c-allocator")]
-mod c_allocator {
+pub(crate) mod c_allocator {
     use super::*;
 
     // make sure that the only way these function pointers leave this module is via this constant
