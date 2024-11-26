@@ -162,6 +162,22 @@ impl bz_stream {
         }
         Some(b)
     }
+
+    fn write_byte(&mut self, byte: u8) -> bool {
+        if self.avail_out == 0 {
+            return false;
+        }
+        unsafe {
+            *self.next_out = byte as c_char;
+        }
+        self.avail_out = (self.avail_out).wrapping_sub(1);
+        self.next_out = unsafe { (self.next_out).offset(1) };
+        self.total_out_lo32 = (self.total_out_lo32).wrapping_add(1);
+        if self.total_out_lo32 == 0 {
+            self.total_out_hi32 = (self.total_out_hi32).wrapping_add(1);
+        }
+        true
+    }
 }
 
 #[repr(i32)]
@@ -726,7 +742,7 @@ fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
                 break;
             }
             if let Some(b) = strm.read_byte() {
-            progress_in = true;
+                progress_in = true;
                 ADD_CHAR_TO_BLOCK!(s, b as u32);
             } else {
                 break;
@@ -737,32 +753,25 @@ fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
     progress_in
 }
 
-unsafe fn copy_output_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
+fn copy_output_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
     let mut progress_out = false;
 
     let zbits = &mut s.arr2.raw_block()[s.nblock as usize..];
 
     loop {
-        if strm.avail_out == 0 {
-            break;
-        }
         if s.state_out_pos >= s.writer.num_z as i32 {
             break;
         }
-        progress_out = true;
-        *strm.next_out = zbits[s.state_out_pos as usize] as c_char;
-        s.state_out_pos += 1;
-        strm.avail_out = (strm.avail_out).wrapping_sub(1);
-        strm.next_out = (strm.next_out).offset(1);
-        strm.total_out_lo32 = (strm.total_out_lo32).wrapping_add(1);
-        if strm.total_out_lo32 == 0 {
-            strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
+        if !strm.write_byte(zbits[s.state_out_pos as usize]) {
+            break;
         }
+        progress_out = true;
+        s.state_out_pos += 1;
     }
     progress_out
 }
 
-unsafe fn handle_compress(strm: &mut bz_stream, s: &mut EState) -> bool {
+fn handle_compress(strm: &mut bz_stream, s: &mut EState) -> bool {
     let mut progress_in = false;
     let mut progress_out = false;
 
@@ -870,7 +879,7 @@ pub(crate) unsafe fn BZ2_bzCompressHelp(strm: &mut bz_stream, action: i32) -> Re
     compress_loop(strm, s, action)
 }
 
-unsafe fn compress_loop(strm: &mut bz_stream, s: &mut EState, action: i32) -> ReturnCode {
+fn compress_loop(strm: &mut bz_stream, s: &mut EState, action: i32) -> ReturnCode {
     loop {
         match s.mode {
             Mode::Idle => return ReturnCode::BZ_SEQUENCE_ERROR,
@@ -1099,27 +1108,24 @@ macro_rules! BZ_GET_FAST {
     };
 }
 
-unsafe fn un_rle_obuf_to_output_fast(strm: &mut bz_stream, s: &mut DState) -> bool {
+fn un_rle_obuf_to_output_fast(strm: &mut bz_stream, s: &mut DState) -> bool {
     let mut k1: u8;
     if s.blockRandomised {
         loop {
             /* try to finish existing run */
             loop {
-                if strm.avail_out == 0 {
+                if s.state_out_len == 0 {
+                    if strm.avail_out == 0 {
+                        return false;
+                    } else {
+                        break;
+                    }
+                }
+                if !strm.write_byte(s.state_out_ch) {
                     return false;
                 }
-                if s.state_out_len == 0 {
-                    break;
-                }
-                *(strm.next_out as *mut u8) = s.state_out_ch;
                 BZ_UPDATE_CRC!(s.calculatedBlockCRC, s.state_out_ch);
                 s.state_out_len -= 1;
-                strm.next_out = (strm.next_out).offset(1);
-                strm.avail_out = (strm.avail_out).wrapping_sub(1);
-                strm.total_out_lo32 = (strm.total_out_lo32).wrapping_add(1);
-                if strm.total_out_lo32 == 0 {
-                    strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
-                }
             }
 
             /* can a new run be started? */
@@ -1227,10 +1233,12 @@ unsafe fn un_rle_obuf_to_output_fast(strm: &mut bz_stream, s: &mut DState) -> bo
                     if c_state_out_len == 1 {
                         break;
                     }
-                    *(cs_next_out as *mut u8) = c_state_out_ch;
+                    unsafe {
+                        *(cs_next_out as *mut u8) = c_state_out_ch;
+                    }
                     BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
                     c_state_out_len -= 1;
-                    cs_next_out = cs_next_out.offset(1);
+                    cs_next_out = unsafe { cs_next_out.offset(1) };
                     cs_avail_out = cs_avail_out.wrapping_sub(1);
                 }
                 current_block = NextState::OutLenEqOne;
@@ -1245,9 +1253,11 @@ unsafe fn un_rle_obuf_to_output_fast(strm: &mut bz_stream, s: &mut DState) -> bo
                             c_state_out_len = 1;
                             break 'return_notr;
                         } else {
-                            *(cs_next_out as *mut u8) = c_state_out_ch;
+                            unsafe {
+                                *(cs_next_out as *mut u8) = c_state_out_ch;
+                            }
                             BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
-                            cs_next_out = cs_next_out.offset(1);
+                            cs_next_out = unsafe { cs_next_out.offset(1) };
                             cs_avail_out = cs_avail_out.wrapping_sub(1);
                             current_block = NextState::Remainder;
                         }
@@ -1381,27 +1391,24 @@ macro_rules! BZ_GET_SMALL {
     };
 }
 
-unsafe fn un_rle_obuf_to_output_small(strm: &mut bz_stream, s: &mut DState) -> bool {
+fn un_rle_obuf_to_output_small(strm: &mut bz_stream, s: &mut DState) -> bool {
     let mut k1: u8;
     if s.blockRandomised {
         loop {
             /* try to finish existing run */
             loop {
-                if strm.avail_out == 0 {
+                if s.state_out_len == 0 {
+                    if strm.avail_out == 0 {
+                        return false;
+                    } else {
+                        break;
+                    }
+                }
+                if !strm.write_byte(s.state_out_ch) {
                     return false;
                 }
-                if s.state_out_len == 0 {
-                    break;
-                }
-                *(strm.next_out as *mut u8) = s.state_out_ch;
                 BZ_UPDATE_CRC!(s.calculatedBlockCRC, s.state_out_ch);
                 s.state_out_len -= 1;
-                strm.next_out = (strm.next_out).offset(1);
-                strm.avail_out = (strm.avail_out).wrapping_sub(1);
-                strm.total_out_lo32 = (strm.total_out_lo32).wrapping_add(1);
-                if strm.total_out_lo32 == 0 {
-                    strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
-                }
             }
 
             /* can a new run be started? */
@@ -1468,21 +1475,18 @@ unsafe fn un_rle_obuf_to_output_small(strm: &mut bz_stream, s: &mut DState) -> b
     } else {
         loop {
             loop {
-                if strm.avail_out == 0 {
+                if s.state_out_len == 0 {
+                    if strm.avail_out == 0 {
+                        return false;
+                    } else {
+                        break;
+                    }
+                }
+                if !strm.write_byte(s.state_out_ch) {
                     return false;
                 }
-                if s.state_out_len == 0 {
-                    break;
-                }
-                *(strm.next_out as *mut u8) = s.state_out_ch;
                 BZ_UPDATE_CRC!(s.calculatedBlockCRC, s.state_out_ch);
                 s.state_out_len -= 1;
-                strm.next_out = (strm.next_out).offset(1);
-                strm.avail_out = (strm.avail_out).wrapping_sub(1);
-                strm.total_out_lo32 = (strm.total_out_lo32).wrapping_add(1);
-                if strm.total_out_lo32 == 0 {
-                    strm.total_out_hi32 = (strm.total_out_hi32).wrapping_add(1);
-                }
             }
             if s.nblock_used == s.save_nblock + 1 {
                 return false;
