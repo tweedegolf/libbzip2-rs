@@ -148,6 +148,20 @@ impl bz_stream {
             opaque: ptr::null_mut::<c_void>(),
         }
     }
+
+    pub(crate) fn read_byte(&mut self) -> Option<u8> {
+        if self.avail_in == 0 {
+            return None;
+        }
+        let b = unsafe { *(self.next_in as *mut u8) };
+        self.next_in = unsafe { (self.next_in).offset(1) };
+        self.avail_in = (self.avail_in).wrapping_sub(1);
+        self.total_in_lo32 = (self.total_in_lo32).wrapping_add(1);
+        if self.total_in_lo32 == 0 {
+            self.total_in_hi32 = (self.total_in_hi32).wrapping_add(1);
+        }
+        Some(b)
+    }
 }
 
 #[repr(i32)]
@@ -689,7 +703,7 @@ macro_rules! ADD_CHAR_TO_BLOCK {
     };
 }
 
-unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
+fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
     let mut progress_in = false;
 
     match s.mode {
@@ -697,35 +711,25 @@ unsafe fn copy_input_until_stop(strm: &mut bz_stream, s: &mut EState) -> bool {
             if s.nblock >= s.nblockMAX {
                 break;
             }
-            if strm.avail_in == 0 {
+            if let Some(b) = strm.read_byte() {
+                progress_in = true;
+                ADD_CHAR_TO_BLOCK!(s, b as u32);
+            } else {
                 break;
-            }
-            progress_in = true;
-            ADD_CHAR_TO_BLOCK!(s, *(strm.next_in as *mut u8) as u32);
-            strm.next_in = (strm.next_in).offset(1);
-            strm.avail_in = (strm.avail_in).wrapping_sub(1);
-            strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-            if strm.total_in_lo32 == 0 {
-                strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
             }
         },
         Mode::Idle | Mode::Flushing | Mode::Finishing => loop {
             if s.nblock >= s.nblockMAX {
                 break;
             }
-            if strm.avail_in == 0 {
-                break;
-            }
             if s.avail_in_expect == 0 {
                 break;
             }
+            if let Some(b) = strm.read_byte() {
             progress_in = true;
-            ADD_CHAR_TO_BLOCK!(s, *(strm.next_in as *mut u8) as u32);
-            strm.next_in = (strm.next_in).offset(1);
-            strm.avail_in = (strm.avail_in).wrapping_sub(1);
-            strm.total_in_lo32 = (strm.total_in_lo32).wrapping_add(1);
-            if strm.total_in_lo32 == 0 {
-                strm.total_in_hi32 = (strm.total_in_hi32).wrapping_add(1);
+                ADD_CHAR_TO_BLOCK!(s, b as u32);
+            } else {
+                break;
             }
             s.avail_in_expect = (s.avail_in_expect).wrapping_sub(1);
         },
