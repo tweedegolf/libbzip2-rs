@@ -526,7 +526,24 @@ unsafe fn configure_allocator(strm: *mut bz_stream) -> Option<Allocator> {
         // reference to the default alloc or free function, so hitting this path means that using
         // the default alloc or free function would cause two allocators to be mixed. As such return
         // an error to prevent UB.
+        #[cfg(any(feature = "rust-allocator", not(feature = "c-allocator")))]
         _ => None,
+
+        #[cfg(all(feature = "c-allocator", not(feature = "rust-allocator")))]
+        _ => {
+            // this is almost certainly a bug, but replicates the original C behavior.
+            //
+            // Note that this logic does not really work with the default rust allocator, because
+            // it will panic at runtime when called directly. Usually the idea here is that
+            // allocation is special, and free is just the default `libc::free` that we configure
+            // by default with the default C allocator.
+            let (default_bzalloc, default_bzfree) = crate::allocator::c_allocator::ALLOCATOR;
+
+            let bzalloc = (*strm).bzalloc.get_or_insert(default_bzalloc);
+            let bzfree = (*strm).bzfree.get_or_insert(default_bzfree);
+
+            Some(Allocator::custom(*bzalloc, *bzfree, (*strm).opaque))
+        }
     }
 }
 
