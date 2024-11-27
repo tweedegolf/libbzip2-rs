@@ -131,23 +131,27 @@ pub struct bz_stream {
     pub opaque: *mut c_void,
 }
 
-#[repr(C)]
-pub(crate) struct BzStream<S: StreamState> {
-    pub next_in: *const c_char,
-    pub avail_in: c_uint,
-    pub total_in_lo32: c_uint,
-    pub total_in_hi32: c_uint,
-    pub next_out: *mut c_char,
-    pub avail_out: c_uint,
-    pub total_out_lo32: c_uint,
-    pub total_out_hi32: c_uint,
-    pub state: *mut S,
-    pub bzalloc: Option<AllocFunc>,
-    pub bzfree: Option<FreeFunc>,
-    pub opaque: *mut c_void,
-}
+pub(crate) use stream::*;
+mod stream {
+    use super::*;
 
-macro_rules! check_layout {
+    #[repr(C)]
+    pub(crate) struct BzStream<S: StreamState> {
+        pub next_in: *const c_char,
+        pub avail_in: c_uint,
+        pub total_in_lo32: c_uint,
+        pub total_in_hi32: c_uint,
+        pub next_out: *mut c_char,
+        pub avail_out: c_uint,
+        pub total_out_lo32: c_uint,
+        pub total_out_hi32: c_uint,
+        pub state: *mut S,
+        pub bzalloc: Option<AllocFunc>,
+        pub bzfree: Option<FreeFunc>,
+        pub opaque: *mut c_void,
+    }
+
+    macro_rules! check_layout {
     ($($field:ident,)*) => {
         const _: () = {
             $(assert!(offset_of!(bz_stream, $field) == offset_of!(BzStream<DState>, $field));)*
@@ -156,115 +160,155 @@ macro_rules! check_layout {
     };
 }
 
-check_layout!(
-    next_in,
-    avail_in,
-    total_in_lo32,
-    total_in_hi32,
-    next_out,
-    avail_out,
-    total_out_lo32,
-    total_out_hi32,
-    state,
-    bzalloc,
-    bzfree,
-    opaque,
-);
+    check_layout!(
+        next_in,
+        avail_in,
+        total_in_lo32,
+        total_in_hi32,
+        next_out,
+        avail_out,
+        total_out_lo32,
+        total_out_hi32,
+        state,
+        bzalloc,
+        bzfree,
+        opaque,
+    );
 
-pub(crate) trait StreamState {}
+    pub(crate) trait StreamState {}
 
-impl StreamState for EState {}
-impl StreamState for DState {}
+    impl StreamState for EState {}
+    impl StreamState for DState {}
 
-impl bz_stream {
-    pub const fn zeroed() -> Self {
-        Self {
-            next_in: ptr::null_mut::<c_char>(),
-            avail_in: 0,
-            total_in_lo32: 0,
-            total_in_hi32: 0,
-            next_out: ptr::null_mut::<c_char>(),
-            avail_out: 0,
-            total_out_lo32: 0,
-            total_out_hi32: 0,
-            state: ptr::null_mut::<c_void>(),
-            bzalloc: None,
-            bzfree: None,
-            opaque: ptr::null_mut::<c_void>(),
-        }
-    }
-}
-
-impl<S: StreamState> BzStream<S> {
-    pub(crate) const fn zeroed() -> Self {
-        Self {
-            next_in: ptr::null_mut::<c_char>(),
-            avail_in: 0,
-            total_in_lo32: 0,
-            total_in_hi32: 0,
-            next_out: ptr::null_mut::<c_char>(),
-            avail_out: 0,
-            total_out_lo32: 0,
-            total_out_hi32: 0,
-            state: ptr::null_mut::<S>(),
-            bzalloc: None,
-            bzfree: None,
-            opaque: ptr::null_mut::<c_void>(),
+    impl bz_stream {
+        pub const fn zeroed() -> Self {
+            Self {
+                next_in: ptr::null_mut::<c_char>(),
+                avail_in: 0,
+                total_in_lo32: 0,
+                total_in_hi32: 0,
+                next_out: ptr::null_mut::<c_char>(),
+                avail_out: 0,
+                total_out_lo32: 0,
+                total_out_hi32: 0,
+                state: ptr::null_mut::<c_void>(),
+                bzalloc: None,
+                bzfree: None,
+                opaque: ptr::null_mut::<c_void>(),
+            }
         }
     }
 
-    /// # Safety
-    ///
-    /// The given [`bz_stream`] must either have a NULL state or be initialized with the state
-    /// indicated by the generic param `S`. It must also have `bzalloc`/`bzfree`/`opaque` correctly
-    /// configured.
-    pub(crate) unsafe fn from_mut(s: &mut bz_stream) -> &mut Self {
-        mem::transmute(s)
+    impl<S: StreamState> BzStream<S> {
+        pub(crate) const fn zeroed() -> Self {
+            Self {
+                next_in: ptr::null_mut::<c_char>(),
+                avail_in: 0,
+                total_in_lo32: 0,
+                total_in_hi32: 0,
+                next_out: ptr::null_mut::<c_char>(),
+                avail_out: 0,
+                total_out_lo32: 0,
+                total_out_hi32: 0,
+                state: ptr::null_mut::<S>(),
+                bzalloc: None,
+                bzfree: None,
+                opaque: ptr::null_mut::<c_void>(),
+            }
+        }
+
+        /// # Safety
+        ///
+        /// The given [`bz_stream`] must either have a NULL state or be initialized with the state
+        /// indicated by the generic param `S`. It must also have `bzalloc`/`bzfree`/`opaque` correctly
+        /// configured.
+        pub(crate) unsafe fn from_mut(s: &mut bz_stream) -> &mut Self {
+            mem::transmute(s)
+        }
+
+        /// # Safety
+        ///
+        /// The given [`bz_stream`] must be initialized and either have a NULL state or be initialized
+        /// with the state indicated by the generic param `S`. It must also have
+        /// `bzalloc`/`bzfree`/`opaque` correctly configured.
+        pub(crate) unsafe fn from_ptr<'a>(p: *mut bz_stream) -> Option<&'a mut Self> {
+            p.cast::<Self>().as_mut()
+        }
+
+        pub(super) fn allocator(&self) -> Option<Allocator> {
+            unsafe { Allocator::from_bz_stream(self) }
+        }
+
+        #[must_use]
+        pub(crate) fn read_byte(&mut self) -> Option<u8> {
+            if self.avail_in == 0 {
+                return None;
+            }
+            let b = unsafe { *(self.next_in as *mut u8) };
+            self.next_in = unsafe { (self.next_in).offset(1) };
+            self.avail_in -= 1;
+            self.total_in_lo32 = (self.total_in_lo32).wrapping_add(1);
+            if self.total_in_lo32 == 0 {
+                self.total_in_hi32 = (self.total_in_hi32).wrapping_add(1);
+            }
+            Some(b)
+        }
+
+        #[must_use]
+        pub(super) fn write_byte(&mut self, byte: u8) -> bool {
+            if self.avail_out == 0 {
+                return false;
+            }
+            unsafe {
+                *self.next_out = byte as c_char;
+            }
+            self.avail_out -= 1;
+            self.next_out = unsafe { (self.next_out).offset(1) };
+            self.total_out_lo32 = (self.total_out_lo32).wrapping_add(1);
+            if self.total_out_lo32 == 0 {
+                self.total_out_hi32 = (self.total_out_hi32).wrapping_add(1);
+            }
+            true
+        }
     }
 
-    /// # Safety
-    ///
-    /// The given [`bz_stream`] must be initialized and either have a NULL state or be initialized
-    /// with the state indicated by the generic param `S`. It must also have
-    /// `bzalloc`/`bzfree`/`opaque` correctly configured.
-    pub(crate) unsafe fn from_ptr<'a>(p: *mut bz_stream) -> Option<&'a mut Self> {
-        p.cast::<Self>().as_mut()
-    }
+    pub(super) fn configure_allocator<S: StreamState>(strm: &mut BzStream<S>) -> Option<Allocator> {
+        match (strm.bzalloc, strm.bzfree) {
+            (Some(allocate), Some(deallocate)) => {
+                Some(Allocator::custom(allocate, deallocate, (*strm).opaque))
+            }
+            (None, None) => {
+                let allocator = Allocator::DEFAULT?;
+                let (bzalloc, bzfree) = Allocator::default_function_pointers()?;
 
-    fn allocator(&self) -> Option<Allocator> {
-        unsafe { Allocator::from_bz_stream(self) }
-    }
+                strm.bzalloc = Some(bzalloc);
+                strm.bzfree = Some(bzfree);
 
-    #[must_use]
-    pub(crate) fn read_byte(&mut self) -> Option<u8> {
-        if self.avail_in == 0 {
-            return None;
-        }
-        let b = unsafe { *(self.next_in as *mut u8) };
-        self.next_in = unsafe { (self.next_in).offset(1) };
-        self.avail_in -= 1;
-        self.total_in_lo32 = (self.total_in_lo32).wrapping_add(1);
-        if self.total_in_lo32 == 0 {
-            self.total_in_hi32 = (self.total_in_hi32).wrapping_add(1);
-        }
-        Some(b)
-    }
+                Some(allocator)
+            }
+            // Using a different allocator for alloc and free is UB. The user of libbzip2-rs can't get a
+            // reference to the default alloc or free function, so hitting this path means that using
+            // the default alloc or free function would cause two allocators to be mixed. As such return
+            // an error to prevent UB.
+            #[cfg(any(feature = "rust-allocator", not(feature = "c-allocator")))]
+            _ => None,
 
-    #[must_use]
-    fn write_byte(&mut self, byte: u8) -> bool {
-        if self.avail_out == 0 {
-            return false;
+            #[cfg(all(feature = "c-allocator", not(feature = "rust-allocator")))]
+            _ => {
+                // this is almost certainly a bug, but replicates the original C behavior.
+                //
+                // Note that this logic does not really work with the default rust allocator, because
+                // it will panic at runtime when called directly. Usually the idea here is that
+                // allocation is special, and free is just the default `libc::free` that we configure
+                // by default with the default C allocator.
+                let (default_bzalloc, default_bzfree) = crate::allocator::c_allocator::ALLOCATOR;
+
+                let bzalloc = strm.bzalloc.get_or_insert(default_bzalloc);
+                let bzfree = strm.bzfree.get_or_insert(default_bzfree);
+
+                Some(Allocator::custom(*bzalloc, *bzfree, (*strm).opaque))
+            }
         }
-        unsafe {
-            *self.next_out = byte as c_char;
-        }
-        self.avail_out -= 1;
-        self.next_out = unsafe { (self.next_out).offset(1) };
-        self.total_out_lo32 = (self.total_out_lo32).wrapping_add(1);
-        if self.total_out_lo32 == 0 {
-            self.total_out_hi32 = (self.total_out_hi32).wrapping_add(1);
-        }
-        true
     }
 }
 
@@ -592,45 +636,6 @@ fn init_rl(s: &mut EState) {
 
 fn isempty_rl(s: &mut EState) -> bool {
     !(s.state_in_ch < 256 && s.state_in_len > 0)
-}
-
-fn configure_allocator<S: StreamState>(strm: &mut BzStream<S>) -> Option<Allocator> {
-    match (strm.bzalloc, strm.bzfree) {
-        (Some(allocate), Some(deallocate)) => {
-            Some(Allocator::custom(allocate, deallocate, (*strm).opaque))
-        }
-        (None, None) => {
-            let allocator = Allocator::DEFAULT?;
-            let (bzalloc, bzfree) = Allocator::default_function_pointers()?;
-
-            strm.bzalloc = Some(bzalloc);
-            strm.bzfree = Some(bzfree);
-
-            Some(allocator)
-        }
-        // Using a different allocator for alloc and free is UB. The user of libbzip2-rs can't get a
-        // reference to the default alloc or free function, so hitting this path means that using
-        // the default alloc or free function would cause two allocators to be mixed. As such return
-        // an error to prevent UB.
-        #[cfg(any(feature = "rust-allocator", not(feature = "c-allocator")))]
-        _ => None,
-
-        #[cfg(all(feature = "c-allocator", not(feature = "rust-allocator")))]
-        _ => {
-            // this is almost certainly a bug, but replicates the original C behavior.
-            //
-            // Note that this logic does not really work with the default rust allocator, because
-            // it will panic at runtime when called directly. Usually the idea here is that
-            // allocation is special, and free is just the default `libc::free` that we configure
-            // by default with the default C allocator.
-            let (default_bzalloc, default_bzfree) = crate::allocator::c_allocator::ALLOCATOR;
-
-            let bzalloc = strm.bzalloc.get_or_insert(default_bzalloc);
-            let bzfree = strm.bzfree.get_or_insert(default_bzfree);
-
-            Some(Allocator::custom(*bzalloc, *bzfree, (*strm).opaque))
-        }
-    }
 }
 
 /// Prepares the stream for compression.
