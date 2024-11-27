@@ -102,12 +102,14 @@ pub(crate) mod c_allocator {
     pub(crate) static ALLOCATOR: (AllocFunc, FreeFunc) = (self::allocate, self::deallocate);
 
     unsafe extern "C" fn allocate(_opaque: *mut c_void, count: c_int, size: c_int) -> *mut c_void {
-        libc::malloc((count * size) as usize)
+        unsafe { libc::malloc((count * size) as usize) }
     }
 
     unsafe extern "C" fn deallocate(_opaque: *mut c_void, ptr: *mut c_void) {
         if !ptr.is_null() {
-            libc::free(ptr);
+            unsafe {
+                libc::free(ptr);
+            }
         }
     }
 }

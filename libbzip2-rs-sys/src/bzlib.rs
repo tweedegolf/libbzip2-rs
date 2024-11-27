@@ -223,7 +223,7 @@ mod stream {
         /// indicated by the generic param `S`. It must also have `bzalloc`/`bzfree`/`opaque` correctly
         /// configured.
         pub(crate) unsafe fn from_mut(s: &mut bz_stream) -> &mut Self {
-            mem::transmute(s)
+            unsafe { mem::transmute(s) }
         }
 
         /// # Safety
@@ -232,7 +232,7 @@ mod stream {
         /// with the state indicated by the generic param `S`. It must also have
         /// `bzalloc`/`bzfree`/`opaque` correctly configured.
         pub(crate) unsafe fn from_ptr<'a>(p: *mut bz_stream) -> Option<&'a mut Self> {
-            p.cast::<Self>().as_mut()
+            unsafe { p.cast::<Self>().as_mut() }
         }
 
         pub(super) fn allocator(&self) -> Option<Allocator> {
@@ -412,7 +412,7 @@ impl Arr1 {
             },
         );
         if this.len != 0 {
-            allocator.deallocate(this.ptr, this.len)
+            unsafe { allocator.deallocate(this.ptr, this.len) }
         }
     }
 
@@ -445,7 +445,7 @@ impl Arr2 {
             },
         );
         if this.len != 0 {
-            allocator.deallocate(this.ptr, this.len)
+            unsafe { allocator.deallocate(this.ptr, this.len) }
         }
     }
 
@@ -505,7 +505,7 @@ impl Ftab {
             },
         );
         if !this.ptr.is_null() {
-            allocator.deallocate(this.ptr, FTAB_LEN)
+            unsafe { allocator.deallocate(this.ptr, FTAB_LEN) }
         }
     }
 
@@ -603,7 +603,7 @@ impl<T> DSlice<T> {
     pub(crate) unsafe fn dealloc(&mut self, allocator: &Allocator) {
         let this = mem::replace(self, Self::new());
         if this.len != 0 {
-            allocator.deallocate(this.ptr, this.len)
+            unsafe { allocator.deallocate(this.ptr, this.len) }
         }
     }
 
@@ -666,7 +666,7 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     verbosity: c_int,
     workFactor: c_int,
 ) -> c_int {
-    let Some(strm) = BzStream::from_ptr(strm) else {
+    let Some(strm) = (unsafe { BzStream::from_ptr(strm) }) else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
     BZ2_bzCompressInitHelp(strm, blockSize100k, verbosity, workFactor) as c_int
@@ -975,7 +975,7 @@ impl TryFrom<i32> for Action {
 ///     - `strm.next_out` is writable for `strm.avail_out` bytes
 #[export_name = prefix!(BZ2_bzCompress)]
 pub unsafe extern "C" fn BZ2_bzCompress(strm: *mut bz_stream, action: c_int) -> c_int {
-    let Some(strm) = BzStream::from_ptr(strm) else {
+    let Some(strm) = (unsafe { BzStream::from_ptr(strm) }) else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
@@ -1080,7 +1080,7 @@ fn compress_loop(strm: &mut BzStream<EState>, s: &mut EState, action: i32) -> Re
 ///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`BZ2_bzCompressInit`]
 #[export_name = prefix!(BZ2_bzCompressEnd)]
 pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
-    let Some(strm) = BzStream::from_ptr(strm) else {
+    let Some(strm) = (unsafe { BzStream::from_ptr(strm) }) else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
     BZ2_bzCompressEndHelp(strm)
@@ -1145,7 +1145,7 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     verbosity: c_int,
     small: c_int,
 ) -> c_int {
-    let Some(strm) = BzStream::from_ptr(strm) else {
+    let Some(strm) = (unsafe { BzStream::from_ptr(strm) }) else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
     BZ2_bzDecompressInitHelp(strm, verbosity, small) as c_int
@@ -1688,7 +1688,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
 ///     - `strm.next_out` is writable for `strm.avail_out` bytes
 #[export_name = prefix!(BZ2_bzDecompress)]
 pub unsafe extern "C" fn BZ2_bzDecompress(strm: *mut bz_stream) -> c_int {
-    let Some(strm) = BzStream::from_ptr(strm) else {
+    let Some(strm) = (unsafe { BzStream::from_ptr(strm) }) else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
@@ -1791,7 +1791,7 @@ pub(crate) fn BZ2_bzDecompressHelp(strm: &mut BzStream<DState>) -> ReturnCode {
 ///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`BZ2_bzDecompressInit`]
 #[export_name = prefix!(BZ2_bzDecompressEnd)]
 pub unsafe extern "C" fn BZ2_bzDecompressEnd(strm: *mut bz_stream) -> c_int {
-    let Some(strm) = BzStream::from_ptr(strm) else {
+    let Some(strm) = (unsafe { BzStream::from_ptr(strm) }) else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
     BZ2_bzDecompressEndHelp(strm) as c_int
@@ -1870,7 +1870,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     verbosity: c_int,
     workFactor: c_int,
 ) -> c_int {
-    let Some(destLen) = destLen.as_mut() else {
+    let Some(destLen) = (unsafe { destLen.as_mut() }) else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
@@ -1895,7 +1895,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     }
 }
 
-unsafe fn BZ2_bzBuffToBuffCompressHelp(
+fn BZ2_bzBuffToBuffCompressHelp(
     dest: *mut c_char,
     destLen: c_uint,
     source: *mut c_char,
@@ -1986,9 +1986,16 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
-    match BZ2_bzBuffToBuffDecompressHelp(dest, *destLen, source, sourceLen, small, verbosity) {
+    match BZ2_bzBuffToBuffDecompressHelp(
+        dest,
+        unsafe { *destLen },
+        source,
+        sourceLen,
+        small,
+        verbosity,
+    ) {
         Ok(written) => {
-            *destLen -= written;
+            unsafe { *destLen -= written };
             ReturnCode::BZ_OK as c_int
         }
         Err(err) => err as c_int,
