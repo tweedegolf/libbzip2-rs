@@ -1760,8 +1760,6 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     verbosity: c_int,
     workFactor: c_int,
 ) -> c_int {
-    let mut strm: bz_stream = bz_stream::zeroed();
-
     let Some(destLen) = destLen.as_mut() else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
@@ -1770,32 +1768,65 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
-    match BZ2_bzCompressInitHelp(&mut strm, blockSize100k, verbosity, workFactor) {
+    match BZ2_bzBuffToBuffCompressHelp(
+        dest,
+        *destLen,
+        source,
+        sourceLen,
+        blockSize100k,
+        verbosity,
+        workFactor,
+    ) {
+        Ok(written) => {
+            *destLen -= written;
+            ReturnCode::BZ_OK as c_int
+        }
+        Err(err) => err as c_int,
+    }
+}
+
+unsafe fn BZ2_bzBuffToBuffCompressHelp(
+    dest: *mut c_char,
+    destLen: c_uint,
+    source: *mut c_char,
+    sourceLen: c_uint,
+    blockSize100k: c_int,
+    verbosity: c_int,
+    workFactor: c_int,
+) -> Result<c_uint, ReturnCode> {
+    let mut strm: bz_stream = bz_stream::zeroed();
+
+    match unsafe { BZ2_bzCompressInitHelp(&mut strm, blockSize100k, verbosity, workFactor) } {
         ReturnCode::BZ_OK => {}
-        ret => return ret as c_int,
+        ret => return Err(ret),
     }
 
     strm.next_in = source;
     strm.next_out = dest;
     strm.avail_in = sourceLen;
-    strm.avail_out = *destLen;
+    strm.avail_out = destLen;
 
-    match BZ2_bzCompressHelp(&mut strm, Action::Finish as i32) {
+    match unsafe { BZ2_bzCompressHelp(&mut strm, Action::Finish as i32) } {
         ReturnCode::BZ_FINISH_OK => {
-            BZ2_bzCompressEnd(&mut strm);
+            unsafe {
+                BZ2_bzCompressEnd(&mut strm);
+            }
 
-            ReturnCode::BZ_OUTBUFF_FULL as c_int
+            Err(ReturnCode::BZ_OUTBUFF_FULL)
         }
         ReturnCode::BZ_STREAM_END => {
-            *destLen -= strm.avail_out;
-            BZ2_bzCompressEnd(&mut strm);
+            unsafe {
+                BZ2_bzCompressEnd(&mut strm);
+            }
 
-            ReturnCode::BZ_OK as c_int
+            Ok(strm.avail_out)
         }
         error => {
-            BZ2_bzCompressEnd(&mut strm);
+            unsafe {
+                BZ2_bzCompressEnd(&mut strm);
+            }
 
-            error as c_int
+            Err(error)
         }
     }
 }
@@ -1854,37 +1885,59 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
+    match BZ2_bzBuffToBuffDecompressHelp(dest, *destLen, source, sourceLen, small, verbosity) {
+        Ok(written) => {
+            *destLen -= written;
+            ReturnCode::BZ_OK as c_int
+        }
+        Err(err) => err as c_int,
+    }
+}
+
+unsafe fn BZ2_bzBuffToBuffDecompressHelp(
+    dest: *mut c_char,
+    destLen: c_uint,
+    source: *mut c_char,
+    sourceLen: c_uint,
+    small: c_int,
+    verbosity: c_int,
+) -> Result<c_uint, ReturnCode> {
     let mut strm: bz_stream = bz_stream::zeroed();
 
-    match BZ2_bzDecompressInitHelp(&mut strm, verbosity, small) {
+    match unsafe { BZ2_bzDecompressInitHelp(&mut strm, verbosity, small) } {
         ReturnCode::BZ_OK => {}
-        ret => return ret as c_int,
+        ret => return Err(ret),
     }
 
     strm.next_in = source;
     strm.next_out = dest;
     strm.avail_in = sourceLen;
-    strm.avail_out = *destLen;
+    strm.avail_out = destLen;
 
-    match BZ2_bzDecompressHelp(&mut strm) {
+    match unsafe { BZ2_bzDecompressHelp(&mut strm) } {
         ReturnCode::BZ_OK => {
-            BZ2_bzDecompressEnd(&mut strm);
+            unsafe {
+                BZ2_bzDecompressEnd(&mut strm);
+            }
 
             match strm.avail_out {
-                0 => ReturnCode::BZ_OUTBUFF_FULL as c_int,
-                _ => ReturnCode::BZ_UNEXPECTED_EOF as c_int,
+                0 => Err(ReturnCode::BZ_OUTBUFF_FULL),
+                _ => Err(ReturnCode::BZ_UNEXPECTED_EOF),
             }
         }
         ReturnCode::BZ_STREAM_END => {
-            *destLen -= strm.avail_out;
-            BZ2_bzDecompressEnd(&mut strm);
+            unsafe {
+                BZ2_bzDecompressEnd(&mut strm);
+            }
 
-            ReturnCode::BZ_OK as c_int
+            Ok(strm.avail_out)
         }
         error => {
-            BZ2_bzDecompressEnd(&mut strm);
+            unsafe {
+                BZ2_bzDecompressEnd(&mut strm);
+            }
 
-            error as c_int
+            Err(error)
         }
     }
 }
