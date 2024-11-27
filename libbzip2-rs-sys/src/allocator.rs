@@ -14,6 +14,8 @@
 //! point where we deallocate it.
 use core::ffi::{c_int, c_void};
 
+use crate::bzlib::{BzStream, StreamState};
+
 type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
 type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
 
@@ -58,7 +60,7 @@ impl Allocator {
     ///     * a `NULL` pointer
     ///     * a valid pointer to an allocation of `len * size_of::<T>()` bytes aligned to at least `align_of::<usize>()`
     /// - `strm.bzfree` frees memory allocated by `strm.bzalloc`
-    pub(crate) unsafe fn from_bz_stream(strm: &crate::bz_stream) -> Option<Self> {
+    pub(crate) unsafe fn from_bz_stream<S: StreamState>(strm: &BzStream<S>) -> Option<Self> {
         let bzalloc = strm.bzalloc?;
         let bzfree = strm.bzfree?;
 

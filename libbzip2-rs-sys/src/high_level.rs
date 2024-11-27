@@ -8,7 +8,7 @@ use crate::allocator::Allocator;
 use crate::bzlib::prefix;
 use crate::bzlib::BZ_MAX_UNUSED_U32;
 use crate::bzlib::{bz_stream, BZ2_bzCompressEnd, BZ2_bzDecompressEnd};
-use crate::bzlib::{Action, ReturnCode};
+use crate::bzlib::{Action, BzStream, ReturnCode};
 use crate::bzlib::{
     BZ2_bzCompressHelp, BZ2_bzCompressInitHelp, BZ2_bzDecompressHelp, BZ2_bzDecompressInitHelp,
 };
@@ -217,7 +217,12 @@ unsafe fn BZ2_bzWriteOpenHelp(
         workFactor = 30;
     }
 
-    match BZ2_bzCompressInitHelp(&mut bzf.strm, blockSize100k, verbosity, workFactor) {
+    match BZ2_bzCompressInitHelp(
+        BzStream::from_mut(&mut bzf.strm),
+        blockSize100k,
+        verbosity,
+        workFactor,
+    ) {
         ReturnCode::BZ_OK => {
             bzf.strm.avail_in = 0;
             bzf.initialisedOk = true;
@@ -309,7 +314,10 @@ unsafe fn BZ2_bzWriteHelp(
     loop {
         bzf.strm.avail_out = BZ_MAX_UNUSED_U32;
         bzf.strm.next_out = bzf.buf.as_mut_ptr().cast::<c_char>();
-        match BZ2_bzCompressHelp(&mut bzf.strm, Action::Run as c_int) {
+        match BZ2_bzCompressHelp(
+            unsafe { BzStream::from_mut(&mut bzf.strm) },
+            Action::Run as c_int,
+        ) {
             ReturnCode::BZ_RUN_OK => {
                 if bzf.strm.avail_out < BZ_MAX_UNUSED_U32 {
                     let n1 = (BZ_MAX_UNUSED_U32 - bzf.strm.avail_out) as usize;
@@ -488,7 +496,7 @@ unsafe fn BZ2_bzWriteClose64Help(
         loop {
             bzf.strm.avail_out = BZ_MAX_UNUSED_U32;
             bzf.strm.next_out = (bzf.buf).as_mut_ptr().cast::<c_char>();
-            match BZ2_bzCompressHelp(&mut bzf.strm, 2 as c_int) {
+            match BZ2_bzCompressHelp(BzStream::from_mut(&mut bzf.strm), 2 as c_int) {
                 ret @ (ReturnCode::BZ_FINISH_OK | ReturnCode::BZ_STREAM_END) => {
                     if bzf.strm.avail_out < BZ_MAX_UNUSED_U32 {
                         let n1 = (BZ_MAX_UNUSED_U32 - bzf.strm.avail_out) as usize;
@@ -662,7 +670,7 @@ unsafe fn BZ2_bzReadOpenHelp(
         bzf.bufN += nUnused;
     }
 
-    match BZ2_bzDecompressInitHelp(&mut bzf.strm, verbosity, small) {
+    match BZ2_bzDecompressInitHelp(BzStream::from_mut(&mut bzf.strm), verbosity, small) {
         ReturnCode::BZ_OK => {
             bzf.strm.avail_in = bzf.bufN as c_uint;
             bzf.strm.next_in = bzf.buf.as_mut_ptr().cast::<c_char>();
@@ -832,7 +840,7 @@ unsafe fn BZ2_bzReadHelp(
             bzf.strm.next_in = (bzf.buf).as_mut_ptr().cast::<c_char>();
         }
 
-        match BZ2_bzDecompressHelp(&mut bzf.strm) {
+        match BZ2_bzDecompressHelp(unsafe { BzStream::from_mut(&mut bzf.strm) }) {
             ReturnCode::BZ_OK => {
                 if myfeof(bzf.handle) && bzf.strm.avail_in == 0 && bzf.strm.avail_out > 0 {
                     BZ_SETERR!(bzerror, bzf, ReturnCode::BZ_UNEXPECTED_EOF);
