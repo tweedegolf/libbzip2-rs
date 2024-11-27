@@ -275,7 +275,7 @@ mod stream {
     pub(super) fn configure_allocator<S: StreamState>(strm: &mut BzStream<S>) -> Option<Allocator> {
         match (strm.bzalloc, strm.bzfree) {
             (Some(allocate), Some(deallocate)) => {
-                Some(Allocator::custom(allocate, deallocate, (*strm).opaque))
+                Some(Allocator::custom(allocate, deallocate, strm.opaque))
             }
             (None, None) => {
                 let allocator = Allocator::DEFAULT?;
@@ -745,12 +745,12 @@ pub(crate) fn BZ2_bzCompressInitHelp(
         (*s).workFactor = workFactor;
     }
 
-    (*strm).state = s as *mut EState;
+    strm.state = s;
 
-    (*strm).total_in_lo32 = 0;
-    (*strm).total_in_hi32 = 0;
-    (*strm).total_out_lo32 = 0;
-    (*strm).total_out_hi32 = 0;
+    strm.total_in_lo32 = 0;
+    strm.total_in_hi32 = 0;
+    strm.total_out_lo32 = 0;
+    strm.total_out_hi32 = 0;
 
     let s = unsafe { &mut *s };
     init_rl(&mut *s);
@@ -1194,12 +1194,12 @@ pub(crate) fn BZ2_bzDecompressInitHelp(
         (*s).verbosity = verbosity;
     }
 
-    (*strm).state = s as *mut DState;
+    strm.state = s;
 
-    (*strm).total_in_lo32 = 0;
-    (*strm).total_in_hi32 = 0;
-    (*strm).total_out_lo32 = 0;
-    (*strm).total_out_hi32 = 0;
+    strm.total_in_lo32 = 0;
+    strm.total_in_hi32 = 0;
+    strm.total_out_lo32 = 0;
+    strm.total_out_hi32 = 0;
 
     ReturnCode::BZ_OK
 }
