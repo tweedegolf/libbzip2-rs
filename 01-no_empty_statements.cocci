@@ -1,5 +1,0 @@
-@@
-identifier a;
-@@
-
-- a;
