@@ -349,9 +349,9 @@ impl Arr2 {
         let block = unsafe { core::slice::from_raw_parts_mut(self.ptr.cast(), len) };
 
         let start_byte = len.next_multiple_of(2);
-        let quadrant: *mut u16 = (self.ptr as *mut u8).wrapping_add(start_byte) as *mut u16;
-        unsafe { ptr::write_bytes(quadrant, 0, len) };
+        let quadrant: *mut u16 = unsafe { self.ptr.cast::<u16>().byte_add(start_byte) };
         let quadrant = unsafe { core::slice::from_raw_parts_mut(quadrant, len) };
+        quadrant.fill(0);
 
         (block, quadrant)
     }
