@@ -3,7 +3,7 @@
 use core::ffi::{c_int, c_uint};
 
 use crate::allocator::Allocator;
-use crate::bzlib::{bz_stream, index_into_f, DSlice, DState, DecompressMode, ReturnCode};
+use crate::bzlib::{index_into_f, BzStream, DSlice, DState, DecompressMode, ReturnCode};
 use crate::huffman;
 use crate::randtable::BZ2_RNUMS;
 
@@ -157,7 +157,7 @@ impl GetBitsConvert for i32 {
 }
 
 pub(crate) fn decompress(
-    strm: &mut bz_stream,
+    strm: &mut BzStream<DState>,
     s: &mut DState,
     allocator: &Allocator,
 ) -> ReturnCode {
