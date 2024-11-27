@@ -575,16 +575,19 @@ pub unsafe extern "C" fn BZ2_bzCompressInit(
     verbosity: c_int,
     workFactor: c_int,
 ) -> c_int {
+    let Some(strm) = strm.as_mut() else {
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
+    };
     BZ2_bzCompressInitHelp(strm, blockSize100k, verbosity, workFactor) as c_int
 }
 
 pub(crate) unsafe fn BZ2_bzCompressInitHelp(
-    strm: *mut bz_stream,
+    strm: &mut bz_stream,
     blockSize100k: c_int,
     verbosity: c_int,
     mut workFactor: c_int,
 ) -> ReturnCode {
-    if strm.is_null() || !(1..=9).contains(&blockSize100k) || !(0..=250).contains(&workFactor) {
+    if !(1..=9).contains(&blockSize100k) || !(0..=250).contains(&workFactor) {
         return ReturnCode::BZ_PARAM_ERROR;
     }
 
@@ -603,7 +606,7 @@ pub(crate) unsafe fn BZ2_bzCompressInitHelp(
 
     // this `s.strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
     // that a given state belongs to a given strm.
-    (*s).strm_addr = strm as usize; // FIXME use .addr() once stable
+    (*s).strm_addr = strm as *const _ as usize; // FIXME use .addr() once stable
 
     let n = 100000 * blockSize100k;
 
@@ -986,8 +989,11 @@ pub unsafe extern "C" fn BZ2_bzCompressEnd(strm: *mut bz_stream) -> c_int {
     let Some(strm) = strm.as_mut() else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
+    BZ2_bzCompressEndHelp(strm)
+}
 
-    let Some(s) = (strm.state as *mut EState).as_mut() else {
+unsafe fn BZ2_bzCompressEndHelp(strm: &mut bz_stream) -> c_int {
+    let Some(s) = strm.state.cast::<EState>().as_mut() else {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
@@ -1041,17 +1047,17 @@ pub unsafe extern "C" fn BZ2_bzDecompressInit(
     verbosity: c_int,
     small: c_int,
 ) -> c_int {
+    let Some(strm) = strm.as_mut() else {
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
+    };
     BZ2_bzDecompressInitHelp(strm, verbosity, small) as c_int
 }
 
 pub(crate) unsafe fn BZ2_bzDecompressInitHelp(
-    strm: *mut bz_stream,
+    strm: &mut bz_stream,
     verbosity: c_int,
     small: c_int,
 ) -> ReturnCode {
-    if strm.is_null() {
-        return ReturnCode::BZ_PARAM_ERROR;
-    }
     let decompress_mode = match small {
         0 => DecompressMode::Fast,
         1 => DecompressMode::Small,
@@ -1072,7 +1078,7 @@ pub(crate) unsafe fn BZ2_bzDecompressInitHelp(
 
     // this `s.strm` pointer should _NEVER_ be used! it exists just as a consistency check to ensure
     // that a given state belongs to a given strm.
-    (*s).strm_addr = strm as usize; // FIXME use .addr() once stable
+    (*s).strm_addr = strm as *const _ as usize; // FIXME use .addr() once stable
 
     (*s).state = decompress::State::BZ_X_MAGIC_1;
     (*s).bsLive = 0;
