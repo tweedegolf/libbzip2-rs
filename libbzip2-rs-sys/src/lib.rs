@@ -3,6 +3,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::needless_range_loop)] // FIXME remove once all instances are fixed
 #![deny(unreachable_pub)]
+#![deny(unsafe_op_in_unsafe_fn)]
 
 //! A drop-in compatible rust implementation of bzip2
 
