@@ -1870,13 +1870,13 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     verbosity: c_int,
     workFactor: c_int,
 ) -> c_int {
-    let Some(destLen) = (unsafe { destLen.as_mut() }) else {
-        return ReturnCode::BZ_PARAM_ERROR as c_int;
-    };
-
     if dest.is_null() || source.is_null() {
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
+
+    let Some(destLen) = (unsafe { destLen.as_mut() }) else {
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
+    };
 
     match BZ2_bzBuffToBuffCompressHelp(
         dest,
@@ -1986,16 +1986,13 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     }
 
-    match BZ2_bzBuffToBuffDecompressHelp(
-        dest,
-        unsafe { *destLen },
-        source,
-        sourceLen,
-        small,
-        verbosity,
-    ) {
+    let Some(destLen) = (unsafe { destLen.as_mut() }) else {
+        return ReturnCode::BZ_PARAM_ERROR as c_int;
+    };
+
+    match BZ2_bzBuffToBuffDecompressHelp(dest, *destLen, source, sourceLen, small, verbosity) {
         Ok(written) => {
-            unsafe { *destLen -= written };
+            *destLen -= written;
             ReturnCode::BZ_OK as c_int
         }
         Err(err) => err as c_int,
