@@ -332,6 +332,7 @@ pub(crate) enum ReturnCode {
     BZ_CONFIG_ERROR = -9,
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone)]
 pub(crate) enum Mode {
     Idle,
@@ -340,6 +341,7 @@ pub(crate) enum Mode {
     Finishing,
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone)]
 pub(crate) enum State {
     Output,
@@ -734,25 +736,29 @@ pub(crate) fn BZ2_bzCompressInitHelp(
         }
     };
 
-    unsafe {
-        (*s).blockNo = 0;
-        (*s).state = State::Output;
-        (*s).mode = Mode::Running;
-        (*s).combinedCRC = 0;
-        (*s).blockSize100k = blockSize100k;
-        (*s).nblockMAX = 100000 * blockSize100k - 19;
-        (*s).verbosity = verbosity;
-        (*s).workFactor = workFactor;
-    }
-
     strm.state = s;
+
+    // safety: the EState has now been sufficiently initialized; the allocator zeroes the memory,
+    // and the only fields where zero is not a valid value are the arrays that were just set
+    //
+    // note in particular that if the discriminant of the first variant of an enum is unspecified,
+    // then it is set to zero.
+    let s = unsafe { &mut *s };
+
+    s.blockNo = 0;
+    s.state = State::Output;
+    s.mode = Mode::Running;
+    s.combinedCRC = 0;
+    s.blockSize100k = blockSize100k;
+    s.nblockMAX = 100000 * blockSize100k - 19;
+    s.verbosity = verbosity;
+    s.workFactor = workFactor;
 
     strm.total_in_lo32 = 0;
     strm.total_in_hi32 = 0;
     strm.total_out_lo32 = 0;
     strm.total_out_hi32 = 0;
 
-    let s = unsafe { &mut *s };
     init_rl(s);
     prepare_new_block(s);
 
