@@ -342,8 +342,8 @@ pub(crate) enum Mode {
 
 #[derive(Copy, Clone)]
 pub(crate) enum State {
-    Output = 1,
-    Input = 2,
+    Output,
+    Input,
 }
 
 pub(crate) const BZ_N_RADIX: i32 = 2;
