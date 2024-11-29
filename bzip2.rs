@@ -1,6 +1,7 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
+#![allow(clippy::manual_c_str_literals)]
 
 use std::ffi::{c_char, c_int, CStr, CString, OsStr};
 use std::fs::Metadata;
@@ -62,6 +63,9 @@ macro_rules! STDOUT {
         __acrt_iob_func(1)
     };
 }
+
+const WB_MODE: *const c_char = b"wb\0".as_ptr().cast::<c_char>();
+const RB_MODE: *const c_char = b"rb\0".as_ptr().cast::<c_char>();
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum DecompressMode {
@@ -1019,7 +1023,7 @@ impl CFile {
                 CString::new(name.as_ref().to_str().unwrap())
                     .unwrap()
                     .as_ptr(),
-                b"rb\0".as_ptr().cast::<c_char>(),
+                RB_MODE,
             )
         };
         if fp.is_null() {
@@ -1050,8 +1054,7 @@ impl CFile {
             };
 
             let fd = file.into_raw_fd();
-            let mode = b"wb\0".as_ptr().cast::<c_char>();
-            let fp = unsafe { libc::fdopen(fd, mode) };
+            let fp = unsafe { libc::fdopen(fd, WB_MODE) };
             if fp.is_null() {
                 unsafe { libc::close(fd) };
                 return None;
@@ -1081,8 +1084,7 @@ impl CFile {
             let handle = file.into_raw_handle();
 
             let fd = unsafe { libc::open_osfhandle(handle as isize, 0) };
-            let mode = b"wb\0".as_ptr().cast::<c_char>();
-            let fp = unsafe { libc::fdopen(fd, mode) };
+            let fp = unsafe { libc::fdopen(fd, WB_MODE) };
             if fp.is_null() {
                 unsafe { libc::close(fd) };
                 return None;
@@ -1102,7 +1104,7 @@ impl CFile {
                     CString::new(name.as_ref().to_str().unwrap())
                         .unwrap()
                         .as_ptr(),
-                    b"wb\0".as_ptr().cast::<c_char>(),
+                    WB_MODE,
                 )
             };
 

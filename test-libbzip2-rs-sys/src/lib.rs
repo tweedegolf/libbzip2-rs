@@ -1,5 +1,6 @@
 #![allow(dead_code, unused_imports, unused_macros, non_snake_case)]
 #![allow(clippy::missing_safety_doc)]
+#![allow(clippy::manual_c_str_literals)]
 
 use std::{
     ffi::{c_char, c_int, c_void, CStr},
@@ -8,6 +9,9 @@ use std::{
 };
 
 mod chunked;
+
+const WB_MODE: *const c_char = b"wb\0".as_ptr().cast::<c_char>();
+const RB_MODE: *const c_char = b"rb\0".as_ptr().cast::<c_char>();
 
 type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;
 type FreeFunc = unsafe extern "C" fn(*mut c_void, *mut c_void) -> ();
@@ -1188,7 +1192,7 @@ mod high_level_interface {
         let input_file = unsafe {
             libc::fopen(
                 p.display().to_string().as_mut_ptr().cast::<c_char>(),
-                b"rb\0".as_ptr().cast::<c_char>(),
+                RB_MODE,
             )
         };
 
@@ -1252,7 +1256,7 @@ mod high_level_interface {
             let p = p.with_extension("bz2\0");
             libc::fopen(
                 p.display().to_string().as_mut_ptr().cast::<c_char>(),
-                b"wb\0".as_ptr().cast::<c_char>(),
+                WB_MODE,
             )
         };
 
@@ -1328,9 +1332,6 @@ mod high_level_interface {
 
         let p = std::env::temp_dir().join("open_and_close.bz2");
 
-        const RB: *const c_char = b"rb\0".as_ptr().cast::<c_char>();
-        const WB: *const c_char = b"wb\0".as_ptr().cast::<c_char>();
-
         // make sure this branch is hit
         unsafe { libbzip2_rs_sys::BZ2_bzclose(core::ptr::null_mut()) };
 
@@ -1354,7 +1355,7 @@ mod high_level_interface {
         {
             let file = open_file();
 
-            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzdopen(file.into_raw_fd(), RB) };
+            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzdopen(file.into_raw_fd(), RB_MODE) };
             assert!(!ptr.is_null());
             unsafe { libbzip2_rs_sys::BZ2_bzclose(ptr) };
         }
@@ -1362,7 +1363,7 @@ mod high_level_interface {
         {
             let file = open_file();
 
-            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzdopen(file.into_raw_fd(), WB) };
+            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzdopen(file.into_raw_fd(), WB_MODE) };
             assert!(!ptr.is_null());
             unsafe { libbzip2_rs_sys::BZ2_bzclose(ptr) };
         }
@@ -1371,14 +1372,14 @@ mod high_level_interface {
 
         {
             let path = path_as_cstring.as_ptr().cast();
-            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzopen(path, RB) };
+            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzopen(path, RB_MODE) };
             assert!(!ptr.is_null());
             unsafe { libbzip2_rs_sys::BZ2_bzclose(ptr) };
         }
 
         {
             let path = path_as_cstring.as_ptr().cast();
-            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzopen(path, WB) };
+            let ptr = unsafe { libbzip2_rs_sys::BZ2_bzopen(path, WB_MODE) };
             assert!(!ptr.is_null());
             unsafe { libbzip2_rs_sys::BZ2_bzclose(ptr) };
         }
