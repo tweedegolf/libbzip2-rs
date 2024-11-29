@@ -753,8 +753,8 @@ pub(crate) fn BZ2_bzCompressInitHelp(
     strm.total_out_hi32 = 0;
 
     let s = unsafe { &mut *s };
-    init_rl(&mut *s);
-    prepare_new_block(&mut *s);
+    init_rl(s);
+    prepare_new_block(s);
 
     ReturnCode::BZ_OK
 }
@@ -897,12 +897,12 @@ fn handle_compress(strm: &mut BzStream<EState>, s: &mut EState) -> bool {
             if s.state_out_pos < s.writer.num_z as i32 {
                 break;
             }
-            if matches!(s.mode, Mode::Finishing) && s.avail_in_expect == 0 && isempty_rl(&mut *s) {
+            if matches!(s.mode, Mode::Finishing) && s.avail_in_expect == 0 && isempty_rl(s) {
                 break;
             }
-            prepare_new_block(&mut *s);
+            prepare_new_block(s);
             s.state = State::Output;
-            if matches!(s.mode, Mode::Flushing) && s.avail_in_expect == 0 && isempty_rl(&mut *s) {
+            if matches!(s.mode, Mode::Flushing) && s.avail_in_expect == 0 && isempty_rl(s) {
                 break;
             }
         }
@@ -1029,7 +1029,7 @@ fn compress_loop(strm: &mut BzStream<EState>, s: &mut EState, action: i32) -> Re
                 }
                 handle_compress(strm, s);
                 if s.avail_in_expect > 0
-                    || !isempty_rl(&mut *s)
+                    || !isempty_rl(s)
                     || s.state_out_pos < s.writer.num_z as i32
                 {
                     return ReturnCode::BZ_FLUSH_OK;
