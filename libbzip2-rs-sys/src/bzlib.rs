@@ -334,10 +334,10 @@ pub(crate) enum ReturnCode {
 
 #[derive(Copy, Clone)]
 pub(crate) enum Mode {
-    Idle = 1,
-    Running = 2,
-    Flushing = 3,
-    Finishing = 4,
+    Idle,
+    Running,
+    Flushing,
+    Finishing,
 }
 
 #[derive(Copy, Clone)]
