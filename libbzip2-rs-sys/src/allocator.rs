@@ -114,7 +114,7 @@ pub(crate) mod c_allocator {
     }
 }
 
-#[cfg(feature = "c-allocator")]
+#[cfg(feature = "rust-allocator")]
 mod rust_allocator {
     use super::*;
 

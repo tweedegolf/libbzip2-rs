@@ -10,12 +10,12 @@ crate-type = ["staticlib", "rlib"]
 
 [features]
 default = ["std", "c-allocator", "stdio"]
-c-allocator = [] # use a malloc-based C allocator (rust is picked over c if both are configured)
+c-allocator = ["dep:libc"] # use a malloc-based C allocator (rust is picked over c if both are configured)
 rust-allocator = [] # use the rust global allocator (rust is picked over c if both are configured)
 std = ["rust-allocator"]
 custom-prefix = [] # use the LIBBZIP2_RS_SYS_PREFIX to prefix all exported symbols
 testing-prefix = [] # prefix all symbols with LIBBZIP2_RS_SYS_TEST_ for testing
-stdio = [] # corresponds to BZ_NO_STDIO; only the low-level api is available when this flag is disabled
+stdio = ["dep:libc"] # corresponds to BZ_NO_STDIO; only the low-level api is available when this flag is disabled
 
 [dependencies]
-libc = "0.2"
+libc = { version = "0.2", optional = true }
