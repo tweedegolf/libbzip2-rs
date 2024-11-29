@@ -18,7 +18,7 @@ pub(crate) struct LiveWriter<'a> {
     bs_buff: u32,
 }
 
-impl<'a> Drop for LiveWriter<'a> {
+impl Drop for LiveWriter<'_> {
     fn drop(&mut self) {
         self.writer.num_z = self.num_z;
         self.writer.bs_buff = self.bs_buff;
