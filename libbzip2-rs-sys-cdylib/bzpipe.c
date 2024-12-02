@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 
     /* otherwise, report usage */
     else {
-        fputs("zpipe usage: zpipe [-d] < source > dest\n", stderr);
+        fputs("bzpipe usage: bzpipe [-d] < source > dest\n", stderr);
         return 1;
     }
 }
