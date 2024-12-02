@@ -147,10 +147,10 @@ int inf(FILE *source, FILE *dest)
     return ret == BZ_STREAM_END ? BZ_OK : BZ_DATA_ERROR;
 }
 
-/* report a zlib or i/o error */
+/* report a bzip2 or i/o error */
 void zerr(int ret)
 {
-    fputs("zpipe: ", stderr);
+    fputs("bzpipe: ", stderr);
     switch (ret) {
     case BZ_IO_ERROR:
         if (ferror(stdin))

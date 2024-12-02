@@ -25,7 +25,7 @@ capi = []
 libbzip2-rs-sys = { version = "0.0.0", path = "../libbzip2-rs-sys", default-features = false }
 
 [package.metadata.capi.library]
-version = "1.0.9" # the zlib api version we match
+version = "1.0.9" # the bzip2 api version we match
 name = "bz2_rs"
 
 [package.metadata.capi.header]
