@@ -68,7 +68,7 @@ flag. When enabled, the value of the `LIBBZIP2_RS_SYS_PREFIX` is used as a prefi
 000000000002f2e0 g    DF .text	000000000000001a  Base        MY_CUSTOM_PREFIX_BZ2_bzCompressInit
 ```
 
-### `![no_std]`
+### `#![no_std]`
 
 The dynamic library can be built without the rust `std` crate, e.g. for embedded devices that don't support it. Disabling
 the standard library has the following limitations:
