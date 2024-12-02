@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -6,6 +7,16 @@
 extern void bz_internal_error(int errcode) {
     fprintf(stderr, "bzip2 hit internal error code: %d\n", errcode);
 }
+
+#ifdef NO_STD
+void *custom_bzalloc(void *opaque, int items, int size) {
+    return malloc(items * size);
+}
+
+void custom_bzfree(void *opaque, void *address) {
+    free(address);
+}
+#endif
 
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__)
 #  include <fcntl.h>
@@ -30,8 +41,13 @@ int def(FILE *source, FILE *dest)
     unsigned char out[CHUNK];
 
     /* allocate deflate state */
+#ifdef NO_STD
+    strm.bzalloc = custom_bzalloc;
+    strm.bzfree = custom_bzfree;
+#else
     strm.bzalloc = NULL;
     strm.bzfree = NULL;
+#endif
     strm.opaque = NULL;
     ret = BZ2_bzCompressInit(&strm, 9, 0, 0);
     if (ret != BZ_OK)
@@ -97,8 +113,13 @@ int inf(FILE *source, FILE *dest)
     unsigned char out[CHUNK];
 
     /* allocate inflate state */
+#ifdef NO_STD
+    strm.bzalloc = custom_bzalloc;
+    strm.bzfree = custom_bzfree;
+#else
     strm.bzalloc = NULL;
     strm.bzfree = NULL;
+#endif
     strm.opaque = NULL;
     strm.avail_in = 0;
     strm.next_in = NULL;

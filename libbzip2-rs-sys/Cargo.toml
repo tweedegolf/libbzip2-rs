@@ -3,11 +3,6 @@ name = "libbzip2-rs-sys"
 readme = "README.md"
 edition.workspace = true
 
-[lib]
-name = "libbzip2_rs_sys"
-crate-type = ["staticlib", "rlib"]
-
-
 [features]
 default = ["std", "c-allocator", "stdio"]
 c-allocator = ["dep:libc"] # use a malloc-based C allocator (rust is picked over c if both are configured)
