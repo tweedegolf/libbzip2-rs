@@ -3,6 +3,13 @@
 version = 3
 
 [[package]]
+name = "libbz2-rs-sys-cdylib"
+version = "0.0.0"
+dependencies = [
+ "libbzip2-rs-sys",
+]
+
+[[package]]
 name = "libbzip2-rs-sys"
 version = "0.0.0"
 dependencies = [
@@ -14,10 +21,3 @@ name = "libc"
 version = "0.2.167"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09d6582e104315a817dff97f75133544b2e094ee22447d2acf4a74e189ba06fc"
-
-[[package]]
-name = "libz-rs-sys-cdylib"
-version = "0.0.0"
-dependencies = [
- "libbzip2-rs-sys",
-]

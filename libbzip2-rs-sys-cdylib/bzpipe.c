@@ -3,6 +3,10 @@
 #include <assert.h>
 #include "bzlib.h"
 
+extern void bz_internal_error(int errcode) {
+    fprintf(stderr, "bzip2 hit internal error code: %d\n", errcode);
+}
+
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__)
 #  include <fcntl.h>
 #  include <io.h>
