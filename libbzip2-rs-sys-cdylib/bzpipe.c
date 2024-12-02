@@ -19,9 +19,7 @@ extern void bz_internal_error(int errcode) {
 
 /* Compress from file source to file dest until EOF on source.
    def() returns BZ_OK on success, BZ_MEM_ERROR if memory could not be
-   allocated for processing, Z_STREAM_ERROR if an invalid compression
-   level is supplied, Z_VERSION_ERROR if the version of zlib.h and the
-   version of the library linked do not match, or BZ_IO_ERROR if there is
+   allocated for processing, or BZ_IO_ERROR if there is
    an error reading or writing the files. */
 int def(FILE *source, FILE *dest)
 {
@@ -88,8 +86,7 @@ int def(FILE *source, FILE *dest)
 /* Decompress from file source to file dest until stream ends or EOF.
    inf() returns BZ_OK on success, BZ_MEM_ERROR if memory could not be
    allocated for processing, BZ_DATA_ERROR if the deflate data is
-   invalid or incomplete, Z_VERSION_ERROR if the version of zlib.h and
-   the version of the library linked do not match, or BZ_IO_ERROR if there
+   invalid or incomplete, or BZ_IO_ERROR if there
    is an error reading or writing the files. */
 int inf(FILE *source, FILE *dest)
 {
