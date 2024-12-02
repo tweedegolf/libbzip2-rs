@@ -3,6 +3,9 @@ members = [
     "libbzip2-rs-sys",
     "test-libbzip2-rs-sys",
 ]
+exclude = [
+    "libbzip2-rs-sys-cdylib",
+]
 package.edition = "2021"
 
 
