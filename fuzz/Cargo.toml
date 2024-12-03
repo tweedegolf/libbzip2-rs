@@ -13,8 +13,8 @@ debug = true
 
 [features]
 default = ["rust-allocator", "libbzip2-rs-sys/testing-prefix"]
-c-allocator = ["libbzip2-rs-sys/c-allocator",  "libbzip2-rs-sys/std"]
-rust-allocator = ["libbzip2-rs-sys/rust-allocator",  "libbzip2-rs-sys/std"]
+c-allocator = ["libbzip2-rs-sys/c-allocator"]
+rust-allocator = ["libbzip2-rs-sys/rust-allocator"]
 disable-checksum = ["libbzip2-rs-sys/__internal-fuzz-disable-checksum"]
 
 [dependencies.libfuzzer-sys]
