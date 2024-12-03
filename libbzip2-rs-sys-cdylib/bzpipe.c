@@ -6,6 +6,7 @@
 
 extern void bz_internal_error(int errcode) {
     fprintf(stderr, "bzip2 hit internal error code: %d\n", errcode);
+    exit(1);
 }
 
 #ifdef NO_STD
