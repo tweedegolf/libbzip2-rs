@@ -1,0 +1,65 @@
+[package]
+name = "libbzip2-rs-fuzz"
+version = "0.0.0"
+authors = ["Automatically generated"]
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[profile.release]
+debug = true
+
+[features]
+default = ["rust-allocator", "libbzip2-rs-sys/testing-prefix"]
+c-allocator = ["libbzip2-rs-sys/c-allocator",  "libbzip2-rs-sys/std"]
+rust-allocator = ["libbzip2-rs-sys/rust-allocator",  "libbzip2-rs-sys/std"]
+disable-checksum = ["libbzip2-rs-sys/__internal-fuzz-disable-checksum"]
+
+[dependencies.libfuzzer-sys]
+version = "0.4"
+features = ["arbitrary-derive"]
+
+[dependencies]
+libc = "0.2.151"
+bzip2-sys = "0.1.11"
+libloading = "0.8.1"
+crc32fast = "1.3.2"
+rstest = "0.23.0"
+
+[dependencies.libbzip2-rs-sys]
+path = "../libbzip2-rs-sys"
+default-features = false
+
+[dependencies.test-libbzip2-rs-sys]
+path = "../test-libbzip2-rs-sys"
+default-features = false
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "decompress"
+path = "fuzz_targets/decompress.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "decompress_random_input"
+path = "fuzz_targets/decompress_random_input.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "decompress_chunked"
+path = "fuzz_targets/decompress_chunked.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "compress"
+path = "fuzz_targets/compress.rs"
+test = false
+doc = false
