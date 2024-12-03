@@ -351,7 +351,7 @@ jobs:
           LD_LIBRARY_PATH: "target/${{matrix.target}}/release/deps"
         working-directory: libbzip2-rs-sys-cdylib
         run: |
-          cargo build --release --target ${{matrix.target}} --no-default-features --features="c-allocator"
+          cargo build --release --target ${{matrix.target}} --no-default-features
           cc -o bzpipe bzpipe.c target/${{matrix.target}}/release/deps/libbz2_rs.so -I ../
           ./bzpipe < Cargo.toml | ./bzpipe -d > out.txt
           cmp -s Cargo.toml out.txt
