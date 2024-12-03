@@ -12,7 +12,7 @@ cargo-fuzz = true
 debug = true
 
 [features]
-default = ["rust-allocator", "libbzip2-rs-sys/testing-prefix"]
+default = ["rust-allocator"]
 c-allocator = ["libbzip2-rs-sys/c-allocator"]
 rust-allocator = ["libbzip2-rs-sys/rust-allocator"]
 disable-checksum = ["libbzip2-rs-sys/__internal-fuzz-disable-checksum"]
@@ -31,6 +31,7 @@ rstest = "0.23.0"
 [dependencies.libbzip2-rs-sys]
 path = "../libbzip2-rs-sys"
 default-features = false
+features = ["testing-prefix"]
 
 [dependencies.test-libbzip2-rs-sys]
 path = "../test-libbzip2-rs-sys"
