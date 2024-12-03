@@ -1768,7 +1768,7 @@ pub(crate) fn BZ2_bzDecompressHelp(strm: &mut BzStream<DState>) -> ReturnCode {
                         );
                     }
                     #[cfg(not(feature = "__internal-fuzz-disable-checksum"))]
-                if s.calculatedCombinedCRC != s.storedCombinedCRC {
+                    if s.calculatedCombinedCRC != s.storedCombinedCRC {
                         return ReturnCode::BZ_DATA_ERROR;
                     }
                     return ReturnCode::BZ_STREAM_END;
