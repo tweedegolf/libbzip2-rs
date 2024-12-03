@@ -1884,15 +1884,17 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
-    match BZ2_bzBuffToBuffCompressHelp(
-        dest,
-        *destLen,
-        source,
-        sourceLen,
-        blockSize100k,
-        verbosity,
-        workFactor,
-    ) {
+    match unsafe {
+        BZ2_bzBuffToBuffCompressHelp(
+            dest,
+            *destLen,
+            source,
+            sourceLen,
+            blockSize100k,
+            verbosity,
+            workFactor,
+        )
+    } {
         Ok(written) => {
             *destLen -= written;
             ReturnCode::BZ_OK as c_int
@@ -1901,7 +1903,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffCompress(
     }
 }
 
-fn BZ2_bzBuffToBuffCompressHelp(
+unsafe fn BZ2_bzBuffToBuffCompressHelp(
     dest: *mut c_char,
     destLen: c_uint,
     source: *mut c_char,
@@ -1996,7 +1998,9 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
         return ReturnCode::BZ_PARAM_ERROR as c_int;
     };
 
-    match BZ2_bzBuffToBuffDecompressHelp(dest, *destLen, source, sourceLen, small, verbosity) {
+    match unsafe {
+        BZ2_bzBuffToBuffDecompressHelp(dest, *destLen, source, sourceLen, small, verbosity)
+    } {
         Ok(written) => {
             *destLen -= written;
             ReturnCode::BZ_OK as c_int
@@ -2005,7 +2009,7 @@ pub unsafe extern "C" fn BZ2_bzBuffToBuffDecompress(
     }
 }
 
-fn BZ2_bzBuffToBuffDecompressHelp(
+unsafe fn BZ2_bzBuffToBuffDecompressHelp(
     dest: *mut c_char,
     destLen: c_uint,
     source: *mut c_char,
