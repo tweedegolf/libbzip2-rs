@@ -185,76 +185,76 @@ jobs:
       - name: Run clippy
         run: cargo clippy --target ${{matrix.target}} ${{matrix.features}} --workspace --all-targets -- -D warnings
 
-  # fuzz:
-  #   name: Smoke-test fuzzing targets
-  #   runs-on: ubuntu-20.04
-  #   strategy:
-  #     matrix:
-  #       features:
-  #         - 'default'
-  #         - 'c-allocator'
-  #         - 'rust-allocator'
-  #   steps:
-  #     - name: Checkout sources
-  #       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-  #       with:
-  #         persist-credentials: false
-  #         submodules: true
-  #     - name: Install nightly toolchain
-  #       uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
-  #       with:
-  #         toolchain: nightly
-  #     - name: Install cargo fuzz
-  #       uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8
-  #       with:
-  #         tool: cargo-fuzz
-  #     - name: Smoke-test fuzz targets
-  #       run: |
-  #         cargo fuzz build --no-default-features --features="${{ matrix.features }}"
-  #         for target in $(cargo fuzz list); do
-  #           if [ "$target" = "uncompress2" ]; then
-  #             features="${{ matrix.features }} disable-checksum"
-  #           else
-  #             features="${{ matrix.features }}"
-  #           fi
-  #           RUST_BACKTRACE=1 cargo fuzz run --no-default-features --features="$features" $target -- -max_total_time=10
-  #         done
+  fuzz:
+    name: Smoke-test fuzzing targets
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        features:
+          - 'default'
+          - 'c-allocator'
+          - 'rust-allocator'
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        with:
+          persist-credentials: false
+          submodules: true
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
+        with:
+          toolchain: nightly
+      - name: Install cargo fuzz
+        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8
+        with:
+          tool: cargo-fuzz
+      - name: Smoke-test fuzz targets
+        run: |
+          cargo fuzz build --no-default-features --features="${{ matrix.features }}"
+          for target in $(cargo fuzz list); do
+            if [ "$target" = "uncompress2" ]; then
+              features="${{ matrix.features }} disable-checksum"
+            else
+              features="${{ matrix.features }}"
+            fi
+            RUST_BACKTRACE=1 cargo fuzz run --no-default-features --features="$features" $target -- -max_total_time=10
+          done
 
-  # fuzz-aarch64:
-  #   name: Smoke-test fuzzing targets
-  #   runs-on: macos-14
-  #   strategy:
-  #     matrix:
-  #       include:
-  #         - rust: "stable"
-  #           os: macos-14
-  #           features: ""
-  #           target: "aarch64-apple-darwin"
-  #   steps:
-  #     - name: Checkout sources
-  #       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-  #       with:
-  #         persist-credentials: false
-  #         submodules: true
-  #     - name: Install nightly toolchain
-  #       uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
-  #       with:
-  #         toolchain: nightly
-  #     - name: Install cargo fuzz
-  #       uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8
-  #       with:
-  #         tool: cargo-fuzz
-  #     - name: Smoke-test fuzz targets
-  #       run: |
-  #         cargo fuzz build --no-default-features --features="${{ matrix.features }}"
-  #         for target in $(cargo fuzz list); do
-  #           if [ "$target" = "uncompress2" ]; then
-  #             features="${{ matrix.features }} disable-checksum"
-  #           else
-  #             features="${{ matrix.features }}"
-  #           fi
-  #           RUST_BACKTRACE=1 cargo fuzz run --no-default-features --features="$features" $target -- -max_total_time=10
-  #         done
+  fuzz-aarch64:
+    name: Smoke-test fuzzing targets
+    runs-on: macos-14
+    strategy:
+      matrix:
+        include:
+          - rust: "stable"
+            os: macos-14
+            features: ""
+            target: "aarch64-apple-darwin"
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        with:
+          persist-credentials: false
+          submodules: true
+      - name: Install nightly toolchain
+        uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
+        with:
+          toolchain: nightly
+      - name: Install cargo fuzz
+        uses: taiki-e/install-action@56ab7930c591507f833cbaed864d201386d518a8
+        with:
+          tool: cargo-fuzz
+      - name: Smoke-test fuzz targets
+        run: |
+          cargo fuzz build --no-default-features --features="${{ matrix.features }}"
+          for target in $(cargo fuzz list); do
+            if [ "$target" = "uncompress2" ]; then
+              features="${{ matrix.features }} disable-checksum"
+            else
+              features="${{ matrix.features }}"
+            fi
+            RUST_BACKTRACE=1 cargo fuzz run --no-default-features --features="$features" $target -- -max_total_time=10
+          done
 
   wasm32:
     name: "wasm32"
