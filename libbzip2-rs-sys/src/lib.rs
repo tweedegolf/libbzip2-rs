@@ -84,37 +84,40 @@ pub(crate) use libbzip2_rs_sys_version;
 // --- assert failure logic
 
 macro_rules! assert_h {
-    ($condition:expr, $errcode:expr) => {{
-        #[cfg(feature = "stdio")]
+    ($condition:expr, $errcode:expr) => {
         if !$condition {
-            #[cfg(feature = "std")]
-            std::eprint!("{}", $crate::AssertFail($errcode));
-            #[cfg(feature = "std")]
-            std::process::exit(3);
-
-            #[cfg(not(feature = "std"))]
-            panic!("{}", $crate::AssertFail($errcode));
+            $crate::handle_assert_failure($errcode)
         }
-
-        #[cfg(not(feature = "stdio"))]
-        if !$condition {
-            $crate::no_stdio_internal_error($errcode)
-        }
-    }};
+    };
 }
 
-#[cfg(not(feature = "stdio"))]
-pub(crate) fn no_stdio_internal_error(errcode: c_int) {
-    extern "C" {
-        fn bz_internal_error(errcode: c_int);
+#[cold]
+fn handle_assert_failure(errcode: c_int) -> ! {
+    #[cfg(feature = "stdio")]
+    {
+        #[cfg(feature = "std")]
+        std::eprint!("{}", AssertFail(errcode));
+        #[cfg(feature = "std")]
+        std::process::exit(3);
+
+        #[cfg(not(feature = "std"))]
+        panic!("{}", AssertFail(errcode));
     }
 
-    unsafe { bz_internal_error(errcode) }
+    #[cfg(not(feature = "stdio"))]
+    {
+        extern "C" {
+            fn bz_internal_error(errcode: c_int);
+        }
+
+        unsafe { bz_internal_error(errcode) }
+        loop {}
+    }
 }
 
-pub(crate) use assert_h;
+use assert_h;
 
-pub(crate) struct AssertFail(i32);
+struct AssertFail(i32);
 
 impl core::fmt::Display for AssertFail {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
