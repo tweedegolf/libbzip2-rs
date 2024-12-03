@@ -11,6 +11,7 @@ std = ["rust-allocator"]
 custom-prefix = [] # use the LIBBZIP2_RS_SYS_PREFIX to prefix all exported symbols
 testing-prefix = [] # prefix all symbols with LIBBZIP2_RS_SYS_TEST_ for testing
 stdio = ["dep:libc"] # corresponds to BZ_NO_STDIO; only the low-level api is available when this flag is disabled
+__internal-fuzz-disable-checksum = []
 
 [dependencies]
 libc = { version = "0.2", optional = true }

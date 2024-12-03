@@ -1743,6 +1743,7 @@ pub(crate) fn BZ2_bzDecompressHelp(strm: &mut BzStream<DState>) -> ReturnCode {
                     #[cfg(feature = "std")]
                     std::eprint!("]");
                 }
+                #[cfg(not(feature = "__internal-fuzz-disable-checksum"))]
                 if s.calculatedBlockCRC != s.storedBlockCRC {
                     return ReturnCode::BZ_DATA_ERROR;
                 }
@@ -1766,7 +1767,8 @@ pub(crate) fn BZ2_bzDecompressHelp(strm: &mut BzStream<DState>) -> ReturnCode {
                             s.calculatedCombinedCRC,
                         );
                     }
-                    if s.calculatedCombinedCRC != s.storedCombinedCRC {
+                    #[cfg(not(feature = "__internal-fuzz-disable-checksum"))]
+                if s.calculatedCombinedCRC != s.storedCombinedCRC {
                         return ReturnCode::BZ_DATA_ERROR;
                     }
                     return ReturnCode::BZ_STREAM_END;
