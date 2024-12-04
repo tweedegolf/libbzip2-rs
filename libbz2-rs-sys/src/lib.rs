@@ -81,6 +81,25 @@ macro_rules! libbz2_rs_sys_version {
 
 pub(crate) use libbz2_rs_sys_version;
 
+// --- debug logs
+
+macro_rules! debug_log {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "std")]
+        std::eprint!($($arg)*);
+    };
+}
+
+macro_rules! debug_logln {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "std")]
+        std::eprintln!($($arg)*);
+    };
+}
+
+pub(crate) use debug_log;
+pub(crate) use debug_logln;
+
 // --- assert failure logic
 
 macro_rules! assert_h {

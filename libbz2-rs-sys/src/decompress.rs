@@ -4,8 +4,8 @@ use core::ffi::{c_int, c_uint};
 
 use crate::allocator::Allocator;
 use crate::bzlib::{index_into_f, BzStream, DSlice, DState, DecompressMode, ReturnCode};
-use crate::huffman;
 use crate::randtable::BZ2_RNUMS;
+use crate::{debug_log, huffman};
 
 /*-- Constants for the fast MTF decoder. --*/
 
@@ -556,8 +556,7 @@ pub(crate) fn decompress(
 
                 s.currBlockNo += 1;
                 if s.verbosity >= 2 {
-                    #[cfg(feature = "std")]
-                    std::eprint!("\n    [{}: huff+mtf ", s.currBlockNo);
+                    debug_log!("\n    [{}: huff+mtf ", s.currBlockNo);
                 }
                 s.storedBlockCRC = 0_u32;
                 current_block = BZ_X_BCRC_1;
@@ -1054,8 +1053,7 @@ pub(crate) fn decompress(
                             s.calculatedBlockCRC = 0xffffffffu32;
                             s.state = State::BZ_X_OUTPUT;
                             if s.verbosity >= 2 {
-                                #[cfg(feature = "std")]
-                                std::eprint!("rt+rld");
+                                debug_log!("rt+rld");
                             }
                             match s.smallDecompress {
                                 DecompressMode::Small => {
