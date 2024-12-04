@@ -1,6 +1,6 @@
 use core::ffi::c_uint;
 
-use test_libbzip2_rs_sys::{decompress_c, decompress_rs};
+use test_libbz2_rs_sys::{decompress_c, decompress_rs};
 
 fn main() {
     let mut it = std::env::args();

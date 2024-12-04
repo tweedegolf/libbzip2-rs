@@ -1,5 +1,5 @@
 [package]
-name = "test-libbzip2-rs-sys"
+name = "test-libbz2-rs-sys"
 readme = "README.md"
 # description.workspace = true
 # version.workspace = true
@@ -12,5 +12,5 @@ edition.workspace = true
 
 [dependencies]
 bzip2-sys = { version = "0.1.11", features = ["static"] }
-libbzip2-rs-sys = { workspace = true, default-features = true, features = ["testing-prefix"] }
+libbz2-rs-sys = { workspace = true, default-features = true, features = ["testing-prefix"] }
 libc.workspace = true

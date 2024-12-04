@@ -73,13 +73,13 @@ pub use bzlib::{
 
 // --- version number logic
 
-macro_rules! libbzip2_rs_sys_version {
+macro_rules! libbz2_rs_sys_version {
     () => {
-        concat!("1.1.0-libbzip2-rs-sys-", env!("CARGO_PKG_VERSION"))
+        concat!("1.1.0-libbz2-rs-sys-", env!("CARGO_PKG_VERSION"))
     };
 }
 
-pub(crate) use libbzip2_rs_sys_version;
+pub(crate) use libbz2_rs_sys_version;
 
 // --- assert failure logic
 
@@ -138,7 +138,7 @@ impl core::fmt::Display for AssertFail {
                 "\n"
             ),
             self.0,
-            libbzip2_rs_sys_version!(),
+            libbz2_rs_sys_version!(),
         )?;
 
         if self.0 == 1007 {

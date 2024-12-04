@@ -1,5 +1,5 @@
 #![no_main]
-use libbzip2_rs_sys::{BZ_FINISH, BZ_OK, BZ_STREAM_END};
+use libbz2_rs_sys::{BZ_FINISH, BZ_OK, BZ_STREAM_END};
 use libfuzzer_sys::fuzz_target;
 
 fn compress_c(data: &[u8]) -> Vec<u8> {
@@ -54,10 +54,10 @@ fuzz_target!(|input: (String, usize)| {
 
     let deflated = compress_c(data.as_bytes());
 
-    let mut stream = libbzip2_rs_sys::bz_stream::zeroed();
+    let mut stream = libbz2_rs_sys::bz_stream::zeroed();
 
     unsafe {
-        let err = libbzip2_rs_sys::BZ2_bzDecompressInit(&mut stream, 0, 0);
+        let err = libbz2_rs_sys::BZ2_bzDecompressInit(&mut stream, 0, 0);
         assert_eq!(err, BZ_OK);
     };
 
@@ -69,7 +69,7 @@ fuzz_target!(|input: (String, usize)| {
         stream.next_in = chunk.as_ptr() as *mut _;
         stream.avail_in = chunk.len() as _;
 
-        let err = unsafe { libbzip2_rs_sys::BZ2_bzDecompress(&mut stream) };
+        let err = unsafe { libbz2_rs_sys::BZ2_bzDecompress(&mut stream) };
         match err {
             BZ_OK => continue,
             BZ_STREAM_END => continue,
@@ -87,7 +87,7 @@ fuzz_target!(|input: (String, usize)| {
     let output = String::from_utf8(output).unwrap();
 
     unsafe {
-        let err = libbzip2_rs_sys::BZ2_bzDecompressEnd(&mut stream);
+        let err = libbz2_rs_sys::BZ2_bzDecompressEnd(&mut stream);
         assert_eq!(err, BZ_OK);
     }
 

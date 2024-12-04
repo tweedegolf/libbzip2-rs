@@ -3,17 +3,17 @@
 version = 3
 
 [[package]]
-name = "libbz2-rs-sys-cdylib"
+name = "libbz2-rs-sys"
 version = "0.0.0"
 dependencies = [
- "libbzip2-rs-sys",
  "libc",
 ]
 
 [[package]]
-name = "libbzip2-rs-sys"
+name = "libbz2-rs-sys-cdylib"
 version = "0.0.0"
 dependencies = [
+ "libbz2-rs-sys",
  "libc",
 ]
 

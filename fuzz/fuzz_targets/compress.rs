@@ -1,5 +1,5 @@
 #![no_main]
-use libbzip2_rs_sys::BZ_OK;
+use libbz2_rs_sys::BZ_OK;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: String| {
@@ -7,7 +7,7 @@ fuzz_target!(|data: String| {
     let mut deflated = vec![0; length as usize];
     let mut length = length as _;
     let error = unsafe {
-        test_libbzip2_rs_sys::compress_rs(
+        test_libbz2_rs_sys::compress_rs(
             deflated.as_mut_ptr().cast(),
             &mut length,
             data.as_ptr().cast(),
@@ -22,7 +22,7 @@ fuzz_target!(|data: String| {
     let mut output = [0u8; 1 << 10];
     let mut output_len = output.len() as _;
     let error = unsafe {
-        test_libbzip2_rs_sys::decompress_rs(
+        test_libbz2_rs_sys::decompress_rs(
             output.as_mut_ptr(),
             &mut output_len,
             deflated.as_ptr(),

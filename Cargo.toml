@@ -1,10 +1,10 @@
 [workspace]
 members = [
-    "libbzip2-rs-sys",
-    "test-libbzip2-rs-sys",
+    "libbz2-rs-sys",
+    "test-libbz2-rs-sys",
 ]
 exclude = [
-    "libbzip2-rs-sys-cdylib",
+    "libbz2-rs-sys-cdylib",
 ]
 package.edition = "2021"
 
@@ -27,12 +27,12 @@ path = "bzip2recover.rs"
 
 [workspace.dependencies]
 libc = "0.2"
-libbzip2-rs-sys = { path = "libbzip2-rs-sys/", default-features = false }
+libbz2-rs-sys = { path = "libbz2-rs-sys/", default-features = false }
 
 
 [dependencies]
 libc = "0.2"
-libbzip2-rs-sys = { path = "libbzip2-rs-sys/" }
+libbz2-rs-sys = { path = "libbz2-rs-sys/" }
 
 [dev-dependencies]
 tempfile = "3.13.0"

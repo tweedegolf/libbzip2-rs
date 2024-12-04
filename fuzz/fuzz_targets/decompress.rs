@@ -1,5 +1,5 @@
 #![no_main]
-use libbzip2_rs_sys::BZ_OK;
+use libbz2_rs_sys::BZ_OK;
 use libfuzzer_sys::fuzz_target;
 
 fn decompress_help(input: &[u8]) -> Vec<u8> {
@@ -11,7 +11,7 @@ fn decompress_help(input: &[u8]) -> Vec<u8> {
     let source = input.as_ptr();
     let source_len = input.len() as _;
 
-    let err = unsafe { test_libbzip2_rs_sys::decompress_rs(dest, &mut dest_len, source, source_len) };
+    let err = unsafe { test_libbz2_rs_sys::decompress_rs(dest, &mut dest_len, source, source_len) };
 
     if err != BZ_OK {
         panic!("error {:?}", err);
@@ -27,7 +27,7 @@ fuzz_target!(|data: String| {
     let mut deflated = vec![0; length as usize];
 
     let error = unsafe {
-        test_libbzip2_rs_sys::compress_c(
+        test_libbz2_rs_sys::compress_c(
             deflated.as_mut_ptr().cast(),
             &mut length,
             data.as_ptr().cast(),

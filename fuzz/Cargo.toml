@@ -13,9 +13,9 @@ debug = true
 
 [features]
 default = ["rust-allocator"]
-c-allocator = ["libbzip2-rs-sys/c-allocator"]
-rust-allocator = ["libbzip2-rs-sys/rust-allocator"]
-disable-checksum = ["libbzip2-rs-sys/__internal-fuzz-disable-checksum"]
+c-allocator = ["libbz2-rs-sys/c-allocator"]
+rust-allocator = ["libbz2-rs-sys/rust-allocator"]
+disable-checksum = ["libbz2-rs-sys/__internal-fuzz-disable-checksum"]
 
 [dependencies.libfuzzer-sys]
 version = "0.4"
@@ -28,13 +28,13 @@ libloading = "0.8.1"
 crc32fast = "1.3.2"
 rstest = "0.23.0"
 
-[dependencies.libbzip2-rs-sys]
-path = "../libbzip2-rs-sys"
+[dependencies.libbz2-rs-sys]
+path = "../libbz2-rs-sys"
 default-features = false
 features = ["testing-prefix"]
 
-[dependencies.test-libbzip2-rs-sys]
-path = "../test-libbzip2-rs-sys"
+[dependencies.test-libbz2-rs-sys]
+path = "../test-libbz2-rs-sys"
 default-features = false
 
 # Prevent this from interfering with workspaces
