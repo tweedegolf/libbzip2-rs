@@ -44,7 +44,9 @@ path = "bzip2recover.rs"
 
 [dependencies]
 libc.workspace = true
-libbz2-rs-sys = { workspace = true, features = ["stdio", "std", "rust-allocator"] }
+# we need `std` here, because we test the log output of the binaries, and those only
+# get printed when std is enabled.
+libbz2-rs-sys = { workspace = true, features = ["stdio", "c-allocator"] }
 
 [dev-dependencies]
 tempfile = "3.13.0"

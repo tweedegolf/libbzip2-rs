@@ -83,10 +83,30 @@ pub(crate) use libbz2_rs_sys_version;
 
 // --- debug logs
 
+#[cfg(all(not(feature = "std"), feature = "stdio"))]
+pub(crate) struct StderrWritter;
+
+#[cfg(all(not(feature = "std"), feature = "stdio"))]
+impl core::fmt::Write for StderrWritter {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        use core::ffi::c_void;
+        use libc::write;
+
+        unsafe { write(2, s.as_ptr() as *const c_void, s.len() as _) };
+
+        Ok(())
+    }
+}
+
 macro_rules! debug_log {
     ($($arg:tt)*) => {
         #[cfg(feature = "std")]
         std::eprint!($($arg)*);
+        #[cfg(all(not(feature = "std"), feature = "stdio"))]
+        {
+            use core::fmt::Write;
+            let _ = write!($crate::StderrWritter, $($arg)*);
+        }
     };
 }
 
@@ -94,6 +114,11 @@ macro_rules! debug_logln {
     ($($arg:tt)*) => {
         #[cfg(feature = "std")]
         std::eprintln!($($arg)*);
+        #[cfg(all(not(feature = "std"), feature = "stdio"))]
+        {
+            use core::fmt::Write;
+            let _ = writeln!($crate::StderrWritter, $($arg)*);
+        }
     };
 }
 

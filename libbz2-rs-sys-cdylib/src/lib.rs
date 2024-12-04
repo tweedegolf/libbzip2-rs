@@ -14,9 +14,8 @@ impl core::fmt::Write for StderrWritter {
         use core::ffi::c_void;
         use libc::write;
 
-        unsafe {
-            write(2, s.as_ptr() as *const c_void, s.len());
-        }
+        unsafe { write(2, s.as_ptr() as *const c_void, s.len() as _) };
+
         Ok(())
     }
 }
