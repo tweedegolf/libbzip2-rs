@@ -965,7 +965,6 @@ fn outOfMemory(config: &Config) -> ! {
 }
 
 fn configError() -> ! {
-    panic!();
     const MSG: &str = concat!(
         "bzip2: I'm not configured correctly for this platform!\n",
         "\tI require Int32, Int16 and Char to have sizes\n",

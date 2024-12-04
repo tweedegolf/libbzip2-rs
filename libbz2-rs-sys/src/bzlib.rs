@@ -307,7 +307,7 @@ mod stream {
                 let bzalloc = strm.bzalloc.get_or_insert(default_bzalloc);
                 let bzfree = strm.bzfree.get_or_insert(default_bzfree);
 
-                Some(Allocator::custom(*bzalloc, *bzfree, (*strm).opaque))
+                Some(Allocator::custom(*bzalloc, *bzfree, strm.opaque))
             }
         }
     }
