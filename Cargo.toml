@@ -6,16 +6,33 @@ members = [
 exclude = [
     "libbz2-rs-sys-cdylib",
 ]
-package.edition = "2021"
 
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "bzip2-1.0.6"
+repository = "https://github.com/trifectatechfoundation/libbzip2-rs"
+homepage = "https://github.com/trifectatechfoundation/libbzip2-rs"
+readme = "./README.md"
+description = "a drop-in compatible rust bzip2 implementation" 
+publish = true
+rust-version = "1.82" # MSRV
+
+[workspace.dependencies]
+libc = "0.2"
+libbz2-rs-sys = { path = "libbz2-rs-sys/", default-features = false }
 
 [package]
-name = "c2rust_out"
-authors = ["C2Rust"]
-version = "0.0.0"
-publish = false
-edition = "2021"
-rust-version = "1.82" # MSRV
+name = "libbzip2-rs"
+readme.workspace = true 
+description.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+publish.workspace = true
+rust-version.workspace = true
 
 [[bin]]
 name = "bzip2"
@@ -25,14 +42,9 @@ path = "bzip2.rs"
 name = "bzip2recover"
 path = "bzip2recover.rs"
 
-[workspace.dependencies]
-libc = "0.2"
-libbz2-rs-sys = { path = "libbz2-rs-sys/", default-features = false }
-
-
 [dependencies]
-libc = "0.2"
-libbz2-rs-sys = { path = "libbz2-rs-sys/" }
+libc.workspace = true
+libbz2-rs-sys = { workspace = true, features = ["stdio", "std", "rust-allocator"] }
 
 [dev-dependencies]
 tempfile = "3.13.0"
