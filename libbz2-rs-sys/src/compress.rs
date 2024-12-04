@@ -2,7 +2,7 @@
 
 use crate::blocksort::block_sort;
 use crate::bzlib::{EState, BZ_MAX_SELECTORS, BZ_N_GROUPS, BZ_N_ITERS, BZ_RUNA, BZ_RUNB};
-use crate::{assert_h, huffman};
+use crate::{assert_h, debug_log, debug_logln, huffman};
 
 pub(crate) struct EWriter {
     pub num_z: u32,
@@ -233,8 +233,7 @@ fn send_mtf_values(s: &mut EState) {
     let mtfv = s.arr1.mtfv();
 
     if s.verbosity >= 3 {
-        #[cfg(feature = "std")]
-        std::eprintln!(
+        debug_logln!(
             "      {} in block, {} after MTF & 1-2 coding, {}+2 syms in use",
             s.nblock,
             s.nMTF,
@@ -285,8 +284,7 @@ fn send_mtf_values(s: &mut EState) {
             }
 
             if s.verbosity >= 3 {
-                #[cfg(feature = "std")]
-                std::eprintln!(
+                debug_logln!(
                     "      initial group {}, [{} .. {}], has {} syms ({:4.1}%)",
                     nPart,
                     gs,
@@ -447,18 +445,15 @@ fn send_mtf_values(s: &mut EState) {
         }
 
         if s.verbosity >= 3 {
-            #[cfg(feature = "std")]
-            std::eprint!(
+            debug_log!(
                 "      pass {}: size is {}, grp uses are ",
                 iter + 1,
                 totc / 8,
             );
             for t in 0..nGroups {
-                #[cfg(feature = "std")]
-                std::eprint!("{} ", fave[t],);
+                debug_log!("{} ", fave[t],);
             }
-            #[cfg(feature = "std")]
-            std::eprintln!();
+            debug_logln!();
         }
 
         /*--
@@ -538,8 +533,7 @@ fn send_mtf_values(s: &mut EState) {
             }
         }
         if s.verbosity >= 3 {
-            #[cfg(feature = "std")]
-            std::eprint!("      bytes: mapping {}, ", writer.num_z as i32 - nBytes,);
+            debug_log!("      bytes: mapping {}, ", writer.num_z as i32 - nBytes,);
         }
     }
 
@@ -555,8 +549,7 @@ fn send_mtf_values(s: &mut EState) {
         writer.write(1, 0);
     }
     if s.verbosity >= 3 {
-        #[cfg(feature = "std")]
-        std::eprint!("selectors {}, ", writer.num_z as i32 - nBytes);
+        debug_log!("selectors {}, ", writer.num_z as i32 - nBytes);
     }
 
     /*--- Now the coding tables. ---*/
@@ -578,8 +571,7 @@ fn send_mtf_values(s: &mut EState) {
         }
     }
     if s.verbosity >= 3 {
-        #[cfg(feature = "std")]
-        std::eprint!("code lengths {}, ", writer.num_z as i32 - nBytes);
+        debug_log!("code lengths {}, ", writer.num_z as i32 - nBytes);
     }
 
     /*--- And finally, the block data proper ---*/
@@ -640,8 +632,7 @@ fn send_mtf_values(s: &mut EState) {
     assert_h!(selCtr == nSelectors, 3007);
 
     if s.verbosity >= 3 {
-        #[cfg(feature = "std")]
-        std::eprintln!("codes {}", writer.num_z as i32 - nBytes);
+        debug_logln!("codes {}", writer.num_z as i32 - nBytes);
     }
 }
 
@@ -655,8 +646,7 @@ pub(crate) fn compress_block(s: &mut EState, is_last_block: bool) {
         }
 
         if s.verbosity >= 2 {
-            #[cfg(feature = "std")]
-            std::eprintln!(
+            debug_logln!(
                 "    block {}: crc = 0x{:08x}, combined CRC = 0x{:08x}, size = {}",
                 s.blockNo,
                 s.blockCRC,
@@ -727,8 +717,7 @@ pub(crate) fn compress_block(s: &mut EState, is_last_block: bool) {
         writer.write_u32(s.combinedCRC);
 
         if s.verbosity >= 2 {
-            #[cfg(feature = "std")]
-            std::eprint!("    final combined CRC = 0x{:08x}\n   ", s.combinedCRC);
+            debug_log!("    final combined CRC = 0x{:08x}\n   ", s.combinedCRC);
         }
 
         writer.finish();

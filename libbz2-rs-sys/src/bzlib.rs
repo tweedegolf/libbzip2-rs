@@ -5,6 +5,7 @@ use core::{mem, ptr};
 use crate::allocator::Allocator;
 use crate::compress::compress_block;
 use crate::crctable::BZ2_CRC32TABLE;
+use crate::debug_log;
 use crate::decompress::{self, decompress};
 #[cfg(feature = "stdio")]
 use crate::libbz2_rs_sys_version;
@@ -1732,16 +1733,14 @@ pub(crate) fn BZ2_bzDecompressHelp(strm: &mut BzStream<DState>) -> ReturnCode {
             if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
                 s.calculatedBlockCRC = !s.calculatedBlockCRC;
                 if s.verbosity >= 3 {
-                    #[cfg(feature = "std")]
-                    std::eprint!(
+                    debug_log!(
                         " {{{:#08x}, {:#08x}}}",
                         s.storedBlockCRC,
                         s.calculatedBlockCRC,
                     );
                 }
                 if s.verbosity >= 2 {
-                    #[cfg(feature = "std")]
-                    std::eprint!("]");
+                    debug_log!("]");
                 }
                 #[cfg(not(feature = "__internal-fuzz-disable-checksum"))]
                 if s.calculatedBlockCRC != s.storedBlockCRC {
@@ -1760,8 +1759,7 @@ pub(crate) fn BZ2_bzDecompressHelp(strm: &mut BzStream<DState>) -> ReturnCode {
             _ => match decompress(strm, s, &allocator) {
                 ReturnCode::BZ_STREAM_END => {
                     if s.verbosity >= 3 {
-                        #[cfg(feature = "std")]
-                        std::eprint!(
+                        debug_log!(
                             "\n    combined CRCs: stored = {:#08x}, computed = {:#08x}",
                             s.storedCombinedCRC,
                             s.calculatedCombinedCRC,
