@@ -1,6 +1,6 @@
 [package]
 name = "libbz2-rs-sys"
-readme = "README.md"
+readme = "../README.md"
 description.workspace = true
 version.workspace = true
 edition.workspace = true
