@@ -17,12 +17,12 @@ test = false
 
 [features]
 default = ["stdio"]
-stdio = ["libbzip2-rs-sys/stdio"]
-custom-prefix = ["libbzip2-rs-sys/custom-prefix"] # use the LIBBZIP2_RS_SYS_PREFIX to prefix all exported symbols
+stdio = ["libbz2-rs-sys/stdio"]
+custom-prefix = ["libbz2-rs-sys/custom-prefix"] # use the LIBBZ2_RS_SYS_PREFIX to prefix all exported symbols
 capi = []
 
 [dependencies]
-libbzip2-rs-sys = { version = "0.0.0", path = "../libbzip2-rs-sys", default-features = false, features = ["c-allocator"] }
+libbz2-rs-sys = { version = "0.0.0", path = "../libbz2-rs-sys", default-features = false, features = ["c-allocator"] }
 libc = "0.2"
 
 [package.metadata.capi.library]

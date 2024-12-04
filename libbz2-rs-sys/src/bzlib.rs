@@ -7,7 +7,7 @@ use crate::compress::compress_block;
 use crate::crctable::BZ2_CRC32TABLE;
 use crate::decompress::{self, decompress};
 #[cfg(feature = "stdio")]
-use crate::libbzip2_rs_sys_version;
+use crate::libbz2_rs_sys_version;
 
 #[cfg(feature = "stdio")]
 pub use crate::high_level::*;
@@ -36,7 +36,7 @@ use crate::{
 #[cfg(feature = "custom-prefix")]
 macro_rules! prefix {
     ($name:expr) => {
-        concat!(env!("LIBBZIP2_RS_SYS_PREFIX"), stringify!($name))
+        concat!(env!("LIBBZ2_RS_SYS_PREFIX"), stringify!($name))
     };
 }
 
@@ -53,7 +53,7 @@ macro_rules! prefix {
 #[cfg(all(not(feature = "custom-prefix"), any(test, feature = "testing-prefix")))]
 macro_rules! prefix {
     ($name:expr) => {
-        concat!("LIBBZIP2_RS_SYS_TEST_", stringify!($name))
+        concat!("LIBBZ2_RS_SYS_TEST_", stringify!($name))
     };
 }
 
@@ -64,7 +64,7 @@ pub(crate) use prefix;
 /// Its value is a pointer to a NULL-terminated sequence of bytes.
 ///
 /// The version string for this release is `
-#[doc = libbzip2_rs_sys_version!()]
+#[doc = libbz2_rs_sys_version!()]
 /// `:
 ///
 /// - The first component is the version of stock zlib that this release is compatible with
@@ -72,8 +72,8 @@ pub(crate) use prefix;
 #[export_name = prefix!(BZ2_bzlibVersion)]
 #[cfg(feature = "stdio")]
 pub const extern "C" fn BZ2_bzlibVersion() -> *const core::ffi::c_char {
-    const LIBBZIP2_RS_SYS_VERSION: &str = concat!(libbzip2_rs_sys_version!(), "\0");
-    LIBBZIP2_RS_SYS_VERSION.as_ptr().cast::<core::ffi::c_char>()
+    const LIBBZ2_RS_SYS_VERSION: &str = concat!(libbz2_rs_sys_version!(), "\0");
+    LIBBZ2_RS_SYS_VERSION.as_ptr().cast::<core::ffi::c_char>()
 }
 
 type AllocFunc = unsafe extern "C" fn(*mut c_void, c_int, c_int) -> *mut c_void;

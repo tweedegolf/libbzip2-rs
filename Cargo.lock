@@ -24,7 +24,7 @@ name = "c2rust_out"
 version = "0.0.0"
 dependencies = [
  "crc32fast",
- "libbzip2-rs-sys",
+ "libbz2-rs-sys",
  "libc",
  "tempfile",
 ]
@@ -70,7 +70,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "486f806e73c5707928240ddc295403b1b93c96a02038563881c4a2fd84b81ac4"
 
 [[package]]
-name = "libbzip2-rs-sys"
+name = "libbz2-rs-sys"
 version = "0.0.0"
 dependencies = [
  "libc",
@@ -133,11 +133,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "test-libbzip2-rs-sys"
+name = "test-libbz2-rs-sys"
 version = "0.0.0"
 dependencies = [
  "bzip2-sys",
- "libbzip2-rs-sys",
+ "libbz2-rs-sys",
  "libc",
 ]
 

@@ -83,7 +83,7 @@ jobs:
       - name: cargo build
         run: cargo build --target ${{matrix.target}} ${{ matrix.features }}
       - name: cargo build (no_std)
-        run: cargo rustc --target ${{matrix.target}} -p libbzip2-rs-sys --lib --no-default-features --crate-type rlib
+        run: cargo rustc --target ${{matrix.target}} -p libbz2-rs-sys --lib --no-default-features --crate-type rlib
         env:
           RUSTFLAGS: -Aunused_variables -Aunused_assignments
       - name: cargo nextest # reports segfaults in a helpful way
@@ -91,7 +91,7 @@ jobs:
         env:
           RUST_BACKTRACE: 1
       - name: cargo test with llvm-cov
-        run: cargo llvm-cov --target ${{matrix.target}} ${{ matrix.features }} --lcov --output-path lcov.info --ignore-filename-regex "test-libbzip2" --workspace
+        run: cargo llvm-cov --target ${{matrix.target}} ${{ matrix.features }} --lcov --output-path lcov.info --ignore-filename-regex "test-libbz2" --workspace
         env:
           RUST_BACKTRACE: 1
         if: matrix.os != 'windows-2022'
@@ -258,7 +258,7 @@ jobs:
         run: |
           export CC="$(pwd)/wasi-sdk-24.0-x86_64-linux/bin/clang"
           export CFLAGS="-target wasm32-wasip1"
-          cargo nextest run -p libbzip2-rs-sys -p test-libbzip2-rs-sys --target wasm32-wasip1 \
+          cargo nextest run -p libbz2-rs-sys -p test-libbz2-rs-sys --target wasm32-wasip1 \
             -- --skip high_level_write --skip open_and_close # These tests use temp_dir
         env:
           RUST_BACKTRACE: 1
@@ -283,9 +283,9 @@ jobs:
           tool: cargo-nextest
       - name: Test public C api with miri
         run: |
-          cargo +nightly miri nextest run -j4 -p test-libbzip2-rs-sys miri_
+          cargo +nightly miri nextest run -j4 -p test-libbz2-rs-sys miri_
       - name: Run unit tests with miri
-        run: "cargo +nightly miri nextest run -j4 -p libbzip2-rs-sys"
+        run: "cargo +nightly miri nextest run -j4 -p libbz2-rs-sys"
 
   link-c-dynamic-library:
     name: vanilla dynamic library
@@ -307,7 +307,7 @@ jobs:
           toolchain: stable
           targets: ${{matrix.target}}
       - name: "cdylib: default settings"
-        working-directory: libbzip2-rs-sys-cdylib
+        working-directory: libbz2-rs-sys-cdylib
         env:
           LD_LIBRARY_PATH: "target/${{matrix.target}}/release/deps"
         run: |
@@ -318,7 +318,7 @@ jobs:
       - name: "cdylib: no stdio"
         env:
           LD_LIBRARY_PATH: "target/${{matrix.target}}/release/deps"
-        working-directory: libbzip2-rs-sys-cdylib
+        working-directory: libbz2-rs-sys-cdylib
         run: |
           cargo build --release --target ${{matrix.target}} --no-default-features
           cc -DNO_STD -o bzpipe bzpipe.c target/${{matrix.target}}/release/deps/libbz2_rs.so -I ../
@@ -327,16 +327,16 @@ jobs:
       - name: "staticlib: no stdio"
         env:
           LD_LIBRARY_PATH: "target/${{matrix.target}}/release/deps"
-        working-directory: libbzip2-rs-sys-cdylib
+        working-directory: libbz2-rs-sys-cdylib
         run: |
           cargo build --release --target ${{matrix.target}} --no-default-features
           cc -o bzpipe bzpipe.c target/${{matrix.target}}/release/deps/libbz2_rs.so -I ../
           ./bzpipe < Cargo.toml | ./bzpipe -d > out.txt
           cmp -s Cargo.toml out.txt
       - name: "cdylib: custom-prefix"
-        working-directory: libbzip2-rs-sys-cdylib
+        working-directory: libbz2-rs-sys-cdylib
         env:
-          LIBBZIP2_RS_SYS_PREFIX: "MY_CUSTOM_PREFIX_"
+          LIBBZ2_RS_SYS_PREFIX: "MY_CUSTOM_PREFIX_"
         run: |
           cargo build --release --target ${{matrix.target}} --features=custom-prefix
           objdump -tT target/${{matrix.target}}/release/deps/libbz2_rs.so | grep -q "MY_CUSTOM_PREFIX_BZ2_bzCompressInit" || (echo "symbol not found!" && exit 1)
@@ -367,7 +367,7 @@ jobs:
           curl -L "$LINK/cargo-c-x86_64-unknown-linux-musl.tar.gz" |
           tar xz -C $HOME/.cargo/bin
       - name: build with and test the result of cargo-c
-        working-directory: libbzip2-rs-sys-cdylib
+        working-directory: libbz2-rs-sys-cdylib
         run: |
           # build using cargo-c this time
           cargo cinstall --release --destdir=/tmp/cargo-cbuild-libbzip2-rs # somehow --offline does not work here

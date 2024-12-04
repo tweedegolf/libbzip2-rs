@@ -11,7 +11,7 @@ use std::process::exit;
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::{Arc, RwLock};
 
-use libbzip2_rs_sys::{
+use libbz2_rs_sys::{
     BZ2_bzRead, BZ2_bzReadClose, BZ2_bzReadGetUnused, BZ2_bzReadOpen, BZ2_bzWrite,
     BZ2_bzWriteClose64, BZ2_bzWriteOpen, BZ2_bzlibVersion, BZFILE,
 };
@@ -294,7 +294,7 @@ fn compressStream(
     };
 
     'errhandler: {
-        if bzerr != libbzip2_rs_sys::BZ_OK {
+        if bzerr != libbz2_rs_sys::BZ_OK {
             break 'errhandler;
         }
 
@@ -318,7 +318,7 @@ fn compressStream(
                 );
             }
 
-            if bzerr != libbzip2_rs_sys::BZ_OK {
+            if bzerr != libbz2_rs_sys::BZ_OK {
                 break 'errhandler;
             }
         }
@@ -335,7 +335,7 @@ fn compressStream(
             );
         }
 
-        if bzerr != libbzip2_rs_sys::BZ_OK {
+        if bzerr != libbz2_rs_sys::BZ_OK {
             break 'errhandler;
         }
 
@@ -397,9 +397,9 @@ fn compressStream(
     }
 
     match bzerr {
-        libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
-        libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
-        libbzip2_rs_sys::BZ_IO_ERROR => ioError(config),
+        libbz2_rs_sys::BZ_CONFIG_ERROR => configError(),
+        libbz2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
+        libbz2_rs_sys::BZ_IO_ERROR => ioError(config),
         _ => panic_str(config, "compress:unexpected error"),
     }
 }
@@ -464,11 +464,11 @@ fn uncompressStream(
                             5000,
                         )
                     };
-                    if bzerr == libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC {
+                    if bzerr == libbz2_rs_sys::BZ_DATA_ERROR_MAGIC {
                         state = State::TryCat;
                         continue 'outer;
                     }
-                    if (bzerr == libbzip2_rs_sys::BZ_OK || bzerr == libbzip2_rs_sys::BZ_STREAM_END)
+                    if (bzerr == libbz2_rs_sys::BZ_OK || bzerr == libbz2_rs_sys::BZ_STREAM_END)
                         && nread > 0
                     {
                         if let Err(e) = stream.write_all(&obuf[..nread as usize]) {
@@ -477,7 +477,7 @@ fn uncompressStream(
                     }
                 }
 
-                if bzerr != libbzip2_rs_sys::BZ_STREAM_END {
+                if bzerr != libbz2_rs_sys::BZ_STREAM_END {
                     state = State::ErrHandler;
                     continue 'outer;
                 }
@@ -485,7 +485,7 @@ fn uncompressStream(
                 unsafe {
                     BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
                 }
-                if bzerr != libbzip2_rs_sys::BZ_OK {
+                if bzerr != libbz2_rs_sys::BZ_OK {
                     // diverges
                     panic_str(config, "decompress:bzReadGetUnused")
                 }
@@ -498,7 +498,7 @@ fn uncompressStream(
                 unsafe {
                     BZ2_bzReadClose(&mut bzerr, bzf);
                 }
-                if bzerr != libbzip2_rs_sys::BZ_OK {
+                if bzerr != libbz2_rs_sys::BZ_OK {
                     // diverges
                     panic_str(config, "decompress:bzReadGetUnused")
                 }
@@ -569,12 +569,12 @@ fn uncompressStream(
                 }
 
                 match bzerr {
-                    libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
-                    libbzip2_rs_sys::BZ_IO_ERROR => ioError(config),
-                    libbzip2_rs_sys::BZ_DATA_ERROR => crcError(config),
-                    libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
-                    libbzip2_rs_sys::BZ_UNEXPECTED_EOF => compressedStreamEOF(config),
-                    libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC => {
+                    libbz2_rs_sys::BZ_CONFIG_ERROR => configError(),
+                    libbz2_rs_sys::BZ_IO_ERROR => ioError(config),
+                    libbz2_rs_sys::BZ_DATA_ERROR => crcError(config),
+                    libbz2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
+                    libbz2_rs_sys::BZ_UNEXPECTED_EOF => compressedStreamEOF(config),
+                    libbz2_rs_sys::BZ_DATA_ERROR_MAGIC => {
                         zStream.close();
 
                         if streamNo == 1 {
@@ -636,12 +636,12 @@ fn testStream(config: &Config, zStream: CFile) -> bool {
                         5000,
                     );
                 }
-                if bzerr == libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC {
+                if bzerr == libbz2_rs_sys::BZ_DATA_ERROR_MAGIC {
                     break 'errhandler;
                 }
             }
 
-            if bzerr != libbzip2_rs_sys::BZ_STREAM_END {
+            if bzerr != libbz2_rs_sys::BZ_STREAM_END {
                 break 'errhandler;
             }
 
@@ -649,7 +649,7 @@ fn testStream(config: &Config, zStream: CFile) -> bool {
             unsafe {
                 BZ2_bzReadGetUnused(&mut bzerr, bzf, &mut unusedTmpV, &mut nUnused);
             }
-            if bzerr != libbzip2_rs_sys::BZ_OK {
+            if bzerr != libbz2_rs_sys::BZ_OK {
                 panic_str(config, "test:bzReadGetUnused");
             }
 
@@ -663,7 +663,7 @@ fn testStream(config: &Config, zStream: CFile) -> bool {
             unsafe {
                 BZ2_bzReadClose(&mut bzerr, bzf);
             }
-            if bzerr != libbzip2_rs_sys::BZ_OK {
+            if bzerr != libbz2_rs_sys::BZ_OK {
                 panic_str(config, "test:bzReadClose");
             }
             if nUnused == 0 && zStream.is_eof() {
@@ -698,18 +698,18 @@ fn testStream(config: &Config, zStream: CFile) -> bool {
         );
     }
     match bzerr {
-        libbzip2_rs_sys::BZ_CONFIG_ERROR => configError(),
-        libbzip2_rs_sys::BZ_IO_ERROR => ioError(config),
-        libbzip2_rs_sys::BZ_DATA_ERROR => {
+        libbz2_rs_sys::BZ_CONFIG_ERROR => configError(),
+        libbz2_rs_sys::BZ_IO_ERROR => ioError(config),
+        libbz2_rs_sys::BZ_DATA_ERROR => {
             eprintln!("data integrity (CRC) error in data");
             false
         }
-        libbzip2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
-        libbzip2_rs_sys::BZ_UNEXPECTED_EOF => {
+        libbz2_rs_sys::BZ_MEM_ERROR => outOfMemory(config),
+        libbz2_rs_sys::BZ_UNEXPECTED_EOF => {
             eprintln!("file ends unexpectedly");
             false
         }
-        libbzip2_rs_sys::BZ_DATA_ERROR_MAGIC => {
+        libbz2_rs_sys::BZ_DATA_ERROR_MAGIC => {
             zStream.close();
             if streamNo == 1 {
                 eprintln!("bad magic number (file not created by bzip2)");

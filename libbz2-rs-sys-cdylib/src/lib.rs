@@ -1,9 +1,9 @@
 #![no_std]
 
-extern crate libbzip2_rs_sys;
+extern crate libbz2_rs_sys;
 
 use core::panic::PanicInfo;
-pub use libbzip2_rs_sys::*;
+pub use libbz2_rs_sys::*;
 
 #[cfg(feature = "stdio")]
 struct StderrWritter;

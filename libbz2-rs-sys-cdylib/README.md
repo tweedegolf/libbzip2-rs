@@ -1,4 +1,4 @@
-# `libbzip2-rs-sys-cdylib`
+# `libbz2-rs-sys-cdylib`
 
 A drop-in replacement for the `libbz2` dynamic library
 
@@ -54,16 +54,16 @@ If no allocator is configured, the initialization functions will return `BZ_PARA
 
 Symbols in C programs all live in the same namespace. A common solution to prevent names from clashing is to prefix
 all of a library's symbols with a prefix. We support prefixing the name at build time with the `custom-prefix` feature
-flag. When enabled, the value of the `LIBBZIP2_RS_SYS_PREFIX` is used as a prefix for all exported symbols. For example:
+flag. When enabled, the value of the `LIBBZ2_RS_SYS_PREFIX` is used as a prefix for all exported symbols. For example:
 
 ```ignore
-> LIBBZIP2_RS_SYS_PREFIX="MY_CUSTOM_PREFIX_" cargo build --release --features=custom-prefix
+> LIBBZ2_RS_SYS_PREFIX="MY_CUSTOM_PREFIX_" cargo build --release --features=custom-prefix
 
-   Compiling libbzip2-rs-sys v0.0.0 (libbzip2-rs/libbzip2-rs-sys)
-   Compiling libz-rs-sys-cdylib v0.0.0 (libbzip2-rs/libbzip2-rs-sys-cdylib)
+   Compiling libbz2-rs-sys v0.0.0 (libbz2-rs/libbz2-rs-sys)
+   Compiling libz-rs-sys-cdylib v0.0.0 (libbz2-rs/libbz2-rs-sys-cdylib)
     Finished `release` profile [optimized] target(s) in 0.97s
 > objdump -tT target/release/libbz2_rs.so | grep "BZ2_bzCompressInit"
-000000000002f300 l     F .text	0000000000000441              .hidden _ZN15libbzip2_rs_sys5bzlib22BZ2_bzCompressInitHelp17hac60bda3d983fe05E
+000000000002f300 l     F .text	0000000000000441              .hidden _ZN15libbz2_rs_sys5bzlib22BZ2_bzCompressInitHelp17hac60bda3d983fe05E
 000000000002f2e0 g     F .text	000000000000001a              MY_CUSTOM_PREFIX_BZ2_bzCompressInit
 000000000002f2e0 g    DF .text	000000000000001a  Base        MY_CUSTOM_PREFIX_BZ2_bzCompressInit
 ```
@@ -94,8 +94,8 @@ It's configuration is in the `Cargo.toml`, where e.g. the library name or versio
 ```
 > cargo cbuild --release
    Compiling libc v0.2.167
-   Compiling libbzip2-rs-sys v0.0.0 (libbzip2-rs/libbzip2-rs-sys)
-   Compiling libz-rs-sys-cdylib v0.0.0 (libbzip2-rs/libbzip2-rs-sys-cdylib)
+   Compiling libbz2-rs-sys v0.0.0 (libbz2-rs/libbz2-rs-sys)
+   Compiling libz-rs-sys-cdylib v0.0.0 (libbz2-rs/libbz2-rs-sys-cdylib)
     Finished `release` profile [optimized] target(s) in 1.63s
     Building pkg-config files
 > tree target

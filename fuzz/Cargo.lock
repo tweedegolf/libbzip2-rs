@@ -207,24 +207,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "libbz2-rs-sys"
+version = "0.0.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "libbzip2-rs-fuzz"
 version = "0.0.0"
 dependencies = [
  "bzip2-sys",
  "crc32fast",
- "libbzip2-rs-sys",
+ "libbz2-rs-sys",
  "libc",
  "libfuzzer-sys",
  "libloading",
  "rstest",
- "test-libbzip2-rs-sys",
-]
-
-[[package]]
-name = "libbzip2-rs-sys"
-version = "0.0.0"
-dependencies = [
- "libc",
+ "test-libbz2-rs-sys",
 ]
 
 [[package]]
@@ -418,11 +418,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "test-libbzip2-rs-sys"
+name = "test-libbz2-rs-sys"
 version = "0.0.0"
 dependencies = [
  "bzip2-sys",
- "libbzip2-rs-sys",
+ "libbz2-rs-sys",
  "libc",
 ]
 
