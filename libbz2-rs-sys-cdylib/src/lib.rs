@@ -37,11 +37,15 @@ fn panic_handler(_info: &PanicInfo) -> ! {
 
     #[cfg(not(feature = "stdio"))]
     {
+        use core::sync::atomic::Ordering;
+
         extern "C" {
             fn bz_internal_error(errcode: core::ffi::c_int);
         }
 
-        unsafe { bz_internal_error(-1) }
+        // If the panic was triggered by handle_assert_failure ASSERT_CODE will contain the
+        // assertion code. Otherwise it will contain -1.
+        unsafe { bz_internal_error(ASSERT_CODE.load(Ordering::Relaxed)) }
         loop {}
     }
 }
