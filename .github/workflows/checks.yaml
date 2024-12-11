@@ -86,6 +86,10 @@ jobs:
         run: cargo rustc --target ${{matrix.target}} -p libbz2-rs-sys --lib --no-default-features --crate-type rlib
         env:
           RUSTFLAGS: -Aunused_variables -Aunused_assignments
+      - name: cargo build (no_std + rust_allocator)
+        run: cargo rustc --target ${{matrix.target}} -p libbz2-rs-sys --lib --no-default-features --features rust-allocator --crate-type rlib
+        env:
+          RUSTFLAGS: -Aunused_variables -Aunused_assignments
       - name: cargo nextest # reports segfaults in a helpful way
         run: cargo nextest run --target ${{matrix.target}} ${{ matrix.features }} --no-fail-fast --workspace
         env:
