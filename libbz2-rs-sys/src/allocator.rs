@@ -12,6 +12,10 @@
 //! the layout of an allocation to deallocate it, and C interfaces don't usually provide this
 //! information. Luckily in the library we know in all cases how big the allocation was at the
 //! point where we deallocate it.
+
+#[cfg(feature = "rust-allocator")]
+extern crate alloc;
+
 use core::ffi::{c_int, c_void};
 
 use crate::bzlib::{BzStream, StreamState};
@@ -148,7 +152,7 @@ impl Allocator {
             #[cfg(feature = "rust-allocator")]
             Allocator::Rust => {
                 let layout = core::alloc::Layout::array::<T>(count).unwrap();
-                let ptr = unsafe { std::alloc::alloc_zeroed(layout) };
+                let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
                 (!ptr.is_null()).then_some(ptr.cast())
             }
             #[cfg(feature = "c-allocator")]
@@ -182,7 +186,7 @@ impl Allocator {
             #[cfg(feature = "rust-allocator")]
             Allocator::Rust => {
                 let layout = core::alloc::Layout::array::<T>(count).unwrap();
-                unsafe { std::alloc::dealloc(ptr.cast(), layout) }
+                unsafe { alloc::alloc::dealloc(ptr.cast(), layout) }
             }
             #[cfg(feature = "c-allocator")]
             Allocator::C => {
