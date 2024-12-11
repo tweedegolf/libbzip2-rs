@@ -394,3 +394,25 @@ jobs:
           abidw $LIBBZ2_PATH > /tmp/$LIBBZ2_FILENAME.abi
           abidw /tmp/cargo-cbuild-libbzip2-rs/usr/local/lib/x86_64-linux-gnu/libbz2_rs.so > /tmp/liblibz_rs_sys.so.abi
           abidiff --no-unreferenced-symbols --ignore-soname /tmp/$LIBBZ2_FILENAME.abi /tmp/liblibz_rs_sys.so.abi
+
+  run-bzip2-rs-test-suite:
+    name: run bzip2-rs test suite
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+        features:
+          - ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        with:
+          persist-credentials: false
+      - name: run
+        run: |
+          cd ..
+          git clone https://github.com/trifectatechfoundation/bzip2-rs.git
+          cd bzip2-rs
+          sed '/^\[dependencies\.libbz2-rs-sys\]/,/^$/ s/^version = .*/path = "..\/libbzip2-rs\/libbz2-rs-sys"/' Cargo.toml
+          cargo test --no-default-features --features="libbz2-rs-sys"
