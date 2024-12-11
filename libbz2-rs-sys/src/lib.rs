@@ -151,6 +151,7 @@ fn handle_assert_failure(errcode: c_int) -> ! {
     // Stash the assertion code for the panic handler in the cdylib to pass to bz_internal_error.
     // Using relaxed ordering as this will be accessed on the same thread.
     #[cfg(not(feature = "std"))]
+    #[allow(clippy::unnecessary_cast)]
     ASSERT_CODE.store(errcode as i32, Ordering::Relaxed);
     #[cfg(not(feature = "std"))]
     panic!("{}", AssertFail(errcode));

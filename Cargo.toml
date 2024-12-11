@@ -8,13 +8,13 @@ exclude = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "bzip2-1.0.6"
 repository = "https://github.com/trifectatechfoundation/libbzip2-rs"
 homepage = "https://github.com/trifectatechfoundation/libbzip2-rs"
 readme = "./README.md"
-description = "a drop-in compatible rust bzip2 implementation" 
+description = "a drop-in compatible rust bzip2 implementation"
 publish = true
 rust-version = "1.82" # MSRV
 
@@ -24,7 +24,7 @@ libbz2-rs-sys = { path = "libbz2-rs-sys/", default-features = false }
 
 [package]
 name = "libbzip2-rs"
-readme.workspace = true 
+readme.workspace = true
 description.workspace = true
 version.workspace = true
 edition.workspace = true

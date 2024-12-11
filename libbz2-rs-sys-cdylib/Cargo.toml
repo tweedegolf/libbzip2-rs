@@ -1,6 +1,6 @@
 [package]
 name = "libbz2-rs-sys-cdylib"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "bzip2-1.0.6"
 repository = "https://github.com/trifectatechfoundation/libbzip2-rs"
@@ -23,7 +23,7 @@ custom-prefix = ["libbz2-rs-sys/custom-prefix"] # use the LIBBZ2_RS_SYS_PREFIX t
 capi = []
 
 [dependencies]
-libbz2-rs-sys = { version = "0.1.0", path = "../libbz2-rs-sys", default-features = false, features = ["c-allocator"] }
+libbz2-rs-sys = { version = "0.1.1", path = "../libbz2-rs-sys", default-features = false, features = ["c-allocator"] }
 libc = "0.2"
 
 [package.metadata.capi.library]

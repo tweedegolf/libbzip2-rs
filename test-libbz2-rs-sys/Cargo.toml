@@ -1,14 +1,14 @@
 [package]
 name = "test-libbz2-rs-sys"
 readme = "README.md"
-# description.workspace = true
-# version.workspace = true
+description = "testing libbz2-rs-sys"
+version.workspace = true
 edition.workspace = true
-# license.workspace = true
-# repository.workspace = true
-# homepage.workspace = true
-# publish.workspace = true
-# rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+publish = false
 
 [dependencies]
 bzip2-sys = { version = "0.1.11", features = ["static"] }
