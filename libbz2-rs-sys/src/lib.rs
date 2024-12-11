@@ -137,26 +137,13 @@ macro_rules! assert_h {
 
 #[cold]
 fn handle_assert_failure(errcode: c_int) -> ! {
-    #[cfg(feature = "stdio")]
-    {
-        #[cfg(feature = "std")]
-        std::eprint!("{}", AssertFail(errcode));
-        #[cfg(feature = "std")]
-        std::process::exit(3);
+    #[cfg(feature = "std")]
+    std::eprint!("{}", AssertFail(errcode));
+    #[cfg(feature = "std")]
+    std::process::exit(3);
 
-        #[cfg(not(feature = "std"))]
-        panic!("{}", AssertFail(errcode));
-    }
-
-    #[cfg(not(feature = "stdio"))]
-    {
-        extern "C" {
-            fn bz_internal_error(errcode: c_int);
-        }
-
-        unsafe { bz_internal_error(errcode) }
-        loop {}
-    }
+    #[cfg(not(feature = "std"))]
+    panic!("{}", AssertFail(errcode));
 }
 
 use assert_h;
