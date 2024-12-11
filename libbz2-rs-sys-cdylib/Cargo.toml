@@ -6,7 +6,7 @@ license = "bzip2-1.0.6"
 repository = "https://github.com/trifectatechfoundation/libbzip2-rs"
 homepage = "https://github.com/trifectatechfoundation/libbzip2-rs"
 readme = "./README.md"
-description = "a drop-in compatible libbz2 cdylib" 
+description = "a drop-in compatible libbz2 cdylib"
 publish = true
 rust-version = "1.82" # MSRV
 
@@ -14,6 +14,7 @@ rust-version = "1.82" # MSRV
 name = "bz2_rs" # turns into e.g. `libbz2_rs.so`
 crate-type = ["cdylib"]
 test = false
+bench = false
 
 [features]
 default = ["stdio"]

@@ -11,6 +11,8 @@
 extern crate std;
 
 use core::ffi::c_int;
+#[cfg(not(feature = "std"))]
+use core::sync::atomic::{AtomicI32, Ordering};
 
 mod allocator;
 mod blocksort;
@@ -135,6 +137,10 @@ macro_rules! assert_h {
     };
 }
 
+#[cfg(not(feature = "std"))]
+#[doc(hidden)]
+pub static ASSERT_CODE: AtomicI32 = AtomicI32::new(-1);
+
 #[cold]
 fn handle_assert_failure(errcode: c_int) -> ! {
     #[cfg(feature = "std")]
@@ -142,6 +148,10 @@ fn handle_assert_failure(errcode: c_int) -> ! {
     #[cfg(feature = "std")]
     std::process::exit(3);
 
+    // Stash the assertion code for the panic handler in the cdylib to pass to bz_internal_error.
+    // Using relaxed ordering as this will be accessed on the same thread.
+    #[cfg(not(feature = "std"))]
+    ASSERT_CODE.store(errcode as i32, Ordering::Relaxed);
     #[cfg(not(feature = "std"))]
     panic!("{}", AssertFail(errcode));
 }
