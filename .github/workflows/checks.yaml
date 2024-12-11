@@ -401,8 +401,6 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-        features:
-          - ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
