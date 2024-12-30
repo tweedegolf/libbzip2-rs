@@ -1473,7 +1473,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
 }
 
 #[inline]
-pub(crate) fn index_into_f(indx: i32, cftab: &mut [i32]) -> i32 {
+pub(crate) fn index_into_f(indx: i32, cftab: &[i32; 257]) -> i32 {
     let mut nb = 0;
     let mut na = 256;
     loop {
