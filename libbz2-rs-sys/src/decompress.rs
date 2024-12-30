@@ -1119,7 +1119,7 @@ pub(crate) fn decompress(
                                             // `return true` is probably uninitentional?!
                                             return ReturnCode::BZ_RUN_OK;
                                         }
-                                        s.k0 = index_into_f(s.tPos as i32, &mut s.cftab);
+                                        s.k0 = index_into_f(s.tPos as i32, &s.cftab);
                                         s.tPos = ll16[s.tPos as usize] as u32
                                             | (ll4[(s.tPos >> 1) as usize] as u32
                                                 >> (s.tPos << 2 & 0x4)
@@ -1142,7 +1142,7 @@ pub(crate) fn decompress(
                                             // `return true` is probably uninitentional?!
                                             return ReturnCode::BZ_RUN_OK;
                                         }
-                                        s.k0 = index_into_f(s.tPos as i32, &mut s.cftab);
+                                        s.k0 = index_into_f(s.tPos as i32, &s.cftab);
                                         s.tPos = ll16[s.tPos as usize] as u32
                                             | (ll4[(s.tPos >> 1) as usize] as u32
                                                 >> (s.tPos << 2 & 0x4)
