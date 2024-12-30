@@ -1369,7 +1369,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             }
 
             if c_state_out_len > 0 {
-                let bound = Ord::min(cs_avail_out, c_state_out_len - 1);
+                let bound = Ord::min(cs_avail_out, c_state_out_len);
 
                 unsafe {
                     core::ptr::write_bytes(cs_next_out as *mut u8, c_state_out_ch, bound as usize);
@@ -1386,9 +1386,6 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                 if cs_avail_out == 0 {
                     break 'return_notr;
                 }
-
-                out_len_eq_one!();
-            } else {
             }
 
             loop {
