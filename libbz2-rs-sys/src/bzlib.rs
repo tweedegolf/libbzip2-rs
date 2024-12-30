@@ -1350,9 +1350,10 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             ( $cccc:expr) => {
                 /* c_tPos is unsigned, hence test < 0 is pointless. */
                 if c_tPos >= 100000u32.wrapping_mul(ro_blockSize100k as u32) {
+                    // return corrupt if we're past the length of the block
                     return true;
                 }
-                c_tPos = s.tt.as_slice()[c_tt..][c_tPos as usize];
+                c_tPos = s.tt.as_slice()[c_tt + c_tPos as usize];
                 $cccc = (c_tPos & 0xff) as _;
                 c_tPos >>= 8;
             };
