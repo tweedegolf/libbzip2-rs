@@ -1361,19 +1361,24 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
 
         'return_notr: loop {
             if c_state_out_len > 0 {
-                loop {
-                    if cs_avail_out == 0 {
-                        break 'return_notr;
-                    }
-                    if c_state_out_len == 1 {
-                        break;
-                    }
-                    unsafe { *(cs_next_out as *mut u8) = c_state_out_ch };
+                let bound = Ord::min(cs_avail_out, c_state_out_len - 1);
+
+                unsafe {
+                    core::ptr::write_bytes(cs_next_out as *mut u8, c_state_out_ch, bound as usize);
+                    cs_next_out = cs_next_out.add(bound as usize);
+                };
+
+                for _ in 0..bound {
                     BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
-                    c_state_out_len -= 1;
-                    cs_next_out = unsafe { cs_next_out.offset(1) };
-                    cs_avail_out -= 1;
                 }
+
+                cs_avail_out -= bound;
+                c_state_out_len -= bound;
+
+                if cs_avail_out == 0 {
+                    break 'return_notr;
+                }
+
                 current_block = NextState::OutLenEqOne;
             } else {
                 current_block = NextState::Remainder;
