@@ -1717,45 +1717,45 @@ pub(crate) fn BZ2_bzDecompressHelp(strm: &mut BzStream<DState>) -> ReturnCode {
     };
 
     loop {
-        if let decompress::State::BZ_X_IDLE = s.state {
-            return ReturnCode::BZ_SEQUENCE_ERROR;
-        }
-        if let decompress::State::BZ_X_OUTPUT = s.state {
-            let corrupt = match s.smallDecompress {
-                DecompressMode::Small => un_rle_obuf_to_output_small(strm, s),
-                DecompressMode::Fast => un_rle_obuf_to_output_fast(strm, s),
-            };
-
-            if corrupt {
-                return ReturnCode::BZ_DATA_ERROR;
+        match s.state {
+            decompress::State::BZ_X_IDLE => {
+                return ReturnCode::BZ_SEQUENCE_ERROR;
             }
+            decompress::State::BZ_X_OUTPUT => {
+                let corrupt = match s.smallDecompress {
+                    DecompressMode::Small => un_rle_obuf_to_output_small(strm, s),
+                    DecompressMode::Fast => un_rle_obuf_to_output_fast(strm, s),
+                };
 
-            if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
-                s.calculatedBlockCRC = !s.calculatedBlockCRC;
-                if s.verbosity >= 3 {
-                    debug_log!(
-                        " {{{:#08x}, {:#08x}}}",
-                        s.storedBlockCRC,
-                        s.calculatedBlockCRC,
-                    );
-                }
-                if s.verbosity >= 2 {
-                    debug_log!("]");
-                }
-                #[cfg(not(feature = "__internal-fuzz-disable-checksum"))]
-                if s.calculatedBlockCRC != s.storedBlockCRC {
+                if corrupt {
                     return ReturnCode::BZ_DATA_ERROR;
                 }
-                s.calculatedCombinedCRC = s.calculatedCombinedCRC.rotate_left(1);
-                s.calculatedCombinedCRC ^= s.calculatedBlockCRC;
-                s.state = decompress::State::BZ_X_BLKHDR_1;
-            } else {
-                return ReturnCode::BZ_OK;
-            }
-        }
 
-        match s.state {
-            decompress::State::BZ_X_IDLE | decompress::State::BZ_X_OUTPUT => continue,
+                if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
+                    s.calculatedBlockCRC = !s.calculatedBlockCRC;
+                    if s.verbosity >= 3 {
+                        debug_log!(
+                            " {{{:#08x}, {:#08x}}}",
+                            s.storedBlockCRC,
+                            s.calculatedBlockCRC,
+                        );
+                    }
+                    if s.verbosity >= 2 {
+                        debug_log!("]");
+                    }
+                    #[cfg(not(feature = "__internal-fuzz-disable-checksum"))]
+                    if s.calculatedBlockCRC != s.storedBlockCRC {
+                        return ReturnCode::BZ_DATA_ERROR;
+                    }
+                    s.calculatedCombinedCRC = s.calculatedCombinedCRC.rotate_left(1);
+                    s.calculatedCombinedCRC ^= s.calculatedBlockCRC;
+                    s.state = decompress::State::BZ_X_BLKHDR_1;
+
+                    continue;
+                } else {
+                    return ReturnCode::BZ_OK;
+                }
+            }
             _ => match decompress(strm, s, &allocator) {
                 ReturnCode::BZ_STREAM_END => {
                     if s.verbosity >= 3 {
