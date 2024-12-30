@@ -522,7 +522,7 @@ pub(crate) struct DState {
     pub strm_addr: usize, // Only for a consistency check
     pub state: decompress::State,
     pub state_out_ch: u8,
-    pub state_out_len: i32,
+    pub state_out_len: u32,
     pub blockRandomised: bool,
     pub rNToGo: i32,
     pub rTPos: i32,
@@ -1317,7 +1317,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            s.state_out_len = k1 as i32 + 4;
+            s.state_out_len = k1 as u32 + 4;
             BZ_GET_FAST!(s, s.k0);
             BZ_RAND_UPD_MASK!(s);
             s.k0 ^= BZ_RAND_MASK!(s) as i32;
@@ -1333,7 +1333,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         /* restore */
         let mut c_calculatedBlockCRC: u32 = s.calculatedBlockCRC;
         let mut c_state_out_ch: u8 = s.state_out_ch;
-        let mut c_state_out_len: i32 = s.state_out_len;
+        let mut c_state_out_len: u32 = s.state_out_len;
         let mut c_nblock_used: i32 = s.nblock_used;
         let mut c_k0: i32 = s.k0;
         let c_tt = 0usize;
@@ -1449,7 +1449,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
 
                         BZ_GET_FAST_C!(k1);
                         c_nblock_used += 1;
-                        c_state_out_len = k1 as i32 + 4;
+                        c_state_out_len = k1 as u32 + 4;
                         BZ_GET_FAST_C!(c_k0);
                         c_nblock_used += 1;
 
@@ -1596,7 +1596,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            s.state_out_len = k1 as i32 + 4;
+            s.state_out_len = k1 as u32 + 4;
             BZ_GET_SMALL!(s, s.k0);
             BZ_RAND_UPD_MASK!(s);
             s.k0 ^= BZ_RAND_MASK!(s) as i32;
@@ -1661,7 +1661,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
 
             BZ_GET_SMALL!(s, k1);
             s.nblock_used += 1;
-            s.state_out_len = k1 as i32 + 4;
+            s.state_out_len = k1 as u32 + 4;
             BZ_GET_SMALL!(s, s.k0);
             s.nblock_used += 1;
         }
