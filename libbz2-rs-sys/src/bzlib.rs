@@ -1388,68 +1388,66 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             }
 
             loop {
-                {
-                    /* Only caused by corrupt data stream? */
-                    if c_nblock_used > s_save_nblockPP {
-                        return true;
-                    }
-
-                    /* can a new run be started? */
-                    if c_nblock_used == s_save_nblockPP {
-                        c_state_out_len = 0;
-                        break 'return_notr;
-                    }
-
-                    c_state_out_ch = c_k0 as u8;
-                    BZ_GET_FAST_C!(k1);
-                    c_nblock_used += 1;
-
-                    if k1 as i32 != c_k0 {
-                        c_k0 = k1 as i32;
-                        out_len_eq_one!();
-                        continue;
-                    }
-
-                    if c_nblock_used == s_save_nblockPP {
-                        out_len_eq_one!();
-                        continue;
-                    }
-
-                    c_state_out_len = 2;
-                    BZ_GET_FAST_C!(k1);
-                    c_nblock_used += 1;
-
-                    if c_nblock_used == s_save_nblockPP {
-                        continue 'return_notr;
-                    }
-
-                    if k1 as i32 != c_k0 {
-                        c_k0 = k1 as i32;
-
-                        continue 'return_notr;
-                    }
-
-                    c_state_out_len = 3;
-                    BZ_GET_FAST_C!(k1);
-                    c_nblock_used += 1;
-
-                    if c_nblock_used == s_save_nblockPP {
-                        continue 'return_notr;
-                    }
-
-                    if k1 as i32 != c_k0 {
-                        c_k0 = k1 as i32;
-                        continue 'return_notr;
-                    }
-
-                    BZ_GET_FAST_C!(k1);
-                    c_nblock_used += 1;
-                    c_state_out_len = k1 as u32 + 4;
-                    BZ_GET_FAST_C!(c_k0);
-                    c_nblock_used += 1;
-
-                    break;
+                /* Only caused by corrupt data stream? */
+                if c_nblock_used > s_save_nblockPP {
+                    return true;
                 }
+
+                /* can a new run be started? */
+                if c_nblock_used == s_save_nblockPP {
+                    c_state_out_len = 0;
+                    break 'return_notr;
+                }
+
+                c_state_out_ch = c_k0 as u8;
+                BZ_GET_FAST_C!(k1);
+                c_nblock_used += 1;
+
+                if k1 as i32 != c_k0 {
+                    c_k0 = k1 as i32;
+                    out_len_eq_one!();
+                    continue;
+                }
+
+                if c_nblock_used == s_save_nblockPP {
+                    out_len_eq_one!();
+                    continue;
+                }
+
+                c_state_out_len = 2;
+                BZ_GET_FAST_C!(k1);
+                c_nblock_used += 1;
+
+                if c_nblock_used == s_save_nblockPP {
+                    continue 'return_notr;
+                }
+
+                if k1 as i32 != c_k0 {
+                    c_k0 = k1 as i32;
+
+                    continue 'return_notr;
+                }
+
+                c_state_out_len = 3;
+                BZ_GET_FAST_C!(k1);
+                c_nblock_used += 1;
+
+                if c_nblock_used == s_save_nblockPP {
+                    continue 'return_notr;
+                }
+
+                if k1 as i32 != c_k0 {
+                    c_k0 = k1 as i32;
+                    continue 'return_notr;
+                }
+
+                BZ_GET_FAST_C!(k1);
+                c_nblock_used += 1;
+                c_state_out_len = k1 as u32 + 4;
+                BZ_GET_FAST_C!(c_k0);
+                c_nblock_used += 1;
+
+                break;
             }
         }
 
