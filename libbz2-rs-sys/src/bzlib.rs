@@ -1339,16 +1339,20 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         let avail_out_INIT: u32 = cs_avail_out;
         let s_save_nblockPP: i32 = s.save_nblock + 1;
 
+        let tt = &s.tt.as_slice()[..100000usize.wrapping_mul(ro_blockSize100k as usize)];
+
         macro_rules! BZ_GET_FAST_C {
             ( $cccc:expr) => {
-                /* c_tPos is unsigned, hence test < 0 is pointless. */
-                if c_tPos >= 100000u32.wrapping_mul(ro_blockSize100k as u32) {
-                    // return corrupt if we're past the length of the block
-                    return true;
+                match tt.get(c_tPos as usize) {
+                    None => {
+                        // return corrupt if we're past the length of the block
+                        return true;
+                    }
+                    Some(v) => {
+                        $cccc = (*v & 0xff) as _;
+                        c_tPos = *v >> 8;
+                    }
                 }
-                c_tPos = s.tt.as_slice()[c_tPos as usize];
-                $cccc = (c_tPos & 0xff) as _;
-                c_tPos >>= 8;
             };
         }
 
