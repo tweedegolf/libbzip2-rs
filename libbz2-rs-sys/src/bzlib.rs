@@ -1324,12 +1324,6 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             s.nblock_used += 1;
         }
     } else {
-        enum NextState {
-            OutLenEqOne,
-            Remainder,
-        }
-        let mut current_block: NextState;
-
         /* restore */
         let mut c_calculatedBlockCRC: u32 = s.calculatedBlockCRC;
         let mut c_state_out_ch: u8 = s.state_out_ch;
@@ -1360,6 +1354,20 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         }
 
         'return_notr: loop {
+            macro_rules! out_len_eq_one {
+                () => {
+                    if cs_avail_out == 0 {
+                        c_state_out_len = 1;
+                        break 'return_notr;
+                    } else {
+                        unsafe { *(cs_next_out as *mut u8) = c_state_out_ch };
+                        BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
+                        cs_next_out = unsafe { cs_next_out.offset(1) };
+                        cs_avail_out -= 1;
+                    }
+                };
+            }
+
             if c_state_out_len > 0 {
                 let bound = Ord::min(cs_avail_out, c_state_out_len - 1);
 
@@ -1379,87 +1387,72 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                     break 'return_notr;
                 }
 
-                current_block = NextState::OutLenEqOne;
+                out_len_eq_one!();
             } else {
-                current_block = NextState::Remainder;
             }
 
             loop {
-                match current_block {
-                    NextState::OutLenEqOne => {
-                        if cs_avail_out == 0 {
-                            c_state_out_len = 1;
-                            break 'return_notr;
-                        } else {
-                            unsafe { *(cs_next_out as *mut u8) = c_state_out_ch };
-                            BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
-                            cs_next_out = unsafe { cs_next_out.offset(1) };
-                            cs_avail_out -= 1;
-                            current_block = NextState::Remainder;
-                        }
+                {
+                    /* Only caused by corrupt data stream? */
+                    if c_nblock_used > s_save_nblockPP {
+                        return true;
                     }
-                    NextState::Remainder => {
-                        /* Only caused by corrupt data stream? */
-                        if c_nblock_used > s_save_nblockPP {
-                            return true;
-                        }
 
-                        /* can a new run be started? */
-                        if c_nblock_used == s_save_nblockPP {
-                            c_state_out_len = 0;
-                            break 'return_notr;
-                        }
-
-                        c_state_out_ch = c_k0 as u8;
-                        BZ_GET_FAST_C!(k1);
-                        c_nblock_used += 1;
-
-                        if k1 as i32 != c_k0 {
-                            c_k0 = k1 as i32;
-                            current_block = NextState::OutLenEqOne;
-                            continue;
-                        }
-
-                        if c_nblock_used == s_save_nblockPP {
-                            current_block = NextState::OutLenEqOne;
-                            continue;
-                        }
-
-                        c_state_out_len = 2;
-                        BZ_GET_FAST_C!(k1);
-                        c_nblock_used += 1;
-
-                        if c_nblock_used == s_save_nblockPP {
-                            continue 'return_notr;
-                        }
-
-                        if k1 as i32 != c_k0 {
-                            c_k0 = k1 as i32;
-
-                            continue 'return_notr;
-                        }
-
-                        c_state_out_len = 3;
-                        BZ_GET_FAST_C!(k1);
-                        c_nblock_used += 1;
-
-                        if c_nblock_used == s_save_nblockPP {
-                            continue 'return_notr;
-                        }
-
-                        if k1 as i32 != c_k0 {
-                            c_k0 = k1 as i32;
-                            continue 'return_notr;
-                        }
-
-                        BZ_GET_FAST_C!(k1);
-                        c_nblock_used += 1;
-                        c_state_out_len = k1 as u32 + 4;
-                        BZ_GET_FAST_C!(c_k0);
-                        c_nblock_used += 1;
-
-                        break;
+                    /* can a new run be started? */
+                    if c_nblock_used == s_save_nblockPP {
+                        c_state_out_len = 0;
+                        break 'return_notr;
                     }
+
+                    c_state_out_ch = c_k0 as u8;
+                    BZ_GET_FAST_C!(k1);
+                    c_nblock_used += 1;
+
+                    if k1 as i32 != c_k0 {
+                        c_k0 = k1 as i32;
+                        out_len_eq_one!();
+                        continue;
+                    }
+
+                    if c_nblock_used == s_save_nblockPP {
+                        out_len_eq_one!();
+                        continue;
+                    }
+
+                    c_state_out_len = 2;
+                    BZ_GET_FAST_C!(k1);
+                    c_nblock_used += 1;
+
+                    if c_nblock_used == s_save_nblockPP {
+                        continue 'return_notr;
+                    }
+
+                    if k1 as i32 != c_k0 {
+                        c_k0 = k1 as i32;
+
+                        continue 'return_notr;
+                    }
+
+                    c_state_out_len = 3;
+                    BZ_GET_FAST_C!(k1);
+                    c_nblock_used += 1;
+
+                    if c_nblock_used == s_save_nblockPP {
+                        continue 'return_notr;
+                    }
+
+                    if k1 as i32 != c_k0 {
+                        c_k0 = k1 as i32;
+                        continue 'return_notr;
+                    }
+
+                    BZ_GET_FAST_C!(k1);
+                    c_nblock_used += 1;
+                    c_state_out_len = k1 as u32 + 4;
+                    BZ_GET_FAST_C!(c_k0);
+                    c_nblock_used += 1;
+
+                    break;
                 }
             }
         }
