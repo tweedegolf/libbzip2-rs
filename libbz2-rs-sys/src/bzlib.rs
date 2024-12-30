@@ -1362,7 +1362,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                     } else {
                         unsafe { *(cs_next_out as *mut u8) = c_state_out_ch };
                         BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
-                        cs_next_out = unsafe { cs_next_out.offset(1) };
+                        cs_next_out = unsafe { cs_next_out.add(1) };
                         cs_avail_out -= 1;
                     }
                 };
