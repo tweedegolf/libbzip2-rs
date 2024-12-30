@@ -1155,8 +1155,7 @@ pub(crate) fn decompress(
                                     i = 0;
                                     while i < nblock {
                                         uc = (tt[i as usize] & 0xff) as u8;
-                                        let fresh0 = &mut (tt[s.cftab[uc as usize] as usize]);
-                                        *fresh0 |= (i << 8) as c_uint;
+                                        tt[s.cftab[uc as usize] as usize] |= (i << 8) as c_uint;
                                         s.cftab[uc as usize] += 1;
                                         i += 1;
                                     }
