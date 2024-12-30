@@ -1330,7 +1330,6 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         let mut c_state_out_len: u32 = s.state_out_len;
         let mut c_nblock_used: i32 = s.nblock_used;
         let mut c_k0: i32 = s.k0;
-        let c_tt = 0usize;
         let mut c_tPos: u32 = s.tPos;
         let mut cs_next_out: *mut c_char = strm.next_out;
         let mut cs_avail_out: c_uint = strm.avail_out;
@@ -1347,7 +1346,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                     // return corrupt if we're past the length of the block
                     return true;
                 }
-                c_tPos = s.tt.as_slice()[c_tt + c_tPos as usize];
+                c_tPos = s.tt.as_slice()[c_tPos as usize];
                 $cccc = (c_tPos & 0xff) as _;
                 c_tPos >>= 8;
             };
@@ -1466,7 +1465,6 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         s.state_out_len = c_state_out_len;
         s.nblock_used = c_nblock_used;
         s.k0 = c_k0;
-        // s.tt = c_tt; // as far as I can tell, this value is never actually updated
         s.tPos = c_tPos;
         strm.next_out = cs_next_out;
         strm.avail_out = cs_avail_out;
