@@ -1428,7 +1428,6 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
 
                 if k1 as i32 != c_k0 {
                     c_k0 = k1 as i32;
-
                     continue 'return_notr;
                 }
 
@@ -1451,7 +1450,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                 BZ_GET_FAST_C!(c_k0);
                 c_nblock_used += 1;
 
-                break;
+                continue 'return_notr;
             }
         }
 
