@@ -1354,14 +1354,14 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         }
 
         'return_notr: loop {
-            macro_rules! out_len_eq_one {
-                () => {
+            macro_rules! write_one_byte {
+                ($byte:expr) => {
                     if cs_avail_out == 0 {
                         c_state_out_len = 1;
                         break 'return_notr;
                     } else {
-                        unsafe { *(cs_next_out as *mut u8) = c_state_out_ch };
-                        BZ_UPDATE_CRC!(c_calculatedBlockCRC, c_state_out_ch);
+                        unsafe { *(cs_next_out as *mut u8) = $byte };
+                        BZ_UPDATE_CRC!(c_calculatedBlockCRC, $byte);
                         cs_next_out = unsafe { cs_next_out.add(1) };
                         cs_avail_out -= 1;
                     }
@@ -1406,12 +1406,12 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
 
                 if k1 as i32 != c_k0 {
                     c_k0 = k1 as i32;
-                    out_len_eq_one!();
+                    write_one_byte!(c_state_out_ch);
                     continue;
                 }
 
                 if c_nblock_used == s_save_nblockPP {
-                    out_len_eq_one!();
+                    write_one_byte!(c_state_out_ch);
                     continue;
                 }
 
