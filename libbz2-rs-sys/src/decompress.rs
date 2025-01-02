@@ -1171,7 +1171,7 @@ pub(crate) fn decompress(
                                             return ReturnCode::BZ_RUN_OK;
                                         }
                                         s.tPos = tt[s.tPos as usize];
-                                        s.k0 = (s.tPos & 0xff) as u8 as i32;
+                                        s.k0 = (s.tPos & 0xff) as u8;
                                         s.tPos >>= 8;
                                         s.nblock_used += 1;
                                         if s.rNToGo == 0 {
@@ -1191,7 +1191,7 @@ pub(crate) fn decompress(
                                             return ReturnCode::BZ_RUN_OK;
                                         }
                                         s.tPos = tt[s.tPos as usize];
-                                        s.k0 = (s.tPos & 0xff) as u8 as i32;
+                                        s.k0 = (s.tPos & 0xff) as u8;
                                         s.tPos >>= 8;
                                         s.nblock_used += 1;
                                     }
