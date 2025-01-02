@@ -534,7 +534,7 @@ pub(crate) struct DState {
     pub verbosity: i32,
     pub origPtr: i32,
     pub tPos: u32,
-    pub k0: i32,
+    pub k0: u8,
     pub unzftab: [i32; 256],
     pub nblock_used: i32,
     pub cftab: [i32; 257],
@@ -1272,7 +1272,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                 return true;
             }
 
-            s.state_out_ch = s.k0 as u8;
+            s.state_out_ch = s.k0;
 
             s.state_out_len = 1;
             BZ_GET_FAST!(s, k1);
@@ -1282,8 +1282,8 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             if s.nblock_used == s.save_nblock + 1 {
                 continue;
             };
-            if k1 as i32 != s.k0 {
-                s.k0 = k1 as i32;
+            if k1 != s.k0 {
+                s.k0 = k1;
                 continue;
             };
 
@@ -1295,8 +1295,8 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             if s.nblock_used == s.save_nblock + 1 {
                 continue;
             };
-            if k1 as i32 != s.k0 {
-                s.k0 = k1 as i32;
+            if k1 != s.k0 {
+                s.k0 = k1;
                 continue;
             };
 
@@ -1308,8 +1308,8 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             if s.nblock_used == s.save_nblock + 1 {
                 continue;
             };
-            if k1 as i32 != s.k0 {
-                s.k0 = k1 as i32;
+            if k1 != s.k0 {
+                s.k0 = k1;
                 continue;
             };
 
@@ -1320,7 +1320,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             s.state_out_len = k1 as u32 + 4;
             BZ_GET_FAST!(s, s.k0);
             BZ_RAND_UPD_MASK!(s);
-            s.k0 ^= BZ_RAND_MASK!(s) as i32;
+            s.k0 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
         }
     } else {
@@ -1329,7 +1329,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         let mut c_state_out_ch: u8 = s.state_out_ch;
         let mut c_state_out_len: u32 = s.state_out_len;
         let mut c_nblock_used: i32 = s.nblock_used;
-        let mut c_k0: i32 = s.k0;
+        let mut c_k0: u8 = s.k0;
         let mut c_tPos: u32 = s.tPos;
         let mut cs_next_out: *mut c_char = strm.next_out;
         let mut cs_avail_out: c_uint = strm.avail_out;
@@ -1400,12 +1400,12 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                     break 'return_notr;
                 }
 
-                c_state_out_ch = c_k0 as u8;
+                c_state_out_ch = c_k0;
                 (c_tPos, k1) = BZ_GET_FAST_C!(c_tPos);
                 c_nblock_used += 1;
 
-                if k1 as i32 != c_k0 {
-                    c_k0 = k1 as i32;
+                if k1 != c_k0 {
+                    c_k0 = k1;
                     write_one_byte!(c_state_out_ch);
                     continue;
                 }
@@ -1423,8 +1423,8 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                     continue 'return_notr;
                 }
 
-                if k1 as i32 != c_k0 {
-                    c_k0 = k1 as i32;
+                if k1 != c_k0 {
+                    c_k0 = k1;
                     continue 'return_notr;
                 }
 
@@ -1436,8 +1436,8 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                     continue 'return_notr;
                 }
 
-                if k1 as i32 != c_k0 {
-                    c_k0 = k1 as i32;
+                if k1 != c_k0 {
+                    c_k0 = k1;
                     continue 'return_notr;
                 }
 
@@ -1473,12 +1473,12 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
 }
 
 #[inline]
-pub(crate) fn index_into_f(indx: i32, cftab: &[i32; 257]) -> i32 {
-    let mut nb = 0;
+pub(crate) fn index_into_f(index: i32, cftab: &[i32; 257]) -> u8 {
+    let mut nb = 0u16;
     let mut na = 256;
     loop {
         let mid = (nb + na) >> 1;
-        if indx >= cftab[mid as usize] {
+        if index >= cftab[mid as usize] {
             nb = mid;
         } else {
             na = mid;
@@ -1487,7 +1487,10 @@ pub(crate) fn index_into_f(indx: i32, cftab: &[i32; 257]) -> i32 {
             break;
         }
     }
-    nb
+
+    // NOTE: nb < na, hence nb will fit in a u8
+    debug_assert!(u8::try_from(nb).is_ok());
+    nb as u8
 }
 
 macro_rules! GET_LL4 {
@@ -1542,7 +1545,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
                 return true;
             }
 
-            s.state_out_ch = s.k0 as u8;
+            s.state_out_ch = s.k0;
 
             s.state_out_len = 1;
             BZ_GET_SMALL!(s, k1);
@@ -1552,8 +1555,8 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             if s.nblock_used == s.save_nblock + 1 {
                 continue;
             };
-            if k1 as i32 != s.k0 {
-                s.k0 = k1 as i32;
+            if k1 != s.k0 {
+                s.k0 = k1;
                 continue;
             };
 
@@ -1565,8 +1568,8 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             if s.nblock_used == s.save_nblock + 1 {
                 continue;
             }
-            if k1 as i32 != s.k0 {
-                s.k0 = k1 as i32;
+            if k1 != s.k0 {
+                s.k0 = k1;
                 continue;
             };
 
@@ -1578,8 +1581,8 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             if s.nblock_used == s.save_nblock + 1 {
                 continue;
             }
-            if k1 as i32 != s.k0 {
-                s.k0 = k1 as i32;
+            if k1 != s.k0 {
+                s.k0 = k1;
                 continue;
             };
 
@@ -1590,7 +1593,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             s.state_out_len = k1 as u32 + 4;
             BZ_GET_SMALL!(s, s.k0);
             BZ_RAND_UPD_MASK!(s);
-            s.k0 ^= BZ_RAND_MASK!(s) as i32;
+            s.k0 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
         }
     } else {
@@ -1617,14 +1620,14 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             }
 
             s.state_out_len = 1;
-            s.state_out_ch = s.k0 as u8;
+            s.state_out_ch = s.k0;
             BZ_GET_SMALL!(s, k1);
             s.nblock_used += 1;
             if s.nblock_used == s.save_nblock + 1 {
                 continue;
             }
-            if k1 as i32 != s.k0 {
-                s.k0 = k1 as i32;
+            if k1 != s.k0 {
+                s.k0 = k1;
                 continue;
             };
 
@@ -1634,8 +1637,8 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             if s.nblock_used == s.save_nblock + 1 {
                 continue;
             }
-            if k1 as i32 != s.k0 {
-                s.k0 = k1 as i32;
+            if k1 != s.k0 {
+                s.k0 = k1;
                 continue;
             };
 
@@ -1645,8 +1648,8 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             if s.nblock_used == s.save_nblock + 1 {
                 continue;
             }
-            if k1 as i32 != s.k0 {
-                s.k0 = k1 as i32;
+            if k1 != s.k0 {
+                s.k0 = k1;
                 continue;
             };
 
