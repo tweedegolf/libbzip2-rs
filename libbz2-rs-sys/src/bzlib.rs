@@ -1342,16 +1342,13 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         let tt = &s.tt.as_slice()[..100000usize.wrapping_mul(ro_blockSize100k as usize)];
 
         macro_rules! BZ_GET_FAST_C {
-            ( $cccc:expr) => {
-                match tt.get(c_tPos as usize) {
+            ($c_tPos:expr) => {
+                match tt.get($c_tPos as usize) {
                     None => {
                         // return corrupt if we're past the length of the block
                         return true;
                     }
-                    Some(v) => {
-                        $cccc = (*v & 0xff) as _;
-                        c_tPos = *v >> 8;
-                    }
+                    Some(v) => (*v >> 8, (*v & 0xff) as _),
                 }
             };
         }
@@ -1404,7 +1401,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                 }
 
                 c_state_out_ch = c_k0 as u8;
-                BZ_GET_FAST_C!(k1);
+                (c_tPos, k1) = BZ_GET_FAST_C!(c_tPos);
                 c_nblock_used += 1;
 
                 if k1 as i32 != c_k0 {
@@ -1419,7 +1416,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                 }
 
                 c_state_out_len = 2;
-                BZ_GET_FAST_C!(k1);
+                (c_tPos, k1) = BZ_GET_FAST_C!(c_tPos);
                 c_nblock_used += 1;
 
                 if c_nblock_used == s_save_nblockPP {
@@ -1432,7 +1429,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                 }
 
                 c_state_out_len = 3;
-                BZ_GET_FAST_C!(k1);
+                (c_tPos, k1) = BZ_GET_FAST_C!(c_tPos);
                 c_nblock_used += 1;
 
                 if c_nblock_used == s_save_nblockPP {
@@ -1444,10 +1441,10 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                     continue 'return_notr;
                 }
 
-                BZ_GET_FAST_C!(k1);
+                (c_tPos, k1) = BZ_GET_FAST_C!(c_tPos);
                 c_nblock_used += 1;
                 c_state_out_len = k1 as u32 + 4;
-                BZ_GET_FAST_C!(c_k0);
+                (c_tPos, c_k0) = BZ_GET_FAST_C!(c_tPos);
                 c_nblock_used += 1;
 
                 continue 'return_notr;
