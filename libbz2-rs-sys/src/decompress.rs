@@ -1013,40 +1013,21 @@ pub(crate) fn decompress(
                         if s.origPtr < 0 || s.origPtr >= nblock {
                             error!(BZ_DATA_ERROR);
                         } else {
-                            i = 0;
-                            while i <= 255 {
-                                if s.unzftab[i as usize] < 0 || s.unzftab[i as usize] > nblock {
-                                    error!(BZ_DATA_ERROR);
-                                } else {
-                                    i += 1;
-                                }
+                            if s.unzftab.iter().any(|e| !(0..=nblock).contains(e)) {
+                                error!(BZ_DATA_ERROR);
                             }
-                            s.cftab[0_usize] = 0;
-                            i = 1;
-                            while i <= 256 {
-                                s.cftab[i as usize] = s.unzftab[(i - 1) as usize];
-                                i += 1;
-                            }
-                            i = 1;
-                            while i <= 256 {
+                            s.cftab[0] = 0;
+                            s.cftab[1..].copy_from_slice(&s.unzftab);
+                            for i in 1..s.cftab.len() {
                                 s.cftab[i as usize] += s.cftab[(i - 1) as usize];
-                                i += 1;
                             }
-                            i = 0;
-                            while i <= 256 {
-                                if s.cftab[i as usize] < 0 || s.cftab[i as usize] > nblock {
-                                    error!(BZ_DATA_ERROR);
-                                } else {
-                                    i += 1;
-                                }
+                            if s.cftab.iter().any(|e| !(0..=nblock).contains(e)) {
+                                error!(BZ_DATA_ERROR);
                             }
-                            i = 1;
-                            while i <= 256 {
-                                if s.cftab[(i - 1) as usize] > s.cftab[i as usize] {
-                                    error!(BZ_DATA_ERROR);
-                                } else {
-                                    i += 1;
-                                }
+                            // FIXME: use https://doc.rust-lang.org/std/primitive.slice.html#method.is_sorted
+                            // when available in our MSRV (requires >= 1.82.0)
+                            if s.cftab.windows(2).any(|w| w[0] > w[1]) {
+                                error!(BZ_DATA_ERROR);
                             }
                             s.state_out_len = 0;
                             s.state_out_ch = 0_u8;
