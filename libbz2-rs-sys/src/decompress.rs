@@ -1019,7 +1019,7 @@ pub(crate) fn decompress(
                             s.cftab[0] = 0;
                             s.cftab[1..].copy_from_slice(&s.unzftab);
                             for i in 1..s.cftab.len() {
-                                s.cftab[i as usize] += s.cftab[(i - 1) as usize];
+                                s.cftab[i] += s.cftab[i - 1];
                             }
                             if s.cftab.iter().any(|e| !(0..=nblock).contains(e)) {
                                 error!(BZ_DATA_ERROR);
