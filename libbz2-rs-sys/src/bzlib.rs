@@ -1348,7 +1348,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                         // return corrupt if we're past the length of the block
                         return true;
                     }
-                    Some(v) => (*v >> 8, (*v & 0xff) as _),
+                    Some(&v) => (v >> 8, (v & 0xff) as _),
                 }
             };
         }
@@ -1511,7 +1511,7 @@ macro_rules! BZ_GET_SMALL {
         if $s.tPos >= 100000u32.wrapping_mul($s.blockSize100k as u32) {
             return true;
         }
-        $cccc = index_into_f($s.tPos as i32, &mut $s.cftab) as _;
+        $cccc = index_into_f($s.tPos as i32, &$s.cftab) as _;
         $s.tPos = GET_LL!($s, $s.tPos);
     };
 }
