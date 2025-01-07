@@ -5,15 +5,14 @@ permissions:
 
 on:
   push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       ref:
         description: "The commit or branch to benchmark"
         required: true
         type: string
-  merge_group:
-    branches:
-      - main
 
 # Make sure only a single benchmark job runs at a time for the main branch to prevent conflicts when
 # pushing the benchmark data.
