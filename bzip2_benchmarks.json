@@ -1,5 +1,5 @@
 {
-    "decompress-rs": [
+    "decompress-c": [
         "./decompress rs tests/input/bzip2-testfiles/commons-compress/zip64support.tar.bz2"
     ],
     "decompress-ng": [
