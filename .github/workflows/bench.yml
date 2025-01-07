@@ -41,7 +41,7 @@ jobs:
         with:
           persist-credentials: false
           ref: "${{inputs.ref}}"
-          fetch-depth: 2
+          fetch-depth: 0 # ensure the base commit to compare against is available
           submodules: true
       - name: cargo build
         run: |
