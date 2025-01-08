@@ -83,6 +83,7 @@ macro_rules! assert_eq_compress {
                 &mut dest_len,
                 input.as_ptr(),
                 input.len() as core::ffi::c_uint,
+                9,
             );
 
             dest.truncate(dest_len as usize);
@@ -375,6 +376,7 @@ pub unsafe fn compress_c(
     dest_len: *mut libc::c_uint,
     source: *const u8,
     source_len: libc::c_uint,
+    blockSize100k: i32,
 ) -> i32 {
     use bzip2_sys::*;
 
@@ -400,7 +402,7 @@ pub unsafe fn compress_c(
     strm.bzfree = None;
     strm.opaque = std::ptr::null_mut::<libc::c_void>();
     unsafe {
-        ret = BZ2_bzCompressInit(&mut strm, 9, 0, 30);
+        ret = BZ2_bzCompressInit(&mut strm, blockSize100k, 0, 30);
         if ret != 0 as libc::c_int {
             return ret;
         }
@@ -428,6 +430,7 @@ pub unsafe fn compress_rs(
     dest_len: *mut libc::c_uint,
     source: *const u8,
     source_len: libc::c_uint,
+    blockSize100k: i32,
 ) -> i32 {
     use libbz2_rs_sys::*;
 
@@ -453,7 +456,7 @@ pub unsafe fn compress_rs(
     strm.bzfree = None;
     strm.opaque = std::ptr::null_mut::<libc::c_void>();
     unsafe {
-        ret = BZ2_bzCompressInit(&mut strm, 9, 0, 30);
+        ret = BZ2_bzCompressInit(&mut strm, blockSize100k, 0, 30);
         if ret != 0 as libc::c_int {
             return ret;
         }
@@ -1307,6 +1310,7 @@ mod high_level_interface {
                 &mut expected_len,
                 SAMPLE1_BZ2.as_ptr(),
                 SAMPLE1_BZ2.len() as _,
+                9,
             )
         };
         assert_eq!(err, 0);

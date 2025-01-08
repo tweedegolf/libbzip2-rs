@@ -208,7 +208,7 @@ dependencies = [
 
 [[package]]
 name = "libbz2-rs-sys"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "libc",
 ]
@@ -419,7 +419,7 @@ dependencies = [
 
 [[package]]
 name = "test-libbz2-rs-sys"
-version = "0.0.0"
+version = "0.1.1"
 dependencies = [
  "bzip2-sys",
  "libbz2-rs-sys",
