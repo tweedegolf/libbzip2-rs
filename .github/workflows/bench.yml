@@ -48,6 +48,7 @@ jobs:
           . "$HOME/.cargo/env"
           cargo build --target ${{matrix.target}} -p test-libbz2-rs-sys --release --examples
           cp target/${{matrix.target}}/release/examples/decompress .
+          cp target/${{matrix.target}}/release/examples/compress .
       - name: Benchmark
         uses: trifectatechfoundation/benchmarker-action@main
         with:
