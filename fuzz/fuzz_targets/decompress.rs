@@ -32,6 +32,7 @@ fuzz_target!(|data: String| {
             &mut length,
             data.as_ptr().cast(),
             data.len() as _,
+            9,
         )
     };
 

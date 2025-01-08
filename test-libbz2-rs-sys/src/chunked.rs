@@ -141,6 +141,7 @@ fn compress_chunked_input() {
                 &mut dest_len,
                 SAMPLE1_REF.as_ptr(),
                 SAMPLE1_REF.len() as _,
+                9,
             )
         };
         assert_eq!(err, 0);
@@ -293,6 +294,7 @@ fn compress_chunked_output() {
                 &mut dest_len,
                 SAMPLE1_REF.as_ptr(),
                 SAMPLE1_REF.len() as _,
+                9,
             )
         };
         assert_eq!(err, 0);
