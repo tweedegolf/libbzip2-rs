@@ -23,10 +23,14 @@
             "./compress c 9 silesia-small.tar"
         ],
         "decompress-rs": [
-            "./decompress rs tests/input/bzip2-testfiles/commons-compress/zip64support.tar.bz2"
+            "./decompress rs tests/input/bzip2-testfiles/commons-compress/zip64support.tar.bz2",
+            "./decompress rs tests/input/bzip2-testfiles/go/regexp/re2-exhaustive.txt.bz2",
+            "./decompress rs tests/input/bzip2-testfiles/dotnetzip/dancing-color.ps.bz2"
         ],
         "decompress-c": [
-            "./decompress c tests/input/bzip2-testfiles/commons-compress/zip64support.tar.bz2"
+            "./decompress c tests/input/bzip2-testfiles/commons-compress/zip64support.tar.bz2",
+            "./decompress c tests/input/bzip2-testfiles/go/regexp/re2-exhaustive.txt.bz2",
+            "./decompress c tests/input/bzip2-testfiles/dotnetzip/dancing-color.ps.bz2"
         ]
     },
     "render-versus-self": {
@@ -40,6 +44,11 @@
             "level 7": { "measure": "cycles", "before": { "command": "compress-c", "index": 6 }, "after": { "command": "compress-rs", "index": 6 } },
             "level 8": { "measure": "cycles", "before": { "command": "compress-c", "index": 7 }, "after": { "command": "compress-rs", "index": 7 } },
             "level 9": { "measure": "cycles", "before": { "command": "compress-c", "index": 8 }, "after": { "command": "compress-rs", "index": 8 } }
+        },
+        "decompression (c vs rs)": {
+            "commons-compress/zip64support.tar.bz2": { "measure": "cycles", "before": { "command": "decompress-c", "index": 0 }, "after": { "command": "decompress-rs", "index": 0 } },
+            "go/regexp/re2-exhaustive.txt.bz2": { "measure": "cycles", "before": { "command": "decompress-c", "index": 1 }, "after": { "command": "decompress-rs", "index": 1 } },
+            "dotnetzip/dancing-color.ps.bz2": { "measure": "cycles", "before": { "command": "decompress-c", "index": 2 }, "after": { "command": "decompress-rs", "index": 2 } }
         }
     },
     "render-versus-other": {
@@ -56,6 +65,15 @@
                 "level 7": 6,
                 "level 8": 7,
                 "level 9": 8
+            }
+        },
+        "decompression (rs, other versus self)": {
+            "measure": "cycles",
+            "command": "decompress-rs",
+            "rows": {
+                "commons-compress/zip64support.tar.bz2": 0,
+                "go/regexp/re2-exhaustive.txt.bz2": 1,
+                "dotnetzip/dancing-color.ps.bz2": 2
             }
         }
     }
