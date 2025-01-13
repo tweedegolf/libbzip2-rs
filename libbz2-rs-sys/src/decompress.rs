@@ -853,7 +853,7 @@ pub(crate) fn decompress(
                 _ => {}
             }
             if current_block == Block40 {
-                if nextSym == EOB {
+                if nextSym == EOB as i32 {
                     current_block = Block41;
                 } else {
                     if nextSym == 0 || nextSym == 1 {
@@ -1278,7 +1278,7 @@ pub(crate) fn decompress(
 
                     /*--- Now the MTF values ---*/
 
-                    EOB = s.nInUse as i32 + 1;
+                    EOB = s.nInUse + 1;
                     nblockMAX = 100000 * s.blockSize100k;
                     groupNo = -1;
                     groupPos = 0;
