@@ -167,6 +167,7 @@ pub(crate) fn decompress(
         mut zn,
         mut zvec,
         mut zj,
+        _padding0,
         mut gSel,
         mut gMinlen,
         mut gLimit,
@@ -725,9 +726,9 @@ pub(crate) fn decompress(
                 BZ_X_MTF_2 => {
                     s.state = State::BZ_X_MTF_2;
 
-                    zj = GET_BIT!(strm, s) as i32;
+                    zj = GET_BIT!(strm, s);
 
-                    zvec = zvec << 1 | zj;
+                    zvec = zvec << 1 | zj as i32;
                     current_block = Block56;
                 }
                 BZ_X_MTF_3 => {
@@ -740,9 +741,9 @@ pub(crate) fn decompress(
                 BZ_X_MTF_4 => {
                     s.state = State::BZ_X_MTF_4;
 
-                    zj = GET_BIT!(strm, s) as i32;
+                    zj = GET_BIT!(strm, s);
 
-                    zvec = zvec << 1 | zj;
+                    zvec = zvec << 1 | zj as i32;
                     current_block = Block52;
                 }
                 BZ_X_MTF_5 => {
@@ -755,9 +756,9 @@ pub(crate) fn decompress(
                 _ => {
                     s.state = State::BZ_X_MTF_6;
 
-                    zj = GET_BIT!(strm, s) as i32;
+                    zj = GET_BIT!(strm, s);
 
-                    zvec = zvec << 1 | zj;
+                    zvec = zvec << 1 | zj as i32;
                     current_block = Block24;
                 }
             }
@@ -1318,6 +1319,7 @@ pub(crate) fn decompress(
         zn,
         zvec,
         zj,
+        _padding0,
         gSel,
         gMinlen,
         gLimit,

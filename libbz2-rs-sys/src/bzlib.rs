@@ -563,6 +563,7 @@ pub(crate) struct DState {
 }
 
 #[derive(Default)]
+#[repr(C)]
 pub(crate) struct SaveArea {
     pub i: i32,
     pub j: i32,
@@ -581,7 +582,8 @@ pub(crate) struct SaveArea {
     pub curr: i32,
     pub zn: i32,
     pub zvec: i32,
-    pub zj: i32,
+    pub _padding0: [u8; 3],
+    pub zj: bool,
     pub gMinlen: u8,
     pub gSel: u8,
     pub gLimit: u8,
