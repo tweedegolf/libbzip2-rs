@@ -199,24 +199,23 @@ pub(crate) fn decompress(
     let ret_val: ReturnCode = 'save_state_and_return: {
         macro_rules! GET_UCHAR {
             ($strm:expr, $s:expr, $uuu:expr) => {
-                GET_BITS!($strm, $s, $uuu, 8);
+                $uuu = GetBitsConvert::convert(GET_BITS!($strm, $s, 8));
             };
         }
 
         macro_rules! GET_BIT {
             ($strm:expr, $s:expr, $uuu:expr) => {
-                GET_BITS!($strm, $s, $uuu, 1);
+                $uuu = GetBitsConvert::convert(GET_BITS!($strm, $s, 1));
             };
         }
 
         macro_rules! GET_BITS {
-            ($strm:expr, $s:expr, $vvv:expr, $nnn:expr) => {
+            ($strm:expr, $s:expr, $nnn:expr) => {
                 loop {
                     if $s.bsLive >= $nnn {
                         let v: u32 = ($s.bsBuff >> ($s.bsLive - $nnn)) & ((1 << $nnn) - 1);
                         $s.bsLive -= $nnn;
-                        $vvv = GetBitsConvert::convert(v);
-                        break;
+                        break v;
                     }
 
                     if let Some(next_byte) = strm.read_byte() {
@@ -333,7 +332,7 @@ pub(crate) fn decompress(
         if current_block == BZ_X_MAGIC_4 {
             s.state = State::BZ_X_MAGIC_4;
 
-            GET_BITS!(strm, s, s.blockSize100k, 8);
+            s.blockSize100k = GET_BITS!(strm, s, 8) as i32;
 
             if !(b'1' as i32..=b'9' as i32).contains(&s.blockSize100k) {
                 error!(BZ_DATA_ERROR_MAGIC);
@@ -595,7 +594,7 @@ pub(crate) fn decompress(
         if current_block == BZ_X_RANDBIT {
             s.state = State::BZ_X_RANDBIT;
 
-            GET_BITS!(strm, s, s.blockRandomised, 1);
+            s.blockRandomised = GET_BITS!(strm, s, 1) != 0;
 
             s.origPtr = 0;
             current_block = BZ_X_ORIGPTR_1;
@@ -670,7 +669,7 @@ pub(crate) fn decompress(
                 BZ_X_SELECTOR_1 => {
                     s.state = State::BZ_X_SELECTOR_1;
 
-                    GET_BITS!(strm, s, nGroups, 3);
+                    nGroups = GET_BITS!(strm, s, 3) as i32;
 
                     if (2..=6).contains(&nGroups) {
                         current_block = BZ_X_SELECTOR_2;
@@ -681,7 +680,7 @@ pub(crate) fn decompress(
                 BZ_X_SELECTOR_2 => {
                     s.state = State::BZ_X_SELECTOR_2;
 
-                    GET_BITS!(strm, s, nSelectors, 15);
+                    nSelectors = GET_BITS!(strm, s, 15) as i32;
 
                     if nSelectors < 1 {
                         error!(BZ_DATA_ERROR);
@@ -709,7 +708,7 @@ pub(crate) fn decompress(
                 BZ_X_CODING_1 => {
                     s.state = State::BZ_X_CODING_1;
 
-                    GET_BITS!(strm, s, curr, 5);
+                    curr = GET_BITS!(strm, s, 5) as i32;
 
                     i = 0;
                     current_block = Block26;
@@ -741,7 +740,7 @@ pub(crate) fn decompress(
                 BZ_X_MTF_1 => {
                     s.state = State::BZ_X_MTF_1;
 
-                    GET_BITS!(strm, s, zvec, zn);
+                    zvec = GET_BITS!(strm, s, zn) as i32;
 
                     current_block = Block56;
                 }
@@ -756,7 +755,7 @@ pub(crate) fn decompress(
                 BZ_X_MTF_3 => {
                     s.state = State::BZ_X_MTF_3;
 
-                    GET_BITS!(strm, s, zvec, zn);
+                    zvec = GET_BITS!(strm, s, zn) as i32;
 
                     current_block = Block52;
                 }
@@ -771,7 +770,7 @@ pub(crate) fn decompress(
                 BZ_X_MTF_5 => {
                     s.state = State::BZ_X_MTF_5;
 
-                    GET_BITS!(strm, s, zvec, zn);
+                    zvec = GET_BITS!(strm, s, zn) as i32;
 
                     current_block = Block24;
                 }
