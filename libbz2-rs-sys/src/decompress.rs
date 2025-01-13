@@ -652,11 +652,7 @@ pub(crate) fn decompress(
                         current_block = BZ_X_MAPPING_1;
                         continue;
                     }
-                    i = 0;
-                    while i < 256 {
-                        s.inUse[i as usize] = false;
-                        i += 1;
-                    }
+                    s.inUse.fill(false);
                     i = 0;
                     current_block = Block18;
                 }
