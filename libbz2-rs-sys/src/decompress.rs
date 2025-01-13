@@ -803,7 +803,7 @@ pub(crate) fn decompress(
                                 match s.smallDecompress {
                                     DecompressMode::Small => {
                                         while es > 0 {
-                                            if nblock >= 100000 * nblockMAX100k as i32 {
+                                            if nblock >= 100000 * nblockMAX100k as u32 {
                                                 error!(BZ_DATA_ERROR);
                                             } else {
                                                 ll16[nblock as usize] = uc as u16;
@@ -814,7 +814,7 @@ pub(crate) fn decompress(
                                     }
                                     DecompressMode::Fast => {
                                         while es > 0 {
-                                            if nblock >= 100000 * nblockMAX100k as i32 {
+                                            if nblock >= 100000 * nblockMAX100k as u32 {
                                                 error!(BZ_DATA_ERROR);
                                             } else {
                                                 tt[nblock as usize] = uc as u32;
@@ -859,7 +859,7 @@ pub(crate) fn decompress(
                     if nextSym == 0 || nextSym == 1 {
                         es = -1;
                         N = 1;
-                    } else if nblock >= 100000 * nblockMAX100k as i32 {
+                    } else if nblock >= 100000 * nblockMAX100k as u32 {
                         error!(BZ_DATA_ERROR);
                     } else {
                         let mut ii_0: i32;
@@ -941,10 +941,10 @@ pub(crate) fn decompress(
                 match current_block {
                     Block46 => {}
                     _ => {
-                        if s.origPtr < 0 || s.origPtr >= nblock {
+                        if s.origPtr < 0 || s.origPtr >= nblock as i32 {
                             error!(BZ_DATA_ERROR);
                         } else {
-                            if s.unzftab.iter().any(|e| !(0..=nblock).contains(e)) {
+                            if s.unzftab.iter().any(|e| !(0..=nblock as i32).contains(e)) {
                                 error!(BZ_DATA_ERROR);
                             }
                             s.cftab[0] = 0;
@@ -952,7 +952,7 @@ pub(crate) fn decompress(
                             for i in 1..s.cftab.len() {
                                 s.cftab[i] += s.cftab[i - 1];
                             }
-                            if s.cftab.iter().any(|e| !(0..=nblock).contains(e)) {
+                            if s.cftab.iter().any(|e| !(0..=nblock as i32).contains(e)) {
                                 error!(BZ_DATA_ERROR);
                             }
                             // FIXME: use https://doc.rust-lang.org/std/primitive.slice.html#method.is_sorted
@@ -975,7 +975,7 @@ pub(crate) fn decompress(
                                         i += 1;
                                     }
                                     i = 0;
-                                    while i < nblock {
+                                    while i < nblock as i32 {
                                         uc = ll16[i as usize] as u8;
                                         ll16[i as usize] =
                                             (s.cftabCopy[uc as usize] & 0xffff) as u16;
@@ -1065,7 +1065,7 @@ pub(crate) fn decompress(
                                 }
                                 DecompressMode::Fast => {
                                     i = 0;
-                                    while i < nblock {
+                                    while i < nblock as i32 {
                                         uc = (tt[i as usize] & 0xff) as u8;
                                         tt[s.cftab[uc as usize] as usize] |= (i << 8) as c_uint;
                                         s.cftab[uc as usize] += 1;
