@@ -197,9 +197,9 @@ pub(crate) fn decompress(
     } = s.save;
 
     let ret_val: ReturnCode = 'save_state_and_return: {
-        macro_rules! GET_UCHAR {
-            ($strm:expr, $s:expr, $uuu:expr) => {
-                $uuu = GetBitsConvert::convert(GET_BITS!($strm, $s, 8));
+        macro_rules! GET_BYTE {
+            ($strm:expr, $s:expr) => {
+                (GET_BITS!($strm, $s, 8) & 0xFF) as u8
             };
         }
 
@@ -257,7 +257,7 @@ pub(crate) fn decompress(
             State::BZ_X_MAGIC_1 => {
                 s.state = State::BZ_X_MAGIC_1;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != b'B' {
                     error!(BZ_DATA_ERROR_MAGIC);
@@ -310,7 +310,7 @@ pub(crate) fn decompress(
         if current_block == BZ_X_MAGIC_2 {
             s.state = State::BZ_X_MAGIC_2;
 
-            GET_UCHAR!(strm, s, uc);
+            uc = GET_BYTE!(strm, s);
 
             if uc != b'Z' {
                 error!(BZ_DATA_ERROR_MAGIC);
@@ -321,7 +321,7 @@ pub(crate) fn decompress(
         if current_block == BZ_X_MAGIC_3 {
             s.state = State::BZ_X_MAGIC_3;
 
-            GET_UCHAR!(strm, s, uc);
+            uc = GET_BYTE!(strm, s);
 
             if uc != b'h' {
                 error!(BZ_DATA_ERROR_MAGIC);
@@ -373,7 +373,7 @@ pub(crate) fn decompress(
         if current_block == BZ_X_BLKHDR_1 {
             s.state = State::BZ_X_BLKHDR_1;
 
-            GET_UCHAR!(strm, s, uc);
+            uc = GET_BYTE!(strm, s);
 
             if uc == 0x17 {
                 // skips to `State::BZ_X_ENDHDR_2`
@@ -388,7 +388,7 @@ pub(crate) fn decompress(
             BZ_X_ENDHDR_2 => {
                 s.state = State::BZ_X_ENDHDR_2;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x72 {
                     error!(BZ_DATA_ERROR);
@@ -399,7 +399,7 @@ pub(crate) fn decompress(
             BZ_X_BLKHDR_2 => {
                 s.state = State::BZ_X_BLKHDR_2;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x41 {
                     error!(BZ_DATA_ERROR);
@@ -412,7 +412,7 @@ pub(crate) fn decompress(
             BZ_X_ENDHDR_3 => {
                 s.state = State::BZ_X_ENDHDR_3;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x45 {
                     error!(BZ_DATA_ERROR);
@@ -423,7 +423,7 @@ pub(crate) fn decompress(
             BZ_X_BLKHDR_3 => {
                 s.state = State::BZ_X_BLKHDR_3;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x59 {
                     error!(BZ_DATA_ERROR);
@@ -437,7 +437,7 @@ pub(crate) fn decompress(
             BZ_X_ENDHDR_4 => {
                 s.state = State::BZ_X_ENDHDR_4;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x38 {
                     error!(BZ_DATA_ERROR);
@@ -448,7 +448,7 @@ pub(crate) fn decompress(
             BZ_X_BLKHDR_4 => {
                 s.state = State::BZ_X_BLKHDR_4;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x26 {
                     error!(BZ_DATA_ERROR);
@@ -462,7 +462,7 @@ pub(crate) fn decompress(
             BZ_X_ENDHDR_5 => {
                 s.state = State::BZ_X_ENDHDR_5;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x50 {
                     error!(BZ_DATA_ERROR);
@@ -473,7 +473,7 @@ pub(crate) fn decompress(
             BZ_X_BLKHDR_5 => {
                 s.state = State::BZ_X_BLKHDR_5;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x53 {
                     error!(BZ_DATA_ERROR);
@@ -487,7 +487,7 @@ pub(crate) fn decompress(
             BZ_X_ENDHDR_6 => {
                 s.state = State::BZ_X_ENDHDR_6;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x90 {
                     error!(BZ_DATA_ERROR);
@@ -499,7 +499,7 @@ pub(crate) fn decompress(
             BZ_X_BLKHDR_6 => {
                 s.state = State::BZ_X_BLKHDR_6;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 if uc != 0x59 {
                     error!(BZ_DATA_ERROR);
@@ -518,7 +518,7 @@ pub(crate) fn decompress(
             BZ_X_CCRC_1 => {
                 s.state = State::BZ_X_CCRC_1;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                 current_block = BZ_X_CCRC_2;
@@ -526,7 +526,7 @@ pub(crate) fn decompress(
             BZ_X_BCRC_1 => {
                 s.state = State::BZ_X_BCRC_1;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
                 current_block = BZ_X_BCRC_2;
@@ -537,7 +537,7 @@ pub(crate) fn decompress(
             BZ_X_CCRC_2 => {
                 s.state = State::BZ_X_CCRC_2;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                 current_block = BZ_X_CCRC_3;
@@ -545,7 +545,7 @@ pub(crate) fn decompress(
             BZ_X_BCRC_2 => {
                 s.state = State::BZ_X_BCRC_2;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
                 current_block = BZ_X_BCRC_3;
@@ -556,7 +556,7 @@ pub(crate) fn decompress(
             BZ_X_CCRC_3 => {
                 s.state = State::BZ_X_CCRC_3;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                 current_block = BZ_X_CCRC_4;
@@ -564,7 +564,7 @@ pub(crate) fn decompress(
             BZ_X_BCRC_3 => {
                 s.state = State::BZ_X_BCRC_3;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
                 current_block = BZ_X_BCRC_4;
@@ -575,7 +575,7 @@ pub(crate) fn decompress(
             BZ_X_BCRC_4 => {
                 s.state = State::BZ_X_BCRC_4;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 s.storedBlockCRC = s.storedBlockCRC << 8 | uc as u32;
                 current_block = BZ_X_RANDBIT;
@@ -583,7 +583,7 @@ pub(crate) fn decompress(
             BZ_X_CCRC_4 => {
                 s.state = State::BZ_X_CCRC_4;
 
-                GET_UCHAR!(strm, s, uc);
+                uc = GET_BYTE!(strm, s);
 
                 s.storedCombinedCRC = s.storedCombinedCRC << 8 | uc as u32;
                 s.state = State::BZ_X_IDLE;
@@ -602,7 +602,7 @@ pub(crate) fn decompress(
         if current_block == BZ_X_ORIGPTR_1 {
             s.state = State::BZ_X_ORIGPTR_1;
 
-            GET_UCHAR!(strm, s, uc);
+            uc = GET_BYTE!(strm, s);
 
             s.origPtr = s.origPtr << 8 | uc as i32;
             current_block = BZ_X_ORIGPTR_2;
@@ -610,7 +610,7 @@ pub(crate) fn decompress(
         if current_block == BZ_X_ORIGPTR_2 {
             s.state = State::BZ_X_ORIGPTR_2;
 
-            GET_UCHAR!(strm, s, uc);
+            uc = GET_BYTE!(strm, s);
 
             s.origPtr = s.origPtr << 8 | uc as i32;
             current_block = BZ_X_ORIGPTR_3;
@@ -618,7 +618,7 @@ pub(crate) fn decompress(
         if current_block == BZ_X_ORIGPTR_3 {
             s.state = State::BZ_X_ORIGPTR_3;
 
-            GET_UCHAR!(strm, s, uc);
+            uc = GET_BYTE!(strm, s);
 
             s.origPtr = s.origPtr << 8 | uc as i32;
             if !(0..10 + 100000 * s.blockSize100k).contains(&s.origPtr) {
