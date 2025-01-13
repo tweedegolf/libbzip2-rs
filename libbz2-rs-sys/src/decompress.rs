@@ -5,6 +5,7 @@ use core::ffi::{c_int, c_uint};
 use crate::allocator::Allocator;
 use crate::bzlib::{
     index_into_f, BzStream, DSlice, DState, DecompressMode, ReturnCode, SaveArea, BZ_MAX_SELECTORS,
+    BZ_RUNA, BZ_RUNB,
 };
 use crate::randtable::BZ2_RNUMS;
 use crate::{debug_log, huffman};
@@ -164,7 +165,7 @@ pub(crate) fn decompress(
         mut nblockMAX100k,
         mut nblock,
         mut es,
-        mut N,
+        mut logN,
         mut curr,
         mut zn,
         mut zvec,
@@ -794,7 +795,7 @@ pub(crate) fn decompress(
                         } else {
                             nextSym = s.perm[gPerm as usize]
                                 [(zvec - s.base[gBase as usize][zn as usize]) as usize];
-                            if nextSym == 0 || nextSym == 1 {
+                            if nextSym == BZ_RUNA as i32 || nextSym == BZ_RUNB as i32 {
                                 current_block = Block46;
                             } else {
                                 es += 1;
@@ -858,7 +859,7 @@ pub(crate) fn decompress(
                 } else {
                     if nextSym == 0 || nextSym == 1 {
                         es = -1;
-                        N = 1;
+                        logN = 0;
                     } else if nblock >= 100000 * nblockMAX100k as u32 {
                         error!(BZ_DATA_ERROR);
                     } else {
@@ -1116,15 +1117,22 @@ pub(crate) fn decompress(
                 }
             }
             if current_block == Block46 {
-                if N >= 2 * 1024 * 1024 {
+                if (1 << logN) >= 2 * 1024 * 1024 {
+                    // Check that N doesn't get too big, so that es doesn't
+                    // go negative.  The maximum value that can be
+                    // RUNA/RUNB encoded is equal to the block size (post
+                    // the initial RLE), viz, 900k, so bounding N at 2
+                    // million should guard against overflow without
+                    // rejecting any legitimate inputs.
                     error!(BZ_DATA_ERROR);
                 } else {
-                    if nextSym == 0 {
-                        es += N;
-                    } else if nextSym == 1 {
-                        es += (1 + 1) * N;
-                    }
-                    N *= 2;
+                    let mul = match nextSym as u16 {
+                        BZ_RUNA => 1,
+                        BZ_RUNB => 2,
+                        _ => 0,
+                    };
+                    es += mul * (1 << logN);
+                    logN += 1;
                     update_group_pos!(s);
                     zn = gMinlen;
                     current_block = BZ_X_MTF_3;
@@ -1320,7 +1328,7 @@ pub(crate) fn decompress(
         nblockMAX100k,
         nblock,
         es,
-        N,
+        logN,
         curr,
         zn,
         zvec,
