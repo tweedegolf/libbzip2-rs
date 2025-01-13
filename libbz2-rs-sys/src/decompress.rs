@@ -3,7 +3,9 @@
 use core::ffi::{c_int, c_uint};
 
 use crate::allocator::Allocator;
-use crate::bzlib::{index_into_f, BzStream, DSlice, DState, DecompressMode, ReturnCode, SaveArea};
+use crate::bzlib::{
+    index_into_f, BzStream, DSlice, DState, DecompressMode, ReturnCode, SaveArea, BZ_MAX_SELECTORS,
+};
 use crate::randtable::BZ2_RNUMS;
 use crate::{debug_log, huffman};
 
@@ -174,6 +176,7 @@ pub(crate) fn decompress(
         mut gPerm,
         _padding0,
         _padding1,
+        _padding2,
     } = s.save;
 
     let ret_val: ReturnCode = 'save_state_and_return: {
@@ -212,7 +215,7 @@ pub(crate) fn decompress(
             ($s:expr) => {
                 if groupPos == 0 {
                     groupNo += 1;
-                    if groupNo >= nSelectors {
+                    if groupNo >= nSelectors as i32 {
                         error!(BZ_DATA_ERROR);
                     } else {
                         groupPos = 50;
@@ -660,7 +663,7 @@ pub(crate) fn decompress(
                 BZ_X_SELECTOR_2 => {
                     s.state = State::BZ_X_SELECTOR_2;
 
-                    nSelectors = GET_BITS!(strm, s, 15) as i32;
+                    nSelectors = GET_BITS!(strm, s, 15) as u16;
 
                     if nSelectors < 1 {
                         error!(BZ_DATA_ERROR);
@@ -1136,14 +1139,15 @@ pub(crate) fn decompress(
                         }
                     }
                     Block39 => {
-                        if i < nSelectors {
+                        if i < nSelectors as i32 {
                             j = 0;
                             current_block = Block25;
                             continue;
                         } else {
-                            if nSelectors > 2 + 900000 / 50 {
-                                nSelectors = 2 + 900000 / 50;
-                            }
+                            // make sure that the constant fits in a u16
+                            const _: () = assert!((BZ_MAX_SELECTORS >> 16) == 0);
+                            nSelectors = Ord::min(nSelectors, BZ_MAX_SELECTORS as u16);
+
                             let mut pos: [u8; 6] = [0; 6];
                             let mut tmp: u8;
                             let mut v_22: u8;
@@ -1153,7 +1157,7 @@ pub(crate) fn decompress(
                                 v_22 = v_22.wrapping_add(1);
                             }
                             i = 0;
-                            while i < nSelectors {
+                            while i < nSelectors as i32 {
                                 v_22 = s.selectorMtf[i as usize];
                                 tmp = pos[v_22 as usize];
                                 while v_22 > 0 {
@@ -1327,6 +1331,7 @@ pub(crate) fn decompress(
         gPerm,
         _padding0,
         _padding1,
+        _padding2,
     };
 
     ret_val
