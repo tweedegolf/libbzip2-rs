@@ -178,6 +178,7 @@ pub(crate) fn decompress(
         _padding1,
         _padding2,
         _padding3,
+        _padding4,
     } = s.save;
 
     let ret_val: ReturnCode = 'save_state_and_return: {
@@ -723,7 +724,7 @@ pub(crate) fn decompress(
                 BZ_X_MTF_1 => {
                     s.state = State::BZ_X_MTF_1;
 
-                    zvec = GET_BITS!(strm, s, zn) as i32;
+                    zvec = GET_BITS!(strm, s, zn as i32) as i32;
 
                     current_block = Block56;
                 }
@@ -738,7 +739,7 @@ pub(crate) fn decompress(
                 BZ_X_MTF_3 => {
                     s.state = State::BZ_X_MTF_3;
 
-                    zvec = GET_BITS!(strm, s, zn) as i32;
+                    zvec = GET_BITS!(strm, s, zn as i32) as i32;
 
                     current_block = Block52;
                 }
@@ -753,7 +754,7 @@ pub(crate) fn decompress(
                 BZ_X_MTF_5 => {
                     s.state = State::BZ_X_MTF_5;
 
-                    zvec = GET_BITS!(strm, s, zn) as i32;
+                    zvec = GET_BITS!(strm, s, zn as i32) as i32;
 
                     current_block = Block24;
                 }
@@ -931,7 +932,7 @@ pub(crate) fn decompress(
                         }
                         nblock += 1;
                         update_group_pos!(s);
-                        zn = gMinlen as i32;
+                        zn = gMinlen;
                         current_block = BZ_X_MTF_5;
                         continue;
                     }
@@ -1125,7 +1126,7 @@ pub(crate) fn decompress(
                     }
                     N *= 2;
                     update_group_pos!(s);
-                    zn = gMinlen as i32;
+                    zn = gMinlen;
                     current_block = BZ_X_MTF_3;
                     continue;
                 }
@@ -1298,7 +1299,7 @@ pub(crate) fn decompress(
                     nblock = 0;
                     update_group_pos!(s);
 
-                    zn = gMinlen as i32;
+                    zn = gMinlen;
                     current_block = BZ_X_MTF_1;
                 }
             }
@@ -1333,6 +1334,7 @@ pub(crate) fn decompress(
         _padding1,
         _padding2,
         _padding3,
+        _padding4,
     };
 
     ret_val
