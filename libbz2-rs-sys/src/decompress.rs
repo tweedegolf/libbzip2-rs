@@ -177,6 +177,7 @@ pub(crate) fn decompress(
         _padding0,
         _padding1,
         _padding2,
+        _padding3,
     } = s.save;
 
     let ret_val: ReturnCode = 'save_state_and_return: {
@@ -691,7 +692,7 @@ pub(crate) fn decompress(
                 BZ_X_CODING_1 => {
                     s.state = State::BZ_X_CODING_1;
 
-                    curr = GET_BITS!(strm, s, 5) as i32;
+                    curr = GET_BITS!(strm, s, 5) as u8;
 
                     i = 0;
                     current_block = Block26;
@@ -712,10 +713,9 @@ pub(crate) fn decompress(
 
                     uc = GET_BIT!(strm, s) as u8;
 
-                    if uc == 0 {
-                        curr += 1;
-                    } else {
-                        curr -= 1;
+                    match uc {
+                        0 => curr += 1,
+                        _ => curr -= 1,
                     }
 
                     current_block = Block45;
@@ -1332,6 +1332,7 @@ pub(crate) fn decompress(
         _padding0,
         _padding1,
         _padding2,
+        _padding3,
     };
 
     ret_val
