@@ -1199,7 +1199,7 @@ pub(crate) fn decompress(
                         }
                     }
                     Block51 => {
-                        s.len[t as usize][i as usize] = curr as u8;
+                        s.len[t as usize][i as usize] = curr;
                         i += 1;
                         current_block = Block26;
                         continue;
