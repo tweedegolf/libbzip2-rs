@@ -134,28 +134,6 @@ fn make_maps_d(s: &mut DState) {
     }
 }
 
-trait GetBitsConvert {
-    fn convert(x: u32) -> Self;
-}
-
-impl GetBitsConvert for bool {
-    fn convert(x: u32) -> Self {
-        x != 0
-    }
-}
-
-impl GetBitsConvert for u8 {
-    fn convert(x: u32) -> Self {
-        x as u8
-    }
-}
-
-impl GetBitsConvert for i32 {
-    fn convert(x: u32) -> Self {
-        x as i32
-    }
-}
-
 pub(crate) fn decompress(
     strm: &mut BzStream<DState>,
     s: &mut DState,
