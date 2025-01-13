@@ -1016,15 +1016,9 @@ impl CFile {
     }
 
     fn open_input(name: impl AsRef<Path>) -> Option<Self> {
-        // The CString really only needs to live for the duration of the fopen
-        #[allow(temporary_cstring_as_ptr)]
         let fp = unsafe {
-            libc::fopen(
-                CString::new(name.as_ref().to_str().unwrap())
-                    .unwrap()
-                    .as_ptr(),
-                RB_MODE,
-            )
+            let path = CString::new(name.as_ref().to_str().unwrap());
+            libc::fopen(path.unwrap().as_ptr(), RB_MODE)
         };
         if fp.is_null() {
             None
