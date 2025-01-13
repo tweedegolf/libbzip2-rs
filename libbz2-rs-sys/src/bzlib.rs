@@ -559,30 +559,35 @@ pub(crate) struct DState {
     pub base: [[i32; 258]; 6],
     pub perm: [[i32; 258]; 6],
     pub minLens: [i32; 6],
-    pub save_i: i32,
-    pub save_j: i32,
-    pub save_t: i32,
-    pub save_alphaSize: i32,
-    pub save_nGroups: i32,
-    pub save_nSelectors: i32,
-    pub save_EOB: i32,
-    pub save_groupNo: i32,
-    pub save_groupPos: i32,
-    pub save_nextSym: i32,
-    pub save_nblockMAX: i32,
-    pub save_nblock: i32,
-    pub save_es: i32,
-    pub save_N: i32,
-    pub save_curr: i32,
-    pub save_zt: i32,
-    pub save_zn: i32,
-    pub save_zvec: i32,
-    pub save_zj: i32,
-    pub save_gSel: i32,
-    pub save_gMinlen: i32,
-    pub save_gLimit: i32,
-    pub save_gBase: i32,
-    pub save_gPerm: i32,
+    pub save: SaveArea,
+}
+
+#[derive(Default)]
+pub(crate) struct SaveArea {
+    pub i: i32,
+    pub j: i32,
+    pub t: i32,
+    pub alphaSize: i32,
+    pub nGroups: i32,
+    pub nSelectors: i32,
+    pub EOB: i32,
+    pub groupNo: i32,
+    pub groupPos: i32,
+    pub nextSym: i32,
+    pub nblockMAX: i32,
+    pub nblock: i32,
+    pub es: i32,
+    pub N: i32,
+    pub curr: i32,
+    pub zt: i32,
+    pub zn: i32,
+    pub zvec: i32,
+    pub zj: i32,
+    pub gSel: i32,
+    pub gMinlen: i32,
+    pub gLimit: i32,
+    pub gBase: i32,
+    pub gPerm: i32,
 }
 
 pub(crate) struct DSlice<T> {
@@ -1263,12 +1268,12 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             }
 
             /* can a new run be started? */
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 return false;
             }
 
             /* Only caused by corrupt data stream? */
-            if s.nblock_used > s.save_nblock + 1 {
+            if s.nblock_used > s.save.nblock + 1 {
                 return true;
             }
 
@@ -1279,7 +1284,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 continue;
             };
             if k1 != s.k0 {
@@ -1292,7 +1297,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 continue;
             };
             if k1 != s.k0 {
@@ -1305,7 +1310,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 continue;
             };
             if k1 != s.k0 {
@@ -1337,7 +1342,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         /* end restore */
 
         let avail_out_INIT: u32 = cs_avail_out;
-        let s_save_nblockPP: i32 = s.save_nblock + 1;
+        let s_save_nblockPP: i32 = s.save.nblock + 1;
 
         let tt = &s.tt.as_slice()[..100000usize.wrapping_mul(ro_blockSize100k as usize)];
 
@@ -1536,12 +1541,12 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             }
 
             /* can a new run be started? */
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 return false;
             }
 
             /* Only caused by corrupt data stream? */
-            if s.nblock_used > s.save_nblock + 1 {
+            if s.nblock_used > s.save.nblock + 1 {
                 return true;
             }
 
@@ -1552,7 +1557,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 continue;
             };
             if k1 != s.k0 {
@@ -1565,7 +1570,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1578,7 +1583,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1612,10 +1617,10 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
                 BZ_UPDATE_CRC!(s.calculatedBlockCRC, s.state_out_ch);
                 s.state_out_len -= 1;
             }
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 return false;
             }
-            if s.nblock_used > s.save_nblock + 1 {
+            if s.nblock_used > s.save.nblock + 1 {
                 return true;
             }
 
@@ -1623,7 +1628,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             s.state_out_ch = s.k0;
             BZ_GET_SMALL!(s, k1);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1634,7 +1639,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             s.state_out_len = 2;
             BZ_GET_SMALL!(s, k1);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1645,7 +1650,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             s.state_out_len = 3;
             BZ_GET_SMALL!(s, k1);
             s.nblock_used += 1;
-            if s.nblock_used == s.save_nblock + 1 {
+            if s.nblock_used == s.save.nblock + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1726,7 +1731,7 @@ pub(crate) fn BZ2_bzDecompressHelp(strm: &mut BzStream<DState>) -> ReturnCode {
                     return ReturnCode::BZ_DATA_ERROR;
                 }
 
-                if s.nblock_used == s.save_nblock + 1 && s.state_out_len == 0 {
+                if s.nblock_used == s.save.nblock + 1 && s.state_out_len == 0 {
                     s.calculatedBlockCRC = !s.calculatedBlockCRC;
                     if s.verbosity >= 3 {
                         debug_log!(
