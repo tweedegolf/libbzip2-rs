@@ -161,7 +161,7 @@ pub(crate) fn decompress(
         mut groupNo,
         mut groupPos,
         mut nextSym,
-        mut nblockMAX,
+        mut nblockMAX100k,
         mut nblock,
         mut es,
         mut N,
@@ -803,7 +803,7 @@ pub(crate) fn decompress(
                                 match s.smallDecompress {
                                     DecompressMode::Small => {
                                         while es > 0 {
-                                            if nblock >= nblockMAX {
+                                            if nblock >= 100000 * nblockMAX100k as i32 {
                                                 error!(BZ_DATA_ERROR);
                                             } else {
                                                 ll16[nblock as usize] = uc as u16;
@@ -814,7 +814,7 @@ pub(crate) fn decompress(
                                     }
                                     DecompressMode::Fast => {
                                         while es > 0 {
-                                            if nblock >= nblockMAX {
+                                            if nblock >= 100000 * nblockMAX100k as i32 {
                                                 error!(BZ_DATA_ERROR);
                                             } else {
                                                 tt[nblock as usize] = uc as u32;
@@ -859,7 +859,7 @@ pub(crate) fn decompress(
                     if nextSym == 0 || nextSym == 1 {
                         es = -1;
                         N = 1;
-                    } else if nblock >= nblockMAX {
+                    } else if nblock >= 100000 * nblockMAX100k as i32 {
                         error!(BZ_DATA_ERROR);
                     } else {
                         let mut ii_0: i32;
@@ -1205,7 +1205,7 @@ pub(crate) fn decompress(
                         continue;
                     }
                     Block26 => {
-                        if i < alphaSize {
+                        if i < alphaSize as i32 {
                             current_block = Block45;
                             continue;
                         }
@@ -1242,7 +1242,7 @@ pub(crate) fn decompress(
             }
             match current_block {
                 Block58 => {
-                    alphaSize = s.nInUse as i32 + 2;
+                    alphaSize = s.nInUse + 2;
                     current_block = BZ_X_SELECTOR_1;
                 }
                 Block11 => {
@@ -1279,7 +1279,7 @@ pub(crate) fn decompress(
                     /*--- Now the MTF values ---*/
 
                     EOB = s.nInUse + 1;
-                    nblockMAX = 100000 * s.blockSize100k;
+                    nblockMAX100k = s.blockSize100k as u8;
                     groupNo = -1;
                     groupPos = 0;
                     s.unzftab.fill(0);
@@ -1317,7 +1317,7 @@ pub(crate) fn decompress(
         groupNo,
         groupPos,
         nextSym,
-        nblockMAX,
+        nblockMAX100k,
         nblock,
         es,
         N,
