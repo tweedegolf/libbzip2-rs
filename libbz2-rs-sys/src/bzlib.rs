@@ -558,7 +558,7 @@ pub(crate) struct DState {
     pub limit: [[i32; 258]; 6],
     pub base: [[i32; 258]; 6],
     pub perm: [[i32; 258]; 6],
-    pub minLens: [i32; 6],
+    pub minLens: [u8; 6],
     pub save: SaveArea,
 }
 
@@ -582,7 +582,7 @@ pub(crate) struct SaveArea {
     pub zn: i32,
     pub zvec: i32,
     pub zj: i32,
-    pub gMinlen: i32,
+    pub gMinlen: u8,
     pub gSel: u8,
     pub gLimit: u8,
     pub gBase: u8,
