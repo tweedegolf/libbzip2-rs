@@ -1271,23 +1271,25 @@ pub(crate) fn decompress(
                     }
 
                     /*--- Create the Huffman decoding tables ---*/
-                    for t in 0..nGroups {
+                    for t in 0..nGroups as usize {
+                        let len = &s.len[t][..alphaSize as usize];
+
                         let mut minLen = 32u8;
                         let mut maxLen = 0u8;
-                        for current in &s.len[t as usize][..alphaSize as usize] {
-                            maxLen = Ord::max(maxLen, *current);
-                            minLen = Ord::min(minLen, *current);
+                        for &current in len {
+                            maxLen = Ord::max(maxLen, current);
+                            minLen = Ord::min(minLen, current);
                         }
+                        s.minLens[t] = minLen;
+
                         huffman::create_decode_tables(
-                            &mut s.limit[t as usize],
-                            &mut s.base[t as usize],
-                            &mut s.perm[t as usize],
-                            &mut s.len[t as usize],
+                            &mut s.limit[t],
+                            &mut s.base[t],
+                            &mut s.perm[t],
+                            len,
                             minLen,
                             maxLen,
-                            alphaSize,
                         );
-                        s.minLens[t as usize] = minLen;
                     }
 
                     /*--- Now the MTF values ---*/
