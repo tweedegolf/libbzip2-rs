@@ -204,8 +204,8 @@ pub(crate) fn decompress(
         }
 
         macro_rules! GET_BIT {
-            ($strm:expr, $s:expr, $uuu:expr) => {
-                $uuu = GetBitsConvert::convert(GET_BITS!($strm, $s, 1));
+            ($strm:expr, $s:expr) => {
+                GET_BITS!($strm, $s, 1) != 0
             };
         }
 
@@ -639,7 +639,7 @@ pub(crate) fn decompress(
                 BZ_X_MAPPING_1 => {
                     s.state = State::BZ_X_MAPPING_1;
 
-                    GET_BIT!(strm, s, uc);
+                    uc = GET_BIT!(strm, s) as u8;
 
                     s.inUse16[i as usize] = uc == 1;
                     i += 1;
@@ -658,7 +658,7 @@ pub(crate) fn decompress(
                 BZ_X_MAPPING_2 => {
                     s.state = State::BZ_X_MAPPING_2;
 
-                    GET_BIT!(strm, s, uc);
+                    uc = GET_BIT!(strm, s) as u8;
 
                     if uc == 1 {
                         s.inUse[(i * 16 + j) as usize] = true;
@@ -692,7 +692,7 @@ pub(crate) fn decompress(
                 BZ_X_SELECTOR_3 => {
                     s.state = State::BZ_X_SELECTOR_3;
 
-                    GET_BIT!(strm, s, uc);
+                    uc = GET_BIT!(strm, s) as u8;
 
                     if uc == 0 {
                         current_block = Block1;
@@ -716,7 +716,7 @@ pub(crate) fn decompress(
                 BZ_X_CODING_2 => {
                     s.state = State::BZ_X_CODING_2;
 
-                    GET_BIT!(strm, s, uc);
+                    uc = GET_BIT!(strm, s) as u8;
 
                     if uc != 0 {
                         current_block = BZ_X_CODING_3;
@@ -727,7 +727,7 @@ pub(crate) fn decompress(
                 BZ_X_CODING_3 => {
                     s.state = State::BZ_X_CODING_3;
 
-                    GET_BIT!(strm, s, uc);
+                    uc = GET_BIT!(strm, s) as u8;
 
                     if uc == 0 {
                         curr += 1;
@@ -747,7 +747,7 @@ pub(crate) fn decompress(
                 BZ_X_MTF_2 => {
                     s.state = State::BZ_X_MTF_2;
 
-                    GET_BIT!(strm, s, zj);
+                    zj = GET_BIT!(strm, s) as i32;
 
                     zvec = zvec << 1 | zj;
                     current_block = Block56;
@@ -762,7 +762,7 @@ pub(crate) fn decompress(
                 BZ_X_MTF_4 => {
                     s.state = State::BZ_X_MTF_4;
 
-                    GET_BIT!(strm, s, zj);
+                    zj = GET_BIT!(strm, s) as i32;
 
                     zvec = zvec << 1 | zj;
                     current_block = Block52;
@@ -777,7 +777,7 @@ pub(crate) fn decompress(
                 _ => {
                     s.state = State::BZ_X_MTF_6;
 
-                    GET_BIT!(strm, s, zj);
+                    zj = GET_BIT!(strm, s) as i32;
 
                     zvec = zvec << 1 | zj;
                     current_block = Block24;
