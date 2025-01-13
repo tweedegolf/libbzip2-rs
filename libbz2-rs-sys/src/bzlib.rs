@@ -583,11 +583,11 @@ pub(crate) struct SaveArea {
     pub zn: i32,
     pub zvec: i32,
     pub zj: i32,
-    pub gSel: i32,
     pub gMinlen: i32,
-    pub gLimit: i32,
-    pub gBase: i32,
-    pub gPerm: i32,
+    pub gSel: u8,
+    pub gLimit: u8,
+    pub gBase: u8,
+    pub gPerm: u8,
 }
 
 pub(crate) struct DSlice<T> {

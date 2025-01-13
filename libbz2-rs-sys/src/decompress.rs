@@ -240,11 +240,11 @@ pub(crate) fn decompress(
                         error!(BZ_DATA_ERROR);
                     } else {
                         groupPos = 50;
-                        gSel = $s.selector[groupNo as usize] as i32;
-                        gMinlen = $s.minLens[gSel as usize];
+                        gSel = $s.selector[groupNo as usize];
                         gLimit = gSel;
                         gPerm = gSel;
                         gBase = gSel;
+                        gMinlen = $s.minLens[gSel as usize];
                     }
                 }
                 groupPos -= 1;
