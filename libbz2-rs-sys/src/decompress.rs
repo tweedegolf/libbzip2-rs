@@ -167,12 +167,13 @@ pub(crate) fn decompress(
         mut zn,
         mut zvec,
         mut zj,
-        _padding0,
         mut gSel,
         mut gMinlen,
         mut gLimit,
         mut gBase,
         mut gPerm,
+        _padding0,
+        _padding1,
     } = s.save;
 
     let ret_val: ReturnCode = 'save_state_and_return: {
@@ -648,7 +649,7 @@ pub(crate) fn decompress(
                 BZ_X_SELECTOR_1 => {
                     s.state = State::BZ_X_SELECTOR_1;
 
-                    nGroups = GET_BITS!(strm, s, 3) as i32;
+                    nGroups = GET_BITS!(strm, s, 3) as u8;
 
                     if (2..=6).contains(&nGroups) {
                         current_block = BZ_X_SELECTOR_2;
@@ -677,7 +678,7 @@ pub(crate) fn decompress(
                         current_block = Block1;
                     } else {
                         j += 1;
-                        if j >= nGroups {
+                        if j >= nGroups as i32 {
                             error!(BZ_DATA_ERROR);
                         } else {
                             current_block = Block25;
@@ -1147,7 +1148,7 @@ pub(crate) fn decompress(
                             let mut tmp: u8;
                             let mut v_22: u8;
                             v_22 = 0_u8;
-                            while (v_22 as c_int) < nGroups {
+                            while v_22 < nGroups {
                                 pos[v_22 as usize] = v_22;
                                 v_22 = v_22.wrapping_add(1);
                             }
@@ -1243,7 +1244,7 @@ pub(crate) fn decompress(
                     error!(BZ_DATA_ERROR);
                 }
                 _ => {
-                    if t < nGroups {
+                    if t < nGroups as i32 {
                         current_block = BZ_X_CODING_1;
                         continue;
                     }
@@ -1319,12 +1320,13 @@ pub(crate) fn decompress(
         zn,
         zvec,
         zj,
-        _padding0,
         gSel,
         gMinlen,
         gLimit,
         gBase,
         gPerm,
+        _padding0,
+        _padding1,
     };
 
     ret_val
