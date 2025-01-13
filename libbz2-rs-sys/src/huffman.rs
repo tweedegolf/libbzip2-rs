@@ -174,20 +174,18 @@ pub(crate) fn assign_codes(
     }
 }
 
+#[inline(always)]
 pub(crate) fn create_decode_tables(
     limit: &mut [i32],
     base: &mut [i32],
     perm: &mut [i32],
-    length: &mut [u8],
+    length: &[u8],
     minLen: u8,
     maxLen: u8,
-    alphaSize: i32,
 ) {
-    let alphaSize = usize::try_from(alphaSize).unwrap_or(0);
-
     let mut pp: i32 = 0;
     for i in minLen..=maxLen {
-        for (j, e) in length[0..alphaSize].iter().enumerate() {
+        for (j, e) in length.iter().enumerate() {
             if *e == i {
                 perm[pp as usize] = j as i32;
                 pp += 1;
@@ -197,8 +195,8 @@ pub(crate) fn create_decode_tables(
 
     base[0..BZ_MAX_CODE_LEN].fill(0);
 
-    for i in 0..alphaSize {
-        base[length[i] as usize + 1] += 1;
+    for l in length {
+        base[*l as usize + 1] += 1;
     }
 
     for i in 1..BZ_MAX_CODE_LEN {
