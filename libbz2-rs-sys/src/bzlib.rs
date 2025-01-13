@@ -546,7 +546,7 @@ pub(crate) struct DState {
     pub storedCombinedCRC: u32,
     pub calculatedBlockCRC: u32,
     pub calculatedCombinedCRC: u32,
-    pub nInUse: i32,
+    pub nInUse: u16,
     pub inUse: [bool; 256],
     pub inUse16: [bool; 16],
     pub seqToUnseq: [u8; 256],

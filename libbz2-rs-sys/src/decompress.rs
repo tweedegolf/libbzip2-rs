@@ -1242,7 +1242,7 @@ pub(crate) fn decompress(
             }
             match current_block {
                 Block58 => {
-                    alphaSize = s.nInUse + 2;
+                    alphaSize = s.nInUse as i32 + 2;
                     current_block = BZ_X_SELECTOR_1;
                 }
                 Block11 => {
@@ -1278,7 +1278,7 @@ pub(crate) fn decompress(
 
                     /*--- Now the MTF values ---*/
 
-                    EOB = s.nInUse + 1;
+                    EOB = s.nInUse as i32 + 1;
                     nblockMAX = 100000 * s.blockSize100k;
                     groupNo = -1;
                     groupPos = 0;
