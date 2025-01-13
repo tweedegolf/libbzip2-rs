@@ -175,11 +175,6 @@ pub(crate) fn decompress(
         mut gLimit,
         mut gBase,
         mut gPerm,
-        _padding0,
-        _padding1,
-        _padding2,
-        _padding3,
-        _padding4,
     } = s.save;
 
     let ret_val: ReturnCode = 'save_state_and_return: {
@@ -1338,11 +1333,6 @@ pub(crate) fn decompress(
         gLimit,
         gBase,
         gPerm,
-        _padding0,
-        _padding1,
-        _padding2,
-        _padding3,
-        _padding4,
     };
 
     ret_val
