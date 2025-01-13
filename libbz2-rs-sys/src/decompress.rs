@@ -163,8 +163,6 @@ pub(crate) fn decompress(
 ) -> ReturnCode {
     let mut current_block: Block;
     let mut uc: u8;
-    let mut minLen: i32;
-    let mut maxLen: i32;
 
     if let State::BZ_X_MAGIC_1 = s.state {
         /*zero out the save area*/
@@ -955,7 +953,7 @@ pub(crate) fn decompress(
                         }
                         nblock += 1;
                         update_group_pos!(s);
-                        zn = gMinlen;
+                        zn = gMinlen as i32;
                         current_block = BZ_X_MTF_5;
                         continue;
                     }
@@ -1149,7 +1147,7 @@ pub(crate) fn decompress(
                     }
                     N *= 2;
                     update_group_pos!(s);
-                    zn = gMinlen;
+                    zn = gMinlen as i32;
                     current_block = BZ_X_MTF_3;
                     continue;
                 }
@@ -1278,11 +1276,11 @@ pub(crate) fn decompress(
 
                     /*--- Create the Huffman decoding tables ---*/
                     for t in 0..nGroups {
-                        minLen = 32;
-                        maxLen = 0;
+                        let mut minLen = 32u8;
+                        let mut maxLen = 0u8;
                         for current in &s.len[t as usize][..alphaSize as usize] {
-                            maxLen = Ord::max(maxLen, *current as i32);
-                            minLen = Ord::min(minLen, *current as i32);
+                            maxLen = Ord::max(maxLen, *current);
+                            minLen = Ord::min(minLen, *current);
                         }
                         huffman::create_decode_tables(
                             &mut s.limit[t as usize],
@@ -1319,7 +1317,7 @@ pub(crate) fn decompress(
                     nblock = 0;
                     update_group_pos!(s);
 
-                    zn = gMinlen;
+                    zn = gMinlen as i32;
                     current_block = BZ_X_MTF_1;
                 }
             }
