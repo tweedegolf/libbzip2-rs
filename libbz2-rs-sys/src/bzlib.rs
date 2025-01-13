@@ -579,7 +579,6 @@ pub(crate) struct SaveArea {
     pub es: i32,
     pub N: i32,
     pub curr: i32,
-    pub zt: i32,
     pub zn: i32,
     pub zvec: i32,
     pub zj: i32,
