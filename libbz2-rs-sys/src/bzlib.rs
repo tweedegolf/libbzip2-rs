@@ -574,7 +574,7 @@ pub(crate) struct SaveArea {
     pub groupPos: u8,
     pub nextSym: i32,
     pub nblockMAX100k: u8,
-    pub nblock: i32,
+    pub nblock: u32,
     pub es: i32,
     pub N: i32,
     pub zvec: i32,
@@ -1273,12 +1273,12 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             }
 
             /* can a new run be started? */
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 return false;
             }
 
             /* Only caused by corrupt data stream? */
-            if s.nblock_used > s.save.nblock + 1 {
+            if s.nblock_used > s.save.nblock as i32 + 1 {
                 return true;
             }
 
@@ -1289,7 +1289,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
             };
             if k1 != s.k0 {
@@ -1302,7 +1302,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
             };
             if k1 != s.k0 {
@@ -1315,7 +1315,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
             };
             if k1 != s.k0 {
@@ -1347,7 +1347,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         /* end restore */
 
         let avail_out_INIT: u32 = cs_avail_out;
-        let s_save_nblockPP: i32 = s.save.nblock + 1;
+        let s_save_nblockPP: i32 = s.save.nblock as i32 + 1;
 
         let tt = &s.tt.as_slice()[..100000usize.wrapping_mul(ro_blockSize100k as usize)];
 
@@ -1546,12 +1546,12 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             }
 
             /* can a new run be started? */
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 return false;
             }
 
             /* Only caused by corrupt data stream? */
-            if s.nblock_used > s.save.nblock + 1 {
+            if s.nblock_used > s.save.nblock as i32 + 1 {
                 return true;
             }
 
@@ -1562,7 +1562,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
             };
             if k1 != s.k0 {
@@ -1575,7 +1575,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1588,7 +1588,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1622,10 +1622,10 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
                 BZ_UPDATE_CRC!(s.calculatedBlockCRC, s.state_out_ch);
                 s.state_out_len -= 1;
             }
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 return false;
             }
-            if s.nblock_used > s.save.nblock + 1 {
+            if s.nblock_used > s.save.nblock as i32 + 1 {
                 return true;
             }
 
@@ -1633,7 +1633,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             s.state_out_ch = s.k0;
             BZ_GET_SMALL!(s, k1);
             s.nblock_used += 1;
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1644,7 +1644,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             s.state_out_len = 2;
             BZ_GET_SMALL!(s, k1);
             s.nblock_used += 1;
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1655,7 +1655,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             s.state_out_len = 3;
             BZ_GET_SMALL!(s, k1);
             s.nblock_used += 1;
-            if s.nblock_used == s.save.nblock + 1 {
+            if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
             }
             if k1 != s.k0 {
@@ -1736,7 +1736,7 @@ pub(crate) fn BZ2_bzDecompressHelp(strm: &mut BzStream<DState>) -> ReturnCode {
                     return ReturnCode::BZ_DATA_ERROR;
                 }
 
-                if s.nblock_used == s.save.nblock + 1 && s.state_out_len == 0 {
+                if s.nblock_used == s.save.nblock as i32 + 1 && s.state_out_len == 0 {
                     s.calculatedBlockCRC = !s.calculatedBlockCRC;
                     if s.verbosity >= 3 {
                         debug_log!(
