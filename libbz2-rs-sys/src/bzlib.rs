@@ -1238,13 +1238,14 @@ macro_rules! BZ_RAND_UPD_MASK {
 
 macro_rules! BZ_GET_FAST {
     ($s:expr, $cccc:expr) => {
-        /* c_tPos is unsigned, hence test < 0 is pointless. */
-        if $s.tPos >= 100000u32.wrapping_mul($s.blockSize100k as u32) {
-            return true;
+        match $s.tt.as_slice().get($s.tPos as usize) {
+            None => return true,
+            Some(&bits) => {
+                $s.tPos = bits;
+                $cccc = ($s.tPos & 0xff) as _;
+                $s.tPos >>= 8;
+            }
         }
-        $s.tPos = $s.tt.as_slice()[$s.tPos as usize];
-        $cccc = ($s.tPos & 0xff) as _;
-        $s.tPos >>= 8;
     };
 }
 
@@ -1505,20 +1506,16 @@ macro_rules! GET_LL4 {
     };
 }
 
-macro_rules! GET_LL {
-    ($s:expr, $i:expr) => {
-        $s.ll16.as_slice()[$s.tPos as usize] as u32 | GET_LL4!($s, i) << 16
-    };
-}
-
 macro_rules! BZ_GET_SMALL {
     ($s:expr, $cccc:expr) => {
-        /* c_tPos is unsigned, hence test < 0 is pointless. */
-        if $s.tPos >= 100000u32.wrapping_mul($s.blockSize100k as u32) {
-            return true;
+        match $s.ll16.as_slice().get($s.tPos as usize) {
+            None => return true,
+            Some(&low_bits) => {
+                let high_bits = GET_LL4!($s, $s.tPos);
+                $cccc = index_into_f($s.tPos as i32, &$s.cftab) as _;
+                $s.tPos = u32::from(low_bits) | high_bits << 16;
+            }
         }
-        $cccc = index_into_f($s.tPos as i32, &$s.cftab) as _;
-        $s.tPos = GET_LL!($s, $s.tPos);
     };
 }
 
