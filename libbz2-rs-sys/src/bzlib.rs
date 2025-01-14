@@ -1237,13 +1237,14 @@ macro_rules! BZ_RAND_UPD_MASK {
 }
 
 macro_rules! BZ_GET_FAST {
-    ($s:expr, $cccc:expr) => {
+    ($s:expr) => {
         match $s.tt.as_slice().get($s.tPos as usize) {
             None => return true,
             Some(&bits) => {
                 $s.tPos = bits;
-                $cccc = ($s.tPos & 0xff) as _;
+                let tmp = ($s.tPos & 0xff) as u8;
                 $s.tPos >>= 8;
+                tmp
             }
         }
     };
@@ -1282,7 +1283,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             s.state_out_ch = s.k0;
 
             s.state_out_len = 1;
-            BZ_GET_FAST!(s, k1);
+            k1 = BZ_GET_FAST!(s);
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
@@ -1295,7 +1296,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             };
 
             s.state_out_len = 2;
-            BZ_GET_FAST!(s, k1);
+            k1 = BZ_GET_FAST!(s);
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
@@ -1308,7 +1309,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
             };
 
             s.state_out_len = 3;
-            BZ_GET_FAST!(s, k1);
+            k1 = BZ_GET_FAST!(s);
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
@@ -1320,12 +1321,12 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                 continue;
             };
 
-            BZ_GET_FAST!(s, k1);
+            k1 = BZ_GET_FAST!(s);
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
             s.state_out_len = k1 as u32 + 4;
-            BZ_GET_FAST!(s, s.k0);
+            s.k0 = BZ_GET_FAST!(s);
             BZ_RAND_UPD_MASK!(s);
             s.k0 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
@@ -1507,13 +1508,14 @@ macro_rules! GET_LL4 {
 }
 
 macro_rules! BZ_GET_SMALL {
-    ($s:expr, $cccc:expr) => {
+    ($s:expr) => {
         match $s.ll16.as_slice().get($s.tPos as usize) {
             None => return true,
             Some(&low_bits) => {
                 let high_bits = GET_LL4!($s, $s.tPos);
-                $cccc = index_into_f($s.tPos as i32, &$s.cftab) as _;
+                let tmp = index_into_f($s.tPos as i32, &$s.cftab);
                 $s.tPos = u32::from(low_bits) | high_bits << 16;
+                tmp
             }
         }
     };
@@ -1551,7 +1553,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             s.state_out_ch = s.k0;
 
             s.state_out_len = 1;
-            BZ_GET_SMALL!(s, k1);
+            k1 = BZ_GET_SMALL!(s);
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
@@ -1564,7 +1566,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             };
 
             s.state_out_len = 2;
-            BZ_GET_SMALL!(s, k1);
+            k1 = BZ_GET_SMALL!(s);
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
@@ -1577,7 +1579,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             };
 
             s.state_out_len = 3;
-            BZ_GET_SMALL!(s, k1);
+            k1 = BZ_GET_SMALL!(s);
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
@@ -1589,12 +1591,12 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
                 continue;
             };
 
-            BZ_GET_SMALL!(s, k1);
+            k1 = BZ_GET_SMALL!(s);
             BZ_RAND_UPD_MASK!(s);
             k1 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
             s.state_out_len = k1 as u32 + 4;
-            BZ_GET_SMALL!(s, s.k0);
+            s.k0 = BZ_GET_SMALL!(s);
             BZ_RAND_UPD_MASK!(s);
             s.k0 ^= BZ_RAND_MASK!(s);
             s.nblock_used += 1;
@@ -1624,7 +1626,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
 
             s.state_out_len = 1;
             s.state_out_ch = s.k0;
-            BZ_GET_SMALL!(s, k1);
+            k1 = BZ_GET_SMALL!(s);
             s.nblock_used += 1;
             if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
@@ -1635,7 +1637,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             };
 
             s.state_out_len = 2;
-            BZ_GET_SMALL!(s, k1);
+            k1 = BZ_GET_SMALL!(s);
             s.nblock_used += 1;
             if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
@@ -1646,7 +1648,7 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
             };
 
             s.state_out_len = 3;
-            BZ_GET_SMALL!(s, k1);
+            k1 = BZ_GET_SMALL!(s);
             s.nblock_used += 1;
             if s.nblock_used == s.save.nblock as i32 + 1 {
                 continue;
@@ -1656,10 +1658,10 @@ fn un_rle_obuf_to_output_small(strm: &mut BzStream<DState>, s: &mut DState) -> b
                 continue;
             };
 
-            BZ_GET_SMALL!(s, k1);
+            k1 = BZ_GET_SMALL!(s);
             s.nblock_used += 1;
             s.state_out_len = k1 as u32 + 4;
-            BZ_GET_SMALL!(s, s.k0);
+            s.k0 = BZ_GET_SMALL!(s);
             s.nblock_used += 1;
         }
     }
