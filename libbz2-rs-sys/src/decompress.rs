@@ -306,7 +306,7 @@ pub(crate) fn decompress(
         if current_block == BZ_X_MAGIC_4 {
             s.state = State::BZ_X_MAGIC_4;
 
-            s.blockSize100k = GET_BITS!(strm, s, 8) as i32;
+            s.blockSize100k = GET_BYTE!(strm, s) as i32;
 
             if !(b'1' as i32..=b'9' as i32).contains(&s.blockSize100k) {
                 error!(BZ_DATA_ERROR_MAGIC);
@@ -575,7 +575,7 @@ pub(crate) fn decompress(
 
             uc = GET_BYTE!(strm, s);
 
-            s.origPtr = s.origPtr << 8 | uc as i32;
+            s.origPtr = s.origPtr << 8 | i32::from(uc);
             current_block = BZ_X_ORIGPTR_2;
         }
         if current_block == BZ_X_ORIGPTR_2 {
@@ -583,7 +583,7 @@ pub(crate) fn decompress(
 
             uc = GET_BYTE!(strm, s);
 
-            s.origPtr = s.origPtr << 8 | uc as i32;
+            s.origPtr = s.origPtr << 8 | i32::from(uc);
             current_block = BZ_X_ORIGPTR_3;
         }
         if current_block == BZ_X_ORIGPTR_3 {
@@ -591,7 +591,7 @@ pub(crate) fn decompress(
 
             uc = GET_BYTE!(strm, s);
 
-            s.origPtr = s.origPtr << 8 | uc as i32;
+            s.origPtr = s.origPtr << 8 | i32::from(uc);
             if !(0..10 + 100000 * s.blockSize100k).contains(&s.origPtr) {
                 error!(BZ_DATA_ERROR);
             }
@@ -669,7 +669,7 @@ pub(crate) fn decompress(
                         current_block = Block1;
                     } else {
                         j += 1;
-                        if j >= nGroups as i32 {
+                        if j >= i32::from(nGroups) {
                             error!(BZ_DATA_ERROR);
                         } else {
                             current_block = Block25;
@@ -1163,9 +1163,9 @@ pub(crate) fn decompress(
                     }
 
                     /*--- Create the Huffman decoding tables ---*/
-                    for t in 0..nGroups as usize {
+                    for t in 0..usize::from(nGroups) {
                         // NOTE: s.nInUse <= 256, alphaSize <= 258
-                        let len = &s.len[t][..alphaSize as usize];
+                        let len = &s.len[t][..usize::from(alphaSize)];
 
                         let mut minLen = 32u8;
                         let mut maxLen = 0u8;
