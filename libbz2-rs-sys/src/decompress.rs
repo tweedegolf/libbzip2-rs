@@ -888,11 +888,10 @@ pub(crate) fn decompress(
                             }
                             match s.smallDecompress {
                                 DecompressMode::Small => {
-                                    i = 0;
-                                    while i <= 256 {
-                                        s.cftabCopy[i as usize] = s.cftab[i as usize];
-                                        i += 1;
-                                    }
+                                    // Make a copy of cftab, used in generation of T
+                                    s.cftabCopy = s.cftab;
+
+                                    // compute the T vector
                                     i = 0;
                                     while i < nblock as i32 {
                                         uc = ll16[i as usize] as u8;
@@ -912,6 +911,8 @@ pub(crate) fn decompress(
                                         s.cftabCopy[uc as usize] += 1;
                                         i += 1;
                                     }
+
+                                    // Compute T^(-1) by pointer reversal on T
                                     i = s.origPtr;
                                     j = (ll16[i as usize] as u32
                                         | (ll4[(i >> 1) as usize] as u32 >> (i << 2 & 0x4) & 0xf)
@@ -939,6 +940,7 @@ pub(crate) fn decompress(
                                             break;
                                         }
                                     }
+
                                     s.tPos = s.origPtr as u32;
                                     s.nblock_used = 0;
                                     if s.blockRandomised {
