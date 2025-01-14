@@ -782,7 +782,6 @@ pub(crate) fn decompress(
                         if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
                             current_block = Block46;
                         } else {
-                            es += 1;
                             uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
                             s.unzftab[uc as usize] += es;
                             match s.smallDecompress {
@@ -839,7 +838,7 @@ pub(crate) fn decompress(
                 if nextSym == EOB {
                     current_block = Block41;
                 } else if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
-                    es = -1;
+                    es = 0;
                     logN = 0;
                     current_block = Block46;
                 } else if nblock >= 100000 * nblockMAX100k as u32 {
