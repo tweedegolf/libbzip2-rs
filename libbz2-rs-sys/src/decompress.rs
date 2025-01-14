@@ -786,7 +786,6 @@ pub(crate) fn decompress(
                             s.unzftab[usize::from(uc)] += es as i32;
                             match s.smallDecompress {
                                 DecompressMode::Small => {
-                                    let ll16 = &mut ll16[..100000 * usize::from(nblockMAX100k)];
                                     match ll16.get_mut(nblock as usize..(nblock + es) as usize) {
                                         Some(slice) => slice.fill(u16::from(uc)),
                                         None => error!(BZ_DATA_ERROR),
@@ -794,7 +793,6 @@ pub(crate) fn decompress(
                                     nblock += es;
                                 }
                                 DecompressMode::Fast => {
-                                    let tt = &mut tt[..100000 * usize::from(nblockMAX100k)];
                                     match tt.get_mut(nblock as usize..(nblock + es) as usize) {
                                         Some(slice) => slice.fill(u32::from(uc)),
                                         None => error!(BZ_DATA_ERROR),
