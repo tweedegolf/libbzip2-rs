@@ -355,14 +355,11 @@ pub(crate) fn decompress(
 
             uc = GET_BYTE!(strm, s);
 
-            if uc == 0x17 {
-                // skips to `State::BZ_X_ENDHDR_2`
-                current_block = BZ_X_ENDHDR_2;
-            } else if uc != 0x31 {
-                error!(BZ_DATA_ERROR);
-            } else {
-                current_block = BZ_X_BLKHDR_2;
-            }
+            match uc {
+                0x17 => current_block = BZ_X_ENDHDR_2,
+                0x31 => current_block = BZ_X_BLKHDR_2,
+                _ => error!(BZ_DATA_ERROR),
+            };
         }
         match current_block {
             BZ_X_ENDHDR_2 => {
