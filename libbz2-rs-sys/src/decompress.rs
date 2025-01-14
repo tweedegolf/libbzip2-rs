@@ -848,6 +848,7 @@ pub(crate) fn decompress(
                     if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
                         es = -1;
                         logN = 0;
+                        current_block = Block46;
                     } else if nblock >= 100000 * nblockMAX100k as u32 {
                         error!(BZ_DATA_ERROR);
                     } else {
@@ -925,7 +926,6 @@ pub(crate) fn decompress(
                         current_block = BZ_X_MTF_5;
                         continue;
                     }
-                    current_block = Block46;
                 }
                 match current_block {
                     Block46 => {}
