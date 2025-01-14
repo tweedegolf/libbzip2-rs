@@ -892,20 +892,18 @@ pub(crate) fn decompress(
                                     s.cftabCopy = s.cftab;
 
                                     // compute the T vector
-                                    for i in 0..nblock as u32 {
-                                        let uc = usize::from(ll16[i as usize]);
-                                        ll16[i as usize] = (s.cftabCopy[uc] & 0xffff) as u16;
-                                        if i & 0x1 == 0 {
-                                            ll4[(i >> 1) as usize] =
-                                                (ll4[(i >> 1) as usize] as c_int & 0xf0
-                                                    | s.cftabCopy[uc] >> 16)
-                                                    as u8;
-                                        } else {
-                                            ll4[(i >> 1) as usize] =
-                                                (ll4[(i >> 1) as usize] as c_int & 0xf
-                                                    | (s.cftabCopy[uc] >> 16) << 4)
-                                                    as u8;
-                                        }
+                                    for i in 0..nblock as usize {
+                                        let uc = usize::from(ll16[i]);
+                                        ll16[i] = (s.cftabCopy[uc] & 0xffff) as u16;
+
+                                        // set the lower or higher nibble depending on i
+                                        let (mask, shift) = match i & 0x1 {
+                                            0 => (0xF0, 0),
+                                            _ => (0x0F, 4),
+                                        };
+                                        ll4[i / 2] &= mask;
+                                        ll4[i / 2] |= ((s.cftabCopy[uc] >> 16) << shift) as u8;
+
                                         s.cftabCopy[uc] += 1;
                                     }
 
