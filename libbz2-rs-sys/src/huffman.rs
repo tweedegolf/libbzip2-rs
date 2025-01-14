@@ -178,7 +178,7 @@ pub(crate) fn assign_codes(
 pub(crate) fn create_decode_tables(
     limit: &mut [i32; 258],
     base: &mut [i32; 258],
-    perm: &mut [i32; 258],
+    perm: &mut [u16; 258],
     length: &[u8],
     minLen: u8,
     maxLen: u8,
@@ -189,7 +189,7 @@ pub(crate) fn create_decode_tables(
     for i in minLen..=maxLen {
         for (j, e) in length.iter().enumerate() {
             if *e == i {
-                perm[pp as usize] = j as i32;
+                perm[pp as usize] = j as u16;
                 pp += 1;
             }
         }
