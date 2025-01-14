@@ -12,7 +12,7 @@ use crate::{debug_log, huffman};
 
 /*-- Constants for the fast MTF decoder. --*/
 
-const MTFA_SIZE: usize = 4096;
+const MTFA_SIZE: u16 = 4096;
 const MTFL_SIZE: usize = 16;
 
 #[derive(Debug, Clone, Copy)]
@@ -1222,13 +1222,13 @@ pub(crate) fn decompress(
                     s.unzftab.fill(0);
 
                     /*-- MTF init --*/
-                    let mut kk: usize = MTFA_SIZE - 1;
+                    let mut kk: u16 = MTFA_SIZE - 1;
                     for ii in (0..256 / MTFL_SIZE).rev() {
                         for jj in (0..MTFL_SIZE).rev() {
-                            s.mtfa[kk] = (ii * MTFL_SIZE + jj) as u8;
+                            s.mtfa[usize::from(kk)] = (ii * MTFL_SIZE + jj) as u8;
                             kk -= 1;
                         }
-                        s.mtfbase[ii] = kk as i32 + 1;
+                        s.mtfbase[ii] = kk + 1;
                     }
                     /*-- end MTF init --*/
 
@@ -1273,18 +1273,18 @@ pub(crate) fn decompress(
     ret_val
 }
 
-fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16) -> u8 {
+fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [u16; 16], nextSym: u16) -> u8 {
     let nn = (nextSym - 1) as usize;
 
     if nn < MTFL_SIZE {
+        // avoid general case expense
         let pp = mtfbase[0] as usize;
-
         let uc = mtfa[pp + nn];
-
         mtfa[pp..][..=nn].rotate_right(1);
 
         uc
     } else {
+        // general case
         let mut lno = nn.wrapping_div(MTFL_SIZE);
         let off = nn.wrapping_rem(MTFL_SIZE);
         let base = mtfbase[lno] as usize;
@@ -1306,10 +1306,10 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16)
             let mut kk = MTFA_SIZE - 1;
             for ii in (0..256 / MTFL_SIZE).rev() {
                 for jj in (0..MTFL_SIZE).rev() {
-                    mtfa[kk] = mtfa[mtfbase[ii] as usize + jj];
+                    mtfa[usize::from(kk)] = mtfa[mtfbase[ii] as usize + jj];
                     kk -= 1;
                 }
-                mtfbase[ii] = kk as i32 + 1;
+                mtfbase[ii] = kk + 1;
             }
         }
 

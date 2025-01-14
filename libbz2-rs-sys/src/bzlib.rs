@@ -551,7 +551,7 @@ pub(crate) struct DState {
     pub inUse16: [bool; 16],
     pub seqToUnseq: [u8; 256],
     pub mtfa: [u8; 4096],
-    pub mtfbase: [i32; 16],
+    pub mtfbase: [u16; 16],
     pub selector: [u8; 18002],
     pub selectorMtf: [u8; 18002],
     pub len: [[u8; 258]; 6],
