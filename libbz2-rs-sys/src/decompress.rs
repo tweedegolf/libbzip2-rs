@@ -1303,19 +1303,14 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16)
         mtfbase[0_usize] -= 1;
         mtfa[mtfbase[0_usize] as usize] = uc;
 
-        let mut jj_0: i32;
-        let mut kk_0: i32;
-
         if mtfbase[0_usize] == 0 {
-            kk_0 = 4096 - 1;
-            for ii_0 in (0..256 / 16).rev() {
-                jj_0 = 16 - 1;
-                while jj_0 >= 0 {
-                    mtfa[kk_0 as usize] = mtfa[(mtfbase[ii_0] + jj_0) as usize];
+            let mut kk_0 = MTFA_SIZE - 1;
+            for ii_0 in (0..256 / MTFL_SIZE).rev() {
+                for jj_0 in (0..MTFL_SIZE).rev() {
+                    mtfa[kk_0 as usize] = mtfa[mtfbase[ii_0] as usize + jj_0];
                     kk_0 -= 1;
-                    jj_0 -= 1;
                 }
-                mtfbase[ii_0 as usize] = kk_0 + 1;
+                mtfbase[ii_0 as usize] = kk_0 as i32 + 1;
             }
         }
 
