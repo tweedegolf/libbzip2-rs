@@ -1177,7 +1177,7 @@ pub(crate) fn decompress(
                     error!(BZ_DATA_ERROR);
                 }
                 _ => {
-                    if t < nGroups as i32 {
+                    if t < nGroups {
                         current_block = BZ_X_CODING_1;
                         continue;
                     }
