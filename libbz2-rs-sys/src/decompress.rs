@@ -1112,13 +1112,15 @@ pub(crate) fn decompress(
                 }
             }
             if current_block == Block46 {
-                if (1 << logN) >= 2 * 1024 * 1024 {
-                    // Check that N doesn't get too big, so that es doesn't
-                    // go negative.  The maximum value that can be
-                    // RUNA/RUNB encoded is equal to the block size (post
-                    // the initial RLE), viz, 900k, so bounding N at 2
-                    // million should guard against overflow without
-                    // rejecting any legitimate inputs.
+                // Check that N doesn't get too big, so that es doesn't
+                // go negative.  The maximum value that can be
+                // RUNA/RUNB encoded is equal to the block size (post
+                // the initial RLE), viz, 900k, so bounding N at 2
+                // million should guard against overflow without
+                // rejecting any legitimate inputs.
+                const LOG_2MB: u8 = 21; // 2 * 1024 * 1024
+
+                if logN >= LOG_2MB {
                     error!(BZ_DATA_ERROR);
                 } else {
                     let mul = match nextSym as u16 {
