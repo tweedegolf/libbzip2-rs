@@ -567,7 +567,6 @@ pub(crate) struct DState {
 pub(crate) struct SaveArea {
     pub i: i32,
     pub j: i32,
-    pub t: i32,
     pub alphaSize: u16,
     pub EOB: u16,
     pub groupNo: i32,
@@ -579,6 +578,7 @@ pub(crate) struct SaveArea {
     pub groupPos: u8,
     pub zn: u8,
     pub nGroups: u8,
+    pub t: u8,
     pub curr: u8,
     pub nblockMAX100k: u8,
     pub logN: u8, // the log_2 of N
