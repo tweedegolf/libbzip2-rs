@@ -17,10 +17,14 @@ pub(crate) const BZ_MAX_ALPHA_SIZE: usize = 258;
 pub(crate) const BZ_MAX_CODE_LEN: usize = 23;
 
 pub(crate) const BZ_N_GROUPS: usize = 6;
-pub(crate) const BZ_G_SIZE: usize = 50;
 pub(crate) const BZ_N_ITERS: usize = 4;
 
-pub(crate) const BZ_MAX_SELECTORS: usize = 2 + (900000 / BZ_G_SIZE);
+pub(crate) const BZ_G_SIZE: usize = 50;
+pub(crate) const BZ_MAX_SELECTORS: u16 = {
+    let tmp = 2 + (900000 / BZ_G_SIZE);
+    assert!(tmp >> 16 == 0);
+    tmp as u16
+};
 
 pub(crate) const BZ_RUNA: u16 = 0;
 pub(crate) const BZ_RUNB: u16 = 1;

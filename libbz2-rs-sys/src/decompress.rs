@@ -1063,14 +1063,13 @@ pub(crate) fn decompress(
                         }
                     }
                     Block39 => {
-                        if i < nSelectors as i32 {
+                        if i < i32::from(nSelectors) {
                             j = 0;
                             current_block = Block25;
                             continue;
                         } else {
                             // make sure that the constant fits in a u16
-                            const _: () = assert!((BZ_MAX_SELECTORS >> 16) == 0);
-                            nSelectors = Ord::min(nSelectors, BZ_MAX_SELECTORS as u16);
+                            nSelectors = Ord::min(nSelectors, BZ_MAX_SELECTORS);
 
                             let mut pos: [u8; 6] = [0, 1, 2, 3, 4, 5];
                             for i in 0..usize::from(nSelectors) {
@@ -1114,7 +1113,7 @@ pub(crate) fn decompress(
                         continue;
                     }
                     Block26 => {
-                        if i < alphaSize as i32 {
+                        if i < i32::from(alphaSize) {
                             current_block = Block45;
                             continue;
                         }
@@ -1123,7 +1122,7 @@ pub(crate) fn decompress(
                         break;
                     }
                     Block1 => {
-                        if i < 2 + 900000 / 50 {
+                        if i < i32::from(BZ_MAX_SELECTORS) {
                             s.selectorMtf[i as usize] = j as u8;
                         }
                         i += 1;
