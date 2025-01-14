@@ -851,15 +851,11 @@ pub(crate) fn decompress(
                 } else if nblock >= 100000 * nblockMAX100k as u32 {
                     error!(BZ_DATA_ERROR);
                 } else {
-                    uc = initialize_mtfa(&mut s.mtfa, &mut s.mtfbase, nextSym);
-                    s.unzftab[s.seqToUnseq[uc as usize] as usize] += 1;
+                    let uc = usize::from(initialize_mtfa(&mut s.mtfa, &mut s.mtfbase, nextSym));
+                    s.unzftab[usize::from(s.seqToUnseq[uc])] += 1;
                     match s.smallDecompress {
-                        DecompressMode::Small => {
-                            ll16[nblock as usize] = s.seqToUnseq[uc as usize] as u16
-                        }
-                        DecompressMode::Fast => {
-                            tt[nblock as usize] = s.seqToUnseq[uc as usize] as u32
-                        }
+                        DecompressMode::Small => ll16[nblock as usize] = s.seqToUnseq[uc] as u16,
+                        DecompressMode::Fast => tt[nblock as usize] = s.seqToUnseq[uc] as u32,
                     }
                     nblock += 1;
                     update_group_pos!(s);
@@ -1274,11 +1270,11 @@ pub(crate) fn decompress(
 }
 
 fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [u16; 16], nextSym: u16) -> u8 {
-    let nn = (nextSym - 1) as usize;
+    let nn = usize::from(nextSym - 1);
 
     if nn < MTFL_SIZE {
         // avoid general case expense
-        let pp = mtfbase[0] as usize;
+        let pp = usize::from(mtfbase[0]);
         let uc = mtfa[pp + nn];
         mtfa[pp..][..=nn].rotate_right(1);
 
@@ -1287,7 +1283,7 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [u16; 16], nextSym: u16)
         // general case
         let mut lno = nn.wrapping_div(MTFL_SIZE);
         let off = nn.wrapping_rem(MTFL_SIZE);
-        let base = mtfbase[lno] as usize;
+        let base = usize::from(mtfbase[lno]);
         let uc = mtfa[base + off];
 
         // shift this range one to the right
@@ -1296,17 +1292,17 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [u16; 16], nextSym: u16)
         mtfbase[lno] += 1;
         while lno > 0 {
             mtfbase[lno] -= 1;
-            mtfa[mtfbase[lno] as usize] = mtfa[(mtfbase[lno - 1] + 16 - 1) as usize];
+            mtfa[usize::from(mtfbase[lno])] = mtfa[usize::from(mtfbase[lno - 1] + 16 - 1)];
             lno -= 1;
         }
         mtfbase[0] -= 1;
-        mtfa[mtfbase[0] as usize] = uc;
+        mtfa[usize::from(mtfbase[0])] = uc;
 
         if mtfbase[0] == 0 {
             let mut kk = MTFA_SIZE - 1;
             for ii in (0..256 / MTFL_SIZE).rev() {
                 for jj in (0..MTFL_SIZE).rev() {
-                    mtfa[usize::from(kk)] = mtfa[mtfbase[ii] as usize + jj];
+                    mtfa[usize::from(kk)] = mtfa[usize::from(mtfbase[ii]) + jj];
                     kk -= 1;
                 }
                 mtfbase[ii] = kk + 1;
