@@ -213,25 +213,24 @@ pub(crate) fn decompress(
             ($s:expr) => {
                 if groupPos == 0 {
                     groupNo += 1;
-                    if groupNo >= nSelectors as i32 {
-                        error!(BZ_DATA_ERROR);
-                    } else {
-                        groupPos = 50;
-                        gSel = $s.selector[groupNo as usize];
-                        gLimit = gSel;
-                        gPerm = gSel;
-                        gBase = gSel;
-                        gMinlen = $s.minLens[gSel as usize];
-                    }
+                    gSel = match $s.selector[..usize::from(nSelectors)].get(groupNo as usize) {
+                        Some(&gSel) => gSel,
+                        None => error!(BZ_DATA_ERROR),
+                    };
+                    gLimit = gSel;
+                    gPerm = gSel;
+                    gBase = gSel;
+                    gMinlen = $s.minLens[gSel as usize];
+                    groupPos = 50;
                 }
                 groupPos -= 1;
             };
         }
 
         macro_rules! error {
-            ($code:ident) => {
+            ($code:ident) => {{
                 break 'save_state_and_return ReturnCode::$code;
-            };
+            }};
         }
 
         match s.state {
@@ -768,12 +767,11 @@ pub(crate) fn decompress(
                     if zn > 20 {
                         error!(BZ_DATA_ERROR);
                     } else if zvec <= s.limit[gLimit as usize][zn as usize] {
-                        if !(0..258).contains(&(zvec - s.base[gBase as usize][zn as usize])) {
-                            error!(BZ_DATA_ERROR);
-                        } else {
-                            nextSym = s.perm[gPerm as usize]
-                                [(zvec - s.base[gBase as usize][zn as usize]) as usize];
-                        }
+                        let index = zvec - s.base[gBase as usize][zn as usize];
+                        nextSym = match s.perm[gPerm as usize].get(index as usize) {
+                            Some(&nextSym) => nextSym,
+                            None => error!(BZ_DATA_ERROR),
+                        };
                     } else {
                         zn += 1;
                         current_block = BZ_X_MTF_6;
@@ -785,43 +783,42 @@ pub(crate) fn decompress(
                     if zn > 20 {
                         error!(BZ_DATA_ERROR);
                     } else if zvec <= s.limit[gLimit as usize][zn as usize] {
-                        if !(0..258).contains(&(zvec - s.base[gBase as usize][zn as usize])) {
-                            error!(BZ_DATA_ERROR);
+                        let index = zvec - s.base[gBase as usize][zn as usize];
+                        nextSym = match s.perm[gPerm as usize].get(index as usize) {
+                            Some(&nextSym) => nextSym,
+                            None => error!(BZ_DATA_ERROR),
+                        };
+                        if nextSym == BZ_RUNA as i32 || nextSym == BZ_RUNB as i32 {
+                            current_block = Block46;
                         } else {
-                            nextSym = s.perm[gPerm as usize]
-                                [(zvec - s.base[gBase as usize][zn as usize]) as usize];
-                            if nextSym == BZ_RUNA as i32 || nextSym == BZ_RUNB as i32 {
-                                current_block = Block46;
-                            } else {
-                                es += 1;
-                                uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
-                                s.unzftab[uc as usize] += es;
-                                match s.smallDecompress {
-                                    DecompressMode::Small => {
-                                        while es > 0 {
-                                            if nblock >= 100000 * nblockMAX100k as u32 {
-                                                error!(BZ_DATA_ERROR);
-                                            } else {
-                                                ll16[nblock as usize] = uc as u16;
-                                                nblock += 1;
-                                                es -= 1;
-                                            }
-                                        }
-                                    }
-                                    DecompressMode::Fast => {
-                                        while es > 0 {
-                                            if nblock >= 100000 * nblockMAX100k as u32 {
-                                                error!(BZ_DATA_ERROR);
-                                            } else {
-                                                tt[nblock as usize] = uc as u32;
-                                                nblock += 1;
-                                                es -= 1;
-                                            }
+                            es += 1;
+                            uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
+                            s.unzftab[uc as usize] += es;
+                            match s.smallDecompress {
+                                DecompressMode::Small => {
+                                    while es > 0 {
+                                        if nblock >= 100000 * nblockMAX100k as u32 {
+                                            error!(BZ_DATA_ERROR);
+                                        } else {
+                                            ll16[nblock as usize] = uc as u16;
+                                            nblock += 1;
+                                            es -= 1;
                                         }
                                     }
                                 }
-                                current_block = Block40;
+                                DecompressMode::Fast => {
+                                    while es > 0 {
+                                        if nblock >= 100000 * nblockMAX100k as u32 {
+                                            error!(BZ_DATA_ERROR);
+                                        } else {
+                                            tt[nblock as usize] = uc as u32;
+                                            nblock += 1;
+                                            es -= 1;
+                                        }
+                                    }
+                                }
                             }
+                            current_block = Block40;
                         }
                     } else {
                         zn += 1;
@@ -833,12 +830,11 @@ pub(crate) fn decompress(
                     if zn > 20 {
                         error!(BZ_DATA_ERROR);
                     } else if zvec <= s.limit[gLimit as usize][zn as usize] {
-                        if !(0..258).contains(&(zvec - s.base[gBase as usize][zn as usize])) {
-                            error!(BZ_DATA_ERROR);
-                        } else {
-                            nextSym = s.perm[gPerm as usize]
-                                [(zvec - s.base[gBase as usize][zn as usize]) as usize];
-                        }
+                        let index = zvec - s.base[gBase as usize][zn as usize];
+                        nextSym = match s.perm[gPerm as usize].get(index as usize) {
+                            Some(&nextSym) => nextSym,
+                            None => error!(BZ_DATA_ERROR),
+                        };
                     } else {
                         zn += 1;
                         current_block = BZ_X_MTF_2;
@@ -1285,8 +1281,6 @@ pub(crate) fn decompress(
 
                     EOB = s.nInUse + 1;
                     nblockMAX100k = s.blockSize100k as u8;
-                    groupNo = -1;
-                    groupPos = 0;
                     s.unzftab.fill(0);
 
                     /*-- MTF init --*/
@@ -1302,6 +1296,8 @@ pub(crate) fn decompress(
                     /*-- end MTF init --*/
 
                     nblock = 0;
+                    groupNo = -1;
+                    groupPos = 0;
                     update_group_pos!(s);
 
                     zn = gMinlen;
