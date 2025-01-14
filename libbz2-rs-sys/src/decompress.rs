@@ -12,8 +12,8 @@ use crate::{debug_log, huffman};
 
 /*-- Constants for the fast MTF decoder. --*/
 
-const MTFA_SIZE: i32 = 4096;
-const MTFL_SIZE: i32 = 16;
+const MTFA_SIZE: usize = 4096;
+const MTFL_SIZE: usize = 16;
 
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
@@ -1222,14 +1222,13 @@ pub(crate) fn decompress(
                     s.unzftab.fill(0);
 
                     /*-- MTF init --*/
-                    let mut kk: i32;
-                    kk = MTFA_SIZE - 1;
+                    let mut kk: usize = MTFA_SIZE - 1;
                     for ii in (0..256 / MTFL_SIZE).rev() {
                         for jj in (0..MTFL_SIZE).rev() {
                             s.mtfa[kk as usize] = (ii * MTFL_SIZE + jj) as u8;
                             kk -= 1;
                         }
-                        s.mtfbase[ii as usize] = kk + 1;
+                        s.mtfbase[ii as usize] = kk as i32 + 1;
                     }
                     /*-- end MTF init --*/
 
@@ -1277,7 +1276,7 @@ pub(crate) fn decompress(
 fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16) -> u8 {
     let nn = (nextSym - 1) as usize;
 
-    if nn < MTFL_SIZE as usize {
+    if nn < MTFL_SIZE {
         let pp = mtfbase[0] as usize;
 
         let uc = mtfa[pp + nn];
@@ -1286,8 +1285,8 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16)
 
         uc
     } else {
-        let mut lno = nn.wrapping_div(16);
-        let off = nn.wrapping_rem(16);
+        let mut lno = nn.wrapping_div(MTFL_SIZE);
+        let off = nn.wrapping_rem(MTFL_SIZE);
         let mut pp = mtfbase[lno as usize] + off as i32;
         let uc = mtfa[pp as usize];
         while pp > mtfbase[lno as usize] {
