@@ -785,7 +785,7 @@ pub(crate) fn decompress(
                             Some(&nextSym) => nextSym,
                             None => error!(BZ_DATA_ERROR),
                         };
-                        if nextSym == BZ_RUNA as i32 || nextSym == BZ_RUNB as i32 {
+                        if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
                             current_block = Block46;
                         } else {
                             es += 1;
@@ -842,10 +842,10 @@ pub(crate) fn decompress(
                 _ => {}
             }
             if current_block == Block40 {
-                if nextSym == EOB as i32 {
+                if nextSym == EOB {
                     current_block = Block41;
                 } else {
-                    if nextSym == 0 || nextSym == 1 {
+                    if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
                         es = -1;
                         logN = 0;
                     } else if nblock >= 100000 * nblockMAX100k as u32 {
@@ -1116,7 +1116,7 @@ pub(crate) fn decompress(
                 if logN >= LOG_2MB {
                     error!(BZ_DATA_ERROR);
                 } else {
-                    let mul = match nextSym as u16 {
+                    let mul = match nextSym {
                         BZ_RUNA => 1,
                         BZ_RUNB => 2,
                         _ => 0,
