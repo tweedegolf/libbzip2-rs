@@ -172,9 +172,6 @@ pub(crate) fn decompress(
         mut zj,
         mut gSel,
         mut gMinlen,
-        mut gLimit,
-        mut gBase,
-        mut gPerm,
     } = s.save;
 
     let ret_val: ReturnCode = 'save_state_and_return: {
@@ -217,10 +214,7 @@ pub(crate) fn decompress(
                         Some(&gSel) => gSel,
                         None => error!(BZ_DATA_ERROR),
                     };
-                    gLimit = gSel;
-                    gPerm = gSel;
-                    gBase = gSel;
-                    gMinlen = $s.minLens[gSel as usize];
+                    gMinlen = $s.minLens[usize::from(gSel)];
                     groupPos = 50;
                 }
                 groupPos -= 1;
@@ -763,9 +757,9 @@ pub(crate) fn decompress(
                 Block24 => {
                     if zn > 20 {
                         error!(BZ_DATA_ERROR);
-                    } else if zvec <= s.limit[gLimit as usize][zn as usize] {
-                        let index = zvec - s.base[gBase as usize][zn as usize];
-                        nextSym = match s.perm[gPerm as usize].get(index as usize) {
+                    } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
+                        let index = zvec - s.base[usize::from(gSel)][zn as usize];
+                        nextSym = match s.perm[usize::from(gSel)].get(index as usize) {
                             Some(&nextSym) => nextSym,
                             None => error!(BZ_DATA_ERROR),
                         };
@@ -779,9 +773,9 @@ pub(crate) fn decompress(
                 Block52 => {
                     if zn > 20 {
                         error!(BZ_DATA_ERROR);
-                    } else if zvec <= s.limit[gLimit as usize][zn as usize] {
-                        let index = zvec - s.base[gBase as usize][zn as usize];
-                        nextSym = match s.perm[gPerm as usize].get(index as usize) {
+                    } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
+                        let index = zvec - s.base[usize::from(gSel)][zn as usize];
+                        nextSym = match s.perm[usize::from(gSel)].get(index as usize) {
                             Some(&nextSym) => nextSym,
                             None => error!(BZ_DATA_ERROR),
                         };
@@ -826,9 +820,9 @@ pub(crate) fn decompress(
                 Block56 => {
                     if zn > 20 {
                         error!(BZ_DATA_ERROR);
-                    } else if zvec <= s.limit[gLimit as usize][zn as usize] {
-                        let index = zvec - s.base[gBase as usize][zn as usize];
-                        nextSym = match s.perm[gPerm as usize].get(index as usize) {
+                    } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
+                        let index = zvec - s.base[usize::from(gSel)][zn as usize];
+                        nextSym = match s.perm[usize::from(gSel)].get(index as usize) {
                             Some(&nextSym) => nextSym,
                             None => error!(BZ_DATA_ERROR),
                         };
@@ -1261,9 +1255,6 @@ pub(crate) fn decompress(
         zj,
         gSel,
         gMinlen,
-        gLimit,
-        gBase,
-        gPerm,
     };
 
     ret_val

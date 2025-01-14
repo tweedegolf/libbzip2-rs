@@ -585,9 +585,6 @@ pub(crate) struct SaveArea {
     pub zj: bool,
     pub gMinlen: u8,
     pub gSel: u8,
-    pub gLimit: u8,
-    pub gBase: u8,
-    pub gPerm: u8,
 }
 
 pub(crate) struct DSlice<T> {
