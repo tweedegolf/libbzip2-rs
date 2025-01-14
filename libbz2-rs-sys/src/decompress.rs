@@ -783,7 +783,7 @@ pub(crate) fn decompress(
                             current_block = Block46;
                         } else {
                             uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
-                            s.unzftab[uc as usize] += es;
+                            s.unzftab[uc as usize] += es as i32;
                             match s.smallDecompress {
                                 DecompressMode::Small => {
                                     while es > 0 {

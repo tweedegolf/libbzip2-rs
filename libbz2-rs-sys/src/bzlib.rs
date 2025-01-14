@@ -575,7 +575,7 @@ pub(crate) struct SaveArea {
     pub EOB: u16,
     pub groupNo: i32,
     pub nblock: u32,
-    pub es: i32,
+    pub es: u32,
     pub zvec: i32,
     pub nextSym: u16,
     pub nSelectors: u16,
