@@ -467,10 +467,8 @@ fn send_mtf_values(s: &mut EState) {
     }
 
     assert_h!(nGroups < 8, 3002);
-    #[allow(clippy::redundant_comparisons)] // The C code does the same
-    {
-        assert_h!(nSelectors < 32768 && nSelectors <= BZ_MAX_SELECTORS, 3003);
-    }
+    assert_h!(nSelectors < 32768, 3003);
+    assert_h!(nSelectors <= usize::from(BZ_MAX_SELECTORS), 3003);
 
     /*--- Compute MTF values for the selectors. ---*/
     {
