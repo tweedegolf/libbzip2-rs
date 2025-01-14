@@ -892,24 +892,21 @@ pub(crate) fn decompress(
                                     s.cftabCopy = s.cftab;
 
                                     // compute the T vector
-                                    i = 0;
-                                    while i < nblock as i32 {
-                                        uc = ll16[i as usize] as u8;
-                                        ll16[i as usize] =
-                                            (s.cftabCopy[uc as usize] & 0xffff) as u16;
+                                    for i in 0..nblock as u32 {
+                                        let uc = usize::from(ll16[i as usize]);
+                                        ll16[i as usize] = (s.cftabCopy[uc] & 0xffff) as u16;
                                         if i & 0x1 == 0 {
                                             ll4[(i >> 1) as usize] =
                                                 (ll4[(i >> 1) as usize] as c_int & 0xf0
-                                                    | s.cftabCopy[uc as usize] >> 16)
+                                                    | s.cftabCopy[uc] >> 16)
                                                     as u8;
                                         } else {
                                             ll4[(i >> 1) as usize] =
                                                 (ll4[(i >> 1) as usize] as c_int & 0xf
-                                                    | (s.cftabCopy[uc as usize] >> 16) << 4)
+                                                    | (s.cftabCopy[uc] >> 16) << 4)
                                                     as u8;
                                         }
-                                        s.cftabCopy[uc as usize] += 1;
-                                        i += 1;
+                                        s.cftabCopy[uc] += 1;
                                     }
 
                                     // Compute T^(-1) by pointer reversal on T
