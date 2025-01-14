@@ -1254,6 +1254,7 @@ pub(crate) fn decompress(
 
                     /*--- Create the Huffman decoding tables ---*/
                     for t in 0..nGroups as usize {
+                        // NOTE: s.nInUse <= 256, alphaSize <= 258
                         let len = &s.len[t][..alphaSize as usize];
 
                         let mut minLen = 32u8;

@@ -176,13 +176,15 @@ pub(crate) fn assign_codes(
 
 #[inline(always)]
 pub(crate) fn create_decode_tables(
-    limit: &mut [i32],
-    base: &mut [i32],
-    perm: &mut [i32],
+    limit: &mut [i32; 258],
+    base: &mut [i32; 258],
+    perm: &mut [i32; 258],
     length: &[u8],
     minLen: u8,
     maxLen: u8,
 ) {
+    assert!(length.len() <= 258);
+
     let mut pp: i32 = 0;
     for i in minLen..=maxLen {
         for (j, e) in length.iter().enumerate() {
