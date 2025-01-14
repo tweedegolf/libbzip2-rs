@@ -782,30 +782,24 @@ pub(crate) fn decompress(
                         if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
                             current_block = Block46;
                         } else {
-                            uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
-                            s.unzftab[uc as usize] += es as i32;
+                            let uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
+                            s.unzftab[usize::from(uc)] += es as i32;
                             match s.smallDecompress {
                                 DecompressMode::Small => {
-                                    while es > 0 {
-                                        if nblock >= 100000 * nblockMAX100k as u32 {
-                                            error!(BZ_DATA_ERROR);
-                                        } else {
-                                            ll16[nblock as usize] = uc as u16;
-                                            nblock += 1;
-                                            es -= 1;
-                                        }
-                                    }
+                                    let ll16 = &mut ll16[..100000 * usize::from(nblockMAX100k)];
+                                    match ll16.get_mut(nblock as usize..(nblock + es) as usize) {
+                                        Some(slice) => slice.fill(u16::from(uc)),
+                                        None => error!(BZ_DATA_ERROR),
+                                    };
+                                    nblock += es;
                                 }
                                 DecompressMode::Fast => {
-                                    while es > 0 {
-                                        if nblock >= 100000 * nblockMAX100k as u32 {
-                                            error!(BZ_DATA_ERROR);
-                                        } else {
-                                            tt[nblock as usize] = uc as u32;
-                                            nblock += 1;
-                                            es -= 1;
-                                        }
-                                    }
+                                    let tt = &mut tt[..100000 * usize::from(nblockMAX100k)];
+                                    match tt.get_mut(nblock as usize..(nblock + es) as usize) {
+                                        Some(slice) => slice.fill(u32::from(uc)),
+                                        None => error!(BZ_DATA_ERROR),
+                                    };
+                                    nblock += es;
                                 }
                             }
                             current_block = Block40;
@@ -841,7 +835,7 @@ pub(crate) fn decompress(
                     es = 0;
                     logN = 0;
                     current_block = Block46;
-                } else if nblock >= 100000 * nblockMAX100k as u32 {
+                } else if nblock >= 100000 * u32::from(nblockMAX100k) {
                     error!(BZ_DATA_ERROR);
                 } else {
                     let uc = usize::from(initialize_mtfa(&mut s.mtfa, &mut s.mtfbase, nextSym));
