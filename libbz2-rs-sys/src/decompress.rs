@@ -1287,12 +1287,12 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16)
     } else {
         let mut lno = nn.wrapping_div(MTFL_SIZE);
         let off = nn.wrapping_rem(MTFL_SIZE);
-        let mut pp = mtfbase[lno] + off as i32;
-        let uc = mtfa[pp as usize];
-        while pp > mtfbase[lno] {
-            mtfa[pp as usize] = mtfa[(pp - 1) as usize];
-            pp -= 1;
-        }
+        let base = mtfbase[lno] as usize;
+        let uc = mtfa[base + off];
+
+        // shift this range one to the right
+        mtfa.copy_within(base..base + off, base + 1);
+
         mtfbase[lno] += 1;
         while lno > 0 {
             mtfbase[lno] -= 1;
