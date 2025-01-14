@@ -1275,25 +1275,14 @@ pub(crate) fn decompress(
 }
 
 fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16) -> u8 {
-    let mut nn = (nextSym - 1) as u32;
+    let nn = (nextSym - 1) as usize;
 
-    if nn < MTFL_SIZE as u32 {
-        let pp = mtfbase[0_usize];
-        let uc = mtfa[(pp as c_uint).wrapping_add(nn) as usize];
-        while nn > 3 {
-            let z: i32 = (pp as c_uint).wrapping_add(nn) as i32;
-            mtfa[z as usize] = mtfa[(z - 1) as usize];
-            mtfa[(z - 1) as usize] = mtfa[(z - 2) as usize];
-            mtfa[(z - 2) as usize] = mtfa[(z - 3) as usize];
-            mtfa[(z - 3) as usize] = mtfa[(z - 4) as usize];
-            nn = (nn).wrapping_sub(4);
-        }
-        while nn > 0 {
-            mtfa[(pp as c_uint).wrapping_add(nn) as usize] =
-                mtfa[(pp as c_uint).wrapping_add(nn).wrapping_sub(1) as usize];
-            nn = nn.wrapping_sub(1);
-        }
-        mtfa[pp as usize] = uc;
+    if nn < MTFL_SIZE as usize {
+        let pp = mtfbase[0] as usize;
+
+        let uc = mtfa[pp + nn];
+
+        mtfa[pp..][..=nn].rotate_right(1);
 
         uc
     } else {
