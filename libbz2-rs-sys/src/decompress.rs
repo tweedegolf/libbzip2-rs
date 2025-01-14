@@ -876,8 +876,6 @@ pub(crate) fn decompress(
                             if s.verbosity >= 2 {
                                 debug_log!("rt+rld");
                             }
-                            let max_block_size =
-                                100000_u32.wrapping_mul(u32::from(s.blockSize100k));
                             match s.smallDecompress {
                                 DecompressMode::Small => {
                                     // Make a copy of cftab, used in generation of T
@@ -930,36 +928,24 @@ pub(crate) fn decompress(
 
                                     s.tPos = s.origPtr as u32;
                                     s.nblock_used = 0;
+
+                                    s.k0 = index_into_f(s.tPos as i32, &s.cftab);
+                                    s.tPos = match ll16.get(s.tPos as usize) {
+                                        None => error!(BZ_DATA_ERROR),
+                                        Some(&low_bits) => {
+                                            let high_bits = ll4[(s.tPos >> 1) as usize]
+                                                >> (s.tPos << 2 & 0x4)
+                                                & 0xf;
+                                            u32::from(low_bits) | u32::from(high_bits) << 16
+                                        }
+                                    };
+                                    s.nblock_used += 1;
+
                                     if s.blockRandomised {
                                         s.rNToGo = 0;
                                         s.rTPos = 0;
-                                        if s.tPos >= max_block_size {
-                                            // NOTE: this originates in the BZ_GET_FAST macro, and the
-                                            // `return true` is probably uninitentional?!
-                                            return ReturnCode::BZ_RUN_OK;
-                                        }
-                                        s.k0 = index_into_f(s.tPos as i32, &s.cftab);
-                                        s.tPos = ll16[s.tPos as usize] as u32
-                                            | (ll4[(s.tPos >> 1) as usize] as u32
-                                                >> (s.tPos << 2 & 0x4)
-                                                & 0xf)
-                                                << 16;
-                                        s.nblock_used += 1;
                                         BZ_RAND_UPD_MASK!(s);
                                         s.k0 ^= u8::from(s.rNToGo == 1)
-                                    } else {
-                                        if s.tPos >= max_block_size {
-                                            // NOTE: this originates in the BZ_GET_FAST macro, and the
-                                            // `return true` is probably uninitentional?!
-                                            return ReturnCode::BZ_RUN_OK;
-                                        }
-                                        s.k0 = index_into_f(s.tPos as i32, &s.cftab);
-                                        s.tPos = ll16[s.tPos as usize] as u32
-                                            | (ll4[(s.tPos >> 1) as usize] as u32
-                                                >> (s.tPos << 2 & 0x4)
-                                                & 0xf)
-                                                << 16;
-                                        s.nblock_used += 1;
                                     }
                                 }
                                 DecompressMode::Fast => {
@@ -970,30 +956,20 @@ pub(crate) fn decompress(
                                     }
                                     s.tPos = tt[s.origPtr as usize] >> 8;
                                     s.nblock_used = 0;
+
+                                    s.tPos = match tt.get(s.tPos as usize) {
+                                        Some(&tPos) => tPos,
+                                        None => error!(BZ_DATA_ERROR),
+                                    };
+                                    s.k0 = (s.tPos & 0xff) as u8;
+                                    s.tPos >>= 8;
+                                    s.nblock_used += 1;
+
                                     if s.blockRandomised {
                                         s.rNToGo = 0;
                                         s.rTPos = 0;
-                                        if s.tPos >= max_block_size {
-                                            // NOTE: this originates in the BZ_GET_FAST macro, and the
-                                            // `return true` is probably uninitentional?!
-                                            return ReturnCode::BZ_RUN_OK;
-                                        }
-                                        s.tPos = tt[s.tPos as usize];
-                                        s.k0 = (s.tPos & 0xff) as u8;
-                                        s.tPos >>= 8;
-                                        s.nblock_used += 1;
                                         BZ_RAND_UPD_MASK!(s);
                                         s.k0 ^= u8::from(s.rNToGo == 1)
-                                    } else {
-                                        if s.tPos >= max_block_size {
-                                            // NOTE: this originates in the BZ_GET_FAST macro, and the
-                                            // `return true` is probably uninitentional?!
-                                            return ReturnCode::BZ_RUN_OK;
-                                        }
-                                        s.tPos = tt[s.tPos as usize];
-                                        s.k0 = (s.tPos & 0xff) as u8;
-                                        s.tPos >>= 8;
-                                        s.nblock_used += 1;
                                     }
                                 }
                             }
