@@ -1225,10 +1225,10 @@ pub(crate) fn decompress(
                     let mut kk: usize = MTFA_SIZE - 1;
                     for ii in (0..256 / MTFL_SIZE).rev() {
                         for jj in (0..MTFL_SIZE).rev() {
-                            s.mtfa[kk as usize] = (ii * MTFL_SIZE + jj) as u8;
+                            s.mtfa[kk] = (ii * MTFL_SIZE + jj) as u8;
                             kk -= 1;
                         }
-                        s.mtfbase[ii as usize] = kk as i32 + 1;
+                        s.mtfbase[ii] = kk as i32 + 1;
                     }
                     /*-- end MTF init --*/
 
@@ -1287,17 +1287,16 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16)
     } else {
         let mut lno = nn.wrapping_div(MTFL_SIZE);
         let off = nn.wrapping_rem(MTFL_SIZE);
-        let mut pp = mtfbase[lno as usize] + off as i32;
+        let mut pp = mtfbase[lno] + off as i32;
         let uc = mtfa[pp as usize];
-        while pp > mtfbase[lno as usize] {
+        while pp > mtfbase[lno] {
             mtfa[pp as usize] = mtfa[(pp - 1) as usize];
             pp -= 1;
         }
-        mtfbase[lno as usize] += 1;
+        mtfbase[lno] += 1;
         while lno > 0 {
-            mtfbase[lno as usize] -= 1;
-            mtfa[mtfbase[lno as usize] as usize] =
-                mtfa[(mtfbase[(lno - 1) as usize] + 16 - 1) as usize];
+            mtfbase[lno] -= 1;
+            mtfa[mtfbase[lno] as usize] = mtfa[(mtfbase[lno - 1] + 16 - 1) as usize];
             lno -= 1;
         }
         mtfbase[0_usize] -= 1;
@@ -1307,10 +1306,10 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16)
             let mut kk_0 = MTFA_SIZE - 1;
             for ii_0 in (0..256 / MTFL_SIZE).rev() {
                 for jj_0 in (0..MTFL_SIZE).rev() {
-                    mtfa[kk_0 as usize] = mtfa[mtfbase[ii_0] as usize + jj_0];
+                    mtfa[kk_0] = mtfa[mtfbase[ii_0] as usize + jj_0];
                     kk_0 -= 1;
                 }
-                mtfbase[ii_0 as usize] = kk_0 as i32 + 1;
+                mtfbase[ii_0] = kk_0 as i32 + 1;
             }
         }
 
