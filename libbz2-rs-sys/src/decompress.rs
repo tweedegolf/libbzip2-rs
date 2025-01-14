@@ -1299,10 +1299,10 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16)
             mtfa[mtfbase[lno] as usize] = mtfa[(mtfbase[lno - 1] + 16 - 1) as usize];
             lno -= 1;
         }
-        mtfbase[0_usize] -= 1;
-        mtfa[mtfbase[0_usize] as usize] = uc;
+        mtfbase[0] -= 1;
+        mtfa[mtfbase[0] as usize] = uc;
 
-        if mtfbase[0_usize] == 0 {
+        if mtfbase[0] == 0 {
             let mut kk = MTFA_SIZE - 1;
             for ii in (0..256 / MTFL_SIZE).rev() {
                 for jj in (0..MTFL_SIZE).rev() {
