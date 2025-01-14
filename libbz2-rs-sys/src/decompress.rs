@@ -844,88 +844,86 @@ pub(crate) fn decompress(
             if current_block == Block40 {
                 if nextSym == EOB {
                     current_block = Block41;
+                } else if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
+                    es = -1;
+                    logN = 0;
+                    current_block = Block46;
+                } else if nblock >= 100000 * nblockMAX100k as u32 {
+                    error!(BZ_DATA_ERROR);
                 } else {
-                    if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
-                        es = -1;
-                        logN = 0;
-                        current_block = Block46;
-                    } else if nblock >= 100000 * nblockMAX100k as u32 {
-                        error!(BZ_DATA_ERROR);
+                    let mut ii_0: i32;
+                    let mut jj_0: i32;
+                    let mut kk_0: i32;
+                    let mut pp: i32;
+                    let mut lno: i32;
+                    let off: i32;
+                    let mut nn: u32;
+                    nn = (nextSym - 1) as u32;
+                    if nn < 16 {
+                        pp = s.mtfbase[0_usize];
+                        uc = s.mtfa[(pp as c_uint).wrapping_add(nn) as usize];
+                        while nn > 3 {
+                            let z: i32 = (pp as c_uint).wrapping_add(nn) as i32;
+                            s.mtfa[z as usize] = s.mtfa[(z - 1) as usize];
+                            s.mtfa[(z - 1) as usize] = s.mtfa[(z - 2) as usize];
+                            s.mtfa[(z - 2) as usize] = s.mtfa[(z - 3) as usize];
+                            s.mtfa[(z - 3) as usize] = s.mtfa[(z - 4) as usize];
+                            nn = (nn).wrapping_sub(4);
+                        }
+                        while nn > 0 {
+                            s.mtfa[(pp as c_uint).wrapping_add(nn) as usize] =
+                                s.mtfa[(pp as c_uint).wrapping_add(nn).wrapping_sub(1) as usize];
+                            nn = nn.wrapping_sub(1);
+                        }
+                        s.mtfa[pp as usize] = uc;
                     } else {
-                        let mut ii_0: i32;
-                        let mut jj_0: i32;
-                        let mut kk_0: i32;
-                        let mut pp: i32;
-                        let mut lno: i32;
-                        let off: i32;
-                        let mut nn: u32;
-                        nn = (nextSym - 1) as u32;
-                        if nn < 16 {
-                            pp = s.mtfbase[0_usize];
-                            uc = s.mtfa[(pp as c_uint).wrapping_add(nn) as usize];
-                            while nn > 3 {
-                                let z: i32 = (pp as c_uint).wrapping_add(nn) as i32;
-                                s.mtfa[z as usize] = s.mtfa[(z - 1) as usize];
-                                s.mtfa[(z - 1) as usize] = s.mtfa[(z - 2) as usize];
-                                s.mtfa[(z - 2) as usize] = s.mtfa[(z - 3) as usize];
-                                s.mtfa[(z - 3) as usize] = s.mtfa[(z - 4) as usize];
-                                nn = (nn).wrapping_sub(4);
-                            }
-                            while nn > 0 {
-                                s.mtfa[(pp as c_uint).wrapping_add(nn) as usize] = s.mtfa
-                                    [(pp as c_uint).wrapping_add(nn).wrapping_sub(1) as usize];
-                                nn = nn.wrapping_sub(1);
-                            }
-                            s.mtfa[pp as usize] = uc;
-                        } else {
-                            lno = nn.wrapping_div(16) as i32;
-                            off = nn.wrapping_rem(16) as i32;
-                            pp = s.mtfbase[lno as usize] + off;
-                            uc = s.mtfa[pp as usize];
-                            while pp > s.mtfbase[lno as usize] {
-                                s.mtfa[pp as usize] = s.mtfa[(pp - 1) as usize];
-                                pp -= 1;
-                            }
-                            s.mtfbase[lno as usize] += 1;
-                            while lno > 0 {
-                                s.mtfbase[lno as usize] -= 1;
-                                s.mtfa[s.mtfbase[lno as usize] as usize] =
-                                    s.mtfa[(s.mtfbase[(lno - 1) as usize] + 16 - 1) as usize];
-                                lno -= 1;
-                            }
-                            s.mtfbase[0_usize] -= 1;
-                            s.mtfa[s.mtfbase[0_usize] as usize] = uc;
-                            if s.mtfbase[0_usize] == 0 {
-                                kk_0 = 4096 - 1;
-                                ii_0 = 256 / 16 - 1;
-                                while ii_0 >= 0 {
-                                    jj_0 = 16 - 1;
-                                    while jj_0 >= 0 {
-                                        s.mtfa[kk_0 as usize] =
-                                            s.mtfa[(s.mtfbase[ii_0 as usize] + jj_0) as usize];
-                                        kk_0 -= 1;
-                                        jj_0 -= 1;
-                                    }
-                                    s.mtfbase[ii_0 as usize] = kk_0 + 1;
-                                    ii_0 -= 1;
+                        lno = nn.wrapping_div(16) as i32;
+                        off = nn.wrapping_rem(16) as i32;
+                        pp = s.mtfbase[lno as usize] + off;
+                        uc = s.mtfa[pp as usize];
+                        while pp > s.mtfbase[lno as usize] {
+                            s.mtfa[pp as usize] = s.mtfa[(pp - 1) as usize];
+                            pp -= 1;
+                        }
+                        s.mtfbase[lno as usize] += 1;
+                        while lno > 0 {
+                            s.mtfbase[lno as usize] -= 1;
+                            s.mtfa[s.mtfbase[lno as usize] as usize] =
+                                s.mtfa[(s.mtfbase[(lno - 1) as usize] + 16 - 1) as usize];
+                            lno -= 1;
+                        }
+                        s.mtfbase[0_usize] -= 1;
+                        s.mtfa[s.mtfbase[0_usize] as usize] = uc;
+                        if s.mtfbase[0_usize] == 0 {
+                            kk_0 = 4096 - 1;
+                            ii_0 = 256 / 16 - 1;
+                            while ii_0 >= 0 {
+                                jj_0 = 16 - 1;
+                                while jj_0 >= 0 {
+                                    s.mtfa[kk_0 as usize] =
+                                        s.mtfa[(s.mtfbase[ii_0 as usize] + jj_0) as usize];
+                                    kk_0 -= 1;
+                                    jj_0 -= 1;
                                 }
+                                s.mtfbase[ii_0 as usize] = kk_0 + 1;
+                                ii_0 -= 1;
                             }
                         }
-                        s.unzftab[s.seqToUnseq[uc as usize] as usize] += 1;
-                        match s.smallDecompress {
-                            DecompressMode::Small => {
-                                ll16[nblock as usize] = s.seqToUnseq[uc as usize] as u16
-                            }
-                            DecompressMode::Fast => {
-                                tt[nblock as usize] = s.seqToUnseq[uc as usize] as u32
-                            }
-                        }
-                        nblock += 1;
-                        update_group_pos!(s);
-                        zn = gMinlen;
-                        current_block = BZ_X_MTF_5;
-                        continue;
                     }
+                    s.unzftab[s.seqToUnseq[uc as usize] as usize] += 1;
+                    match s.smallDecompress {
+                        DecompressMode::Small => {
+                            ll16[nblock as usize] = s.seqToUnseq[uc as usize] as u16
+                        }
+                        DecompressMode::Fast => {
+                            tt[nblock as usize] = s.seqToUnseq[uc as usize] as u32
+                        }
+                    }
+                    nblock += 1;
+                    update_group_pos!(s);
+                    zn = gMinlen;
+                    current_block = BZ_X_MTF_5;
+                    continue;
                 }
                 match current_block {
                     Block46 => {}
