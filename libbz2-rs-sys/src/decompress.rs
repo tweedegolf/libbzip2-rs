@@ -1073,20 +1073,11 @@ pub(crate) fn decompress(
                             nSelectors = Ord::min(nSelectors, BZ_MAX_SELECTORS as u16);
 
                             let mut pos: [u8; 6] = [0, 1, 2, 3, 4, 5];
-                            let mut tmp: u8;
-                            let mut v_22;
-                            i = 0;
-                            while i < nSelectors as i32 {
-                                v_22 = s.selectorMtf[i as usize];
-                                tmp = pos[v_22 as usize];
-                                while v_22 > 0 {
-                                    pos[v_22 as usize] = pos[(v_22 - 1) as usize];
-                                    v_22 = v_22.wrapping_sub(1);
-                                }
-                                pos[0_usize] = tmp;
-                                s.selector[i as usize] = tmp;
-                                i += 1;
+                            for i in 0..usize::from(nSelectors) {
+                                pos[..=usize::from(s.selectorMtf[i])].rotate_right(1);
+                                s.selector[i] = pos[0];
                             }
+
                             t = 0;
                             current_block = Block35;
                             break;
