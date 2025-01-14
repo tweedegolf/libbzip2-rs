@@ -1356,7 +1356,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
                         // return corrupt if we're past the length of the block
                         return true;
                     }
-                    Some(&v) => (v >> 8, (v & 0xff) as _),
+                    Some(&v) => (v >> 8, (v & 0xff) as u8),
                 }
             };
         }
