@@ -317,13 +317,13 @@ pub(crate) fn decompress(
             match s.smallDecompress {
                 DecompressMode::Small => {
                     // SAFETY: we assume allocation is safe
-                    let ll16_len = s.blockSize100k as usize * 100000;
+                    let ll16_len = usize::from(s.blockSize100k) * 100000;
                     let Some(ll16) = DSlice::alloc(allocator, ll16_len) else {
                         error!(BZ_MEM_ERROR);
                     };
 
                     // SAFETY: we assume allocation is safe
-                    let ll4_len = (1 + s.blockSize100k as usize * 100000) >> 1;
+                    let ll4_len = (1 + usize::from(s.blockSize100k) * 100000) >> 1;
                     let Some(ll4) = DSlice::alloc(allocator, ll4_len) else {
                         error!(BZ_MEM_ERROR);
                     };
@@ -333,7 +333,7 @@ pub(crate) fn decompress(
                 }
                 DecompressMode::Fast => {
                     // SAFETY: we assume allocation is safe
-                    let tt_len = s.blockSize100k as usize * 100000;
+                    let tt_len = usize::from(s.blockSize100k) * 100000;
                     let Some(tt) = DSlice::alloc(allocator, tt_len) else {
                         error!(BZ_MEM_ERROR);
                     };
@@ -1177,7 +1177,7 @@ pub(crate) fn decompress(
                     /*--- Now the MTF values ---*/
 
                     EOB = s.nInUse + 1;
-                    nblockMAX100k = s.blockSize100k as u8;
+                    nblockMAX100k = s.blockSize100k;
                     s.unzftab.fill(0);
 
                     /*-- MTF init --*/
