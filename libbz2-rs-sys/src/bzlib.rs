@@ -522,25 +522,26 @@ impl Ftab {
     }
 }
 
+#[repr(C)]
 pub(crate) struct DState {
     pub strm_addr: usize, // Only for a consistency check
     pub state: decompress::State,
-    pub state_out_ch: u8,
     pub state_out_len: u32,
+    pub state_out_ch: u8,
     pub blockRandomised: bool,
+    pub blockSize100k: u8,
+    pub k0: u8,
     pub rNToGo: i32,
     pub rTPos: i32,
     pub bsBuff: u32,
     pub bsLive: i32,
-    pub blockSize100k: i32,
     pub smallDecompress: DecompressMode,
     pub currBlockNo: i32,
     pub verbosity: i32,
     pub origPtr: i32,
     pub tPos: u32,
-    pub k0: u8,
-    pub unzftab: [i32; 256],
     pub nblock_used: i32,
+    pub unzftab: [i32; 256],
     pub cftab: [i32; 257],
     pub cftabCopy: [i32; 257],
     pub tt: DSlice<u32>,
@@ -1339,13 +1340,13 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
         let mut c_tPos: u32 = s.tPos;
         let mut cs_next_out: *mut c_char = strm.next_out;
         let mut cs_avail_out: c_uint = strm.avail_out;
-        let ro_blockSize100k: i32 = s.blockSize100k;
+        let ro_blockSize100k: u8 = s.blockSize100k;
         /* end restore */
 
         let avail_out_INIT: u32 = cs_avail_out;
         let s_save_nblockPP: i32 = s.save.nblock as i32 + 1;
 
-        let tt = &s.tt.as_slice()[..100000usize.wrapping_mul(ro_blockSize100k as usize)];
+        let tt = &s.tt.as_slice()[..100000usize.wrapping_mul(usize::from(ro_blockSize100k))];
 
         macro_rules! BZ_GET_FAST_C {
             ($c_tPos:expr) => {

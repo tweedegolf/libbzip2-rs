@@ -306,13 +306,13 @@ pub(crate) fn decompress(
         if current_block == BZ_X_MAGIC_4 {
             s.state = State::BZ_X_MAGIC_4;
 
-            s.blockSize100k = GET_BYTE!(strm, s) as i32;
+            s.blockSize100k = GET_BYTE!(strm, s);
 
-            if !(b'1' as i32..=b'9' as i32).contains(&s.blockSize100k) {
+            if !(b'1'..=b'9').contains(&s.blockSize100k) {
                 error!(BZ_DATA_ERROR_MAGIC);
             }
 
-            s.blockSize100k -= b'0' as i32;
+            s.blockSize100k -= b'0';
 
             match s.smallDecompress {
                 DecompressMode::Small => {
@@ -592,7 +592,7 @@ pub(crate) fn decompress(
             uc = GET_BYTE!(strm, s);
 
             s.origPtr = s.origPtr << 8 | i32::from(uc);
-            if !(0..10 + 100000 * s.blockSize100k).contains(&s.origPtr) {
+            if !(0..10 + 100000 * i32::from(s.blockSize100k)).contains(&s.origPtr) {
                 error!(BZ_DATA_ERROR);
             }
 
@@ -879,6 +879,8 @@ pub(crate) fn decompress(
                             if s.verbosity >= 2 {
                                 debug_log!("rt+rld");
                             }
+                            let max_block_size =
+                                100000_u32.wrapping_mul(u32::from(s.blockSize100k));
                             match s.smallDecompress {
                                 DecompressMode::Small => {
                                     // Make a copy of cftab, used in generation of T
@@ -934,8 +936,7 @@ pub(crate) fn decompress(
                                     if s.blockRandomised {
                                         s.rNToGo = 0;
                                         s.rTPos = 0;
-                                        if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32)
-                                        {
+                                        if s.tPos >= max_block_size {
                                             // NOTE: this originates in the BZ_GET_FAST macro, and the
                                             // `return true` is probably uninitentional?!
                                             return ReturnCode::BZ_RUN_OK;
@@ -957,8 +958,7 @@ pub(crate) fn decompress(
                                         s.rNToGo -= 1;
                                         s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
                                     } else {
-                                        if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32)
-                                        {
+                                        if s.tPos >= max_block_size {
                                             // NOTE: this originates in the BZ_GET_FAST macro, and the
                                             // `return true` is probably uninitentional?!
                                             return ReturnCode::BZ_RUN_OK;
@@ -983,8 +983,7 @@ pub(crate) fn decompress(
                                     if s.blockRandomised {
                                         s.rNToGo = 0;
                                         s.rTPos = 0;
-                                        if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32)
-                                        {
+                                        if s.tPos >= max_block_size {
                                             // NOTE: this originates in the BZ_GET_FAST macro, and the
                                             // `return true` is probably uninitentional?!
                                             return ReturnCode::BZ_RUN_OK;
@@ -1003,8 +1002,7 @@ pub(crate) fn decompress(
                                         s.rNToGo -= 1;
                                         s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
                                     } else {
-                                        if s.tPos >= 100000_u32.wrapping_mul(s.blockSize100k as u32)
-                                        {
+                                        if s.tPos >= max_block_size {
                                             // NOTE: this originates in the BZ_GET_FAST macro, and the
                                             // `return true` is probably uninitentional?!
                                             return ReturnCode::BZ_RUN_OK;
