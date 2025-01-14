@@ -1275,16 +1275,10 @@ pub(crate) fn decompress(
 }
 
 fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16) -> u8 {
-    let mut ii_0: i32;
-    let mut jj_0: i32;
-    let mut kk_0: i32;
-    let mut pp: i32;
-    let mut lno: i32;
-    let off: i32;
-    let mut nn: u32;
-    nn = (nextSym - 1) as u32;
+    let mut nn = (nextSym - 1) as u32;
+
     if nn < MTFL_SIZE as u32 {
-        pp = mtfbase[0_usize];
+        let pp = mtfbase[0_usize];
         let uc = mtfa[(pp as c_uint).wrapping_add(nn) as usize];
         while nn > 3 {
             let z: i32 = (pp as c_uint).wrapping_add(nn) as i32;
@@ -1303,9 +1297,9 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16)
 
         uc
     } else {
-        lno = nn.wrapping_div(16) as i32;
-        off = nn.wrapping_rem(16) as i32;
-        pp = mtfbase[lno as usize] + off;
+        let mut lno = nn.wrapping_div(16);
+        let off = nn.wrapping_rem(16);
+        let mut pp = mtfbase[lno as usize] + off as i32;
         let uc = mtfa[pp as usize];
         while pp > mtfbase[lno as usize] {
             mtfa[pp as usize] = mtfa[(pp - 1) as usize];
@@ -1320,6 +1314,11 @@ fn initialize_mtfa(mtfa: &mut [u8; 4096], mtfbase: &mut [i32; 16], nextSym: u16)
         }
         mtfbase[0_usize] -= 1;
         mtfa[mtfbase[0_usize] as usize] = uc;
+
+        let mut ii_0: i32;
+        let mut jj_0: i32;
+        let mut kk_0: i32;
+
         if mtfbase[0_usize] == 0 {
             kk_0 = 4096 - 1;
             ii_0 = 256 / 16 - 1;
