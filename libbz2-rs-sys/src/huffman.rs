@@ -185,11 +185,11 @@ pub(crate) fn create_decode_tables(
 ) {
     assert!(length.len() <= 258);
 
-    let mut pp: i32 = 0;
+    let mut pp = 0;
     for i in minLen..=maxLen {
         for (j, e) in length.iter().enumerate() {
             if *e == i {
-                perm[pp as usize] = j as u16;
+                perm[pp] = j as u16;
                 pp += 1;
             }
         }
@@ -198,7 +198,7 @@ pub(crate) fn create_decode_tables(
     base[0..BZ_MAX_CODE_LEN].fill(0);
 
     for l in length {
-        base[*l as usize + 1] += 1;
+        base[usize::from(*l) + 1] += 1;
     }
 
     for i in 1..BZ_MAX_CODE_LEN {
@@ -208,13 +208,13 @@ pub(crate) fn create_decode_tables(
     limit[0..BZ_MAX_CODE_LEN].fill(0);
 
     let mut vec = 0;
-    for i in minLen..=maxLen {
-        vec += base[i as usize + 1] - base[i as usize];
-        limit[i as usize] = vec - 1;
+    for i in usize::from(minLen)..=usize::from(maxLen) {
+        vec += base[i + 1] - base[i];
+        limit[i] = vec - 1;
         vec <<= 1;
     }
 
-    for i in minLen + 1..=maxLen {
-        base[i as usize] = ((limit[i as usize - 1] + 1) << 1) - base[i as usize];
+    for i in usize::from(minLen)..usize::from(maxLen) {
+        base[i + 1] = (2 * (limit[i] + 1)) - base[i + 1];
     }
 }
