@@ -980,12 +980,10 @@ pub(crate) fn decompress(
                                     }
                                 }
                                 DecompressMode::Fast => {
-                                    i = 0;
-                                    while i < nblock as i32 {
-                                        uc = (tt[i as usize] & 0xff) as u8;
-                                        tt[s.cftab[uc as usize] as usize] |= (i << 8) as c_uint;
-                                        s.cftab[uc as usize] += 1;
-                                        i += 1;
+                                    for i in 0..nblock as usize {
+                                        let uc = (tt[i] & 0xff) as usize;
+                                        tt[s.cftab[uc] as usize] |= (i << 8) as u32;
+                                        s.cftab[uc] += 1;
                                     }
                                     s.tPos = tt[s.origPtr as usize] >> 8;
                                     s.nblock_used = 0;
