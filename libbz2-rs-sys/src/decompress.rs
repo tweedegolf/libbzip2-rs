@@ -5,9 +5,8 @@ use core::ffi::c_int;
 use crate::allocator::Allocator;
 use crate::bzlib::{
     index_into_f, BzStream, DSlice, DState, DecompressMode, ReturnCode, SaveArea, BZ_MAX_SELECTORS,
-    BZ_RUNA, BZ_RUNB,
+    BZ_RAND_UPD_MASK, BZ_RUNA, BZ_RUNB,
 };
-use crate::randtable::BZ2_RNUMS;
 use crate::{debug_log, huffman};
 
 /*-- Constants for the fast MTF decoder. --*/
@@ -946,15 +945,8 @@ pub(crate) fn decompress(
                                                 & 0xf)
                                                 << 16;
                                         s.nblock_used += 1;
-                                        if s.rNToGo == 0 {
-                                            s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
-                                            s.rTPos += 1;
-                                            if s.rTPos == 512 {
-                                                s.rTPos = 0;
-                                            }
-                                        }
-                                        s.rNToGo -= 1;
-                                        s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
+                                        BZ_RAND_UPD_MASK!(s);
+                                        s.k0 ^= u8::from(s.rNToGo == 1)
                                     } else {
                                         if s.tPos >= max_block_size {
                                             // NOTE: this originates in the BZ_GET_FAST macro, and the
@@ -990,15 +982,8 @@ pub(crate) fn decompress(
                                         s.k0 = (s.tPos & 0xff) as u8;
                                         s.tPos >>= 8;
                                         s.nblock_used += 1;
-                                        if s.rNToGo == 0 {
-                                            s.rNToGo = BZ2_RNUMS[s.rTPos as usize];
-                                            s.rTPos += 1;
-                                            if s.rTPos == 512 {
-                                                s.rTPos = 0;
-                                            }
-                                        }
-                                        s.rNToGo -= 1;
-                                        s.k0 ^= if s.rNToGo == 1 { 1 } else { 0 };
+                                        BZ_RAND_UPD_MASK!(s);
+                                        s.k0 ^= u8::from(s.rNToGo == 1)
                                     } else {
                                         if s.tPos >= max_block_size {
                                             // NOTE: this originates in the BZ_GET_FAST macro, and the

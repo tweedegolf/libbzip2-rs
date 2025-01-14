@@ -1237,6 +1237,8 @@ macro_rules! BZ_RAND_UPD_MASK {
     };
 }
 
+pub(crate) use BZ_RAND_UPD_MASK;
+
 macro_rules! BZ_GET_FAST {
     ($s:expr, $cccc:expr) => {
         /* c_tPos is unsigned, hence test < 0 is pointless. */
