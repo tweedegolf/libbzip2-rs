@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use core::ffi::{c_int, c_uint};
+use core::ffi::c_int;
 
 use crate::allocator::Allocator;
 use crate::bzlib::{
@@ -1072,14 +1072,9 @@ pub(crate) fn decompress(
                             const _: () = assert!((BZ_MAX_SELECTORS >> 16) == 0);
                             nSelectors = Ord::min(nSelectors, BZ_MAX_SELECTORS as u16);
 
-                            let mut pos: [u8; 6] = [0; 6];
+                            let mut pos: [u8; 6] = [0, 1, 2, 3, 4, 5];
                             let mut tmp: u8;
-                            let mut v_22: u8;
-                            v_22 = 0_u8;
-                            while v_22 < nGroups {
-                                pos[v_22 as usize] = v_22;
-                                v_22 = v_22.wrapping_add(1);
-                            }
+                            let mut v_22;
                             i = 0;
                             while i < nSelectors as i32 {
                                 v_22 = s.selectorMtf[i as usize];
