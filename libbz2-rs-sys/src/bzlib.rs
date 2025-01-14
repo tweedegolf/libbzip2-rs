@@ -1237,6 +1237,8 @@ macro_rules! BZ_RAND_UPD_MASK {
     };
 }
 
+pub(crate) use BZ_RAND_UPD_MASK;
+
 macro_rules! BZ_GET_FAST {
     ($s:expr) => {
         match $s.tt.as_slice().get($s.tPos as usize) {
