@@ -390,12 +390,6 @@ fn mainGtU(
     nblock: u32,
     budget: &mut i32,
 ) -> bool {
-    let mut k: i32;
-    let mut c1: u8;
-    let mut c2: u8;
-    let mut s1: u16;
-    let mut s2: u16;
-
     debug_assert_ne!(i1, i2, "mainGtU");
 
     let chunk1 = &block[i1 as usize..][..12];
@@ -414,20 +408,23 @@ fn mainGtU(
     i2 += 12;
 
     for _ in 0..nblock.div_ceil(8) {
-        for _ in 0..8 {
-            c1 = block[i1 as usize];
-            c2 = block[i2 as usize];
+        let b1 = &block[i1 as usize..][..8];
+        let b2 = &block[i2 as usize..][..8];
+
+        let q1 = &quadrant[i1 as usize..][..8];
+        let q2 = &quadrant[i2 as usize..][..8];
+
+        for (((c1, c2), s1), s2) in b1.iter().zip(b2).zip(q1).zip(q2) {
             if c1 != c2 {
                 return c1 > c2;
             }
-            s1 = quadrant[i1 as usize];
-            s2 = quadrant[i2 as usize];
             if s1 != s2 {
                 return s1 > s2;
             }
-            i1 = i1.wrapping_add(1);
-            i2 = i2.wrapping_add(1);
         }
+
+        i1 += 8;
+        i2 += 8;
 
         if i1 >= nblock {
             i1 = i1.wrapping_sub(nblock);
