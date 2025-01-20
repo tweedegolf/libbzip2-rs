@@ -398,90 +398,21 @@ fn mainGtU(
 
     debug_assert_ne!(i1, i2, "mainGtU");
 
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
+    let chunk1 = &block[i1 as usize..][..12];
+    let chunk2 = &block[i2 as usize..][..12];
+
+    for (c1, c2) in chunk1.chunks_exact(4).zip(chunk2.chunks_exact(4)) {
+        let c1 = u32::from_be_bytes(c1[..4].try_into().unwrap());
+        let c2 = u32::from_be_bytes(c2[..4].try_into().unwrap());
+
+        if c1 != c2 {
+            return c1 > c2;
+        }
     }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
-    c1 = block[i1 as usize];
-    c2 = block[i2 as usize];
-    if c1 != c2 {
-        return c1 > c2;
-    }
-    i1 = i1.wrapping_add(1);
-    i2 = i2.wrapping_add(1);
+
+    i1 += 12;
+    i2 += 12;
+
     k = nblock.wrapping_add(8 as c_int as c_uint) as i32;
     loop {
         c1 = block[i1 as usize];
