@@ -413,8 +413,7 @@ fn mainGtU(
     i1 += 12;
     i2 += 12;
 
-    k = nblock.wrapping_add(8 as c_int as c_uint) as i32;
-    loop {
+    for _ in 0..nblock.div_ceil(8) {
         for _ in 0..8 {
             c1 = block[i1 as usize];
             c2 = block[i2 as usize];
@@ -436,13 +435,12 @@ fn mainGtU(
         if i2 >= nblock {
             i2 = i2.wrapping_sub(nblock);
         }
-        k -= 8 as c_int;
         *budget -= 1;
-        if k < 0 as c_int {
-            break false;
-        }
     }
+
+    false
 }
+
 static INCS: [i32; 14] = [
     1 as c_int,
     4 as c_int,
