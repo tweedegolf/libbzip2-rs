@@ -414,12 +414,14 @@ fn mainGtU(
         let q1 = &quadrant[i1 as usize..][..8];
         let q2 = &quadrant[i2 as usize..][..8];
 
-        for (((c1, c2), s1), s2) in b1.iter().zip(b2).zip(q1).zip(q2) {
-            if c1 != c2 {
-                return c1 > c2;
-            }
-            if s1 != s2 {
-                return s1 > s2;
+        if b1 != b2 || q1 != q2 {
+            for (((c1, c2), s1), s2) in b1.iter().zip(b2).zip(q1).zip(q2) {
+                if c1 != c2 {
+                    return c1 > c2;
+                }
+                if s1 != s2 {
+                    return s1 > s2;
+                }
             }
         }
 
@@ -432,6 +434,7 @@ fn mainGtU(
         if i2 >= nblock {
             i2 = i2.wrapping_sub(nblock);
         }
+
         *budget -= 1;
     }
 
