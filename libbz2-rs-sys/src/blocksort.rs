@@ -415,102 +415,21 @@ fn mainGtU(
 
     k = nblock.wrapping_add(8 as c_int as c_uint) as i32;
     loop {
-        c1 = block[i1 as usize];
-        c2 = block[i2 as usize];
-        if c1 != c2 {
-            return c1 > c2;
+        for _ in 0..8 {
+            c1 = block[i1 as usize];
+            c2 = block[i2 as usize];
+            if c1 != c2 {
+                return c1 > c2;
+            }
+            s1 = quadrant[i1 as usize];
+            s2 = quadrant[i2 as usize];
+            if s1 != s2 {
+                return s1 > s2;
+            }
+            i1 = i1.wrapping_add(1);
+            i2 = i2.wrapping_add(1);
         }
-        s1 = quadrant[i1 as usize];
-        s2 = quadrant[i2 as usize];
-        if s1 != s2 {
-            return s1 > s2;
-        }
-        i1 = i1.wrapping_add(1);
-        i2 = i2.wrapping_add(1);
-        c1 = block[i1 as usize];
-        c2 = block[i2 as usize];
-        if c1 != c2 {
-            return c1 > c2;
-        }
-        s1 = quadrant[i1 as usize];
-        s2 = quadrant[i2 as usize];
-        if s1 != s2 {
-            return s1 > s2;
-        }
-        i1 = i1.wrapping_add(1);
-        i2 = i2.wrapping_add(1);
-        c1 = block[i1 as usize];
-        c2 = block[i2 as usize];
-        if c1 != c2 {
-            return c1 > c2;
-        }
-        s1 = quadrant[i1 as usize];
-        s2 = quadrant[i2 as usize];
-        if s1 != s2 {
-            return s1 > s2;
-        }
-        i1 = i1.wrapping_add(1);
-        i2 = i2.wrapping_add(1);
-        c1 = block[i1 as usize];
-        c2 = block[i2 as usize];
-        if c1 != c2 {
-            return c1 > c2;
-        }
-        s1 = quadrant[i1 as usize];
-        s2 = quadrant[i2 as usize];
-        if s1 != s2 {
-            return s1 > s2;
-        }
-        i1 = i1.wrapping_add(1);
-        i2 = i2.wrapping_add(1);
-        c1 = block[i1 as usize];
-        c2 = block[i2 as usize];
-        if c1 != c2 {
-            return c1 > c2;
-        }
-        s1 = quadrant[i1 as usize];
-        s2 = quadrant[i2 as usize];
-        if s1 != s2 {
-            return s1 > s2;
-        }
-        i1 = i1.wrapping_add(1);
-        i2 = i2.wrapping_add(1);
-        c1 = block[i1 as usize];
-        c2 = block[i2 as usize];
-        if c1 != c2 {
-            return c1 > c2;
-        }
-        s1 = quadrant[i1 as usize];
-        s2 = quadrant[i2 as usize];
-        if s1 != s2 {
-            return s1 > s2;
-        }
-        i1 = i1.wrapping_add(1);
-        i2 = i2.wrapping_add(1);
-        c1 = block[i1 as usize];
-        c2 = block[i2 as usize];
-        if c1 != c2 {
-            return c1 > c2;
-        }
-        s1 = quadrant[i1 as usize];
-        s2 = quadrant[i2 as usize];
-        if s1 != s2 {
-            return s1 > s2;
-        }
-        i1 = i1.wrapping_add(1);
-        i2 = i2.wrapping_add(1);
-        c1 = block[i1 as usize];
-        c2 = block[i2 as usize];
-        if c1 != c2 {
-            return c1 > c2;
-        }
-        s1 = quadrant[i1 as usize];
-        s2 = quadrant[i2 as usize];
-        if s1 != s2 {
-            return s1 > s2;
-        }
-        i1 = i1.wrapping_add(1);
-        i2 = i2.wrapping_add(1);
+
         if i1 >= nblock {
             i1 = i1.wrapping_sub(nblock);
         }
