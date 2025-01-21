@@ -126,16 +126,6 @@ enum Block {
 }
 use Block::*;
 
-fn make_maps_d(s: &mut DState) {
-    s.nInUse = 0;
-    for (i, in_use) in s.inUse.iter().enumerate() {
-        if *in_use {
-            s.seqToUnseq[s.nInUse as usize] = i as u8;
-            s.nInUse += 1;
-        }
-    }
-}
-
 pub(crate) fn decompress(
     strm: &mut BzStream<DState>,
     s: &mut DState,
@@ -600,9 +590,9 @@ pub(crate) fn decompress(
         }
 
         // mutable because they need to be reborrowed
-        let mut tt = s.tt.as_mut_slice();
-        let mut ll16 = s.ll16.as_mut_slice();
-        let mut ll4 = s.ll4.as_mut_slice();
+        let tt = s.tt.as_mut_slice();
+        let ll16 = s.ll16.as_mut_slice();
+        let ll4 = s.ll4.as_mut_slice();
 
         'c_10064: loop {
             match current_block {
@@ -1024,12 +1014,14 @@ pub(crate) fn decompress(
                                 continue;
                             }
                         } else {
-                            make_maps_d(s);
-
-                            // reborrow
-                            tt = s.tt.as_mut_slice();
-                            ll16 = s.ll16.as_mut_slice();
-                            ll4 = s.ll4.as_mut_slice();
+                            // inlined `make_maps_d`
+                            s.nInUse = 0;
+                            for (i, in_use) in s.inUse.iter().enumerate() {
+                                if *in_use {
+                                    s.seqToUnseq[s.nInUse as usize] = i as u8;
+                                    s.nInUse += 1;
+                                }
+                            }
 
                             if s.nInUse == 0 {
                                 current_block = Block11;
