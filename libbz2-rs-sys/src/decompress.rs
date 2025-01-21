@@ -810,10 +810,11 @@ pub(crate) fn decompress(
                     error!(BZ_DATA_ERROR);
                 } else {
                     let uc = usize::from(initialize_mtfa(&mut s.mtfa, &mut s.mtfbase, nextSym));
-                    s.unzftab[usize::from(s.seqToUnseq[uc])] += 1;
+                    let index = s.seqToUnseq[uc];
+                    s.unzftab[usize::from(index)] += 1;
                     match s.smallDecompress {
-                        DecompressMode::Small => ll16[nblock as usize] = s.seqToUnseq[uc] as u16,
-                        DecompressMode::Fast => tt[nblock as usize] = s.seqToUnseq[uc] as u32,
+                        DecompressMode::Small => ll16[nblock as usize] = u16::from(index),
+                        DecompressMode::Fast => tt[nblock as usize] = u32::from(index),
                     }
                     nblock += 1;
                     update_group_pos!(s);
@@ -844,8 +845,8 @@ pub(crate) fn decompress(
                                 error!(BZ_DATA_ERROR);
                             }
                             s.state_out_len = 0;
-                            s.state_out_ch = 0_u8;
-                            s.calculatedBlockCRC = 0xffffffffu32;
+                            s.state_out_ch = 0;
+                            s.calculatedBlockCRC = u32::MAX;
                             s.state = State::BZ_X_OUTPUT;
                             if s.verbosity >= 2 {
                                 debug_log!("rt+rld");
@@ -1007,8 +1008,8 @@ pub(crate) fn decompress(
                         }
                     }
                     Block18 => {
-                        if i < 16 {
-                            if s.inUse16[i as usize] {
+                        if let Some(&in_use) = s.inUse16.get(i as usize) {
+                            if in_use {
                                 j = 0;
                                 current_block = Block28;
                                 continue;
