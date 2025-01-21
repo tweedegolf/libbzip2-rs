@@ -246,6 +246,35 @@ mod stream {
 
         #[must_use]
         #[inline(always)]
+        pub(crate) fn pull_u32(
+            &mut self,
+            mut bit_buffer: u32,
+            bits_used: i32,
+        ) -> Option<(u32, i32)> {
+            if self.avail_in < 4 {
+                return None;
+            }
+
+            // of course this uses big endian values
+            let read = unsafe { self.next_in.cast::<u32>().read_unaligned().to_be() };
+
+            // because of the endianness, we can only shift in whole bytes.
+            let increment_bytes = (31 - bits_used) / 8;
+            let increment_bits = 8 * increment_bytes;
+
+            bit_buffer <<= increment_bits;
+            bit_buffer |= read >> (32 - increment_bits);
+
+            self.next_in = unsafe { (self.next_in).add(increment_bytes as usize) };
+            self.avail_in -= increment_bytes as u32;
+
+            // skips updating `self.total_in`: the caller is responsible for keeping it updated
+
+            Some((bit_buffer, bits_used + increment_bits))
+        }
+
+        #[must_use]
+        #[inline(always)]
         pub(crate) fn read_byte_fast(&mut self) -> Option<u8> {
             if self.avail_in == 0 {
                 return None;
