@@ -134,6 +134,8 @@ pub(crate) fn decompress(
     let mut current_block: Block;
     let mut uc: u8;
 
+    let old_avail_in = strm.avail_in;
+
     if let State::BZ_X_MAGIC_1 = s.state {
         /*zero out the save area*/
         s.save = SaveArea::default();
@@ -185,7 +187,7 @@ pub(crate) fn decompress(
                         break v;
                     }
 
-                    if let Some(next_byte) = strm.read_byte() {
+                    if let Some(next_byte) = strm.read_byte_fast() {
                         $s.bsBuff = $s.bsBuff << 8 | next_byte as u32;
                         $s.bsLive += 8;
                     } else {
@@ -1164,6 +1166,12 @@ pub(crate) fn decompress(
         gSel,
         gMinlen,
     };
+
+    // update total_in with how many bytes were read during this call
+    let bytes_read = old_avail_in - strm.avail_in;
+    let old_total_in_lo32 = strm.total_in_lo32;
+    strm.total_in_lo32 = strm.total_in_lo32.wrapping_add(bytes_read);
+    strm.total_in_hi32 += (strm.total_in_lo32 < old_total_in_lo32) as u32;
 
     ret_val
 }

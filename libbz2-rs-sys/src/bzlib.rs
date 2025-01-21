@@ -245,6 +245,21 @@ mod stream {
         }
 
         #[must_use]
+        #[inline(always)]
+        pub(crate) fn read_byte_fast(&mut self) -> Option<u8> {
+            if self.avail_in == 0 {
+                return None;
+            }
+            let b = unsafe { *(self.next_in as *mut u8) };
+            self.next_in = unsafe { (self.next_in).offset(1) };
+            self.avail_in -= 1;
+
+            // skips updating `self.total_in`: the caller is responsible for keeping it updated
+
+            Some(b)
+        }
+
+        #[must_use]
         pub(crate) fn read_byte(&mut self) -> Option<u8> {
             if self.avail_in == 0 {
                 return None;
