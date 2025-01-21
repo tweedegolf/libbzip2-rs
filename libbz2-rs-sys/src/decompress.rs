@@ -773,7 +773,7 @@ pub(crate) fn decompress(
                         current_block = Block46;
                     } else {
                         let uc = s.seqToUnseq[usize::from(s.mtfa[usize::from(s.mtfbase[0])])];
-                        s.unzftab[usize::from(uc)] += es as i32;
+                        s.unzftab[usize::from(uc)] += es;
                         match s.smallDecompress {
                             DecompressMode::Small => {
                                 match ll16.get_mut(nblock as usize..(nblock + es) as usize) {
@@ -828,7 +828,7 @@ pub(crate) fn decompress(
                         if s.origPtr < 0 || s.origPtr >= nblock as i32 {
                             error!(BZ_DATA_ERROR);
                         } else {
-                            if s.unzftab.iter().any(|e| !(0..=nblock as i32).contains(e)) {
+                            if s.unzftab.iter().any(|e| !(0..=nblock).contains(e)) {
                                 error!(BZ_DATA_ERROR);
                             }
                             s.cftab[0] = 0;
@@ -836,7 +836,7 @@ pub(crate) fn decompress(
                             for i in 1..s.cftab.len() {
                                 s.cftab[i] += s.cftab[i - 1];
                             }
-                            if s.cftab.iter().any(|e| !(0..=nblock as i32).contains(e)) {
+                            if s.cftab.iter().any(|e| !(0..=nblock).contains(e)) {
                                 error!(BZ_DATA_ERROR);
                             }
                             // FIXME: use https://doc.rust-lang.org/std/primitive.slice.html#method.is_sorted
@@ -904,7 +904,7 @@ pub(crate) fn decompress(
                                     s.tPos = s.origPtr as u32;
                                     s.nblock_used = 0;
 
-                                    s.k0 = index_into_f(s.tPos as i32, &s.cftab);
+                                    s.k0 = index_into_f(s.tPos, &s.cftab);
                                     s.tPos = match ll16.get(s.tPos as usize) {
                                         None => error!(BZ_DATA_ERROR),
                                         Some(&low_bits) => {

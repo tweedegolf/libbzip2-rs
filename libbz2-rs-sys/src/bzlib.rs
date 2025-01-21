@@ -541,9 +541,9 @@ pub(crate) struct DState {
     pub origPtr: i32,
     pub tPos: u32,
     pub nblock_used: i32,
-    pub unzftab: [i32; 256],
-    pub cftab: [i32; 257],
-    pub cftabCopy: [i32; 257],
+    pub unzftab: [u32; 256],
+    pub cftab: [u32; 257],
+    pub cftabCopy: [u32; 257],
     pub tt: DSlice<u32>,
     pub ll16: DSlice<u16>,
     pub ll4: DSlice<u8>,
@@ -1484,7 +1484,7 @@ fn un_rle_obuf_to_output_fast(strm: &mut BzStream<DState>, s: &mut DState) -> bo
 }
 
 #[inline]
-pub(crate) fn index_into_f(index: i32, cftab: &[i32; 257]) -> u8 {
+pub(crate) fn index_into_f(index: u32, cftab: &[u32; 257]) -> u8 {
     let mut nb = 0u16;
     let mut na = 256;
     loop {
@@ -1516,7 +1516,7 @@ macro_rules! BZ_GET_SMALL {
             None => return true,
             Some(&low_bits) => {
                 let high_bits = GET_LL4!($s, $s.tPos);
-                let tmp = index_into_f($s.tPos as i32, &$s.cftab);
+                let tmp = index_into_f($s.tPos, &$s.cftab);
                 $s.tPos = u32::from(low_bits) | high_bits << 16;
                 tmp
             }
