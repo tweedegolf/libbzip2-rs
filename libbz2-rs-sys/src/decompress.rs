@@ -752,9 +752,10 @@ pub(crate) fn decompress(
                     current_block = Block24;
                 }
             }
-            match current_block {
-                Block24 => {
-                    nextSym = if zn > 20 {
+
+            macro_rules! get_next_sym {
+                ($next_block:ident) => {
+                    if (zn > 20/* the longest code */) {
                         error!(BZ_DATA_ERROR);
                     } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
                         let index = zvec - s.base[usize::from(gSel)][zn as usize];
@@ -764,25 +765,19 @@ pub(crate) fn decompress(
                         }
                     } else {
                         zn += 1;
-                        current_block = BZ_X_MTF_6;
-                        continue;
-                    };
+                        current_block = $next_block;
+                        continue 'c_10064;
+                    }
+                };
+            }
+
+            match current_block {
+                Block24 => {
+                    nextSym = get_next_sym!(BZ_X_MTF_6);
                     current_block = Block40;
                 }
                 Block52 => {
-                    nextSym = if zn > 20 {
-                        error!(BZ_DATA_ERROR);
-                    } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
-                        let index = zvec - s.base[usize::from(gSel)][zn as usize];
-                        match s.perm[usize::from(gSel)].get(index as usize) {
-                            Some(&nextSym) => nextSym,
-                            None => error!(BZ_DATA_ERROR),
-                        }
-                    } else {
-                        zn += 1;
-                        current_block = BZ_X_MTF_4;
-                        continue;
-                    };
+                    nextSym = get_next_sym!(BZ_X_MTF_4);
 
                     if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
                         current_block = Block46;
@@ -809,19 +804,7 @@ pub(crate) fn decompress(
                     }
                 }
                 Block56 => {
-                    nextSym = if zn > 20 {
-                        error!(BZ_DATA_ERROR);
-                    } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
-                        let index = zvec - s.base[usize::from(gSel)][zn as usize];
-                        match s.perm[usize::from(gSel)].get(index as usize) {
-                            Some(&nextSym) => nextSym,
-                            None => error!(BZ_DATA_ERROR),
-                        }
-                    } else {
-                        zn += 1;
-                        current_block = BZ_X_MTF_2;
-                        continue;
-                    };
+                    nextSym = get_next_sym!(BZ_X_MTF_2);
                     current_block = Block40;
                 }
                 _ => {}
