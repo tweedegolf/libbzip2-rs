@@ -278,17 +278,25 @@ mod stream {
 
         #[must_use]
         #[inline(always)]
-        pub(crate) fn read_byte_fast(&mut self) -> Option<u8> {
-            if self.avail_in == 0 {
+        pub(crate) fn pull_u8(
+            &mut self,
+            mut bit_buffer: u64,
+            bits_used: i32,
+        ) -> Option<(u64, i32)> {
+            if self.avail_in == 0 || bits_used > 56 {
                 return None;
             }
-            let b = unsafe { *(self.next_in as *mut u8) };
+
+            let read = unsafe { *(self.next_in as *mut u8) };
+            bit_buffer <<= 8;
+            bit_buffer |= read as u64;
+
             self.next_in = unsafe { (self.next_in).offset(1) };
             self.avail_in -= 1;
 
             // skips updating `self.total_in`: the caller is responsible for keeping it updated
 
-            Some(b)
+            Some((bit_buffer, bits_used + 8))
         }
 
         #[must_use]

@@ -184,15 +184,16 @@ pub(crate) fn decompress(
                     if $s.bsLive >= $nnn {
                         let v: u64 = ($s.bsBuff >> ($s.bsLive - $nnn)) & ((1 << $nnn) - 1);
                         $s.bsLive -= $nnn;
-                        break v as u32;
+                        break v;
                     }
 
                     if let Some((bit_buffer, bits_used)) = strm.pull_u64($s.bsBuff, $s.bsLive) {
                         $s.bsBuff = bit_buffer;
                         $s.bsLive = bits_used;
-                    } else if let Some(next_byte) = strm.read_byte_fast() {
-                        $s.bsBuff = $s.bsBuff << 8 | next_byte as u64;
-                        $s.bsLive += 8;
+                    } else if let Some((bit_buffer, bits_used)) = strm.pull_u8($s.bsBuff, $s.bsLive)
+                    {
+                        $s.bsBuff = bit_buffer;
+                        $s.bsLive = bits_used;
                     } else {
                         break 'save_state_and_return ReturnCode::BZ_OK;
                     }
