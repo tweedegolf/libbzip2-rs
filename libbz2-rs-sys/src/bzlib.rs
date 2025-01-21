@@ -262,12 +262,15 @@ mod stream {
             let read = unsafe { self.next_in.cast::<u64>().read_unaligned().to_be() };
 
             // because of the endianness, we can only shift in whole bytes.
-            let increment_bytes = (63 - bits_used) / 8;
-            let increment_bits = 8 * increment_bytes;
+            // this calculates the number of available bits, rounded down to the nearest multiple
+            // of 8.
+            let increment_bits = (63 - bits_used) & !7;
 
-            bit_buffer <<= increment_bits;
-            bit_buffer |= (read >> (64 - increment_bits)) as u64;
+            // shift existing bits to the end, and or new bits in
+            bit_buffer = (bit_buffer << increment_bits) | (read >> (64 - increment_bits));
 
+            // we read 8 bytes above, but can only process `increment_bytes` worth of bits
+            let increment_bytes = increment_bits / 8;
             self.next_in = unsafe { (self.next_in).add(increment_bytes as usize) };
             self.avail_in -= increment_bytes as u32;
 
