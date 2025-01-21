@@ -754,73 +754,74 @@ pub(crate) fn decompress(
             }
             match current_block {
                 Block24 => {
-                    if zn > 20 {
+                    nextSym = if zn > 20 {
                         error!(BZ_DATA_ERROR);
                     } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
                         let index = zvec - s.base[usize::from(gSel)][zn as usize];
-                        nextSym = match s.perm[usize::from(gSel)].get(index as usize) {
+                        match s.perm[usize::from(gSel)].get(index as usize) {
                             Some(&nextSym) => nextSym,
                             None => error!(BZ_DATA_ERROR),
-                        };
+                        }
                     } else {
                         zn += 1;
                         current_block = BZ_X_MTF_6;
                         continue;
-                    }
+                    };
                     current_block = Block40;
                 }
                 Block52 => {
-                    if zn > 20 {
+                    nextSym = if zn > 20 {
                         error!(BZ_DATA_ERROR);
                     } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
                         let index = zvec - s.base[usize::from(gSel)][zn as usize];
-                        nextSym = match s.perm[usize::from(gSel)].get(index as usize) {
+                        match s.perm[usize::from(gSel)].get(index as usize) {
                             Some(&nextSym) => nextSym,
                             None => error!(BZ_DATA_ERROR),
-                        };
-                        if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
-                            current_block = Block46;
-                        } else {
-                            let uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
-                            s.unzftab[usize::from(uc)] += es as i32;
-                            match s.smallDecompress {
-                                DecompressMode::Small => {
-                                    match ll16.get_mut(nblock as usize..(nblock + es) as usize) {
-                                        Some(slice) => slice.fill(u16::from(uc)),
-                                        None => error!(BZ_DATA_ERROR),
-                                    };
-                                    nblock += es;
-                                }
-                                DecompressMode::Fast => {
-                                    match tt.get_mut(nblock as usize..(nblock + es) as usize) {
-                                        Some(slice) => slice.fill(u32::from(uc)),
-                                        None => error!(BZ_DATA_ERROR),
-                                    };
-                                    nblock += es;
-                                }
-                            }
-                            current_block = Block40;
                         }
                     } else {
                         zn += 1;
                         current_block = BZ_X_MTF_4;
                         continue;
+                    };
+
+                    if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
+                        current_block = Block46;
+                    } else {
+                        let uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
+                        s.unzftab[usize::from(uc)] += es as i32;
+                        match s.smallDecompress {
+                            DecompressMode::Small => {
+                                match ll16.get_mut(nblock as usize..(nblock + es) as usize) {
+                                    Some(slice) => slice.fill(u16::from(uc)),
+                                    None => error!(BZ_DATA_ERROR),
+                                };
+                                nblock += es;
+                            }
+                            DecompressMode::Fast => {
+                                match tt.get_mut(nblock as usize..(nblock + es) as usize) {
+                                    Some(slice) => slice.fill(u32::from(uc)),
+                                    None => error!(BZ_DATA_ERROR),
+                                };
+                                nblock += es;
+                            }
+                        }
+                        current_block = Block40;
                     }
                 }
                 Block56 => {
-                    if zn > 20 {
+                    nextSym = if zn > 20 {
                         error!(BZ_DATA_ERROR);
                     } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
                         let index = zvec - s.base[usize::from(gSel)][zn as usize];
-                        nextSym = match s.perm[usize::from(gSel)].get(index as usize) {
+                        match s.perm[usize::from(gSel)].get(index as usize) {
                             Some(&nextSym) => nextSym,
                             None => error!(BZ_DATA_ERROR),
-                        };
+                        }
                     } else {
                         zn += 1;
                         current_block = BZ_X_MTF_2;
                         continue;
-                    }
+                    };
                     current_block = Block40;
                 }
                 _ => {}
