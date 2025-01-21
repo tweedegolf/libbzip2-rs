@@ -187,7 +187,10 @@ pub(crate) fn decompress(
                         break v;
                     }
 
-                    if let Some(next_byte) = strm.read_byte_fast() {
+                    if let Some((bit_buffer, bits_used)) = strm.pull_u32($s.bsBuff, $s.bsLive) {
+                        $s.bsBuff = bit_buffer;
+                        $s.bsLive = bits_used;
+                    } else if let Some(next_byte) = strm.read_byte_fast() {
                         $s.bsBuff = $s.bsBuff << 8 | next_byte as u32;
                         $s.bsLive += 8;
                     } else {
