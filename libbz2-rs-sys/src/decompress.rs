@@ -782,7 +782,7 @@ pub(crate) fn decompress(
                     if nextSym == BZ_RUNA || nextSym == BZ_RUNB {
                         current_block = Block46;
                     } else {
-                        let uc = s.seqToUnseq[s.mtfa[s.mtfbase[0_usize] as usize] as usize];
+                        let uc = s.seqToUnseq[usize::from(s.mtfa[usize::from(s.mtfbase[0])])];
                         s.unzftab[usize::from(uc)] += es as i32;
                         match s.smallDecompress {
                             DecompressMode::Small => {
