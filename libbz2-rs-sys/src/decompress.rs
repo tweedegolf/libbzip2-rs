@@ -1018,7 +1018,7 @@ pub(crate) fn decompress(
                             s.nInUse = 0;
                             for (i, in_use) in s.inUse.iter().enumerate() {
                                 if *in_use {
-                                    s.seqToUnseq[s.nInUse as usize] = i as u8;
+                                    s.seqToUnseq[usize::from(s.nInUse)] = i as u8;
                                     s.nInUse += 1;
                                 }
                             }
