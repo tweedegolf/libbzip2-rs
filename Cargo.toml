@@ -22,6 +22,10 @@ rust-version = "1.82" # MSRV
 libc = "0.2"
 libbz2-rs-sys = { path = "libbz2-rs-sys/", default-features = false }
 
+[profile.relwithdebinfo]
+inherits = "release"
+debug = true
+
 [package]
 name = "libbzip2-rs"
 readme.workspace = true
