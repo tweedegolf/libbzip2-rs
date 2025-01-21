@@ -187,7 +187,7 @@ pub(crate) fn decompress(
                         break v as u32;
                     }
 
-                    if let Some((bit_buffer, bits_used)) = strm.pull_u32($s.bsBuff, $s.bsLive) {
+                    if let Some((bit_buffer, bits_used)) = strm.pull_u64($s.bsBuff, $s.bsLive) {
                         $s.bsBuff = bit_buffer;
                         $s.bsLive = bits_used;
                     } else if let Some(next_byte) = strm.read_byte_fast() {
