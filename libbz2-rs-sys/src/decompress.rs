@@ -594,7 +594,7 @@ pub(crate) fn decompress(
         let ll16 = s.ll16.as_mut_slice();
         let ll4 = s.ll4.as_mut_slice();
 
-        'c_10064: loop {
+        'state_machine: loop {
             match current_block {
                 BZ_X_MAPPING_1 => {
                     s.state = State::BZ_X_MAPPING_1;
@@ -745,7 +745,8 @@ pub(crate) fn decompress(
 
             macro_rules! get_next_sym {
                 ($next_block:ident) => {
-                    if (zn > 20/* the longest code */) {
+                    if zn > 20 {
+                        // zn is higher than the longest code, that's invalid input
                         error!(BZ_DATA_ERROR);
                     } else if zvec <= s.limit[usize::from(gSel)][zn as usize] {
                         let index = zvec - s.base[usize::from(gSel)][zn as usize];
@@ -756,7 +757,7 @@ pub(crate) fn decompress(
                     } else {
                         zn += 1;
                         current_block = $next_block;
-                        continue 'c_10064;
+                        continue 'state_machine;
                     }
                 };
             }
@@ -984,7 +985,7 @@ pub(crate) fn decompress(
                     Block28 => {
                         if j < 16 {
                             current_block = BZ_X_MAPPING_2;
-                            continue 'c_10064;
+                            continue 'state_machine;
                         }
                     }
                     Block39 => {
@@ -1058,7 +1059,7 @@ pub(crate) fn decompress(
                     }
                     Block25 => {
                         current_block = BZ_X_SELECTOR_3;
-                        continue 'c_10064;
+                        continue 'state_machine;
                     }
                     _ => {
                         if false {
@@ -1067,7 +1068,7 @@ pub(crate) fn decompress(
                         }
                         if (1..=20).contains(&curr) {
                             current_block = BZ_X_CODING_2;
-                            continue 'c_10064;
+                            continue 'state_machine;
                         }
                         error!(BZ_DATA_ERROR);
                     }
