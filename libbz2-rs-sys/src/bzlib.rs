@@ -248,9 +248,9 @@ mod stream {
         #[inline(always)]
         pub(crate) fn pull_u32(
             &mut self,
-            mut bit_buffer: u32,
+            mut bit_buffer: u64,
             bits_used: i32,
-        ) -> Option<(u32, i32)> {
+        ) -> Option<(u64, i32)> {
             if self.avail_in < 4 {
                 return None;
             }
@@ -263,7 +263,7 @@ mod stream {
             let increment_bits = 8 * increment_bytes;
 
             bit_buffer <<= increment_bits;
-            bit_buffer |= read >> (32 - increment_bits);
+            bit_buffer |= (read >> (32 - increment_bits)) as u64;
 
             self.next_in = unsafe { (self.next_in).add(increment_bytes as usize) };
             self.avail_in -= increment_bytes as u32;
@@ -577,7 +577,7 @@ pub(crate) struct DState {
     pub k0: u8,
     pub rNToGo: i32,
     pub rTPos: i32,
-    pub bsBuff: u32,
+    pub bsBuff: u64,
     pub bsLive: i32,
     pub smallDecompress: DecompressMode,
     pub currBlockNo: i32,
