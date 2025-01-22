@@ -17,13 +17,10 @@ libbzip2-rs can be used in both Rust and C projects.
 
 ### Rust projects
 
-<!--
-FIXME uncomment the following text once https://github.com/alexcrichton/bzip2-rs/pull/110 lands.
-By far the easiest way to use libbzip2-rs is through the [bzip2-rs](https://crates.io/crates/bzip2-rs) crate, by simply enabling the `libbz2-rs-sys` feature gate. This will enable the `libbz2-rs-sys`
+By far the easiest way to use libbzip2-rs is through the [bzip2](https://crates.io/crates/bzip2) crate, by simply enabling the `libbz2-rs-sys` feature gate. This will enable the `libbz2-rs-sys`
 backend.
--->
 
-For the time being using the C api exported by the `libbz2-rs-sys` crate is the only way to use it from Rust. There is an [open PR](https://github.com/alexcrichton/bzip2-rs/pull/110) for the [bzip2-rs](https://crates.io/crates/bzip2-rs) crate to make usage significantly easier.
+You can also directly use the C api exported by the `libbz2-rs-sys` crate.
 
 ## C projects
 
@@ -41,5 +38,5 @@ libbzip2-rs is part of Trifecta Tech Foundation's [Data compression initiative](
 
 This project is funded through [NGI Zero Core](https://nlnet.nl/core), a fund established by [NLnet](https://nlnet.nl) with financial support from the European Commission's [Next Generation Internet](https://ngi.eu) program. Learn more at the [NLnet project page](https://nlnet.nl/project/ZipLinting).
 
-[<img src="https://nlnet.nl/logo/banner.png" alt="NLnet foundation logo" width="20%" />](https://nlnet.nl)  
+[<img src="https://nlnet.nl/logo/banner.png" alt="NLnet foundation logo" width="20%" />](https://nlnet.nl)
 [<img src="https://nlnet.nl/image/logos/NGI0_tag.svg" alt="NGI Zero Logo" width="20%" />](https://nlnet.nl/core)
