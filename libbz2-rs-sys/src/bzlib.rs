@@ -259,7 +259,7 @@ mod stream {
             }
 
             // of course this uses big endian values
-            let read = unsafe { self.next_in.cast::<u64>().read_unaligned().to_be() };
+            let read = u64::from_be_bytes(unsafe { self.next_in.cast::<[u8; 8]>().read() });
 
             // because of the endianness, we can only shift in whole bytes.
             // this calculates the number of available bits, rounded down to the nearest multiple
@@ -279,6 +279,9 @@ mod stream {
             Some((bit_buffer, bits_used + increment_bits))
         }
 
+        /// Read exactly 1 byte into the buffer
+        ///
+        /// The caller is responsible for updating `self.total_in`!
         #[must_use]
         #[inline(always)]
         pub(crate) fn pull_u8(
@@ -292,7 +295,7 @@ mod stream {
 
             let read = unsafe { *(self.next_in as *mut u8) };
             bit_buffer <<= 8;
-            bit_buffer |= read as u64;
+            bit_buffer |= u64::from(read);
 
             self.next_in = unsafe { (self.next_in).offset(1) };
             self.avail_in -= 1;
