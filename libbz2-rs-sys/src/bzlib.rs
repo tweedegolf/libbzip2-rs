@@ -254,6 +254,9 @@ mod stream {
             mut bit_buffer: u64,
             bits_used: i32,
         ) -> Option<(u64, i32)> {
+            // we should only ask for more input if there are at least 8 free bits
+            debug_assert!(bits_used <= 56);
+
             if self.avail_in < 8 {
                 return None;
             }
@@ -289,6 +292,9 @@ mod stream {
             mut bit_buffer: u64,
             bits_used: i32,
         ) -> Option<(u64, i32)> {
+            // we should only ask for more input if there are at least 8 free bits
+            debug_assert!(bits_used <= 56);
+
             if self.avail_in == 0 || bits_used > 56 {
                 return None;
             }
