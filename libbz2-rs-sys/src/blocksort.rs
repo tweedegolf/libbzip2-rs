@@ -665,23 +665,19 @@ fn mainQSort3(
                 n = Ord::min(ltLo - lo, unLo - ltLo);
                 let mut yyp1: i32 = lo;
                 let mut yyp2: i32 = unLo - n;
-                let mut yyn: i32 = n;
-                while yyn > 0 {
+                for _ in 0..n {
                     ptr.swap(yyp1 as usize, yyp2 as usize);
                     yyp1 += 1;
                     yyp2 += 1;
-                    yyn -= 1;
                 }
 
                 m = Ord::min(hi - gtHi, gtHi - unHi);
                 let mut yyp1_0: i32 = unLo;
                 let mut yyp2_0: i32 = hi - m + 1;
-                let mut yyn_0: i32 = m;
-                while yyn_0 > 0 {
+                for _ in 0..m {
                     ptr.swap(yyp1_0 as usize, yyp2_0 as usize);
                     yyp1_0 += 1;
                     yyp2_0 += 1;
-                    yyn_0 -= 1;
                 }
 
                 n = lo + unLo - ltLo - 1;
