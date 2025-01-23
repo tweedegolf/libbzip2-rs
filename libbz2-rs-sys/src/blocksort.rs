@@ -595,28 +595,24 @@ fn mainQSort3(
     let mut n: i32;
     let mut m: i32;
     let mut med: i32;
-    let mut sp: i32;
     let mut lo: i32;
     let mut hi: i32;
     let mut d: i32;
-    let mut stackLo: [i32; 100] = [0; 100];
-    let mut stackHi: [i32; 100] = [0; 100];
-    let mut stackD: [i32; 100] = [0; 100];
+
+    let mut stack = [(0i32, 0i32, 0i32); 100];
+
     let mut nextLo: [i32; 3] = [0; 3];
     let mut nextHi: [i32; 3] = [0; 3];
     let mut nextD: [i32; 3] = [0; 3];
-    sp = 0;
-    stackLo[sp as usize] = loSt;
-    stackHi[sp as usize] = hiSt;
-    stackD[sp as usize] = dSt;
-    sp += 1;
+
+    stack[0] = (loSt, hiSt, dSt);
+
+    let mut sp = 1;
     while sp > 0 {
-        assert_h!(sp < MAIN_QSORT_STACK_SIZE - 2, 1001);
+        assert_h!(sp < MAIN_QSORT_STACK_SIZE as usize - 2, 1001);
 
         sp -= 1;
-        lo = stackLo[sp as usize];
-        hi = stackHi[sp as usize];
-        d = stackD[sp as usize];
+        (lo, hi, d) = stack[sp];
         if hi - lo < MAIN_QSORT_SMALL_THRESH || d > MAIN_QSORT_DEPTH_THRESH {
             mainSimpleSort(ptr, block, quadrant, nblock, lo, hi, d, budget);
             if *budget < 0 {
@@ -680,9 +676,7 @@ fn mainQSort3(
                 unHi -= 1;
             }
             if gtHi < ltLo {
-                stackLo[sp as usize] = lo;
-                stackHi[sp as usize] = hi;
-                stackD[sp as usize] = d + 1;
+                stack[sp] = (lo, hi, d + 1);
                 sp += 1;
             } else {
                 n = if ltLo - lo < unLo - ltLo {
@@ -764,17 +758,11 @@ fn mainQSort3(
                     nextD[0] = nextD[1];
                     nextD[1] = tz_1;
                 }
-                stackLo[sp as usize] = nextLo[0];
-                stackHi[sp as usize] = nextHi[0];
-                stackD[sp as usize] = nextD[0];
+                stack[sp] = (nextLo[0], nextHi[0], nextD[0]);
                 sp += 1;
-                stackLo[sp as usize] = nextLo[1];
-                stackHi[sp as usize] = nextHi[1];
-                stackD[sp as usize] = nextD[1];
+                stack[sp] = (nextLo[1], nextHi[1], nextD[1]);
                 sp += 1;
-                stackLo[sp as usize] = nextLo[2];
-                stackHi[sp as usize] = nextHi[2];
-                stackD[sp as usize] = nextD[2];
+                stack[sp] = (nextLo[2], nextHi[2], nextD[2]);
                 sp += 1;
             }
         }
