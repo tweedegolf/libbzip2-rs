@@ -662,11 +662,7 @@ fn mainQSort3(
                 stack[sp] = (lo, hi, d + 1);
                 sp += 1;
             } else {
-                n = if ltLo - lo < unLo - ltLo {
-                    ltLo - lo
-                } else {
-                    unLo - ltLo
-                };
+                n = Ord::min(ltLo - lo, unLo - ltLo);
                 let mut yyp1: i32 = lo;
                 let mut yyp2: i32 = unLo - n;
                 let mut yyn: i32 = n;
@@ -676,11 +672,8 @@ fn mainQSort3(
                     yyp2 += 1;
                     yyn -= 1;
                 }
-                m = if hi - gtHi < gtHi - unHi {
-                    hi - gtHi
-                } else {
-                    gtHi - unHi
-                };
+
+                m = Ord::min(hi - gtHi, gtHi - unHi);
                 let mut yyp1_0: i32 = unLo;
                 let mut yyp2_0: i32 = hi - m + 1;
                 let mut yyn_0: i32 = m;
@@ -690,6 +683,7 @@ fn mainQSort3(
                     yyp2_0 += 1;
                     yyn_0 -= 1;
                 }
+
                 n = lo + unLo - ltLo - 1;
                 m = hi - (gtHi - unHi) + 1;
 
