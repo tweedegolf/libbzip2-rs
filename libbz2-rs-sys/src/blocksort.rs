@@ -627,10 +627,7 @@ fn mainQSort3(
             gtHi = hi;
             unHi = gtHi;
             loop {
-                loop {
-                    if unLo > unHi {
-                        break;
-                    }
+                while unLo <= unHi {
                     n = block[(ptr[unLo as usize]).wrapping_add(d as c_uint) as usize] as i32 - med;
                     match n.cmp(&0) {
                         Ordering::Greater => break,
@@ -644,10 +641,7 @@ fn mainQSort3(
                         Ordering::Less => unLo += 1,
                     }
                 }
-                loop {
-                    if unLo > unHi {
-                        break;
-                    }
+                while unLo <= unHi {
                     n = block[(ptr[unHi as usize]).wrapping_add(d as c_uint) as usize] as i32 - med;
                     match n.cmp(&0) {
                         Ordering::Less => break,
