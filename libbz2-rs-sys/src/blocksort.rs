@@ -632,9 +632,7 @@ fn mainQSort3(
                     match n.cmp(&0) {
                         Ordering::Greater => break,
                         Ordering::Equal => {
-                            let zztmp: i32 = ptr[unLo as usize] as i32;
-                            ptr[unLo as usize] = ptr[ltLo as usize];
-                            ptr[ltLo as usize] = zztmp as u32;
+                            ptr.swap(unLo as usize, ltLo as usize);
                             ltLo += 1;
                             unLo += 1;
                         }
@@ -646,9 +644,7 @@ fn mainQSort3(
                     match n.cmp(&0) {
                         Ordering::Less => break,
                         Ordering::Equal => {
-                            let zztmp_0: i32 = ptr[unHi as usize] as i32;
-                            ptr[unHi as usize] = ptr[gtHi as usize];
-                            ptr[gtHi as usize] = zztmp_0 as u32;
+                            ptr.swap(unHi as usize, gtHi as usize);
                             gtHi -= 1;
                             unHi -= 1;
                         }
@@ -658,9 +654,7 @@ fn mainQSort3(
                 if unLo > unHi {
                     break;
                 }
-                let zztmp_1: i32 = ptr[unLo as usize] as i32;
-                ptr[unLo as usize] = ptr[unHi as usize];
-                ptr[unHi as usize] = zztmp_1 as u32;
+                ptr.swap(unLo as usize, unHi as usize);
                 unLo += 1;
                 unHi -= 1;
             }
@@ -677,9 +671,7 @@ fn mainQSort3(
                 let mut yyp2: i32 = unLo - n;
                 let mut yyn: i32 = n;
                 while yyn > 0 {
-                    let zztmp_2: i32 = ptr[yyp1 as usize] as i32;
-                    ptr[yyp1 as usize] = ptr[yyp2 as usize];
-                    ptr[yyp2 as usize] = zztmp_2 as u32;
+                    ptr.swap(yyp1 as usize, yyp2 as usize);
                     yyp1 += 1;
                     yyp2 += 1;
                     yyn -= 1;
@@ -693,9 +685,7 @@ fn mainQSort3(
                 let mut yyp2_0: i32 = hi - m + 1;
                 let mut yyn_0: i32 = m;
                 while yyn_0 > 0 {
-                    let zztmp_3: i32 = ptr[yyp1_0 as usize] as i32;
-                    ptr[yyp1_0 as usize] = ptr[yyp2_0 as usize];
-                    ptr[yyp2_0 as usize] = zztmp_3 as u32;
+                    ptr.swap(yyp1_0 as usize, yyp2_0 as usize);
                     yyp1_0 += 1;
                     yyp2_0 += 1;
                     yyn_0 -= 1;
