@@ -600,10 +600,7 @@ fn mainQSort3(
     let mut d: i32;
 
     let mut stack = [(0i32, 0i32, 0i32); 100];
-
-    let mut nextLo: [i32; 3] = [0; 3];
-    let mut nextHi: [i32; 3] = [0; 3];
-    let mut nextD: [i32; 3] = [0; 3];
+    let mut next: [(i32, i32, i32); 3];
 
     stack[0] = (loSt, hiSt, dSt);
 
@@ -713,57 +710,23 @@ fn mainQSort3(
                 }
                 n = lo + unLo - ltLo - 1;
                 m = hi - (gtHi - unHi) + 1;
-                nextLo[0] = lo;
-                nextHi[0] = n;
-                nextD[0] = d;
-                nextLo[1] = m;
-                nextHi[1] = hi;
-                nextD[1] = d;
-                nextLo[2] = n + 1;
-                nextHi[2] = m - 1;
-                nextD[2] = d + 1;
-                if nextHi[0] - nextLo[0] < nextHi[1] - nextLo[1] {
-                    let mut tz: i32;
-                    tz = nextLo[0];
-                    nextLo[0] = nextLo[1];
-                    nextLo[1] = tz;
-                    tz = nextHi[0];
-                    nextHi[0] = nextHi[1];
-                    nextHi[1] = tz;
-                    tz = nextD[0];
-                    nextD[0] = nextD[1];
-                    nextD[1] = tz;
+
+                next = [(lo, n, d), (m, hi, d), (n + 1, m - 1, d + 1)];
+
+                if next[0].1 - next[0].0 < next[1].1 - next[1].0 {
+                    next.swap(0, 1);
                 }
-                if nextHi[1] - nextLo[1] < nextHi[2] - nextLo[2] {
-                    let mut tz_0: i32;
-                    tz_0 = nextLo[1];
-                    nextLo[1] = nextLo[2];
-                    nextLo[2] = tz_0;
-                    tz_0 = nextHi[1];
-                    nextHi[1] = nextHi[2];
-                    nextHi[2] = tz_0;
-                    tz_0 = nextD[1];
-                    nextD[1] = nextD[2];
-                    nextD[2] = tz_0;
+
+                if next[1].1 - next[1].0 < next[2].1 - next[2].0 {
+                    next.swap(1, 2);
                 }
-                if nextHi[0] - nextLo[0] < nextHi[1] - nextLo[1] {
-                    let mut tz_1: i32;
-                    tz_1 = nextLo[0];
-                    nextLo[0] = nextLo[1];
-                    nextLo[1] = tz_1;
-                    tz_1 = nextHi[0];
-                    nextHi[0] = nextHi[1];
-                    nextHi[1] = tz_1;
-                    tz_1 = nextD[0];
-                    nextD[0] = nextD[1];
-                    nextD[1] = tz_1;
+
+                if next[0].1 - next[0].0 < next[1].1 - next[1].0 {
+                    next.swap(0, 1);
                 }
-                stack[sp] = (nextLo[0], nextHi[0], nextD[0]);
-                sp += 1;
-                stack[sp] = (nextLo[1], nextHi[1], nextD[1]);
-                sp += 1;
-                stack[sp] = (nextLo[2], nextHi[2], nextD[2]);
-                sp += 1;
+
+                stack[sp..][..next.len()].copy_from_slice(&next);
+                sp += next.len();
             }
         }
     }
