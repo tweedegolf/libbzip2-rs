@@ -605,12 +605,12 @@ fn mainQSort3(
     let mut nextLo: [i32; 3] = [0; 3];
     let mut nextHi: [i32; 3] = [0; 3];
     let mut nextD: [i32; 3] = [0; 3];
-    sp = 0 as c_int;
+    sp = 0;
     stackLo[sp as usize] = loSt;
     stackHi[sp as usize] = hiSt;
     stackD[sp as usize] = dSt;
     sp += 1;
-    while sp > 0 as c_int {
+    while sp > 0 {
         assert_h!(sp < MAIN_QSORT_STACK_SIZE - 2, 1001);
 
         sp -= 1;
@@ -619,14 +619,14 @@ fn mainQSort3(
         d = stackD[sp as usize];
         if hi - lo < MAIN_QSORT_SMALL_THRESH || d > MAIN_QSORT_DEPTH_THRESH {
             mainSimpleSort(ptr, block, quadrant, nblock, lo, hi, d, budget);
-            if *budget < 0 as c_int {
+            if *budget < 0 {
                 return;
             }
         } else {
             med = mmed3(
                 block[(ptr[lo as usize]).wrapping_add(d as c_uint) as usize],
                 block[(ptr[hi as usize]).wrapping_add(d as c_uint) as usize],
-                block[((ptr[((lo + hi) >> 1 as c_int) as usize]).wrapping_add(d as c_uint) as isize)
+                block[((ptr[((lo + hi) >> 1) as usize]).wrapping_add(d as c_uint) as isize)
                     as usize],
             ) as i32;
             ltLo = lo;
@@ -639,14 +639,14 @@ fn mainQSort3(
                         break;
                     }
                     n = block[(ptr[unLo as usize]).wrapping_add(d as c_uint) as usize] as i32 - med;
-                    if n == 0 as c_int {
+                    if n == 0 {
                         let zztmp: i32 = ptr[unLo as usize] as i32;
                         ptr[unLo as usize] = ptr[ltLo as usize];
                         ptr[ltLo as usize] = zztmp as u32;
                         ltLo += 1;
                         unLo += 1;
                     } else {
-                        if n > 0 as c_int {
+                        if n > 0 {
                             break;
                         }
                         unLo += 1;
@@ -657,14 +657,14 @@ fn mainQSort3(
                         break;
                     }
                     n = block[(ptr[unHi as usize]).wrapping_add(d as c_uint) as usize] as i32 - med;
-                    if n == 0 as c_int {
+                    if n == 0 {
                         let zztmp_0: i32 = ptr[unHi as usize] as i32;
                         ptr[unHi as usize] = ptr[gtHi as usize];
                         ptr[gtHi as usize] = zztmp_0 as u32;
                         gtHi -= 1;
                         unHi -= 1;
                     } else {
-                        if n < 0 as c_int {
+                        if n < 0 {
                             break;
                         }
                         unHi -= 1;
@@ -682,7 +682,7 @@ fn mainQSort3(
             if gtHi < ltLo {
                 stackLo[sp as usize] = lo;
                 stackHi[sp as usize] = hi;
-                stackD[sp as usize] = d + 1 as c_int;
+                stackD[sp as usize] = d + 1;
                 sp += 1;
             } else {
                 n = if ltLo - lo < unLo - ltLo {
@@ -693,7 +693,7 @@ fn mainQSort3(
                 let mut yyp1: i32 = lo;
                 let mut yyp2: i32 = unLo - n;
                 let mut yyn: i32 = n;
-                while yyn > 0 as c_int {
+                while yyn > 0 {
                     let zztmp_2: i32 = ptr[yyp1 as usize] as i32;
                     ptr[yyp1 as usize] = ptr[yyp2 as usize];
                     ptr[yyp2 as usize] = zztmp_2 as u32;
@@ -707,9 +707,9 @@ fn mainQSort3(
                     gtHi - unHi
                 };
                 let mut yyp1_0: i32 = unLo;
-                let mut yyp2_0: i32 = hi - m + 1 as c_int;
+                let mut yyp2_0: i32 = hi - m + 1;
                 let mut yyn_0: i32 = m;
-                while yyn_0 > 0 as c_int {
+                while yyn_0 > 0 {
                     let zztmp_3: i32 = ptr[yyp1_0 as usize] as i32;
                     ptr[yyp1_0 as usize] = ptr[yyp2_0 as usize];
                     ptr[yyp2_0 as usize] = zztmp_3 as u32;
@@ -717,70 +717,64 @@ fn mainQSort3(
                     yyp2_0 += 1;
                     yyn_0 -= 1;
                 }
-                n = lo + unLo - ltLo - 1 as c_int;
-                m = hi - (gtHi - unHi) + 1 as c_int;
-                nextLo[0 as c_int as usize] = lo;
-                nextHi[0 as c_int as usize] = n;
-                nextD[0 as c_int as usize] = d;
-                nextLo[1 as c_int as usize] = m;
-                nextHi[1 as c_int as usize] = hi;
-                nextD[1 as c_int as usize] = d;
-                nextLo[2 as c_int as usize] = n + 1 as c_int;
-                nextHi[2 as c_int as usize] = m - 1 as c_int;
-                nextD[2 as c_int as usize] = d + 1 as c_int;
-                if nextHi[0 as c_int as usize] - nextLo[0 as c_int as usize]
-                    < nextHi[1 as c_int as usize] - nextLo[1 as c_int as usize]
-                {
+                n = lo + unLo - ltLo - 1;
+                m = hi - (gtHi - unHi) + 1;
+                nextLo[0] = lo;
+                nextHi[0] = n;
+                nextD[0] = d;
+                nextLo[1] = m;
+                nextHi[1] = hi;
+                nextD[1] = d;
+                nextLo[2] = n + 1;
+                nextHi[2] = m - 1;
+                nextD[2] = d + 1;
+                if nextHi[0] - nextLo[0] < nextHi[1] - nextLo[1] {
                     let mut tz: i32;
-                    tz = nextLo[0 as c_int as usize];
-                    nextLo[0 as c_int as usize] = nextLo[1 as c_int as usize];
-                    nextLo[1 as c_int as usize] = tz;
-                    tz = nextHi[0 as c_int as usize];
-                    nextHi[0 as c_int as usize] = nextHi[1 as c_int as usize];
-                    nextHi[1 as c_int as usize] = tz;
-                    tz = nextD[0 as c_int as usize];
-                    nextD[0 as c_int as usize] = nextD[1 as c_int as usize];
-                    nextD[1 as c_int as usize] = tz;
+                    tz = nextLo[0];
+                    nextLo[0] = nextLo[1];
+                    nextLo[1] = tz;
+                    tz = nextHi[0];
+                    nextHi[0] = nextHi[1];
+                    nextHi[1] = tz;
+                    tz = nextD[0];
+                    nextD[0] = nextD[1];
+                    nextD[1] = tz;
                 }
-                if nextHi[1 as c_int as usize] - nextLo[1 as c_int as usize]
-                    < nextHi[2 as c_int as usize] - nextLo[2 as c_int as usize]
-                {
+                if nextHi[1] - nextLo[1] < nextHi[2] - nextLo[2] {
                     let mut tz_0: i32;
-                    tz_0 = nextLo[1 as c_int as usize];
-                    nextLo[1 as c_int as usize] = nextLo[2 as c_int as usize];
-                    nextLo[2 as c_int as usize] = tz_0;
-                    tz_0 = nextHi[1 as c_int as usize];
-                    nextHi[1 as c_int as usize] = nextHi[2 as c_int as usize];
-                    nextHi[2 as c_int as usize] = tz_0;
-                    tz_0 = nextD[1 as c_int as usize];
-                    nextD[1 as c_int as usize] = nextD[2 as c_int as usize];
-                    nextD[2 as c_int as usize] = tz_0;
+                    tz_0 = nextLo[1];
+                    nextLo[1] = nextLo[2];
+                    nextLo[2] = tz_0;
+                    tz_0 = nextHi[1];
+                    nextHi[1] = nextHi[2];
+                    nextHi[2] = tz_0;
+                    tz_0 = nextD[1];
+                    nextD[1] = nextD[2];
+                    nextD[2] = tz_0;
                 }
-                if nextHi[0 as c_int as usize] - nextLo[0 as c_int as usize]
-                    < nextHi[1 as c_int as usize] - nextLo[1 as c_int as usize]
-                {
+                if nextHi[0] - nextLo[0] < nextHi[1] - nextLo[1] {
                     let mut tz_1: i32;
-                    tz_1 = nextLo[0 as c_int as usize];
-                    nextLo[0 as c_int as usize] = nextLo[1 as c_int as usize];
-                    nextLo[1 as c_int as usize] = tz_1;
-                    tz_1 = nextHi[0 as c_int as usize];
-                    nextHi[0 as c_int as usize] = nextHi[1 as c_int as usize];
-                    nextHi[1 as c_int as usize] = tz_1;
-                    tz_1 = nextD[0 as c_int as usize];
-                    nextD[0 as c_int as usize] = nextD[1 as c_int as usize];
-                    nextD[1 as c_int as usize] = tz_1;
+                    tz_1 = nextLo[0];
+                    nextLo[0] = nextLo[1];
+                    nextLo[1] = tz_1;
+                    tz_1 = nextHi[0];
+                    nextHi[0] = nextHi[1];
+                    nextHi[1] = tz_1;
+                    tz_1 = nextD[0];
+                    nextD[0] = nextD[1];
+                    nextD[1] = tz_1;
                 }
-                stackLo[sp as usize] = nextLo[0 as c_int as usize];
-                stackHi[sp as usize] = nextHi[0 as c_int as usize];
-                stackD[sp as usize] = nextD[0 as c_int as usize];
+                stackLo[sp as usize] = nextLo[0];
+                stackHi[sp as usize] = nextHi[0];
+                stackD[sp as usize] = nextD[0];
                 sp += 1;
-                stackLo[sp as usize] = nextLo[1 as c_int as usize];
-                stackHi[sp as usize] = nextHi[1 as c_int as usize];
-                stackD[sp as usize] = nextD[1 as c_int as usize];
+                stackLo[sp as usize] = nextLo[1];
+                stackHi[sp as usize] = nextHi[1];
+                stackD[sp as usize] = nextD[1];
                 sp += 1;
-                stackLo[sp as usize] = nextLo[2 as c_int as usize];
-                stackHi[sp as usize] = nextHi[2 as c_int as usize];
-                stackD[sp as usize] = nextD[2 as c_int as usize];
+                stackLo[sp as usize] = nextLo[2];
+                stackHi[sp as usize] = nextHi[2];
+                stackD[sp as usize] = nextD[2];
                 sp += 1;
             }
         }
