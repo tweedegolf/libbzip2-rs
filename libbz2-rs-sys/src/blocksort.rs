@@ -632,17 +632,16 @@ fn mainQSort3(
                         break;
                     }
                     n = block[(ptr[unLo as usize]).wrapping_add(d as c_uint) as usize] as i32 - med;
-                    if n == 0 {
-                        let zztmp: i32 = ptr[unLo as usize] as i32;
-                        ptr[unLo as usize] = ptr[ltLo as usize];
-                        ptr[ltLo as usize] = zztmp as u32;
-                        ltLo += 1;
-                        unLo += 1;
-                    } else {
-                        if n > 0 {
-                            break;
+                    match n.cmp(&0) {
+                        Ordering::Greater => break,
+                        Ordering::Equal => {
+                            let zztmp: i32 = ptr[unLo as usize] as i32;
+                            ptr[unLo as usize] = ptr[ltLo as usize];
+                            ptr[ltLo as usize] = zztmp as u32;
+                            ltLo += 1;
+                            unLo += 1;
                         }
-                        unLo += 1;
+                        Ordering::Less => unLo += 1,
                     }
                 }
                 loop {
@@ -650,17 +649,16 @@ fn mainQSort3(
                         break;
                     }
                     n = block[(ptr[unHi as usize]).wrapping_add(d as c_uint) as usize] as i32 - med;
-                    if n == 0 {
-                        let zztmp_0: i32 = ptr[unHi as usize] as i32;
-                        ptr[unHi as usize] = ptr[gtHi as usize];
-                        ptr[gtHi as usize] = zztmp_0 as u32;
-                        gtHi -= 1;
-                        unHi -= 1;
-                    } else {
-                        if n < 0 {
-                            break;
+                    match n.cmp(&0) {
+                        Ordering::Less => break,
+                        Ordering::Equal => {
+                            let zztmp_0: i32 = ptr[unHi as usize] as i32;
+                            ptr[unHi as usize] = ptr[gtHi as usize];
+                            ptr[gtHi as usize] = zztmp_0 as u32;
+                            gtHi -= 1;
+                            unHi -= 1;
                         }
-                        unHi -= 1;
+                        Ordering::Greater => unHi -= 1,
                     }
                 }
                 if unLo > unHi {
