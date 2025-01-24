@@ -488,19 +488,19 @@ fn mainSimpleSort(
 }
 
 #[inline]
-fn mmed3(mut a: u8, mut b: u8, c: u8) -> u8 {
-    let t: u8;
+fn median_of_3(mut a: u8, mut b: u8, mut c: u8) -> u8 {
     if a > b {
-        t = a;
-        a = b;
-        b = t;
+        (a, b) = (b, a);
+    }
+    if a > c {
+        (_, c) = (c, a);
     }
     if b > c {
-        b = c;
-        if a > b {
-            b = a;
-        }
+        (b, _) = (c, b);
     }
+
+    debug_assert!(a <= b && b <= c);
+
     b
 }
 
@@ -545,7 +545,7 @@ fn mainQSort3(
                 return;
             }
         } else {
-            med = mmed3(
+            med = median_of_3(
                 block[(ptr[lo as usize]).wrapping_add(d as c_uint) as usize],
                 block[(ptr[hi as usize]).wrapping_add(d as c_uint) as usize],
                 block[((ptr[((lo + hi) >> 1) as usize]).wrapping_add(d as c_uint) as isize)
