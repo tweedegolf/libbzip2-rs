@@ -467,15 +467,12 @@ fn mainSimpleSort(
 
     for &h in INCS[..index].iter().rev() {
         i = lo + h;
-        loop {
-            if i > hi {
-                break;
-            }
+        while i <= hi {
             v = ptr[i as usize];
             j = i;
             while mainGtU(
-                (ptr[(j - h) as usize]).wrapping_add(d as c_uint),
-                v.wrapping_add(d as c_uint),
+                (ptr[(j - h) as usize]).wrapping_add(d as u32),
+                v.wrapping_add(d as u32),
                 block,
                 quadrant,
                 nblock as u32,
@@ -483,55 +480,13 @@ fn mainSimpleSort(
             ) {
                 ptr[j as usize] = ptr[(j - h) as usize];
                 j -= h;
-                if j <= lo + h - 1 as c_int {
+                if j <= lo + h - 1 {
                     break;
                 }
             }
             ptr[j as usize] = v;
             i += 1;
-            if i > hi {
-                break;
-            }
-            v = ptr[i as usize];
-            j = i;
-            while mainGtU(
-                (ptr[(j - h) as usize]).wrapping_add(d as c_uint),
-                v.wrapping_add(d as c_uint),
-                block,
-                quadrant,
-                nblock as u32,
-                budget,
-            ) {
-                ptr[j as usize] = ptr[(j - h) as usize];
-                j -= h;
-                if j <= lo + h - 1 as c_int {
-                    break;
-                }
-            }
-            ptr[j as usize] = v;
-            i += 1;
-            if i > hi {
-                break;
-            }
-            v = ptr[i as usize];
-            j = i;
-            while mainGtU(
-                (ptr[(j - h) as usize]).wrapping_add(d as c_uint),
-                v.wrapping_add(d as c_uint),
-                block,
-                quadrant,
-                nblock as u32,
-                budget,
-            ) {
-                ptr[j as usize] = ptr[(j - h) as usize];
-                j -= h;
-                if j <= lo + h - 1 as c_int {
-                    break;
-                }
-            }
-            ptr[j as usize] = v;
-            i += 1;
-            if *budget < 0 as c_int {
+            if *budget < 0 {
                 return;
             }
         }
