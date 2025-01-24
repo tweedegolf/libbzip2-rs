@@ -386,7 +386,7 @@ fn mainGtU(
     mut i1: u32,
     mut i2: u32,
     block: &[u8],
-    quadrant: &mut [u16],
+    quadrant: &[u16],
     nblock: u32,
     budget: &mut i32,
 ) -> bool {
@@ -460,7 +460,7 @@ static INCS: [i32; 14] = [
 fn mainSimpleSort(
     ptr: &mut [u32],
     block: &[u8],
-    quadrant: &mut [u16],
+    quadrant: &[u16],
     nblock: i32,
     lo: i32,
     hi: i32,
@@ -581,7 +581,7 @@ const MAIN_QSORT_STACK_SIZE: i32 = 100;
 fn mainQSort3(
     ptr: &mut [u32],
     block: &[u8],
-    quadrant: &mut [u16],
+    quadrant: &[u16],
     nblock: i32,
     loSt: i32,
     hiSt: i32,
