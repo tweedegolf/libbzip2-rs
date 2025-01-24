@@ -442,21 +442,9 @@ fn mainGtU(
 }
 
 static INCS: [i32; 14] = [
-    1 as c_int,
-    4 as c_int,
-    13 as c_int,
-    40 as c_int,
-    121 as c_int,
-    364 as c_int,
-    1093 as c_int,
-    3280 as c_int,
-    9841 as c_int,
-    29524 as c_int,
-    88573 as c_int,
-    265720 as c_int,
-    797161 as c_int,
-    2391484 as c_int,
+    1, 4, 13, 40, 121, 364, 1093, 3280, 9841, 29524, 88573, 265720, 797161, 2391484,
 ];
+
 fn mainSimpleSort(
     ptr: &mut [u32],
     block: &[u8],
@@ -469,21 +457,15 @@ fn mainSimpleSort(
 ) {
     let mut i: i32;
     let mut j: i32;
-    let mut h: i32;
-    let mut hp: i32;
     let mut v: u32;
 
-    let bigN = hi - lo + 1 as c_int;
-    if bigN < 2 as c_int {
+    let bigN = hi - lo + 1;
+
+    let Some(index) = INCS.iter().position(|&e| e >= bigN) else {
         return;
-    }
-    hp = 0 as c_int;
-    while INCS[hp as usize] < bigN {
-        hp += 1;
-    }
-    hp -= 1;
-    while hp >= 0 as c_int {
-        h = INCS[hp as usize];
+    };
+
+    for &h in INCS[..index].iter().rev() {
         i = lo + h;
         loop {
             if i > hi {
@@ -553,7 +535,6 @@ fn mainSimpleSort(
                 return;
             }
         }
-        hp -= 1;
     }
 }
 
