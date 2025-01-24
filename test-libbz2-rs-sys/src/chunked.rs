@@ -1,6 +1,10 @@
 use crate::{compress_c, decompress_c, SAMPLE1_BZ2, SAMPLE1_REF};
 
-fn decompress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<&'a mut [u8], i32> {
+fn decompress_rs_chunked_input<'a>(
+    dest: &'a mut [u8],
+    source: &[u8],
+    chunk_size: usize,
+) -> Result<&'a mut [u8], i32> {
     use libbz2_rs_sys::*;
 
     let mut dest_len = dest.len() as _;
@@ -16,7 +20,7 @@ fn decompress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<
     strm.next_out = dest.as_mut_ptr().cast::<core::ffi::c_char>();
     strm.avail_out = dest_len;
 
-    for chunk in source.chunks(1) {
+    for chunk in source.chunks(chunk_size) {
         strm.next_in = chunk.as_ptr() as *mut core::ffi::c_char;
         strm.avail_in = chunk.len() as _;
 
@@ -48,7 +52,7 @@ fn decompress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<
 #[test]
 fn decompress_chunked_input() {
     let mut dest_chunked = vec![0; 1 << 18];
-    let chunked = decompress_rs_chunked_input(&mut dest_chunked, SAMPLE1_BZ2).unwrap();
+    let chunked = decompress_rs_chunked_input(&mut dest_chunked, SAMPLE1_BZ2, 1).unwrap();
 
     if !cfg!(miri) {
         let mut dest = vec![0; 1 << 18];
@@ -69,7 +73,11 @@ fn decompress_chunked_input() {
     }
 }
 
-fn compress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<&'a mut [u8], i32> {
+fn compress_rs_chunked_input<'a>(
+    dest: &'a mut [u8],
+    source: &[u8],
+    chunk_size: usize,
+) -> Result<&'a mut [u8], i32> {
     use libbz2_rs_sys::*;
 
     let mut dest_len = dest.len() as _;
@@ -89,7 +97,7 @@ fn compress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<&'
     strm.next_out = dest.as_mut_ptr().cast::<core::ffi::c_char>();
     strm.avail_out = dest_len;
 
-    for chunk in source.chunks(256) {
+    for chunk in source.chunks(chunk_size) {
         strm.next_in = chunk.as_ptr() as *mut core::ffi::c_char;
         strm.avail_in = chunk.len() as _;
 
@@ -130,7 +138,7 @@ fn compress_rs_chunked_input<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<&'
 #[test]
 fn compress_chunked_input() {
     let mut dest_chunked = vec![0; 1 << 18];
-    let chunked = compress_rs_chunked_input(&mut dest_chunked, SAMPLE1_REF).unwrap();
+    let chunked = compress_rs_chunked_input(&mut dest_chunked, SAMPLE1_REF, 256).unwrap();
 
     if !cfg!(miri) {
         let mut dest = vec![0; 1 << 18];
@@ -218,7 +226,7 @@ fn decompress_chunked_output() {
     dest.truncate(dest_len as usize);
 
     let mut dest_chunked = vec![0; 1 << 18];
-    let chunked = decompress_rs_chunked_input(&mut dest_chunked, SAMPLE1_BZ2).unwrap();
+    let chunked = decompress_rs_chunked_input(&mut dest_chunked, SAMPLE1_BZ2, 1).unwrap();
 
     assert_eq!(chunked.len(), dest.len());
     assert_eq!(chunked, dest);
@@ -283,7 +291,7 @@ fn compress_rs_chunked_output<'a>(dest: &'a mut [u8], source: &[u8]) -> Result<&
 #[test]
 fn compress_chunked_output() {
     let mut dest_chunked = vec![0; 1 << 18];
-    let chunked = compress_rs_chunked_input(&mut dest_chunked, SAMPLE1_REF).unwrap();
+    let chunked = compress_rs_chunked_input(&mut dest_chunked, SAMPLE1_REF, 256).unwrap();
 
     if !cfg!(miri) {
         let mut dest = vec![0; 1 << 18];
@@ -303,4 +311,26 @@ fn compress_chunked_output() {
         assert_eq!(chunked.len(), dest.len());
         assert_eq!(chunked, dest);
     }
+}
+
+#[test]
+fn fuzzer_short() {
+    const INPUT: &[u8] = &[0, 0, 67, 0, 67, 0, 0, 5, 0, 0];
+
+    let mut dest = [0u8; 256];
+    let mut len = dest.len() as u32;
+    unsafe {
+        compress_c(
+            dest.as_mut_ptr(),
+            &mut len,
+            INPUT.as_ptr(),
+            INPUT.len() as u32,
+            1,
+        );
+    }
+
+    let input = &dest[..len as usize];
+
+    let mut dest_chunked = vec![0; 1 << 18];
+    let _ = decompress_rs_chunked_input(&mut dest_chunked, input, 6).unwrap();
 }

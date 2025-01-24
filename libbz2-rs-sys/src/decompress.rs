@@ -1009,9 +1009,40 @@ pub(crate) fn decompress(
                                 s.selector[i] = pos[0];
                             }
 
-                            t = 0;
-                            current_block = Block35;
-                            break;
+                            // try to read the coding tables in one go if there is sufficient input
+                            let bits_needed =
+                                usize::from(nGroups) * (5 + (usize::from(alphaSize) * 2 * 20));
+                            let bytes_needed = bits_needed.div_ceil(8);
+
+                            if strm.avail_in as usize >= bytes_needed {
+                                for t in 0..nGroups {
+                                    let mut curr = GET_BITS!(strm, s, 5);
+                                    for i in 0..alphaSize {
+                                        loop {
+                                            if !(1..=20).contains(&curr) {
+                                                error!(BZ_DATA_ERROR);
+                                            }
+                                            if !GET_BIT!(strm, s) {
+                                                break;
+                                            };
+                                            match GET_BIT!(strm, s) {
+                                                false => curr += 1,
+                                                true => curr -= 1,
+                                            }
+                                        }
+
+                                        s.len[usize::from(t)][usize::from(i)] = curr as u8;
+                                    }
+                                }
+
+                                t = nGroups;
+                                current_block = Block35;
+                                break;
+                            } else {
+                                t = 0;
+                                current_block = Block35;
+                                break;
+                            }
                         }
                     }
                     Block18 => {
