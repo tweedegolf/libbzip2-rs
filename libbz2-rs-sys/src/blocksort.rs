@@ -600,7 +600,6 @@ fn mainQSort3(
     let mut d: i32;
 
     let mut stack = [(0i32, 0i32, 0i32); 100];
-    let mut next: [(i32, i32, i32); 3];
 
     stack[0] = (loSt, hiSt, dSt);
 
@@ -683,7 +682,7 @@ fn mainQSort3(
                 n = lo + unLo - ltLo - 1;
                 m = hi - (gtHi - unHi) + 1;
 
-                next = [(lo, n, d), (m, hi, d), (n + 1, m - 1, d + 1)];
+                let mut next = [(lo, n, d), (m, hi, d), (n + 1, m - 1, d + 1)];
 
                 if next[0].1 - next[0].0 < next[1].1 - next[1].0 {
                     next.swap(0, 1);
