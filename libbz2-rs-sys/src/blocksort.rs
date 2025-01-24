@@ -455,10 +455,6 @@ fn mainSimpleSort(
     d: i32,
     budget: &mut i32,
 ) {
-    let mut i: i32;
-    let mut j: i32;
-    let mut v: u32;
-
     let bigN = hi - lo + 1;
 
     let Some(index) = INCS.iter().position(|&e| e >= bigN) else {
@@ -466,10 +462,9 @@ fn mainSimpleSort(
     };
 
     for &h in INCS[..index].iter().rev() {
-        i = lo + h;
-        while i <= hi {
-            v = ptr[i as usize];
-            j = i;
+        for i in lo + h..=hi {
+            let v = ptr[i as usize];
+            let mut j = i;
             while mainGtU(
                 (ptr[(j - h) as usize]).wrapping_add(d as u32),
                 v.wrapping_add(d as u32),
@@ -480,12 +475,11 @@ fn mainSimpleSort(
             ) {
                 ptr[j as usize] = ptr[(j - h) as usize];
                 j -= h;
-                if j <= lo + h - 1 {
+                if j < lo + h {
                     break;
                 }
             }
             ptr[j as usize] = v;
-            i += 1;
             if *budget < 0 {
                 return;
             }
