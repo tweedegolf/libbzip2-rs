@@ -356,30 +356,15 @@ fn send_mtf_values(s: &mut EState) {
                 let mut cost01: u32 = 0;
                 let mut cost23: u32 = 0;
                 let mut cost45: u32 = 0;
-                let mut icv: u16;
 
-                macro_rules! BZ_ITER {
-                    ($nn:expr) => {
-                        icv = mtfv[(gs + $nn) as usize];
-                        cost01 = cost01.wrapping_add(s.len_pack[icv as usize][0]);
-                        cost23 = cost23.wrapping_add(s.len_pack[icv as usize][1]);
-                        cost45 = cost45.wrapping_add(s.len_pack[icv as usize][2]);
-                    };
+                for chunk in mtfv[gs as usize..][..50].chunks_exact(5) {
+                    for icv in chunk {
+                        let [a, b, c, _] = s.len_pack[usize::from(*icv)];
+                        cost01 = cost01.wrapping_add(a);
+                        cost23 = cost23.wrapping_add(b);
+                        cost45 = cost45.wrapping_add(c);
+                    }
                 }
-
-                #[rustfmt::skip]
-                {
-                    BZ_ITER!(0);  BZ_ITER!(1);  BZ_ITER!(2);  BZ_ITER!(3);  BZ_ITER!(4);
-                    BZ_ITER!(5);  BZ_ITER!(6);  BZ_ITER!(7);  BZ_ITER!(8);  BZ_ITER!(9);
-                    BZ_ITER!(10); BZ_ITER!(11); BZ_ITER!(12); BZ_ITER!(13); BZ_ITER!(14);
-                    BZ_ITER!(15); BZ_ITER!(16); BZ_ITER!(17); BZ_ITER!(18); BZ_ITER!(19);
-                    BZ_ITER!(20); BZ_ITER!(21); BZ_ITER!(22); BZ_ITER!(23); BZ_ITER!(24);
-                    BZ_ITER!(25); BZ_ITER!(26); BZ_ITER!(27); BZ_ITER!(28); BZ_ITER!(29);
-                    BZ_ITER!(30); BZ_ITER!(31); BZ_ITER!(32); BZ_ITER!(33); BZ_ITER!(34);
-                    BZ_ITER!(35); BZ_ITER!(36); BZ_ITER!(37); BZ_ITER!(38); BZ_ITER!(39);
-                    BZ_ITER!(40); BZ_ITER!(41); BZ_ITER!(42); BZ_ITER!(43); BZ_ITER!(44);
-                    BZ_ITER!(45); BZ_ITER!(46); BZ_ITER!(47); BZ_ITER!(48); BZ_ITER!(49);
-                };
 
                 cost[0] = (cost01 & 0xffff) as u16;
                 cost[1] = (cost01 >> 16) as u16;
