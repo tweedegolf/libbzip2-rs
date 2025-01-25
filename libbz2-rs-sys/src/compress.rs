@@ -213,7 +213,6 @@ fn send_mtf_values(s: &mut EState) {
     let mut minLen: i32;
     let mut maxLen: i32;
     let mut selCtr: usize;
-    let nGroups: usize;
     let mut nBytes: i32;
 
     /*--
@@ -226,9 +225,6 @@ fn send_mtf_values(s: &mut EState) {
     are also globals only used in this proc.
     Made global to keep stack frame size small.
     --*/
-
-    let mut cost: [u16; 6] = [0; 6];
-    let mut fave: [i32; 6] = [0; 6];
 
     let mtfv = s.arr1.mtfv();
 
@@ -249,17 +245,19 @@ fn send_mtf_values(s: &mut EState) {
 
     /*--- Decide how many coding tables to use ---*/
     assert_h!(s.nMTF > 0, 3001);
-    if s.nMTF < 200 {
-        nGroups = 2;
-    } else if s.nMTF < 600 {
-        nGroups = 3;
-    } else if s.nMTF < 1200 {
-        nGroups = 4;
-    } else if s.nMTF < 2400 {
-        nGroups = 5;
-    } else {
-        nGroups = 6;
-    }
+    let nGroups: usize = match s.nMTF {
+        0..200 => 2,
+        200..600 => 3,
+        600..1200 => 4,
+        1200..2400 => 5,
+        _ => 6,
+    };
+
+    let mut cost: [u16; 6] = [0; 6];
+    let cost = &mut cost[..nGroups];
+
+    let mut fave: [i32; 6] = [0; 6];
+    let fave = &mut fave[..nGroups];
 
     /*--- Generate an initial set of coding tables ---*/
     {
@@ -311,12 +309,10 @@ fn send_mtf_values(s: &mut EState) {
        Iterate up to BZ_N_ITERS times to improve the tables.
     ---*/
     for iter in 0..BZ_N_ITERS {
-        fave[..nGroups].fill(0);
+        fave.fill(0);
 
         for t in 0..nGroups {
-            for v in 0..alphaSize {
-                s.rfreq[t][v] = 0;
-            }
+            s.rfreq[t][..alphaSize].fill(0);
         }
 
         /*---
@@ -348,16 +344,14 @@ fn send_mtf_values(s: &mut EState) {
                Calculate the cost of this group as coded
                by each of the coding tables.
             --*/
-            for t in 0..nGroups {
-                cost[t] = 0;
-            }
+            cost.fill(0);
 
             if nGroups == 6 && 50 == ge - gs + 1 {
                 let mut cost01: u32 = 0;
                 let mut cost23: u32 = 0;
                 let mut cost45: u32 = 0;
 
-                for chunk in mtfv[gs as usize..][..50].chunks_exact(5) {
+                for chunk in mtfv[gs as usize..][..50].chunks_exact(10) {
                     for icv in chunk {
                         let [a, b, c, _] = s.len_pack[usize::from(*icv)];
                         cost01 = cost01.wrapping_add(a);
