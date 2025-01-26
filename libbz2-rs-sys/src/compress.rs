@@ -469,18 +469,20 @@ fn send_mtf_values(s: &mut EState) {
 
     /*--- Assign actual codes for the tables. --*/
     for (t, len) in s.len[..nGroups].iter().enumerate() {
+        let len = &len[..alphaSize];
+
         let mut minLen = 32;
         let mut maxLen = 0;
 
-        for &l in &len[..alphaSize] {
-            maxLen = Ord::max(maxLen, l as i32);
-            minLen = Ord::min(minLen, l as i32);
+        for &l in len {
+            maxLen = Ord::max(maxLen, l);
+            minLen = Ord::min(minLen, l);
         }
 
         assert_h!(maxLen <= 17, 3004);
         assert_h!(minLen >= 1, 3005);
 
-        huffman::assign_codes(&mut s.code[t], len, minLen, maxLen, alphaSize);
+        huffman::assign_codes(&mut s.code[t], len, minLen, maxLen);
     }
 
     /*--- Transmit the mapping table. ---*/
