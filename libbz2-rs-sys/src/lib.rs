@@ -1,7 +1,6 @@
 #![no_std]
 #![allow(non_snake_case)]
 #![allow(clippy::too_many_arguments)]
-#![allow(clippy::needless_range_loop)] // FIXME remove once all instances are fixed
 #![deny(unreachable_pub)]
 #![deny(unsafe_op_in_unsafe_fn)]
 

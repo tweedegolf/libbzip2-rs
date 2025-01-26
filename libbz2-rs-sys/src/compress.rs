@@ -371,8 +371,8 @@ fn send_mtf_values(s: &mut EState) {
                 for i in gs..=ge {
                     let icv_0: u16 = mtfv[i as usize];
 
-                    for t in 0..nGroups {
-                        cost[t] = (cost[t] as i32 + s.len[t][icv_0 as usize] as i32) as u16;
+                    for (t, c) in cost.iter_mut().enumerate() {
+                        *c = (*c as i32 + s.len[t][icv_0 as usize] as i32) as u16;
                     }
                 }
             }
@@ -383,9 +383,9 @@ fn send_mtf_values(s: &mut EState) {
             --*/
             bc = 999999999;
             bt = -1;
-            for t in 0..nGroups {
-                if (cost[t] as i32) < bc {
-                    bc = cost[t] as i32;
+            for (t, &c) in cost.iter().enumerate() {
+                if (c as i32) < bc {
+                    bc = c as i32;
                     bt = t as i32;
                 }
             }
@@ -429,8 +429,8 @@ fn send_mtf_values(s: &mut EState) {
                 iter + 1,
                 totc / 8,
             );
-            for t in 0..nGroups {
-                debug_log!("{} ", fave[t],);
+            for f in fave.iter() {
+                debug_log!("{} ", f);
             }
             debug_logln!();
         }
