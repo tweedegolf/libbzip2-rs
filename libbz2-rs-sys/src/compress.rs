@@ -71,11 +71,11 @@ impl<'a> LiveWriter<'a> {
         }
     }
 
-    fn write(&mut self, n: i32, v: u32) {
+    fn write(&mut self, n: u8, v: u32) {
         self.flush_whole_bytes();
 
-        self.bs_buff |= v << (32 - self.bs_live - n);
-        self.bs_live += n;
+        self.bs_buff |= v << (32 - self.bs_live - i32::from(n));
+        self.bs_live += i32::from(n);
     }
 
     fn write_u8(&mut self, c: u8) {
@@ -568,7 +568,7 @@ fn send_mtf_values(s: &mut EState) {
             for chunk in mtfv[gs as usize..][..50].chunks_exact(10) {
                 for &mtfv_i in chunk {
                     writer.write(
-                        s_len_sel_selCtr[usize::from(mtfv_i)] as i32,
+                        s_len_sel_selCtr[usize::from(mtfv_i)],
                         s_code_sel_selCtr[usize::from(mtfv_i)],
                     );
                 }
@@ -577,8 +577,8 @@ fn send_mtf_values(s: &mut EState) {
             /*--- slow version which correctly handles all situations ---*/
             for i in gs..=ge {
                 writer.write(
-                    s.len[s.selector[selCtr] as usize][mtfv[i as usize] as usize] as i32,
-                    s.code[s.selector[selCtr] as usize][mtfv[i as usize] as usize] as u32,
+                    s.len[s.selector[selCtr] as usize][mtfv[i as usize] as usize],
+                    s.code[s.selector[selCtr] as usize][mtfv[i as usize] as usize],
                 );
             }
         }
