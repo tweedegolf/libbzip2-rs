@@ -479,7 +479,7 @@ pub(crate) struct EState {
     pub selector: [u8; 18002],
     pub selectorMtf: [u8; 18002],
     pub len: [[u8; BZ_MAX_ALPHA_SIZE]; BZ_N_GROUPS],
-    pub code: [[i32; 258]; 6],
+    pub code: [[u32; 258]; 6],
     pub rfreq: [[i32; 258]; 6],
     pub len_pack: [[u32; 4]; 258],
 }

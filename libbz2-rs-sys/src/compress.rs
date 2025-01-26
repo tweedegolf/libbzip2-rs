@@ -570,7 +570,7 @@ fn send_mtf_values(s: &mut EState) {
                     mtfv_i = mtfv[(gs + $nn) as usize];
                     writer.write(
                         s_len_sel_selCtr[mtfv_i as usize] as i32,
-                        s_code_sel_selCtr[mtfv_i as usize] as u32,
+                        s_code_sel_selCtr[mtfv_i as usize],
                     );
                 };
             }
