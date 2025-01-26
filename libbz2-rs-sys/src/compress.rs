@@ -203,15 +203,12 @@ fn send_mtf_values(s: &mut EState) {
     const BZ_LESSER_ICOST: u8 = 0;
     const BZ_GREATER_ICOST: u8 = 15;
 
-    let mut j: i32;
     let mut gs: i32;
     let mut ge: i32;
     let mut totc: i32;
     let mut bt: i32;
     let mut bc: i32;
     let mut nSelectors: usize = 0;
-    let mut minLen: i32;
-    let mut maxLen: i32;
     let mut selCtr: usize;
     let mut nBytes: i32;
 
@@ -451,18 +448,13 @@ fn send_mtf_values(s: &mut EState) {
 
     /*--- Compute MTF values for the selectors. ---*/
     {
-        let mut pos: [u8; BZ_N_GROUPS] = [0; BZ_N_GROUPS];
-        let mut ll_i: u8;
+        let mut pos: [u8; BZ_N_GROUPS] = [0, 1, 2, 3, 4, 5];
+
         let mut tmp2: u8;
         let mut tmp: u8;
 
-        for i in 0..nGroups {
-            pos[i] = i as u8;
-        }
-
-        for i in 0..nSelectors {
-            ll_i = s.selector[i];
-            j = 0;
+        for (i, &ll_i) in s.selector[..nSelectors].iter().enumerate() {
+            let mut j = 0;
             tmp = pos[j as usize];
             while ll_i != tmp {
                 j += 1;
@@ -476,19 +468,19 @@ fn send_mtf_values(s: &mut EState) {
     }
 
     /*--- Assign actual codes for the tables. --*/
-    for t in 0..nGroups {
-        minLen = 32;
-        maxLen = 0;
+    for (t, len) in s.len[..nGroups].iter().enumerate() {
+        let mut minLen = 32;
+        let mut maxLen = 0;
 
-        for i in 0..alphaSize {
-            maxLen = Ord::max(maxLen, s.len[t][i] as i32);
-            minLen = Ord::min(minLen, s.len[t][i] as i32);
+        for &l in &len[..alphaSize] {
+            maxLen = Ord::max(maxLen, l as i32);
+            minLen = Ord::min(minLen, l as i32);
         }
 
         assert_h!(maxLen <= 17, 3004);
         assert_h!(minLen >= 1, 3005);
 
-        huffman::assign_codes(&mut s.code[t], &s.len[t], minLen, maxLen, alphaSize);
+        huffman::assign_codes(&mut s.code[t], len, minLen, maxLen, alphaSize);
     }
 
     /*--- Transmit the mapping table. ---*/
