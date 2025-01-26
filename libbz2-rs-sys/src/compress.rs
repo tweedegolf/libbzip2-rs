@@ -392,25 +392,11 @@ fn send_mtf_values(s: &mut EState) {
             nSelectors += 1;
 
             if nGroups == 6 && 50 == ge - gs + 1 {
-                macro_rules! BZ_ITUR {
-                    ($nn:expr) => {
-                        s.rfreq[bt as usize][mtfv[(gs + $nn) as usize] as usize] += 1;
-                    };
+                for chunk in mtfv[gs as usize..][..50].chunks_exact(10) {
+                    for &mtfv_i in chunk {
+                        s.rfreq[bt as usize][usize::from(mtfv_i)] += 1;
+                    }
                 }
-
-                #[rustfmt::skip]
-                {
-                    BZ_ITUR!(0);  BZ_ITUR!(1);  BZ_ITUR!(2);  BZ_ITUR!(3);  BZ_ITUR!(4);
-                    BZ_ITUR!(5);  BZ_ITUR!(6);  BZ_ITUR!(7);  BZ_ITUR!(8);  BZ_ITUR!(9);
-                    BZ_ITUR!(10); BZ_ITUR!(11); BZ_ITUR!(12); BZ_ITUR!(13); BZ_ITUR!(14);
-                    BZ_ITUR!(15); BZ_ITUR!(16); BZ_ITUR!(17); BZ_ITUR!(18); BZ_ITUR!(19);
-                    BZ_ITUR!(20); BZ_ITUR!(21); BZ_ITUR!(22); BZ_ITUR!(23); BZ_ITUR!(24);
-                    BZ_ITUR!(25); BZ_ITUR!(26); BZ_ITUR!(27); BZ_ITUR!(28); BZ_ITUR!(29);
-                    BZ_ITUR!(30); BZ_ITUR!(31); BZ_ITUR!(32); BZ_ITUR!(33); BZ_ITUR!(34);
-                    BZ_ITUR!(35); BZ_ITUR!(36); BZ_ITUR!(37); BZ_ITUR!(38); BZ_ITUR!(39);
-                    BZ_ITUR!(40); BZ_ITUR!(41); BZ_ITUR!(42); BZ_ITUR!(43); BZ_ITUR!(44);
-                    BZ_ITUR!(45); BZ_ITUR!(46); BZ_ITUR!(47); BZ_ITUR!(48); BZ_ITUR!(49);
-                };
             } else {
                 for i in gs..=ge {
                     s.rfreq[bt as usize][mtfv[i as usize] as usize] += 1;
