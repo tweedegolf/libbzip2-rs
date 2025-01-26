@@ -156,8 +156,8 @@ pub(crate) fn make_code_lengths(len: &mut [u8], freq: &[i32], alphaSize: usize, 
 }
 
 #[inline(always)]
-pub(crate) fn assign_codes(code: &mut [i32], length: &[u8], minLen: u8, maxLen: u8) {
-    let mut vec: i32 = 0;
+pub(crate) fn assign_codes(code: &mut [u32], length: &[u8], minLen: u8, maxLen: u8) {
+    let mut vec: u32 = 0;
     for n in minLen..=maxLen {
         for (i, &l) in length.iter().enumerate() {
             if l == n {
