@@ -20,6 +20,7 @@ bench = false
 default = ["stdio"]
 stdio = ["libbz2-rs-sys/stdio"]
 custom-prefix = ["libbz2-rs-sys/custom-prefix"] # use the LIBBZ2_RS_SYS_PREFIX to prefix all exported symbols
+semver-prefix = ["libbz2-rs-sys/semver-prefix"] # prefix all symbols in a semver-compatible way
 capi = []
 
 [dependencies]
