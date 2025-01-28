@@ -344,6 +344,11 @@ jobs:
         run: |
           cargo build --release --target ${{matrix.target}} --features=custom-prefix
           objdump -tT target/${{matrix.target}}/release/deps/libbz2_rs.so | grep -q "MY_CUSTOM_PREFIX_BZ2_bzCompressInit" || (echo "symbol not found!" && exit 1)
+      - name: "cdylib: semver-prefix"
+        working-directory: libbz2-rs-sys-cdylib
+        run: |
+          cargo build --release --target ${{matrix.target}} --features=semver-prefix
+          objdump -tT target/${{matrix.target}}/release/deps/libbz2_rs.so | grep -q -E "LIBBZ2_RS_SYS_v0.[0-9]+.x_BZ2_bzCompressInit" || (echo "symbol not found!" && exit 1)
 
   cargo-c-dynamic-library:
     name: cargo-c dynamic library
