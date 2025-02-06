@@ -525,9 +525,6 @@ fn mainQSort3(
     let mut n: i32;
     let mut m: i32;
     let mut med: i32;
-    let mut lo: i32;
-    let mut hi: i32;
-    let mut d: i32;
 
     let mut stack = [(0i32, 0i32, 0i32); 100];
 
@@ -538,7 +535,9 @@ fn mainQSort3(
         assert_h!(sp < MAIN_QSORT_STACK_SIZE as usize - 2, 1001);
 
         sp -= 1;
-        (lo, hi, d) = stack[sp];
+
+        let (lo, hi, d) = stack[sp];
+
         if hi - lo < MAIN_QSORT_SMALL_THRESH || d > MAIN_QSORT_DEPTH_THRESH {
             mainSimpleSort(ptr, block, quadrant, nblock, lo, hi, d, budget);
             if *budget < 0 {
