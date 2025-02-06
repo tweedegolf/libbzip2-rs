@@ -1015,9 +1015,9 @@ pub(crate) fn decompress(
                             let bytes_needed = bits_needed.div_ceil(8);
 
                             if strm.avail_in as usize >= bytes_needed {
-                                for t in 0..nGroups {
+                                for t in 0..usize::from(nGroups) {
                                     let mut curr = GET_BITS!(strm, s, 5);
-                                    for i in 0..alphaSize {
+                                    for i in 0..usize::from(alphaSize) {
                                         loop {
                                             if !(1..=20).contains(&curr) {
                                                 error!(BZ_DATA_ERROR);
@@ -1031,7 +1031,7 @@ pub(crate) fn decompress(
                                             }
                                         }
 
-                                        s.len[usize::from(t)][usize::from(i)] = curr as u8;
+                                        s.len[t][i] = curr as u8;
                                     }
                                 }
 
