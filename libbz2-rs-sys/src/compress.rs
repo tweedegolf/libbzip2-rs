@@ -42,7 +42,7 @@ impl<'a> LiveWriter<'a> {
         self.bs_buff = 0;
     }
 
-    #[inline(always)]
+    #[inline]
     fn finish(&mut self) {
         while self.bs_live > 0 {
             self.zbits[self.num_z as usize] = (self.bs_buff >> 24) as u8;
@@ -52,7 +52,7 @@ impl<'a> LiveWriter<'a> {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     fn flush_whole_bytes(&mut self) {
         let range = self.num_z as usize..self.num_z as usize + 4;
         if let Some(dst) = self.zbits.get_mut(range) {
