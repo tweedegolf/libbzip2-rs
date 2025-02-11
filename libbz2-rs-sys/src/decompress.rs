@@ -14,7 +14,7 @@ use crate::{debug_log, huffman};
 const MTFA_SIZE: u16 = 4096;
 const MTFL_SIZE: usize = 16;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(non_camel_case_types)]
 pub(crate) enum State {
     BZ_X_IDLE = 1,
@@ -187,11 +187,21 @@ pub(crate) fn decompress(
                         break v;
                     }
 
-                    if let Some((bit_buffer, bits_used)) = strm.pull_u64($s.bsBuff, $s.bsLive) {
-                        $s.bsBuff = bit_buffer;
-                        $s.bsLive = bits_used;
-                    } else if let Some((bit_buffer, bits_used)) = strm.pull_u8($s.bsBuff, $s.bsLive)
-                    {
+                    // try and read up to 8 bytes, but only if there is no risk of reading past the
+                    // end of the file. This is important in a multistream scenario (where 2 bzip2
+                    // files are stored back-to-back)
+                    //
+                    // Before `State::BZ_X_ENDHDR_2` is reached, at least 9 more bytes are expected
+                    // (in a valid file), so reading 8 bytes will not cross the boundary between two files.
+                    if $s.state < State::BZ_X_ENDHDR_2 {
+                        if let Some((bit_buffer, bits_used)) = strm.pull_u64($s.bsBuff, $s.bsLive) {
+                            $s.bsBuff = bit_buffer;
+                            $s.bsLive = bits_used;
+                            continue;
+                        }
+                    }
+
+                    if let Some((bit_buffer, bits_used)) = strm.pull_u8($s.bsBuff, $s.bsLive) {
                         $s.bsBuff = bit_buffer;
                         $s.bsLive = bits_used;
                     } else {
